@@ -1,0 +1,42 @@
+{% extends "portal_base.html" %}
+{% block content %}
+
+<style>
+.success-box { background: white; border-radius: 14px; padding: 28px 20px; text-align: center; }
+.tick { font-size: 3rem; margin-bottom: 12px; }
+.receipt { background: #f8fafc; border-radius: 10px; padding: 14px; margin-top: 20px; text-align: left; font-size: 0.88rem; }
+.receipt .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e2e8f0; }
+.receipt .row:last-child { border-bottom: none; font-weight: 700; }
+#timer { font-size: 1.6rem; font-weight: 800; color: #2563eb; margin: 12px 0; }
+</style>
+
+<div class="success-box">
+  <div class="tick">✅</div>
+  <h2 style="color:#065f46;font-size:1.2rem">Payment Confirmed!</h2>
+  <p style="color:#64748b;font-size:0.9rem;margin-top:6px">You're connected. Time remaining:</p>
+  <div id="timer">--:--:--</div>
+
+  <div class="receipt">
+    <div class="row"><span>Package</span><span>{{ package.name }}</span></div>
+    <div class="row"><span>Duration</span><span>{{ package.duration_hours }}h</span></div>
+    <div class="row"><span>Phone</span><span>{{ session.phone_number }}</span></div>
+    <div class="row"><span>Amount Paid</span><span>Ksh {{ session.amount_paid }}</span></div>
+  </div>
+</div>
+
+<script>
+const expiresAt = new Date("{{ expires_at }}");
+function tick() {
+  const now = new Date();
+  const diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+  const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+  const s = String(diff % 60).padStart(2, '0');
+  document.getElementById('timer').textContent = `${h}:${m}:${s}`;
+  if (diff > 0) setTimeout(tick, 1000);
+  else document.getElementById('timer').textContent = "Expired";
+}
+tick();
+</script>
+
+{% endblock %}

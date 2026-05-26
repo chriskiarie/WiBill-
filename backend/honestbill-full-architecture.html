@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HonestBill — Full System Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@75,300;75,400;75,700;75,900;125,900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0d0f;
+  --ink: #f0ede6;
+  --surface: #111417;
+  --surface2: #171b1f;
+  --surface3: #1e2328;
+  --border: rgba(240,237,230,0.08);
+  --border2: rgba(240,237,230,0.14);
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,0.12);
+  --amber: #ffab00;
+  --amber-dim: rgba(255,171,0,0.1);
+  --blue: #40c4ff;
+  --blue-dim: rgba(64,196,255,0.1);
+  --red: #ff5252;
+  --red-dim: rgba(255,82,82,0.1);
+  --purple: #e040fb;
+  --purple-dim: rgba(224,64,251,0.1);
+  --muted: rgba(240,237,230,0.4);
+  --muted2: rgba(240,237,230,0.2);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Anybody', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* SCAN LINE EFFECT */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events:none;
+  z-index:0;
+}
+
+.wrap { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 32px 100px; }
+
+/* ═══ HEADER ═══ */
+.hdr {
+  padding: 64px 0 56px;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.hdr::before {
+  content: 'ARCHITECTURE v1.0';
+  position: absolute;
+  top: 64px; right: 0;
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+}
+
+.eyebrow {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--green);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: clamp(56px, 9vw, 108px);
+  font-weight: 900;
+  font-stretch: 125%;
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+h1 em { font-style: normal; color: var(--green); }
+
+.hdr-sub {
+  font-family: 'Courier Prime', monospace;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 600px;
+  margin-bottom: 36px;
+}
+
+.hdr-stats {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.stat { display:flex; flex-direction:column; gap:4px; }
+.stat-n { font-size: 28px; font-weight: 900; font-stretch: 125%; line-height:1; }
+.stat-l { font-family: 'Courier Prime', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--muted); text-transform: uppercase; }
+
+/* ═══ SECTION HEADERS ═══ */
+.sec-hdr {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.sec-num {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+}
+
+.sec-title {
+  font-size: 11px;
+  font-weight: 700;
+  font-stretch: 125%;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sec-line { flex:1; height:1px; background:var(--border); }
+
+.section { margin-bottom: 72px; }
+
+/* ═══ CONCEPT BLOCK ═══ */
+.concept {
+  background: var(--green-dim);
+  border: 1px solid rgba(0,230,118,0.2);
+  border-left: 3px solid var(--green);
+  padding: 28px 32px;
+  margin-bottom: 72px;
+}
+
+.concept p {
+  font-family: 'Courier Prime', monospace;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink);
+}
+
+.concept strong { color: var(--green); font-weight: 700; }
+
+/* ═══ THREE ACTORS ═══ */
+.actors {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 72px;
+}
+
+.actor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 28px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.actor::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--actor-color);
+}
+
+.actor-icon { font-size: 32px; margin-bottom: 16px; }
+.actor-role {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.actor-name { font-size: 20px; font-weight: 900; font-stretch: 125%; margin-bottom: 12px; color: var(--actor-color); }
+.actor-desc { font-family: 'Courier Prime', monospace; font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+/* ═══ TRANSACTION FLOW ═══ */
+.flow {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 72px;
+}
+
+.flow-hdr {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.flow-hdr-title { font-family:'Courier Prime',monospace; font-size:11px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; }
+
+.dot { width:8px; height:8px; border-radius:50%; }
+.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-amber { background: var(--amber); }
+.dot-red { background: var(--red); }
+
+.flow-steps { padding: 0; }
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 56px 1fr 200px;
+  border-bottom: 1px solid var(--border);
+  min-height: 72px;
+  transition: background 0.15s;
+}
+
+.flow-step:last-child { border-bottom: none; }
+.flow-step:hover { background: var(--surface2); }
+
+.step-n {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  color: var(--muted2);
+}
+
+.step-body { padding: 18px 24px; }
+
+.step-action {
+  font-size: 14px;
+  font-weight: 700;
+  font-stretch: 125%;
+  margin-bottom: 4px;
+}
+
+.step-detail {
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.step-who {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 18px 24px;
+  border-left: 1px solid var(--border);
+}
+
+.who-pill {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: 2px;
+}
+
+/* ═══ ARCHITECTURE LAYERS ═══ */
+.arch-layers { display: flex; flex-direction: column; gap: 12px; margin-bottom: 72px; }
+
+.layer {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.layer-label {
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+  padding: 20px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.layer-num {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+
+.layer-name {
+  font-size: 13px;
+  font-weight: 700;
+  font-stretch: 125%;
+  color: var(--layer-color, var(--ink));
+}
+
+.layer-body { padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.service-chip {
+  background: var(--chip-bg, var(--surface3));
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  color: var(--chip-color, var(--ink));
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-chip.key {
+  border-color: var(--chip-border, rgba(0,230,118,0.3));
+  background: var(--chip-bg-key, rgba(0,230,118,0.06));
+  color: var(--chip-color-key, var(--green));
+}
+
+/* ═══ DATABASE SCHEMA ═══ */
+.schema-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 72px;
+}
+
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.table-hdr {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-name {
+  font-family: 'Courier Prime', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.table-tag {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+
+.field:last-child { border-bottom: none; }
+
+.field-name {
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pk { color: var(--amber); font-size: 9px; letter-spacing: 0.1em; }
+.fk { color: var(--blue); font-size: 9px; letter-spacing: 0.1em; }
+
+.field-type {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ═══ PHASE PLAN ═══ */
+.phases { display: flex; flex-direction: column; gap: 0; margin-bottom: 72px; border: 1px solid var(--border); }
+
+.phase-row {
+  display: grid;
+  grid-template-columns: 80px 240px 1fr 120px;
+  border-bottom: 1px solid var(--border);
+  min-height: 88px;
+  position: relative;
+}
+
+.phase-row:last-child { border-bottom: none; }
+.phase-row::before { content:''; position:absolute; top:0; left:0; bottom:0; width:3px; background: var(--phase-color); }
+
+.phase-num-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.phase-big-num {
+  font-size: 36px;
+  font-weight: 900;
+  font-stretch: 125%;
+  color: var(--phase-color);
+  line-height: 1;
+  opacity: 0.4;
+}
+
+.phase-info {
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--surface);
+}
+
+.phase-week {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--muted2);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.phase-name {
+  font-size: 15px;
+  font-weight: 700;
+  font-stretch: 125%;
+  color: var(--phase-color);
+  margin-bottom: 4px;
+}
+
+.phase-sub {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.phase-tasks {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.phase-task {
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.phase-task::before { content: '→'; color: var(--phase-color); flex-shrink: 0; }
+
+.phase-eod {
+  padding: 16px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  background: var(--surface);
+}
+
+.eod-label {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  text-transform: uppercase;
+}
+
+.eod-text {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ═══ MPESA DARAJA FLOW ═══ */
+.daraja-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 72px;
+}
+
+.daraja-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.daraja-hdr {
+  background: var(--amber-dim);
+  border-bottom: 1px solid rgba(255,171,0,0.15);
+  padding: 12px 20px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--amber);
+  text-transform: uppercase;
+}
+
+.daraja-body { padding: 16px 20px; }
+
+.code-block {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.code-block .k { color: var(--blue); }
+.code-block .s { color: var(--green); }
+.code-block .c { color: var(--muted); }
+.code-block .v { color: var(--amber); }
+
+/* ═══ MIKROTIK SECTION ═══ */
+.mikrotik-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 72px;
+}
+
+.mikrotik-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.mikrotik-hdr {
+  background: var(--blue-dim);
+  border-bottom: 1px solid rgba(64,196,255,0.15);
+  padding: 12px 20px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+
+/* ═══ SECURITY MATRIX ═══ */
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 72px;
+}
+
+.sec-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sec-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--sec-color);
+}
+
+.sec-icon-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.sec-icon { font-size: 20px; }
+.sec-cat { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:0.15em; color:var(--muted2); text-transform:uppercase; }
+.sec-title { font-size:13px; font-weight:700; font-stretch:125%; margin-bottom:8px; color: var(--sec-color); }
+.sec-items { list-style:none; display:flex; flex-direction:column; gap:5px; }
+.sec-items li { font-family:'Courier Prime',monospace; font-size:11px; color:var(--muted); line-height:1.4; display:flex; align-items:flex-start; gap:6px; }
+.sec-items li::before { content:'·'; color:var(--sec-color); flex-shrink:0; }
+
+/* ═══ REVENUE MODEL ═══ */
+.revenue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 72px;
+}
+
+.rev-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rev-label { font-family:'Courier Prime',monospace; font-size:9px; letter-spacing:0.2em; color:var(--muted2); text-transform:uppercase; }
+.rev-value { font-size:36px; font-weight:900; font-stretch:125%; line-height:1; color: var(--rev-color); }
+.rev-desc { font-family:'Courier Prime',monospace; font-size:11px; color:var(--muted); line-height:1.6; margin-top:4px; }
+
+/* ═══ ROADMAP TIMELINE ═══ */
+.roadmap { margin-bottom: 72px; }
+
+.roadmap-phase {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  margin-bottom: 40px;
+  gap: 0;
+}
+
+.rm-left {
+  padding-right: 32px;
+  border-right: 2px solid var(--border2);
+  position: relative;
+}
+
+.rm-left::after {
+  content: '';
+  position: absolute;
+  right: -5px; top: 8px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--rm-color);
+  box-shadow: 0 0 10px var(--rm-color);
+}
+
+.rm-phase-label {
+  font-family: 'Courier Prime', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--muted2);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.rm-phase-name {
+  font-size: 14px;
+  font-weight: 700;
+  font-stretch: 125%;
+  color: var(--rm-color);
+  margin-bottom: 4px;
+}
+
+.rm-phase-time {
+  font-family: 'Courier Prime', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.rm-right { padding-left: 32px; padding-top: 2px; }
+
+.rm-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rm-feat {
+  font-family: 'Courier Prime', monospace;
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  color: var(--muted);
+}
+
+.rm-feat.highlight {
+  border-color: var(--rm-color);
+  color: var(--rm-color);
+  background: rgba(var(--rm-rgb), 0.06);
+}
+
+/* ═══ CUTS / NOT BUILDING ═══ */
+.cuts {
+  background: var(--red-dim);
+  border: 1px solid rgba(255,82,82,0.15);
+  border-left: 3px solid var(--red);
+  padding: 28px 32px;
+  margin-bottom: 72px;
+}
+
+.cuts h3 { font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:0.2em; color:var(--red); text-transform:uppercase; margin-bottom:16px; }
+
+.cuts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+.cut-item { font-family:'Courier Prime',monospace; font-size:11px; color:var(--muted); display:flex; align-items:flex-start; gap:8px; }
+.cut-item::before { content:'✗'; color:var(--red); flex-shrink:0; }
+
+/* ═══ FOOTER ═══ */
+footer {
+  border-top: 1px solid var(--border2);
+  padding: 32px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-brand { font-size:20px; font-weight:900; font-stretch:125%; text-transform:uppercase; }
+.footer-brand em { font-style:normal; color:var(--green); }
+.footer-note { font-family:'Courier Prime',monospace; font-size:10px; color:var(--muted2); letter-spacing:0.1em; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 700px) {
+  .actors { grid-template-columns: 1fr; }
+  .flow-step { grid-template-columns: 40px 1fr; }
+  .step-who { display:none; }
+  .layer { grid-template-columns: 1fr; }
+  .layer-label { border-right:none; border-bottom: 1px solid var(--border); }
+  .daraja-grid, .mikrotik-grid, .revenue-grid { grid-template-columns: 1fr; }
+  .phase-row { grid-template-columns: 56px 1fr; }
+  .phase-eod { display:none; }
+  .schema-grid { grid-template-columns: 1fr; }
+  .roadmap-phase { grid-template-columns: 1fr; }
+  .rm-left { border-right:none; border-bottom:2px solid var(--border2); padding-right:0; padding-bottom:16px; margin-bottom:16px; }
+  .rm-left::after { display:none; }
+  .rm-right { padding-left:0; }
+  .cuts-grid { grid-template-columns: 1fr; }
+}
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.section { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="hdr">
+  <div class="eyebrow">// System Design Document — HonestBill</div>
+  <h1>Hotspot<br><em>Billing</em><br>Platform</h1>
+  <p class="hdr-sub">A multi-tenant SaaS platform that lets independent ISPs deploy branded captive portals, accept M-Pesa payments, and manage MikroTik hotspot access — automatically. You run the infrastructure. ISPs plug in. Users pay. Everyone gets what they paid for.</p>
+  <div class="hdr-stats">
+    <div class="stat"><span class="stat-n" style="color:var(--green)">3</span><span class="stat-l">User types</span></div>
+    <div class="stat"><span class="stat-n" style="color:var(--amber)">7</span><span class="stat-l">Core services</span></div>
+    <div class="stat"><span class="stat-n" style="color:var(--blue)">8</span><span class="stat-l">DB tables</span></div>
+    <div class="stat"><span class="stat-n" style="color:var(--purple)">4</span><span class="stat-l">Build phases</span></div>
+  </div>
+</header>
+
+<!-- ══════════════ CONCEPT ══════════════ -->
+<div class="concept">
+  <p>The <strong>core insight</strong> no existing ISP billing system has: network availability must be a first-class citizen in every billing decision. A user connects to WiFi → your system checks if that WiFi is actually up → if it is, they can pay and get access → if it's not, they're told exactly what's happening before they hand over a single shilling. This is not a feature. It is the product.</p>
+</div>
+
+<!-- ══════════════ THREE ACTORS ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">01</span>
+    <span class="sec-title">The Three Actors</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="actors">
+    <div class="actor" style="--actor-color: var(--purple)">
+      <div class="actor-icon">👑</div>
+      <div class="actor-role">Platform owner</div>
+      <div class="actor-name">You</div>
+      <div class="actor-desc">Owns the platform. Onboards ISPs. Sets commission rates. Sees all revenue across all tenants. Never touches a router directly.</div>
+    </div>
+    <div class="actor" style="--actor-color: var(--amber)">
+      <div class="actor-icon">📡</div>
+      <div class="actor-role">Tenant / ISP</div>
+      <div class="actor-name">The ISP</div>
+      <div class="actor-desc">Small/independent ISP. Has a MikroTik router and internet to sell. Pays you a commission on every transaction. Manages their own packages and branding.</div>
+    </div>
+    <div class="actor" style="--actor-color: var(--green)">
+      <div class="actor-icon">📱</div>
+      <div class="actor-role">End customer</div>
+      <div class="actor-name">WiFi User</div>
+      <div class="actor-desc">Connects to hotspot. Gets redirected to captive portal. Picks a package. Pays M-Pesa. Gets internet. Simple. Honest. No surprises.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CORE TRANSACTION FLOW ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">02</span>
+    <span class="sec-title">The Core Transaction Flow</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="flow">
+    <div class="flow-hdr">
+      <div class="dot dot-green"></div>
+      <span class="flow-hdr-title">Happy path — user pays, gets internet</span>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-n">01</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--green)">Connect to WiFi</div>
+          <div class="step-detail">User's device joins hotspot SSID. MikroTik intercepts all HTTP traffic. Redirects browser to:<br><code style="color:var(--amber)">https://pay.honestbill.co.ke/portal/{isp_slug}?mac=XX:XX:XX&ip=192.168.x.x</code></div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--green);border-color:rgba(0,230,118,0.3)">MIKROTIK</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">02</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--blue)">Network Status Check</div>
+          <div class="step-detail">Portal loads. System immediately pings the ISP's uplink. If UP → show packages normally. If DOWN → show honest status: "Service is currently down. Estimated restoration: checking..." No pay button shown.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--blue);border-color:rgba(64,196,255,0.3)">YOUR BACKEND</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">03</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--amber)">Package Selection</div>
+          <div class="step-detail">User sees ISP-branded portal with packages (defined by ISP admin). Selects plan. Enters M-Pesa phone number. Hits PAY.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--amber);border-color:rgba(255,171,0,0.3)">USER</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">04</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--amber)">STK Push Initiated</div>
+          <div class="step-detail">Backend calls Daraja API → STK Push to user's phone. M-Pesa prompt appears on user's screen. Portal shows "Waiting for M-Pesa confirmation..." with polling.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--amber);border-color:rgba(255,171,0,0.3)">DARAJA API</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">05</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--green)">M-Pesa Confirms Payment</div>
+          <div class="step-detail">User enters PIN. Safaricom calls your callback URL:<br><code style="color:var(--amber)">POST /api/mpesa/callback/{tenant_id}</code><br>ResultCode=0 → payment confirmed. Receipt extracted.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--amber);border-color:rgba(255,171,0,0.3)">SAFARICOM</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">06</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--blue)">MikroTik Session Created</div>
+          <div class="step-detail">Backend calls RouterOS API → creates hotspot user with MAC address binding + session duration. User's device is now authorized. Internet opens automatically.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--blue);border-color:rgba(64,196,255,0.3)">YOUR BACKEND</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">07</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--purple)">Revenue Split Recorded</div>
+          <div class="step-detail">Transaction recorded: amount_ksh, platform_fee_ksh (your cut), isp_earnings_ksh. ISP balance updated. You settle with ISPs weekly.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--purple);border-color:rgba(224,64,251,0.3)">YOUR BACKEND</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">08</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--red)">Session Expires → Auto-Kick</div>
+          <div class="step-detail">APScheduler checks expiring sessions every minute. On expiry: RouterOS API removes hotspot user. User is redirected back to captive portal. They can buy again.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--red);border-color:rgba(255,82,82,0.3)">SCHEDULER</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ARCHITECTURE LAYERS ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">03</span>
+    <span class="sec-title">System Architecture Layers</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="arch-layers">
+
+    <div class="layer" style="--layer-color: var(--ink)">
+      <div class="layer-label"><div class="layer-num">L0</div><div class="layer-name">Client Layer</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(0,230,118,0.3);--chip-bg-key:rgba(0,230,118,0.06);--chip-color-key:var(--green)">📱 Captive Portal (mobile-first HTML)</div>
+        <div class="service-chip key" style="--chip-border:rgba(255,171,0,0.3);--chip-bg-key:rgba(255,171,0,0.06);--chip-color-key:var(--amber)">📊 ISP Dashboard (Next.js)</div>
+        <div class="service-chip key" style="--chip-border:rgba(224,64,251,0.3);--chip-bg-key:rgba(224,64,251,0.06);--chip-color-key:var(--purple)">👑 Platform Admin (Next.js)</div>
+        <div class="service-chip">🌐 Public Status Page</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--green)">
+      <div class="layer-label"><div class="layer-num">L1</div><div class="layer-name">API Gateway</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(0,230,118,0.3);--chip-bg-key:rgba(0,230,118,0.06);--chip-color-key:var(--green)">FastAPI (single process, MVP)</div>
+        <div class="service-chip">Rate limiting (slowapi)</div>
+        <div class="service-chip">JWT Auth middleware</div>
+        <div class="service-chip">CORS policy</div>
+        <div class="service-chip">Request logging</div>
+        <div class="service-chip">Safaricom IP whitelist</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--blue)">
+      <div class="layer-label"><div class="layer-num">L2</div><div class="layer-name">Core Services</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(64,196,255,0.3);--chip-bg-key:rgba(64,196,255,0.06);--chip-color-key:var(--blue)">🔌 Network Checker</div>
+        <div class="service-chip key" style="--chip-border:rgba(255,171,0,0.3);--chip-bg-key:rgba(255,171,0,0.06);--chip-color-key:var(--amber)">💳 M-Pesa / Daraja Service</div>
+        <div class="service-chip key" style="--chip-border:rgba(64,196,255,0.3);--chip-bg-key:rgba(64,196,255,0.06);--chip-color-key:var(--blue)">📡 MikroTik API Service</div>
+        <div class="service-chip">Session Manager</div>
+        <div class="service-chip">Transaction Ledger</div>
+        <div class="service-chip">Package Manager</div>
+        <div class="service-chip">Tenant Manager</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--amber)">
+      <div class="layer-label"><div class="layer-num">L3</div><div class="layer-name">Background Jobs</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(255,171,0,0.3);--chip-bg-key:rgba(255,171,0,0.06);--chip-color-key:var(--amber)">⏱ Session expiry checker (60s)</div>
+        <div class="service-chip key" style="--chip-border:rgba(64,196,255,0.3);--chip-bg-key:rgba(64,196,255,0.06);--chip-color-key:var(--blue)">📶 Network health poller (60s)</div>
+        <div class="service-chip">STK Push timeout handler (90s)</div>
+        <div class="service-chip">Payment reconciliation (daily)</div>
+        <div class="service-chip">APScheduler (in-process)</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--purple)">
+      <div class="layer-label"><div class="layer-num">L4</div><div class="layer-name">Data Layer</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(224,64,251,0.3);--chip-bg-key:rgba(224,64,251,0.06);--chip-color-key:var(--purple)">PostgreSQL (primary DB)</div>
+        <div class="service-chip">Redis (session cache + rate limit)</div>
+        <div class="service-chip">Alembic (migrations)</div>
+        <div class="service-chip">SQLAlchemy async ORM</div>
+        <div class="service-chip">Fernet encryption (secrets at rest)</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--muted)">
+      <div class="layer-label"><div class="layer-num">L5</div><div class="layer-name">External APIs</div></div>
+      <div class="layer-body">
+        <div class="service-chip key" style="--chip-border:rgba(255,171,0,0.3);--chip-bg-key:rgba(255,171,0,0.06);--chip-color-key:var(--amber)">Safaricom Daraja (STK Push + callback)</div>
+        <div class="service-chip key" style="--chip-border:rgba(64,196,255,0.3);--chip-bg-key:rgba(64,196,255,0.06);--chip-color-key:var(--blue)">MikroTik RouterOS API (librouteros)</div>
+        <div class="service-chip">Postmark (transactional email — future)</div>
+        <div class="service-chip">Africa's Talking SMS (future)</div>
+      </div>
+    </div>
+
+    <div class="layer" style="--layer-color: var(--muted2)">
+      <div class="layer-label"><div class="layer-num">L6</div><div class="layer-name">Infra / Hosting</div></div>
+      <div class="layer-body">
+        <div class="service-chip">Railway (FastAPI + Postgres + Redis)</div>
+        <div class="service-chip">Vercel (Next.js dashboards)</div>
+        <div class="service-chip">Cloudflare (DNS + free WAF + HTTPS)</div>
+        <div class="service-chip">Docker (local dev)</div>
+        <div class="service-chip">GitHub Actions (CI/CD)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ DATABASE SCHEMA ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">04</span>
+    <span class="sec-title">Database Schema</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="schema-grid">
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">tenants</span><span class="table-tag">Multi-tenant root</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">slug</span><span class="field-type">varchar unique</span></div>
+      <div class="field"><span class="field-name">name</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">logo_url</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">primary_color</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">commission_rate</span><span class="field-type">numeric(5,4)</span></div>
+      <div class="field"><span class="field-name">balance_ksh</span><span class="field-type">numeric(12,2)</span></div>
+      <div class="field"><span class="field-name">is_active</span><span class="field-type">boolean</span></div>
+      <div class="field"><span class="field-name">created_at</span><span class="field-type">timestamptz</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">mikrotik_configs</span><span class="table-tag">Router auth</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">router_ip</span><span class="field-type">inet</span></div>
+      <div class="field"><span class="field-name">api_port</span><span class="field-type">integer</span></div>
+      <div class="field"><span class="field-name">api_username</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">api_password_enc</span><span class="field-type">text (fernet)</span></div>
+      <div class="field"><span class="field-name">hotspot_server</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">nas_ip_address</span><span class="field-type">inet</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">mpesa_configs</span><span class="table-tag">Daraja per tenant</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">shortcode</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">consumer_key_enc</span><span class="field-type">text (fernet)</span></div>
+      <div class="field"><span class="field-name">consumer_secret_enc</span><span class="field-type">text (fernet)</span></div>
+      <div class="field"><span class="field-name">passkey_enc</span><span class="field-type">text (fernet)</span></div>
+      <div class="field"><span class="field-name">callback_url</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">environment</span><span class="field-type">enum sandbox|live</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">packages</span><span class="table-tag">ISP plans</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">name</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">price_ksh</span><span class="field-type">numeric(8,2)</span></div>
+      <div class="field"><span class="field-name">duration_hours</span><span class="field-type">integer</span></div>
+      <div class="field"><span class="field-name">duration_label</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">max_devices</span><span class="field-type">integer</span></div>
+      <div class="field"><span class="field-name">is_active</span><span class="field-type">boolean</span></div>
+      <div class="field"><span class="field-name">display_order</span><span class="field-type">integer</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">sessions</span><span class="table-tag">Active access</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> package_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">mac_address</span><span class="field-type">macaddr</span></div>
+      <div class="field"><span class="field-name">phone_number</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">started_at</span><span class="field-type">timestamptz</span></div>
+      <div class="field"><span class="field-name">expires_at</span><span class="field-type">timestamptz</span></div>
+      <div class="field"><span class="field-name">status</span><span class="field-type">enum active|expired|revoked</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">transactions</span><span class="table-tag">Financial ledger</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> session_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">phone_number</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">amount_ksh</span><span class="field-type">numeric(8,2)</span></div>
+      <div class="field"><span class="field-name">platform_fee_ksh</span><span class="field-type">numeric(8,2)</span></div>
+      <div class="field"><span class="field-name">isp_earnings_ksh</span><span class="field-type">numeric(8,2)</span></div>
+      <div class="field"><span class="field-name">mpesa_receipt</span><span class="field-type">varchar unique</span></div>
+      <div class="field"><span class="field-name">status</span><span class="field-type">enum pending|success|failed</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">mpesa_callbacks</span><span class="table-tag">Audit / raw log</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">checkout_request_id</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">result_code</span><span class="field-type">integer</span></div>
+      <div class="field"><span class="field-name">result_desc</span><span class="field-type">varchar</span></div>
+      <div class="field"><span class="field-name">raw_payload</span><span class="field-type">jsonb</span></div>
+      <div class="field"><span class="field-name">received_at</span><span class="field-type">timestamptz</span></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-hdr"><span class="table-name">network_events</span><span class="table-tag">Uptime tracking</span></div>
+      <div class="field"><span class="field-name"><span class="pk">PK</span> id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name"><span class="fk">FK</span> tenant_id</span><span class="field-type">uuid</span></div>
+      <div class="field"><span class="field-name">status</span><span class="field-type">enum up|down|degraded</span></div>
+      <div class="field"><span class="field-name">latency_ms</span><span class="field-type">integer</span></div>
+      <div class="field"><span class="field-name">checked_at</span><span class="field-type">timestamptz</span></div>
+      <div class="field"><span class="field-name">outage_start</span><span class="field-type">timestamptz</span></div>
+      <div class="field"><span class="field-name">outage_end</span><span class="field-type">timestamptz nullable</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ MPESA / DARAJA ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">05</span>
+    <span class="sec-title">M-Pesa Daraja Integration</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="daraja-grid">
+    <div class="daraja-card">
+      <div class="daraja-hdr">01 — STK Push Request</div>
+      <div class="daraja-body">
+        <div class="code-block">
+<span class="c"># POST /api/portal/{slug}/pay</span>
+<span class="c"># User selects package, enters phone</span>
+
+<span class="k">payload</span> = {
+  <span class="s">"BusinessShortCode"</span>: tenant.shortcode,
+  <span class="s">"Password"</span>: generate_password(),
+  <span class="s">"Timestamp"</span>: <span class="v">now_str</span>,
+  <span class="s">"TransactionType"</span>: <span class="s">"CustomerPayBillOnline"</span>,
+  <span class="s">"Amount"</span>: <span class="v">package.price_ksh</span>,
+  <span class="s">"PartyA"</span>: <span class="v">phone_number</span>,
+  <span class="s">"PartyB"</span>: tenant.shortcode,
+  <span class="s">"PhoneNumber"</span>: <span class="v">phone_number</span>,
+  <span class="s">"CallBackURL"</span>: <span class="v">callback_url</span>,
+  <span class="s">"AccountReference"</span>: <span class="v">session_id</span>,
+  <span class="s">"TransactionDesc"</span>: <span class="v">package.name</span>
+}
+
+<span class="c"># Store CheckoutRequestID for matching</span>
+<span class="c"># Return 202 to portal — polling begins</span>
+        </div>
+      </div>
+    </div>
+    <div class="daraja-card">
+      <div class="daraja-hdr">02 — Callback Handler</div>
+      <div class="daraja-body">
+        <div class="code-block">
+<span class="c"># POST /api/mpesa/callback/{tenant_id}</span>
+<span class="c"># Safaricom calls this after user pays</span>
+
+<span class="k">if</span> result_code == <span class="v">0</span>:
+  <span class="c"># Extract receipt, amount, phone</span>
+  receipt = <span class="v">extract_receipt(payload)</span>
+  
+  <span class="c"># Record transaction (idempotent)</span>
+  <span class="k">await</span> record_transaction(
+    session_id, receipt, amount
+  )
+  
+  <span class="c"># Authorize MikroTik immediately</span>
+  <span class="k">await</span> mikrotik.add_hotspot_user(
+    mac=session.mac_address,
+    profile=package.name,
+    duration=package.duration_hours
+  )
+  
+  <span class="c"># Update session → active</span>
+  session.status = <span class="s">"active"</span>
+  session.started_at = <span class="v">now()</span>
+  session.expires_at = <span class="v">now() + duration</span>
+
+<span class="k">else</span>:
+  <span class="c"># Payment failed → notify portal</span>
+  session.status = <span class="s">"failed"</span>
+        </div>
+      </div>
+    </div>
+    <div class="daraja-card">
+      <div class="daraja-hdr">03 — Portal Polling</div>
+      <div class="daraja-body">
+        <div class="code-block">
+<span class="c"># Portal polls every 3 seconds</span>
+<span class="c"># GET /api/session/{session_id}/status</span>
+
+<span class="k">while</span> elapsed < <span class="v">90</span>:
+  status = <span class="k">await</span> poll_session()
+  
+  <span class="k">if</span> status == <span class="s">"active"</span>:
+    <span class="c"># Redirect to success page</span>
+    <span class="c"># Show timer countdown</span>
+    <span class="k">break</span>
+  
+  <span class="k">if</span> status == <span class="s">"failed"</span>:
+    <span class="c"># Show failure message</span>
+    <span class="c"># Offer retry — no double charge</span>
+    <span class="k">break</span>
+  
+  <span class="c"># Still pending — show spinner</span>
+  <span class="k">await</span> sleep(<span class="v">3</span>)
+
+<span class="c"># Timeout after 90s → STK expired</span>
+<span class="c"># Prompt user to try again</span>
+        </div>
+      </div>
+    </div>
+    <div class="daraja-card">
+      <div class="daraja-hdr">04 — Security Rules</div>
+      <div class="daraja-body">
+        <div class="code-block">
+<span class="c"># Callback endpoint hardened:</span>
+
+<span class="c"># 1. Whitelist Safaricom IPs only</span>
+ALLOWED_IPS = [
+  <span class="s">"196.201.214.200"</span>,
+  <span class="s">"196.201.214.206"</span>,
+  <span class="s">"196.201.213.114"</span>,
+  <span class="c">  # ...all Daraja IPs</span>
+]
+
+<span class="c"># 2. Verify receipt uniqueness</span>
+<span class="c"># mpesa_receipt is UNIQUE in DB</span>
+<span class="c"># Duplicate callback = no-op</span>
+
+<span class="c"># 3. STK push rate limit</span>
+<span class="c"># 1 per phone per 30 seconds</span>
+<span class="c"># Stored in Redis</span>
+
+<span class="c"># 4. Amount validation</span>
+<span class="c"># Confirm paid amount matches</span>
+<span class="c"># package price exactly</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MIKROTIK ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">06</span>
+    <span class="sec-title">MikroTik Integration</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="mikrotik-grid">
+    <div class="mikrotik-card">
+      <div class="mikrotik-hdr">ISP Setup (once)</div>
+      <div style="padding:16px 20px">
+        <div class="code-block">
+<span class="c"># On ISP's MikroTik — one-time setup</span>
+<span class="c"># Hotspot Server Profile → Login page</span>
+
+/ip hotspot
+set login-page=
+  <span class="s">https://pay.honestbill.co.ke</span>
+  <span class="s">/portal/{isp_slug}</span>
+
+<span class="c"># MikroTik auto-appends params:</span>
+<span class="c"># ?mac=...&ip=...&username=...&link-orig=...</span>
+
+<span class="c"># Create API user for your system</span>
+/user add name=<span class="v">honestbill</span>
+  password=<span class="v">STRONG_PASSWORD</span>
+  group=<span class="v">api-only</span>
+
+<span class="c"># Open API port (8728) to your</span>
+<span class="c"># server IP only — not internet</span>
+/ip firewall filter add
+  chain=input
+  src-address=<span class="v">YOUR_SERVER_IP</span>
+  dst-port=<span class="v">8728</span>
+  action=accept
+        </div>
+      </div>
+    </div>
+    <div class="mikrotik-card">
+      <div class="mikrotik-hdr">Session Management (Python)</div>
+      <div style="padding:16px 20px">
+        <div class="code-block">
+<span class="k">import</span> librouteros
+
+<span class="c"># Authorize user after payment</span>
+<span class="k">async def</span> add_hotspot_user(
+  tenant_id, mac, phone, hours
+):
+  config = <span class="k">await</span> get_mikrotik_config(
+    tenant_id
+  )
+  api = librouteros.connect(
+    host=config.router_ip,
+    username=config.api_username,
+    password=<span class="v">decrypt(config.api_password_enc)</span>
+  )
+  
+  api(<span class="s">'/ip/hotspot/user/add'</span>,
+    **{
+      <span class="s">'name'</span>: phone,
+      <span class="s">'mac-address'</span>: mac,
+      <span class="s">'profile'</span>: <span class="s">'default'</span>,
+      <span class="s">'comment'</span>: <span class="v">f'session:{session_id}'</span>,
+      <span class="s">'limit-uptime'</span>: <span class="v">f'{hours}h'</span>
+    }
+  )
+
+<span class="c"># Remove on expiry (scheduler)</span>
+<span class="k">async def</span> remove_hotspot_user(
+  tenant_id, mac
+):
+  <span class="c"># Find user by MAC, remove</span>
+  <span class="c"># User's internet closes immediately</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CAPTIVE PORTAL DETAIL ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">07</span>
+    <span class="sec-title">Captive Portal — The Honest Part</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="flow">
+    <div class="flow-hdr">
+      <div class="dot dot-green"></div>
+      <span class="flow-hdr-title">Portal screens — what user sees at each step</span>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-n">S1</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--green)">Network Status Banner — Always First</div>
+          <div class="step-detail">Before anything else renders, backend checks ISP uplink. GREEN: "Network is up — {latency}ms" → show packages. RED: "Network is currently down. We're aware. Do not pay until this clears." → no pay button, no package prices shown. This is the feature no one else has.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--green);border-color:rgba(0,230,118,0.3)">SCREEN 1</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">S2</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--amber)">Package Selection</div>
+          <div class="step-detail">ISP-branded design (logo + custom primary color). Packages displayed as clean cards: name, price in KSH, duration. Mobile-optimized. Loads fast even on slow connection — pure HTML, no JS framework, no CDN dependencies.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--amber);border-color:rgba(255,171,0,0.3)">SCREEN 2</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">S3</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--amber)">Payment Entry</div>
+          <div class="step-detail">Selected package confirmed. Phone number input (Safaricom format: 07XX or 01XX). PAY button. Simple. No account creation. No email. Just phone and PIN. One more network status check server-side before STK Push fires.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--amber);border-color:rgba(255,171,0,0.3)">SCREEN 3</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">S4</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--blue)">Waiting State</div>
+          <div class="step-detail">"Check your phone — M-Pesa prompt sent." Animated progress indicator. Polls /api/session/{id}/status every 3 seconds. 90-second timeout with clear message. No ambiguity about what to do next.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--blue);border-color:rgba(64,196,255,0.3)">SCREEN 4</span></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-n">S5</div>
+        <div class="step-body">
+          <div class="step-action" style="color:var(--green)">Success — Internet Active</div>
+          <div class="step-detail">Confirmed. M-Pesa receipt shown. Session expiry countdown timer. ISP contact info. Clean and fast. Browser now has full internet access — portal is the last thing they needed.</div>
+        </div>
+        <div class="step-who"><span class="who-pill" style="color:var(--green);border-color:rgba(0,230,118,0.3)">SCREEN 5</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SECURITY ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">08</span>
+    <span class="sec-title">Security Architecture</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="security-grid">
+    <div class="sec-card" style="--sec-color: var(--red)">
+      <div class="sec-icon-row"><span class="sec-icon">🔐</span><span class="sec-cat">Secrets</span></div>
+      <div class="sec-title">Encryption at Rest</div>
+      <ul class="sec-items">
+        <li>All MikroTik passwords encrypted with Fernet before DB insert</li>
+        <li>All M-Pesa credentials (consumer key, secret, passkey) encrypted</li>
+        <li>Master encryption key in environment only — never in DB</li>
+        <li>Separate keys per environment (dev vs prod)</li>
+      </ul>
+    </div>
+    <div class="sec-card" style="--sec-color: var(--amber)">
+      <div class="sec-icon-row"><span class="sec-icon">🌐</span><span class="sec-cat">Network</span></div>
+      <div class="sec-title">Transport Security</div>
+      <ul class="sec-items">
+        <li>HTTPS everywhere — Cloudflare handles TLS termination free</li>
+        <li>Daraja callback endpoint: Safaricom IP whitelist only</li>
+        <li>MikroTik API: your server IP whitelisted on router firewall</li>
+        <li>Redis not exposed externally — internal Railway network only</li>
+      </ul>
+    </div>
+    <div class="sec-card" style="--sec-color: var(--blue)">
+      <div class="sec-icon-row"><span class="sec-icon">⏱</span><span class="sec-cat">Rate Limiting</span></div>
+      <div class="sec-title">Abuse Prevention</div>
+      <ul class="sec-items">
+        <li>STK Push: 1 per phone number per 30 seconds (Redis)</li>
+        <li>Portal: 10 requests per IP per minute</li>
+        <li>Payment endpoint: 3 attempts per MAC per hour</li>
+        <li>Admin API: separate rate limits, stricter</li>
+      </ul>
+    </div>
+    <div class="sec-card" style="--sec-color: var(--green)">
+      <div class="sec-icon-row"><span class="sec-icon">✓</span><span class="sec-cat">Idempotency</span></div>
+      <div class="sec-title">No Double Charges</div>
+      <ul class="sec-items">
+        <li>mpesa_receipt is UNIQUE constraint in DB</li>
+        <li>Duplicate callback = silent no-op, no second session created</li>
+        <li>CheckoutRequestID tracked: can't initiate two for same session</li>
+        <li>Amount validated against package price on callback</li>
+      </ul>
+    </div>
+    <div class="sec-card" style="--sec-color: var(--purple)">
+      <div class="sec-icon-row"><span class="sec-icon">👤</span><span class="sec-cat">Access Control</span></div>
+      <div class="sec-title">Auth & Roles</div>
+      <ul class="sec-items">
+        <li>Platform admin and ISP admin are separate JWT contexts</li>
+        <li>ISP admin can only see their own tenant data</li>
+        <li>Platform admin sees all tenants</li>
+        <li>Portal has no auth — anonymous by design (MAC-based identity)</li>
+      </ul>
+    </div>
+    <div class="sec-card" style="--sec-color: var(--muted)">
+      <div class="sec-icon-row"><span class="sec-icon">📋</span><span class="sec-cat">Audit</span></div>
+      <div class="sec-title">Full Audit Trail</div>
+      <ul class="sec-items">
+        <li>Raw Daraja callbacks logged to mpesa_callbacks (append-only)</li>
+        <li>Every session state change timestamped</li>
+        <li>MikroTik API calls logged with result</li>
+        <li>Network events recorded — full uptime history per tenant</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ REVENUE MODEL ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">09</span>
+    <span class="sec-title">Revenue Model</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="revenue-grid">
+    <div class="rev-card">
+      <div class="rev-label">Your cut per transaction</div>
+      <div class="rev-value" style="--rev-color: var(--green)">10%</div>
+      <div class="rev-desc">Deducted automatically on every confirmed M-Pesa payment. ISP earns 90%. Settled weekly. Market rate is 10%. You can negotiate per ISP.</div>
+    </div>
+    <div class="rev-card">
+      <div class="rev-label">ISP doing Ksh 50k/mo</div>
+      <div class="rev-value" style="--rev-color: var(--amber)">5k</div>
+      <div class="rev-desc">You earn Ksh 5,000/month from one ISP. 10 ISPs = Ksh 50k/month. Passive. You're not the one selling internet — you built the rails.</div>
+    </div>
+    <div class="rev-card">
+      <div class="rev-label">Scale lever</div>
+      <div class="rev-value" style="--rev-color: var(--blue)">∞</div>
+      <div class="rev-desc">Each new ISP you onboard adds revenue with zero additional infrastructure cost. The system scales horizontally. One backend serves 100 ISPs as easily as 1.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ BUILD PHASES ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">10</span>
+    <span class="sec-title">Build Phases — Week 1 MVP</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="phases">
+    <div class="phase-row" style="--phase-color: var(--blue)">
+      <div class="phase-num-cell"><div class="phase-big-num">1</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 1 — Monday</div>
+        <div class="phase-name">Foundation</div>
+        <div class="phase-sub">Database + API skeleton</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">FastAPI project + all models + Alembic migration</div>
+        <div class="phase-task">PostgreSQL + Redis via Docker Compose</div>
+        <div class="phase-task">JWT auth — platform admin + ISP admin roles</div>
+        <div class="phase-task">Seed: 1 tenant, 5 packages, MikroTik config</div>
+        <div class="phase-task">Config encrypted in DB from day one</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">API running. DB seeded. Auth working. All tables created.</div></div>
+    </div>
+    <div class="phase-row" style="--phase-color: var(--amber)">
+      <div class="phase-num-cell"><div class="phase-big-num">2</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 2 — Tuesday</div>
+        <div class="phase-name">Network Checker + MikroTik</div>
+        <div class="phase-sub">The honest part + router control</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">ICMP ping per tenant on 60s schedule via APScheduler</div>
+        <div class="phase-task">Network status API: GET /network/{tenant_id}/status</div>
+        <div class="phase-task">MikroTik service: connect, add_user, remove_user</div>
+        <div class="phase-task">Session expiry job: check every 60s, remove expired</div>
+        <div class="phase-task">Test both with real MikroTik on local network</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">Can ping ISP uplink. Can add/remove MikroTik users via Python.</div></div>
+    </div>
+    <div class="phase-row" style="--phase-color: var(--amber)">
+      <div class="phase-num-cell"><div class="phase-big-num">3</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 3 — Wednesday</div>
+        <div class="phase-name">M-Pesa / Daraja</div>
+        <div class="phase-sub">STK Push + callback handler</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">Daraja service: OAuth token + STK Push initiation</div>
+        <div class="phase-task">Callback handler with IP whitelist + idempotency</div>
+        <div class="phase-task">Transaction recording with platform fee split</div>
+        <div class="phase-task">Session polling endpoint for portal</div>
+        <div class="phase-task">Test with Daraja sandbox — real STK Push to phone</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">STK Push fires. Callback received. Session activates. Full payment chain in sandbox.</div></div>
+    </div>
+    <div class="phase-row" style="--phase-color: var(--green)">
+      <div class="phase-num-cell"><div class="phase-big-num">4</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 4 — Thursday</div>
+        <div class="phase-name">Captive Portal HTML</div>
+        <div class="phase-sub">The thing users actually see</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">FastAPI serves portal HTML at /portal/{slug}</div>
+        <div class="phase-task">Read MAC + IP from MikroTik URL params</div>
+        <div class="phase-task">Network status banner — honest, always first</div>
+        <div class="phase-task">Package cards, phone input, pay button</div>
+        <div class="phase-task">Waiting screen with 3s polling. Success screen with timer.</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">Portal loads on phone. User can select package, pay M-Pesa, get internet.</div></div>
+    </div>
+    <div class="phase-row" style="--phase-color: var(--purple)">
+      <div class="phase-num-cell"><div class="phase-big-num">5</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 5 — Friday</div>
+        <div class="phase-name">ISP Dashboard</div>
+        <div class="phase-sub">Next.js — ISP sees their money</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">ISP login + JWT session</div>
+        <div class="phase-task">Live transactions feed with M-Pesa receipts</div>
+        <div class="phase-task">Package management: add, edit, enable/disable</div>
+        <div class="phase-task">Active sessions list with expiry countdown</div>
+        <div class="phase-task">Revenue summary: gross, fee, net, balance</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">ISP can log in, see transactions, manage packages. All at a real URL.</div></div>
+    </div>
+    <div class="phase-row" style="--phase-color: var(--red)">
+      <div class="phase-num-cell"><div class="phase-big-num">6</div></div>
+      <div class="phase-info">
+        <div class="phase-week">Day 6–7 — Weekend</div>
+        <div class="phase-name">Test + Harden + Onboard</div>
+        <div class="phase-sub">Real device, real money, first client</div>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">Full flow test: real phone on real MikroTik WiFi</div>
+        <div class="phase-task">Simulate outage: portal shows honest status, no pay button</div>
+        <div class="phase-task">Switch Daraja sandbox → live credentials</div>
+        <div class="phase-task">Deploy to Railway + Vercel. Cloudflare DNS.</div>
+        <div class="phase-task">Onboard first ISP client. Watch first real transaction.</div>
+      </div>
+      <div class="phase-eod"><div class="eod-label">End of Day</div><div class="eod-text">HonestBill is live. First ISP is onboarded. First real M-Pesa transaction recorded.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FULL ROADMAP ══════════════ -->
+<div class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">11</span>
+    <span class="sec-title">Full Product Roadmap</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="roadmap">
+    <div class="roadmap-phase" style="--rm-color: var(--green); --rm-rgb: 0,230,118">
+      <div class="rm-left">
+        <div class="rm-phase-label">Phase 1</div>
+        <div class="rm-phase-name">MVP Core</div>
+        <div class="rm-phase-time">Week 1</div>
+      </div>
+      <div class="rm-right">
+        <div class="rm-features">
+          <span class="rm-feat highlight">Captive portal</span>
+          <span class="rm-feat highlight">M-Pesa STK Push</span>
+          <span class="rm-feat highlight">MikroTik API</span>
+          <span class="rm-feat highlight">Network status check</span>
+          <span class="rm-feat highlight">Session management</span>
+          <span class="rm-feat highlight">ISP dashboard</span>
+          <span class="rm-feat highlight">Platform admin</span>
+          <span class="rm-feat highlight">Transaction ledger</span>
+        </div>
+      </div>
+    </div>
+    <div class="roadmap-phase" style="--rm-color: var(--amber); --rm-rgb: 255,171,0">
+      <div class="rm-left">
+        <div class="rm-phase-label">Phase 2</div>
+        <div class="rm-phase-name">Refinement</div>
+        <div class="rm-phase-time">Week 2–3</div>
+      </div>
+      <div class="rm-right">
+        <div class="rm-features">
+          <span class="rm-feat highlight">SMS session reminders (Africa's Talking)</span>
+          <span class="rm-feat highlight">Session renewal — buy again before expiry</span>
+          <span class="rm-feat highlight">Voucher/code system</span>
+          <span class="rm-feat">Better portal UI — animated, smoother</span>
+          <span class="rm-feat">ISP custom branding — colors, logo upload</span>
+          <span class="rm-feat">Public status page per ISP</span>
+          <span class="rm-feat">Download MikroTik session report (CSV)</span>
+        </div>
+      </div>
+    </div>
+    <div class="roadmap-phase" style="--rm-color: var(--blue); --rm-rgb: 64,196,255">
+      <div class="rm-left">
+        <div class="rm-phase-label">Phase 3</div>
+        <div class="rm-phase-name">Scale</div>
+        <div class="rm-phase-time">Month 2</div>
+      </div>
+      <div class="rm-right">
+        <div class="rm-features">
+          <span class="rm-feat highlight">ISP self-service signup + onboarding wizard</span>
+          <span class="rm-feat highlight">Automated weekly M-Pesa payouts to ISPs</span>
+          <span class="rm-feat highlight">Multi-router per ISP</span>
+          <span class="rm-feat">Custom domain per ISP (portal.their-isp.co.ke)</span>
+          <span class="rm-feat">Analytics: revenue graphs, peak hours, churn</span>
+          <span class="rm-feat">ISP-to-ISP referral program</span>
+          <span class="rm-feat">WhatsApp notifications (Meta Business API)</span>
+        </div>
+      </div>
+    </div>
+    <div class="roadmap-phase" style="--rm-color: var(--purple); --rm-rgb: 224,64,251">
+      <div class="rm-left">
+        <div class="rm-phase-label">Phase 4</div>
+        <div class="rm-phase-name">Expansion</div>
+        <div class="rm-phase-time">Month 3+</div>
+      </div>
+      <div class="rm-right">
+        <div class="rm-features">
+          <span class="rm-feat highlight">PPPoE / Fiber ISP support</span>
+          <span class="rm-feat highlight">RADIUS integration (enterprise ISPs)</span>
+          <span class="rm-feat">Mobile app for ISP admins (React Native)</span>
+          <span class="rm-feat">Card payments (Pesapal/Flutterwave)</span>
+          <span class="rm-feat">Regional expansion (Uganda, Tanzania)</span>
+          <span class="rm-feat">API for ISPs to build their own integrations</span>
+          <span class="rm-feat">White-label option — sell platform to large ISPs</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ WHAT WE'RE NOT BUILDING WEEK 1 ══════════════ -->
+<div class="cuts">
+  <h3>Not Building This Week</h3>
+  <div class="cuts-grid">
+    <div class="cut-item">ISP self-service signup (you onboard manually)</div>
+    <div class="cut-item">Automated ISP payouts (manual this week)</div>
+    <div class="cut-item">SMS notifications (email first, SMS later)</div>
+    <div class="cut-item">Multi-router per ISP (one MikroTik per ISP)</div>
+    <div class="cut-item">Custom domains per ISP</div>
+    <div class="cut-item">Analytics graphs (table of numbers is fine)</div>
+    <div class="cut-item">Voucher / code system</div>
+    <div class="cut-item">PPPoE / fiber support</div>
+    <div class="cut-item">RADIUS protocol</div>
+    <div class="cut-item">Card payments</div>
+    <div class="cut-item">Mobile app</div>
+    <div class="cut-item">WhatsApp notifications</div>
+  </div>
+</div>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="footer-brand">Honest<em>Bill</em></div>
+  <div class="footer-note">// Build the rails. Let ISPs sell. Collect 10%.</div>
+</footer>
+
+</div>
+</body>
+</html>

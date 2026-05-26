@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="data-bind-brand-name">Loading Portal...</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-heading, 'Syne'), system-ui, -apple-system, sans-serif;
+      background: var(--bgStart, #f0f9ff);
+      color: var(--text, #0c4a6e);
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+
+    :root {
+      /* PHASE 5: CSS VARIABLE RENDERING LAYER */
+      
+      /* Colors */
+      --primary: #0ea5e9;
+      --primary-dark: #0c4a6e;
+      --bgStart: #f0f9ff;
+      --bgEnd: #f0f9ff;
+      --surface: #ffffff;
+      --text: #0c4a6e;
+      --text-dim: #0369a1;
+      --card: #ffffff;
+      --card-border: #bae6fd;
+      --card-hl: #0c4a6e;
+      --accent: #0284c7;
+      --accent-light: #0c4a6e;
+
+      /* Typography */
+      --font-heading: 'Syne';
+      --font-body: 'Syne';
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1rem;
+      --font-size-lg: 1.125rem;
+      --font-size-xl: 1.25rem;
+      --font-size-2xl: 1.5rem;
+      --font-size-3xl: 2rem;
+
+      /* Spacing */
+      --radius: 8px;
+      --package-padding: 1rem;
+      --section-gap: 1.5rem;
+
+      /* Status Colors */
+      --status-bg: rgba(16, 185, 129, 0.1);
+      --status-border: rgba(16, 185, 129, 0.35);
+      --status-text: #065f46;
+    }
+
+    /* ========================================
+       LAYOUT & STRUCTURE
+       ======================================== */
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding: 2rem 1rem;
+      background: linear-gradient(135deg, var(--bgStart), var(--bgEnd));
+      border-radius: var(--radius);
+    }
+
+    .header-emoji {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    .header h1 {
+      font-size: var(--font-size-3xl);
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-family: var(--font-heading);
+    }
+
+    .header p {
+      font-size: var(--font-size-lg);
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+    }
+
+    .header small {
+      display: block;
+      font-size: var(--font-size-sm);
+      color: var(--text-dim);
+    }
+
+    /* ========================================
+       NETWORK STATUS BANNER (PHASE 5 example)
+       ======================================== */
+
+    .status-banner {
+      background: var(--status-bg);
+      border: 1px solid var(--status-border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--status-text);
+      font-weight: 500;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-banner.offline .status-indicator {
+      background: #ef4444;
+      animation: none;
+    }
+
+    /* ========================================
+       PACKAGES GRID (PHASE 7)
+       ======================================== */
+
+    .packages {
+      display: grid;
+      gap: var(--section-gap);
+      margin-bottom: 2rem;
+    }
+
+    .package {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: var(--package-padding);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .package::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.1), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .package:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .package:hover::before {
+      opacity: 1;
+    }
+
+    .package.featured {
+      border: 2px solid var(--primary);
+      background: linear-gradient(135deg, var(--card), rgba(2, 132, 199, 0.05));
+    }
+
+    .package.featured::after {
+      content: '★';
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      color: var(--primary);
+      font-size: 1.25rem;
+    }
+
+    .package-name {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-family: var(--font-heading);
+    }
+
+    .package-description {
+      font-size: var(--font-size-sm);
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    .package-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-top: 1px solid var(--card-border);
+      padding-top: 1rem;
+    }
+
+    .package-price {
+      font-size: var(--font-size-2xl);
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .package-validity {
+      font-size: var(--font-size-sm);
+      color: var(--text-dim);
+    }
+
+    .package-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 1rem;
+    }
+
+    .package-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.02);
+    }
+
+    .package-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ========================================
+       FEATURES SECTION
+       ======================================== */
+
+    .features {
+      margin-bottom: 2rem;
+    }
+
+    .features-title {
+      font-size: var(--font-size-lg);
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      font-family: var(--font-heading);
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .feature-item:last-child {
+      border-bottom: none;
+    }
+
+    .feature-icon {
+      font-size: 1.25rem;
+    }
+
+    .feature-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ========================================
+       ANNOUNCEMENT BANNER (PHASE 4)
+       ======================================== */
+
+    .announcement {
+      background: linear-gradient(135deg, var(--accent-light), var(--accent));
+      color: white;
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      font-weight: 500;
+      animation: slideDown 0.5s ease;
+    }
+
+    .announcement.info {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+
+    .announcement.promo {
+      background: linear-gradient(135deg, #f97316, #d97706);
+    }
+
+    .announcement.urgent {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .announcement.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ========================================
+       FOOTER (PHASE 6 + 4)
+       ======================================== */
+
+    .footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid var(--card-border);
+      margin-top: 2rem;
+    }
+
+    .footer-text {
+      font-size: var(--font-size-sm);
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .footer-link:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    /* ========================================
+       LOADING STATE
+       ======================================== */
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-dim);
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--card-border);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ========================================
+       RESPONSIVE
+       ======================================== */
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .header {
+        padding: 1.5rem 1rem;
+      }
+
+      .header h1 {
+        font-size: var(--font-size-2xl);
+      }
+
+      .package {
+        padding: 1rem;
+      }
+
+      .packages {
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- HEADER (PHASE 6: DOM Binding) -->
+    <div class="header">
+      <div class="header-emoji" data-bind="brand.emoji">📡</div>
+      <h1 data-bind="brand.name">Vertex WiFi</h1>
+      <p data-bind="brand.tagline">Fast internet made easy</p>
+      <small data-bind="brand.location">Nairobi CBD</small>
+    </div>
+
+    <!-- STATUS BANNER (PHASE 5: Conditional Rendering) -->
+    <div class="status-banner" id="status-banner" style="display: none;">
+      <div class="status-indicator"></div>
+      <span id="status-text">Internet is online ✓</span>
+    </div>
+
+    <!-- ANNOUNCEMENT BANNER (PHASE 4: Runtime Control) -->
+    <div class="announcement" id="announcement" style="display: none;"></div>
+
+    <!-- PACKAGES GRID (PHASE 7: Dynamic Rendering) -->
+    <div class="packages" id="packages">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Syncing portal configuration...</p>
+      </div>
+    </div>
+
+    <!-- FEATURES SECTION (PHASE 4) -->
+    <div class="features" id="features" style="display: none;"></div>
+
+    <!-- FOOTER (PHASE 6: DOM Binding + PHASE 4) -->
+    <div class="footer" id="footer" style="display: none;">
+      <div class="footer-text" data-bind="footer.text">Support from Vertex</div>
+      <a href="#" class="footer-link" data-bind="footer.label">Privacy Policy</a>
+    </div>
+  </div>
+
+  <script>
+    // ========================================
+    // PHASE 3: IFRAME MESSAGE LISTENER
+    // ========================================
+
+    window.addEventListener('message', (event) => {
+      // Handshake Protection
+      if (event.origin !== 'http://localhost:3000') {
+        console.warn('Rejected message from untrusted origin:', event.origin);
+        return;
+      }
+
+      // Message Type Validation
+      if (event.data.type !== 'PORTAL_SYNC') {
+        console.warn('Rejected non-PORTAL_SYNC message:', event.data.type);
+        return;
+      }
+
+      // Render Portal (PHASE 4: Route to handlers)
+      applyPortal(event.data.payload);
+    });
+
+    // ========================================
+    // PHASE 4: TEMPLATE RUNTIME ENGINE
+    // ========================================
+
+    function applyPortal(config) {
+      console.log('[PORTAL_SYNC] Received payload:', config);
+
+      applyBrand(config.brand);
+      applyDesign(config.design);
+      applyPackages(config.packages);
+      applyFeatures(config.features);
+      applyStatusBanner(config.portal);
+      applyAnnouncement(config.announcement);
+      applyFooter(config.footer);
+    }
+
+    // ========================================
+    // PHASE 6: DOM BINDING SYSTEM
+    // ========================================
+
+    /**
+     * Generic data binder
+     * Finds all [data-bind="path.to.value"] and sets textContent
+     */
+    function bindData(obj, prefix = '') {
+      Object.entries(obj).forEach(([k, v]) => {
+        const path = prefix ? `${prefix}.${k}` : k;
+
+        // Nested object: recurse
+        if (typeof v === 'object' && v !== null) {
+          bindData(v, path);
+          return;
+        }
+
+        // Leaf value: bind to DOM
+        document
+          .querySelectorAll(`[data-bind="${path}"]`)
+          .forEach((el) => {
+            el.textContent = v;
+          });
+      });
+    }
+
+    function applyBrand(brand) {
+      console.log('[BRAND] Applying:', brand);
+      bindData({ brand });
+      document.title = brand.name;
+    }
+
+    // ========================================
+    // PHASE 5: CSS VARIABLE RENDERING LAYER
+    // ========================================
+
+    function applyDesign(design) {
+      console.log('[DESIGN] Applying palette:', design.palette.name);
+
+      const root = document.documentElement;
+
+      // Color Tokens
+      root.style.setProperty('--primary', design.palette.primary);
+      root.style.setProperty('--primary-dark', design.palette.primaryDark);
+      root.style.setProperty('--bgStart', design.palette.bgStart);
+      root.style.setProperty('--bgEnd', design.palette.bgEnd);
+      root.style.setProperty('--text', design.palette.text);
+      root.style.setProperty('--text-dim', design.palette.textDim);
+      root.style.setProperty('--card', design.palette.card);
+      root.style.setProperty('--card-border', design.palette.cardBorder);
+      root.style.setProperty('--card-hl', design.palette.cardHl);
+      root.style.setProperty('--accent', design.palette.accent);
+      root.style.setProperty('--accent-light', design.palette.accentLight);
+
+      // Typography
+      root.style.setProperty('--font-heading', design.font);
+      root.style.setProperty('--font-body', design.font);
+
+      // Spacing
+      root.style.setProperty('--radius', design.radius);
+
+      console.log('[DESIGN] CSS variables updated');
+    }
+
+    // ========================================
+    // PHASE 7: PACKAGE RENDERER
+    // ========================================
+
+    function applyPackages(pkgs) {
+      console.log('[PACKAGES] Rendering', pkgs.length, 'packages');
+
+      const root = document.getElementById('packages');
+      root.innerHTML = '';
+
+      if (!pkgs || pkgs.length === 0) {
+        root.innerHTML = '<p style="text-align: center; color: var(--text-dim);">No packages available</p>';
+        return;
+      }
+
+      pkgs.forEach((pkg) => {
+        const card = document.createElement('div');
+        card.className = `package ${pkg.star ? 'featured' : ''}`;
+
+        card.innerHTML = `
+          <div class="package-name">${pkg.n}</div>
+          <div class="package-description">${pkg.d}</div>
+          <div class="package-footer">
+            <span>
+              <div class="package-price">KES ${pkg.p}</div>
+              <div class="package-validity">${pkg.s}</div>
+            </span>
+          </div>
+          <button class="package-btn">Select Package</button>
+        `;
+
+        root.appendChild(card);
+      });
+
+      console.log('[PACKAGES] Rendered successfully');
+    }
+
+    // ========================================
+    // PHASE 4: FEATURES HANDLER
+    // ========================================
+
+    function applyFeatures(features) {
+      console.log('[FEATURES] Applying:', features);
+
+      const root = document.getElementById('features');
+
+      // Check if any features are enabled
+      const enabledFeatures = Object.entries(features)
+        .filter(([, enabled]) => enabled)
+        .map(([key]) => key);
+
+      if (enabledFeatures.length === 0) {
+        root.style.display = 'none';
+        return;
+      }
+
+      root.style.display = 'block';
+
+      const featureLabels = {
+        mpesa: '💳 M-Pesa',
+        card: '🏦 Card',
+        sms: '📱 SMS',
+        login: '🔐 Login',
+        countdown: '⏱️ Countdown',
+        voucher: '🎟️ Vouchers',
+        loyalty: '⭐ Loyalty',
+        referral: '👥 Referral',
+        announcement: '📢 Announcement',
+        customFooter: '📄 Footer',
+        shareButton: '🔗 Share',
+        termsCheck: '☑️ Terms',
+      };
+
+      let html = '<div class="features-title">Available Features</div>';
+
+      enabledFeatures.forEach((feature) => {
+        html += `
+          <div class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span class="feature-name">${featureLabels[feature as keyof typeof featureLabels] || feature}</span>
+          </div>
+        `;
+      });
+
+      root.innerHTML = html;
+    }
+
+    // ========================================
+    // PHASE 4: STATUS BANNER HANDLER
+    // ========================================
+
+    function applyStatusBanner(portal) {
+      console.log('[STATUS] Applying:', portal);
+
+      const banner = document.getElementById('status-banner');
+      const statusText = document.getElementById('status-text');
+
+      if (!portal.show_status) {
+        banner.style.display = 'none';
+        return;
+      }
+
+      banner.style.display = 'flex';
+      statusText.textContent = portal.status_message || 'Status pending...';
+    }
+
+    // ========================================
+    // PHASE 4: ANNOUNCEMENT HANDLER
+    // ========================================
+
+    function applyAnnouncement(announcement) {
+      console.log('[ANNOUNCEMENT] Applying:', announcement);
+
+      const annEl = document.getElementById('announcement');
+
+      if (!announcement.enabled) {
+        annEl.style.display = 'none';
+        return;
+      }
+
+      annEl.style.display = 'block';
+      annEl.textContent = announcement.message;
+      annEl.className = `announcement ${announcement.style}`;
+    }
+
+    // ========================================
+    // PHASE 4: FOOTER HANDLER
+    // ========================================
+
+    function applyFooter(footer) {
+      console.log('[FOOTER] Applying:', footer);
+
+      const footerEl = document.getElementById('footer');
+
+      if (!footer.enabled) {
+        footerEl.style.display = 'none';
+        return;
+      }
+
+      footerEl.style.display = 'block';
+
+      // Bind footer text & link
+      bindData({ footer });
+
+      // Update link href
+      const link = footerEl.querySelector('.footer-link');
+      if (link) {
+        link.href = footer.url;
+      }
+    }
+
+    // ========================================
+    // INITIALIZATION MESSAGE
+    // ========================================
+
+    console.log('%c🌐 Portal Template Ready', 'color: #0ea5e9; font-size: 16px; font-weight: bold;');
+    console.log('Listening for PORTAL_SYNC messages from wizard...');
+    console.log('Expected origin: http://localhost:3000');
+  </script>
+</body>
+
+</html>

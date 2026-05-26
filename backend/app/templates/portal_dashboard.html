@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if brand %}{{ brand.name }}{% else %}Dashboard Portal{% endif %} - WiFi Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {% if font %}
+    <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% else %}
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% endif %}
+    <style>
+        :root {
+            --bg-primary: {{ palette.bg }};
+            --bg-secondary: {{ palette.card }};
+            --text-primary: {{ palette.text }};
+            --text-secondary: {{ palette.textDim }};
+            --accent-primary: {{ palette.primary }};
+            --accent-secondary: {{ palette.primaryDark }};
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: {{ radius }};
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --font-display: '{{ font }}', sans-serif;
+            --font-body: '{{ font }}', sans-serif;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -20%;
+            right: 0;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+            opacity: 0.05;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 8s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -10%;
+            left: 0;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+            opacity: 0.04;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 10s ease-in-out infinite reverse;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-40px); }
+        }
+
+        .network-banner {
+            position: relative;
+            z-index: 20;
+            width: 100%;
+            padding: 0.85rem var(--spacing-lg);
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
+            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            color: #059669;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .network-banner.offline {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+            border-bottom-color: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+
+        .network-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .network-banner.offline .network-status-dot {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        .dashboard-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 19;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-secondary);
+            box-shadow: var(--shadow-sm);
+            padding: 1rem var(--spacing-lg);
+            backdrop-filter: blur(8px);
+        }
+
+        .topbar-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: var(--spacing-lg);
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .brand-icon {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: calc(var(--radius) * 0.75);
+            color: white;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .brand-info h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .brand-info p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin: 0.25rem 0 0 0;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+
+        .topbar-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            padding: 0.5rem 0.9rem;
+            background: var(--bg-secondary);
+            border-radius: calc(var(--radius) * 0.5);
+            color: var(--text-secondary);
+            font-weight: 500;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+
+        .status-item:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .status-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-indicator.offline {
+            background: var(--error);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+        }
+
+        .dashboard-container {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 180px);
+        }
+
+        .dashboard-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .sidebar-section-title {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-primary);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-section-title::before {
+            content: '•';
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .sidebar-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.5;
+        }
+
+        .sidebar-info:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-info strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-info a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .sidebar-info a:hover {
+            color: var(--accent-secondary);
+        }
+
+        .sidebar-badge {
+            margin-top: var(--spacing-md);
+            padding: 0.6rem 0.9rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: calc(var(--radius) * 0.5);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .content-header {
+            text-align: left;
+        }
+
+        .content-header h1 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .content-header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .packages-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .package-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            background: var(--bg-secondary);
+            padding: var(--spacing-md);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .package-item.featured {
+            background: linear-gradient(135deg, var(--bg-secondary), rgba(var(--accent-primary), 0.04));
+            border: 1.5px solid var(--accent-primary);
+            box-shadow: var(--shadow-md), inset 0 0 30px rgba(var(--accent-primary), 0.08);
+        }
+
+        .package-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: -12px;
+            right: 1.5rem;
+            padding: 0.4rem 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: var(--shadow-md);
+        }
+
+        .package-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .package-icon {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: calc(var(--radius) * 0.75);
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .package-details {
+            min-width: 0;
+        }
+
+        .package-details h3 {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0 0 0.25rem 0;
+            color: var(--text-primary);
+        }
+
+        .package-meta {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .package-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+            flex-shrink: 0;
+        }
+
+        .package-price {
+            text-align: right;
+        }
+
+        .price-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .price-amount {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .package-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: calc(var(--radius) * 0.5);
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .package-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.4s ease;
+        }
+
+        .package-btn:hover::before {
+            left: 100%;
+        }
+
+        .package-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .package-btn:active {
+            transform: translateY(0);
+        }
+
+        .dashboard-footer {
+            text-align: center;
+            padding: var(--spacing-xl) var(--spacing-lg);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--bg-secondary);
+            background: var(--bg-primary);
+            position: relative;
+            z-index: 10;
+        }
+
+        .footer-link {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+            margin-left: 0.5rem;
+        }
+
+        .footer-link:hover {
+            color: var(--accent-secondary);
+        }
+
+        .offline-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 140px);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: var(--spacing-lg);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .offline-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+
+        .offline-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin-bottom: var(--spacing-lg);
+            line-height: 1.6;
+        }
+
+        .offline-support {
+            padding: 0.8rem 1.6rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: calc(var(--radius) * 0.5);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+        }
+
+        .offline-support:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 240px 1fr;
+                gap: var(--spacing-md);
+                padding: var(--spacing-md);
+            }
+
+            .content-header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+                padding: var(--spacing-sm);
+            }
+
+            .topbar-content {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+                align-items: flex-start;
+            }
+
+            .topbar-status {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .dashboard-sidebar {
+                flex-direction: row;
+                gap: var(--spacing-sm);
+            }
+
+            .sidebar-card {
+                flex: 1;
+            }
+
+            .content-header h1 {
+                font-size: 1.3rem;
+            }
+
+            .package-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+
+            .package-left {
+                width: 100%;
+            }
+
+            .package-right {
+                width: 100%;
+                justify-content: space-between;
+                gap: var(--spacing-md);
+            }
+
+            .package-price {
+                text-align: left;
+            }
+
+            .price-amount {
+                font-size: 1.5rem;
+            }
+
+            .featured-badge {
+                right: auto;
+                left: var(--spacing-md);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .topbar-content {
+                flex-direction: row;
+                align-items: center;
+                gap: var(--spacing-sm);
+            }
+
+            .brand-info h2 {
+                font-size: 1rem;
+            }
+
+            .brand-info p {
+                font-size: 0.65rem;
+            }
+
+            .topbar-status {
+                font-size: 0.75rem;
+            }
+
+            .status-item {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.75rem;
+            }
+
+            .dashboard-sidebar {
+                gap: var(--spacing-sm);
+            }
+
+            .sidebar-card {
+                padding: var(--spacing-sm);
+            }
+
+            .sidebar-section-title {
+                font-size: 0.7rem;
+            }
+
+            .content-header h1 {
+                font-size: 1.2rem;
+            }
+
+            .package-item {
+                padding: var(--spacing-sm);
+            }
+
+            .package-icon {
+                width: 52px;
+                height: 52px;
+                font-size: 1.5rem;
+            }
+
+            .package-details h3 {
+                font-size: 1rem;
+            }
+
+            .price-amount {
+                font-size: 1.3rem;
+            }
+
+            .package-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Network Banner -->
+    {% if network_up %}
+    <div class="network-banner">
+        <div class="network-status-dot"></div>
+        <span>{{ brand.status_message or '✓ Network is online and stable' }}</span>
+    </div>
+    {% else %}
+    <div class="network-banner offline">
+        <span>⚠ Network currently offline. Please try again in a few moments.</span>
+    </div>
+    {% endif %}
+
+    <!-- Top Bar -->
+    <div class="dashboard-topbar">
+        <div class="topbar-content">
+            <div class="brand-header">
+                <div class="brand-icon">{{ brand.emoji or '📡' }}</div>
+                <div class="brand-info">
+                    <h2>{{ brand.name or 'WiFi Portal' }}</h2>
+                    <p>Internet Access</p>
+                </div>
+            </div>
+            <div class="topbar-status">
+                <div class="status-item">
+                    <div class="status-indicator {% if not network_up %}offline{% endif %}"></div>
+                    {% if network_up %}<span>Online</span>{% else %}<span>Offline</span>{% endif %}
+                </div>
+                {% if brand.location %}
+                <div class="status-item">
+                    <span>📍 {{ brand.location }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if network_up %}
+    <!-- Main Container -->
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="dashboard-sidebar">
+            <!-- About Card -->
+            <div class="sidebar-card">
+                <div class="sidebar-section-title">About</div>
+                <div class="sidebar-info">
+                    <strong>{{ brand.name or 'WiFi Portal' }}</strong>
+                    {{ brand.tagline or 'Fast, reliable internet access' }}
+                </div>
+                <div class="sidebar-info">
+                    📍 {{ brand.location or 'Location unavailable' }}
+                </div>
+                <div class="sidebar-badge">
+                    ⚡ Premium Network
+                </div>
+            </div>
+
+            <!-- Quick Start Card -->
+            <div class="sidebar-card">
+                <div class="sidebar-section-title">Quick Start</div>
+                <div class="sidebar-info">
+                    1️⃣ <strong>Select a plan</strong>
+                </div>
+                <div class="sidebar-info">
+                    2️⃣ <strong>Tap "Get Now"</strong>
+                </div>
+                <div class="sidebar-info">
+                    3️⃣ <strong>Get connected</strong>
+                </div>
+                {% if brand.support_number %}
+                <div class="sidebar-info" style="margin-top: var(--spacing-sm);">
+                    📞 <a href="tel:{{ brand.support_number }}">{{ brand.support_number }}</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="dashboard-content">
+            <div class="content-header">
+                <h1>Choose Your Plan</h1>
+                <p>Select the perfect internet package for you</p>
+            </div>
+
+            <div class="packages-list">
+                {% for package in packages %}
+                <div class="package-item {% if package.star %}featured{% endif %}">
+                    {% if package.star %}<div class="featured-badge">★ Popular</div>{% endif %}
+                    <div class="package-left">
+                        <div class="package-icon">⚡</div>
+                        <div class="package-details">
+                            <h3>{{ package.n }}</h3>
+                            <div class="package-meta">
+                                <span>⏱ {{ package.d }}</span>
+                                <span>{{ package.s or 'High Speed' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="package-right">
+                        <div class="package-price">
+                            <div class="price-label">Price</div>
+                            <div class="price-amount">KES {{ package.p }}</div>
+                        </div>
+                        <button class="package-btn" onclick="payment_flow('{{ package.id }}')">
+                            Get Now
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    {% if brand.footer_text or brand.terms_url %}
+    <div class="dashboard-footer">
+        {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
+        {% if brand.terms_url %}<a href="{{ brand.terms_url }}" class="footer-link">Terms & Privacy</a>{% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Offline State -->
+    <div class="offline-container">
+        <div class="offline-icon">🌐</div>
+        <h2 class="offline-title">Network Offline</h2>
+        <p class="offline-message">
+            The internet connection is currently unavailable. Please check back in a few moments or contact support for assistance.
+        </p>
+        {% if brand.support_number %}
+        <a href="tel:{{ brand.support_number }}" class="offline-support">📞 Contact Support</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+        function payment_flow(package_id) {
+            const package_data = {
+                id: package_id,
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent
+            };
+            
+            console.log('Initiating payment for package:', package_data);
+            
+            if (window.payment_processor) {
+                window.payment_processor.initiate(package_data);
+            } else {
+                alert('Payment processor not configured. Contact support.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard Portal initialized');
+        });
+    </script>
+</body>
+</html>

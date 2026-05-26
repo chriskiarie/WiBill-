@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if brand %}{{ brand.name }}{% else %}Stories Portal{% endif %} - WiFi Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {% if font %}
+    <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% else %}
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% endif %}
+    <style>
+        :root {
+            --bg-primary: {{ palette.bg }};
+            --bg-secondary: {{ palette.card }};
+            --text-primary: {{ palette.text }};
+            --text-secondary: {{ palette.textDim }};
+            --accent-primary: {{ palette.primary }};
+            --accent-secondary: {{ palette.primaryDark }};
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: {{ radius }};
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-2xl: 4rem;
+            --font-display: '{{ font }}', sans-serif;
+            --font-body: '{{ font }}', sans-serif;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -5%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+            opacity: 0.05;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 10s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+            opacity: 0.04;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 12s ease-in-out infinite reverse;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-50px); }
+        }
+
+        .network-banner {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            width: 100%;
+            padding: 0.85rem var(--spacing-lg);
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
+            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            color: #059669;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .network-banner.offline {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+            border-bottom-color: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+
+        .network-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .network-banner.offline .network-status-dot {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        .stories-header {
+            position: relative;
+            z-index: 10;
+            padding: 3.5rem var(--spacing-lg) 2.5rem;
+            text-align: center;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-secondary);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 99px;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--spacing-lg);
+            font-family: var(--font-display);
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-badge::before {
+            content: '✨';
+            font-size: 0.8rem;
+        }
+
+        .header-icon {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-md);
+            display: inline-block;
+            animation: bounce 4s ease-in-out infinite;
+            filter: drop-shadow(0 8px 20px rgba(var(--accent-primary), 0.15));
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-25px); }
+        }
+
+        .header-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 7vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .header-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .header-location {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: var(--spacing-xs);
+        }
+
+        .stories-container {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+        }
+
+        .stories-progress {
+            display: flex;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+            z-index: 6;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .progress-dot.active {
+            width: 24px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            box-shadow: var(--shadow-md);
+        }
+
+        .progress-dot:hover {
+            background: var(--accent-primary);
+        }
+
+        .stories-stack {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .story-card {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            min-height: 560px;
+            position: relative;
+        }
+
+        .story-card.featured {
+            background: linear-gradient(135deg, var(--bg-secondary), rgba(var(--accent-primary), 0.05));
+            border: 1.5px solid var(--accent-primary);
+            box-shadow: var(--shadow-lg), inset 0 0 30px rgba(var(--accent-primary), 0.08);
+        }
+
+        .story-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            padding: 0.4rem 0.85rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: calc(var(--radius) * 0.5);
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            z-index: 2;
+            box-shadow: var(--shadow-md);
+        }
+
+        .story-visual {
+            height: 200px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .story-visual::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+
+        .story-visual-icon {
+            font-size: 4rem;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+            animation: bounce 3s ease-in-out infinite;
+        }
+
+        .story-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: var(--spacing-lg);
+            gap: var(--spacing-md);
+            justify-content: space-between;
+        }
+
+        .story-header {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .story-name {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .story-duration {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .story-divider {
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0.3;
+        }
+
+        .story-specs {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .story-spec {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .story-spec-icon {
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .story-footer {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            margin-top: auto;
+        }
+
+        .story-price {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .story-btn {
+            padding: 0.85rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: calc(var(--radius) * 0.5);
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .story-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.4s ease;
+        }
+
+        .story-btn:hover::before {
+            left: 100%;
+        }
+
+        .story-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .story-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .stories-footer {
+            padding: var(--spacing-lg);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--bg-secondary);
+            background: var(--bg-primary);
+            position: relative;
+            z-index: 10;
+            line-height: 1.6;
+        }
+
+        .stories-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .stories-footer a:hover {
+            color: var(--accent-secondary);
+        }
+
+        .offline-fullpage {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 140px);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+
+        .offline-icon-large {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-lg);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .offline-title {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            margin-bottom: var(--spacing-md);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .offline-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-lg);
+            max-width: 400px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .offline-link {
+            padding: 0.8rem 1.6rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: calc(var(--radius) * 0.5);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            display: inline-block;
+        }
+
+        .offline-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 768px) {
+            .stories-header {
+                padding: 2.5rem var(--spacing-md) 1.5rem;
+            }
+
+            .header-icon {
+                font-size: 3.2rem;
+            }
+
+            .header-title {
+                font-size: 1.6rem;
+            }
+
+            .header-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .stories-container {
+                padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+            }
+
+            .stories-stack {
+                max-width: 100%;
+            }
+
+            .story-card {
+                min-height: 520px;
+            }
+
+            .story-visual {
+                height: 180px;
+            }
+
+            .story-visual-icon {
+                font-size: 3.5rem;
+            }
+
+            .story-name {
+                font-size: 1.3rem;
+            }
+
+            .story-price {
+                font-size: 1.8rem;
+            }
+
+            .story-content {
+                padding: var(--spacing-lg);
+            }
+
+            .progress-dot {
+                width: 6px;
+                height: 6px;
+            }
+
+            .progress-dot.active {
+                width: 20px;
+            }
+
+            .stories-progress {
+                margin-bottom: var(--spacing-lg);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-badge {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.65rem;
+                margin-bottom: var(--spacing-md);
+            }
+
+            .header-icon {
+                font-size: 2.8rem;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .header-title {
+                font-size: 1.3rem;
+            }
+
+            .header-subtitle {
+                font-size: 0.85rem;
+            }
+
+            .header-location {
+                font-size: 0.75rem;
+            }
+
+            .stories-header {
+                padding: 1.5rem var(--spacing-sm) 1rem;
+            }
+
+            .stories-container {
+                padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+            }
+
+            .stories-progress {
+                gap: 0.4rem;
+                margin-bottom: var(--spacing-md);
+            }
+
+            .progress-dot {
+                width: 5px;
+                height: 5px;
+            }
+
+            .progress-dot.active {
+                width: 16px;
+            }
+
+            .story-card {
+                min-height: 480px;
+            }
+
+            .story-content {
+                padding: var(--spacing-md);
+            }
+
+            .story-visual {
+                height: 160px;
+            }
+
+            .story-visual-icon {
+                font-size: 3rem;
+            }
+
+            .story-name {
+                font-size: 1.1rem;
+            }
+
+            .story-price {
+                font-size: 1.5rem;
+            }
+
+            .story-btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.8rem;
+            }
+
+            .featured-badge {
+                padding: 0.35rem 0.7rem;
+                font-size: 0.6rem;
+                top: var(--spacing-sm);
+                right: var(--spacing-sm);
+            }
+
+            .stories-footer {
+                font-size: 0.75rem;
+                padding: var(--spacing-md);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Network Banner -->
+    {% if network_up %}
+    <div class="network-banner">
+        <div class="network-status-dot"></div>
+        <span>{{ brand.status_message or '✓ Network is online and stable' }}</span>
+    </div>
+    {% else %}
+    <div class="network-banner offline">
+        <span>⚠ Network currently offline. Please try again in a few moments.</span>
+    </div>
+    {% endif %}
+
+    {% if network_up %}
+    <!-- Header -->
+    <div class="stories-header">
+        <div class="header-badge">WiFi Stories</div>
+        <div class="header-icon">{{ brand.emoji or '📡' }}</div>
+        <h1 class="header-title">{{ brand.name or 'WiFi Portal' }}</h1>
+        <p class="header-subtitle">{{ brand.tagline or 'Fast, reliable internet access' }}</p>
+        <p class="header-location">📍 {{ brand.location or 'Location unavailable' }}</p>
+    </div>
+
+    <!-- Stories Container -->
+    <div class="stories-container">
+        <!-- Progress Indicators -->
+        <div class="stories-progress">
+            {% for package in packages %}
+            <div class="progress-dot {% if loop.first %}active{% endif %}" onclick="scroll_to_card({{ loop.index0 }})"></div>
+            {% endfor %}
+        </div>
+
+        <!-- Story Cards Stack -->
+        <div class="stories-stack">
+            {% for package in packages %}
+            <div class="story-card {% if package.star %}featured{% endif %}" id="story-{{ loop.index0 }}">
+                {% if package.star %}
+                <div class="featured-badge">Popular Choice</div>
+                {% endif %}
+
+                <!-- Visual Section -->
+                <div class="story-visual">
+                    <div class="story-visual-icon">⚡</div>
+                </div>
+
+                <!-- Content Section -->
+                <div class="story-content">
+                    <div class="story-header">
+                        <h2 class="story-name">{{ package.n }}</h2>
+                        <p class="story-duration"><span>⏱</span> {{ package.d }}</p>
+                        <div class="story-divider"></div>
+                        <div class="story-specs">
+                            <div class="story-spec">
+                                <div class="story-spec-icon">🚀</div>
+                                <span>{{ package.s or 'High Speed' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Section -->
+                    <div class="story-footer">
+                        <div class="story-price">KES {{ package.p }}</div>
+                        <button class="story-btn" onclick="payment_flow('{{ package.id }}')">
+                            Get Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Footer Info -->
+        {% if brand.footer_text or brand.terms_url %}
+        <div class="stories-footer">
+            {{ brand.footer_text or 'Fast, reliable internet at your fingertips' }}
+            {% if brand.terms_url %}
+            · <a href="{{ brand.terms_url }}">Terms & Privacy</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Offline State -->
+    <div class="offline-fullpage">
+        <div class="offline-icon-large">🌐</div>
+        <h2 class="offline-title">Network Offline</h2>
+        <p class="offline-message">
+            The internet connection is currently unavailable. Please check back in a few moments or contact support for assistance.
+        </p>
+        {% if brand.support_number %}
+        <a href="tel:{{ brand.support_number }}" class="offline-link">📞 Contact Support</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+        function payment_flow(package_id) {
+            const package_data = {
+                id: package_id,
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent
+            };
+            
+            console.log('Initiating payment for package:', package_data);
+            
+            if (window.payment_processor) {
+                window.payment_processor.initiate(package_data);
+            } else {
+                alert('Payment processor not configured. Contact support.');
+            }
+        }
+
+        function scroll_to_card(index) {
+            const card = document.getElementById(`story-${index}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                update_progress_indicators(index);
+            }
+        }
+
+        function update_progress_indicators(active_index) {
+            document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === active_index);
+            });
+        }
+
+        const stories_stack = document.querySelector('.stories-stack');
+        if (stories_stack) {
+            window.addEventListener('scroll', () => {
+                const cards = document.querySelectorAll('.story-card');
+                let closest_index = 0;
+                let closest_distance = Infinity;
+
+                cards.forEach((card, i) => {
+                    const rect = card.getBoundingClientRect();
+                    const distance = Math.abs(rect.top - window.innerHeight / 2);
+                    if (distance < closest_distance) {
+                        closest_distance = distance;
+                        closest_index = i;
+                    }
+                });
+
+                update_progress_indicators(closest_index);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Stories Portal initialized');
+        });
+    </script>
+</body>
+</html>

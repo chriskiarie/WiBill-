@@ -1,0 +1,237 @@
+{% extends "portal_base.html" %}
+{% block content %}
+
+<style>
+/* Packages template - clean and minimal */
+.packages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 24px 0;
+}
+
+.package-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.package-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.package-card.selected {
+    border-color: var(--accent);
+    background: rgba(91, 79, 255, 0.1);
+}
+
+.package-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.package-card .price {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.package-card .meta {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.payment-form {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.pay-button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pay-button:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.pay-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Network status banner */
+.network-banner {
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-banner.up {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.network-banner.down {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.network-banner.unknown {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<!-- Network Status Banner -->
+{% if network_up %}
+<div class="network-banner up">
+    ✅ Internet is UP — select a package to connect
+</div>
+{% elif network_status == "unknown" %}
+<div class="network-banner unknown">
+    ⚠️ Network status unknown — proceed with caution
+</div>
+{% else %}
+<div class="network-banner down">
+    🔴 Internet is currently DOWN — payments are disabled
+</div>
+{% endif %}
+
+<!-- Package Selection -->
+<div class="packages-list">
+    <p style="font-weight:600;margin-bottom:8px;color:#374151">Choose a package:</p>
+    {% for pkg in packages %}
+    <div class="package-card" onclick="selectPkg('{{ pkg.id }}', this)">
+        <h3>{{ pkg.name }}</h3>
+        <div class="price">Ksh {{ pkg.price_ksh }}</div>
+        <div class="meta">
+            {{ pkg.duration_hours }}h access
+            {% if pkg.max_devices %} · {{ pkg.max_devices }} device(s){% endif %}
+            {% if pkg.speed_limit_mbps %} · {{ pkg.speed_limit_mbps }} Mbps{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Payment Form -->
+{% if network_up or network_status == "unknown" %}
+<div class="payment-form">
+    <form method="POST" action="/{{ tenant.slug }}/pay">
+        <input type="hidden" name="mac" value="{{ mac }}">
+        <input type="hidden" name="ip" value="{{ ip }}">
+        <input type="hidden" name="package_id" id="selected_pkg" value="">
+        
+        <div class="form-group">
+            <label for="phone">M-Pesa Phone Number</label>
+            <input type="tel" id="phone" name="phone" placeholder="07XXXXXXXX" required pattern="^(07|01)\d{8}$">
+        </div>
+
+        <button type="submit" class="pay-button" id="pay-btn" disabled>
+            <span id="pay-btn-text">PAY WITH M-PESA</span>
+        </button>
+    </form>
+</div>
+{% endif %}
+
+<script>
+function selectPkg(id, el) {
+    document.querySelectorAll('.package-card').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('selected_pkg').value = id;
+    document.getElementById('pay-btn').disabled = false;
+}
+
+document.querySelector('form').addEventListener('submit', function() {
+    const btn = document.getElementById('pay-btn-text');
+    const originalText = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span> Processing...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }, 10000);
+});
+
+// Disable pay button if network is down
+{% if not network_up %}
+document.getElementById('pay-btn').disabled = true;
+document.getElementById('pay-btn').textContent = 'Internet Offline';
+{% endif %}
+</script>
+
+{% endblock %}

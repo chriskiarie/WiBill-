@@ -1,0 +1,51 @@
+{% extends "portal_base.html" %}
+{% block content %}
+
+<style>
+.spinner { width: 48px; height: 48px; border: 5px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.waiting-box { background: white; border-radius: 14px; padding: 28px 20px; text-align: center; }
+</style>
+
+<div class="waiting-box">
+  <div class="spinner"></div>
+  <h2 style="font-size:1.1rem;color:#1e293b;margin-bottom:8px">Waiting for M-Pesa</h2>
+  <p style="color:#64748b;font-size:0.9rem">Check your phone <strong>{{ phone }}</strong> and enter your M-Pesa PIN.</p>
+  <p style="color:#64748b;font-size:0.85rem;margin-top:8px">Package: <strong>{{ package.name }}</strong> — Ksh {{ package.price_ksh }}</p>
+  <div id="status-msg" style="margin-top:16px;font-size:0.85rem;color:#9ca3af">Checking payment status…</div>
+</div>
+
+<script>
+const sessionId = "{{ session_id }}";
+const slug = "{{ slug }}";
+let attempts = 0;
+const max = 30; // 90s
+
+async function checkStatus() {
+  try {
+    const r = await fetch(`/api/sessions/${sessionId}/status`);
+    const data = await r.json();
+    if (data.status === "active") {
+      window.location.href = `/portal/${slug}/success/${sessionId}`;
+      return;
+    }
+    if (data.status === "failed" || data.status === "expired") {
+      document.getElementById('status-msg').textContent = "Payment failed or timed out. Redirecting…";
+      setTimeout(() => window.location.href = `/portal/${slug}`, 3000);
+      return;
+    }
+  } catch(e) {}
+  attempts++;
+  if (attempts >= max) {
+    document.getElementById('status-msg').textContent = "Timed out. Redirecting…";
+    setTimeout(() => window.location.href = `/portal/${slug}`, 2000);
+    return;
+  }
+  document.getElementById('status-msg').textContent = `Checking… (${attempts}/${max})`;
+  setTimeout(checkStatus, 3000);
+}
+
+setTimeout(checkStatus, 3000);
+</script>
+
+{% endblock %}

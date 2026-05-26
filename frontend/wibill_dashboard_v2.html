@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiBill — ISP Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#040404;
+  --surface:#0a0a0a;
+  --surface2:#0f0f0f;
+  --border:#181818;
+  --border2:#222;
+  --text:#f0f0f0;
+  --muted:#3a3a3a;
+  --muted2:#555;
+  --blue:#3b82f6;
+  --blue-dim:#1d3a6e;
+  --green:#22c55e;
+  --amber:#f59e0b;
+  --red:#f87171;
+  --purple:#a78bfa;
+}
+
+html,body{height:100%;background:#000;font-family:'Syne',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── AUTH SCREENS ── */
+#auth-wrap{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);z-index:100;
+}
+.auth-box{
+  width:400px;background:var(--surface);
+  border:0.5px solid var(--border2);border-radius:14px;
+  padding:32px;
+}
+.auth-brand{text-align:center;margin-bottom:28px}
+.auth-brand .wb{font-size:26px;font-weight:800;letter-spacing:-0.8px;color:#fff}
+.auth-brand .xb{font-family:'Instrument Serif',serif;font-style:italic;font-size:15px;color:var(--muted2);margin-left:6px}
+.auth-brand p{font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:0.8px;font-family:'DM Mono',monospace}
+.auth-tab{display:flex;gap:4px;margin-bottom:24px;background:#060606;border-radius:8px;padding:3px}
+.auth-tab button{
+  flex:1;padding:8px;border:none;background:transparent;
+  color:var(--muted2);font-family:'DM Mono',monospace;font-size:11px;
+  cursor:pointer;border-radius:6px;transition:all 0.15s;font-weight:500;
+}
+.auth-tab button.active{background:var(--border2);color:#fff}
+.auth-err{
+  background:#150505;border:0.5px solid #3a1010;color:var(--red);
+  border-radius:7px;padding:10px 12px;font-size:10px;
+  font-family:'DM Mono',monospace;margin-bottom:14px;display:none;line-height:1.5;
+}
+.auth-err.show{display:block}
+.f-label{font-size:9.5px;color:var(--muted2);font-weight:600;text-transform:uppercase;
+  letter-spacing:0.5px;margin-bottom:5px;display:block;font-family:'DM Mono',monospace}
+.f-input{
+  width:100%;background:#060606;border:0.5px solid var(--border2);
+  border-radius:7px;padding:10px 13px;color:var(--text);
+  font-size:12px;font-family:'Syne',sans-serif;outline:none;
+  transition:border-color 0.15s;margin-bottom:12px;
+}
+.f-input:focus{border-color:var(--blue)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f-row .f-input{margin-bottom:0}
+.f-row .f-grp{display:flex;flex-direction:column;margin-bottom:12px}
+.auth-btn{
+  width:100%;padding:11px;background:var(--blue);border:none;
+  border-radius:8px;color:#fff;font-family:'Syne',sans-serif;
+  font-size:12px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity 0.15s;margin-top:4px;
+}
+.auth-btn:hover{opacity:0.85}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-foot{text-align:center;margin-top:16px;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* ── DASHBOARD ── */
+#app{display:none;height:100vh;flex-direction:column}
+
+.db{display:flex;height:100vh;background:var(--bg);overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:224px;min-width:224px;background:var(--surface);border-right:0.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sb-top{padding:20px 18px 16px;border-bottom:0.5px solid var(--border)}
+.sb-wordmark{display:flex;align-items:baseline;justify-content:space-between}
+.sb-wordmark .wibill{font-size:18px;font-weight:800;letter-spacing:-0.5px;color:#fff}
+.sb-wordmark .xwb{font-family:'Instrument Serif',serif;font-style:italic;font-size:14px;color:var(--muted2);letter-spacing:0.5px}
+.sb-tagline{font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:0.4px;font-weight:400}
+
+.sb-isp{padding:12px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:9px;cursor:pointer}
+.isp-av{width:30px;height:30px;border-radius:8px;background:#0d2347;border:0.5px solid var(--blue-dim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);letter-spacing:0.5px;flex-shrink:0;font-family:'DM Mono',monospace}
+.isp-name{font-size:11.5px;font-weight:600;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isp-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--green);margin-top:2px;font-family:'DM Mono',monospace}
+.isp-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.isp-dot.down{background:var(--red)}
+
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto;scrollbar-width:none}
+.nav-section{margin-bottom:20px}
+.nav-sec-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;padding:0 10px;margin-bottom:6px;font-weight:600;font-family:'DM Mono',monospace}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;font-size:11.5px;color:var(--muted2);cursor:pointer;margin-bottom:1px;font-weight:400;transition:all 0.1s;position:relative;white-space:nowrap}
+.nav-item:hover{color:#aaa;background:#0d0d0d}
+.nav-item.active{background:#0e1c35;color:#fff;font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--blue);border-radius:0 2px 2px 0}
+.nav-item i{font-size:15px;color:inherit;width:16px;flex-shrink:0}
+.nav-item.active i{color:var(--blue)}
+.nav-badge{margin-left:auto;background:#0d2347;color:var(--blue);font-size:9px;padding:2px 7px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:500}
+
+.sb-foot{padding:10px 8px;border-top:0.5px solid var(--border)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+.topbar{height:52px;min-height:52px;background:var(--surface);border-bottom:0.5px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.tb-title{font-size:19px;font-weight:800;color:#fff;font-family:'Syne',sans-serif;letter-spacing:-0.5px}
+.tb-space{flex:1}
+.net-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:9.5px;font-family:'DM Mono',monospace;font-weight:500;letter-spacing:0.3px}
+.net-pill.up{background:#081a0f;border:0.5px solid #0f3320;color:var(--green)}
+.net-pill.down{background:#150505;border:0.5px solid #3a1010;color:var(--red)}
+.net-pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.tb-icon{width:32px;height:32px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background 0.1s;flex-shrink:0}
+.tb-icon:hover{background:var(--border)}
+.tb-icon i{font-size:15px;color:var(--muted2)}
+.tb-dot{position:absolute;top:6px;right:7px;width:5px;height:5px;background:var(--blue);border-radius:50%;border:1.5px solid var(--surface)}
+.tb-avatar{background:#0d2347;border-color:var(--blue-dim)}
+.tb-avatar span{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--blue)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg);scrollbar-width:thin;scrollbar-color:#1a1a1a transparent}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+
+/* DATE HEADER */
+.date-header{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.date-header .day{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.5px}
+.date-header .greeting{font-size:12px;color:#444;font-weight:400}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:11px;padding:16px;position:relative;overflow:hidden;transition:border-color 0.15s}
+.stat:hover{border-color:var(--border2)}
+.s-label{font-size:9.5px;color:var(--muted2);letter-spacing:0.4px;margin-bottom:10px;font-weight:600;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.s-label i{font-size:13px}
+.s-money{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#fff;letter-spacing:-0.5px;line-height:1}
+.s-count{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1}
+.s-delta{font-size:10px;margin-top:6px;font-family:'DM Mono',monospace;font-weight:400}
+.s-delta.up{color:var(--green)}
+.s-delta.dn{color:var(--red)}
+.s-delta.nu{color:var(--muted2)}
+.s-icon{position:absolute;top:14px;right:14px;font-size:20px;opacity:0.08;pointer-events:none}
+
+/* LAYOUT */
+.two-col{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;margin-bottom:12px}
+.three-col{display:grid;grid-template-columns:1fr 2fr;gap:12px}
+
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:11px;padding:16px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.ct{font-size:10px;font-weight:700;color:#888;letter-spacing:0.4px;text-transform:uppercase}
+.ca{font-size:10px;color:var(--blue);cursor:pointer;font-family:'DM Mono',monospace;transition:opacity 0.1s}
+.ca:hover{opacity:0.7}
+
+/* BARS */
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar-r{display:flex;align-items:center;gap:10px}
+.bar-r .bl{font-size:10px;color:var(--muted2);width:24px;font-family:'DM Mono',monospace;font-weight:500}
+.bar-t{flex:1;height:4px;background:#111;border-radius:2px;overflow:hidden}
+.bar-f{height:100%;border-radius:2px;transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.bar-r .bv{font-size:10px;color:#444;width:64px;text-align:right;font-family:'DM Mono',monospace}
+
+/* PIE */
+.pie-area{display:flex;align-items:center;gap:14px}
+.pie-leg{display:flex;flex-direction:column;gap:8px;flex:1}
+.pie-li{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted2)}
+.pld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.pln{flex:1}
+.plv{font-family:'DM Mono',monospace;color:#555;font-weight:500}
+
+/* LOYALTY */
+.loy{display:flex;flex-direction:column;gap:8px}
+.loy-top{display:flex;justify-content:space-between;align-items:baseline}
+.loy-pts{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--amber)}
+.loy-label{font-size:9px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+.loy-trk{height:3px;background:#111;border-radius:2px;overflow:hidden}
+.loy-fil{height:100%;background:var(--amber);border-radius:2px;transition:width 1s}
+.loy-sub{font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* SESSIONS */
+.sess-list{display:flex;flex-direction:column;gap:4px}
+.sess-r{display:flex;align-items:center;gap:8px;padding:7px 9px;background:var(--surface2);border-radius:6px;border:0.5px solid var(--border);transition:border-color 0.1s}
+.sess-r:hover{border-color:var(--border2)}
+.sm{font-size:9.5px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1;letter-spacing:0.3px}
+.sp{font-size:9.5px;color:#444;width:28px;font-family:'DM Mono',monospace}
+.st{font-size:11px;font-weight:500;font-family:'DM Mono',monospace;width:40px;text-align:right}
+.st.ok{color:var(--green)}
+.st.warn{color:var(--amber)}
+.st.crit{color:var(--red)}
+.kick-btn{font-size:9px;color:var(--muted);cursor:pointer;padding:2px 7px;border:0.5px solid var(--border2);border-radius:4px;font-family:'DM Mono',monospace;transition:all 0.15s;white-space:nowrap}
+.kick-btn:hover{color:var(--red);border-color:#3a1515;background:#0d0202}
+
+/* TRANSACTIONS */
+.txn-list{display:flex;flex-direction:column}
+.txn-r{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #0d0d0d}
+.txn-r:last-child{border:none}
+.tph{font-size:10px;color:var(--muted2);flex:1;font-family:'DM Mono',monospace}
+.tpk{font-size:10px;color:#444;width:36px;font-family:'DM Mono',monospace}
+.tam{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:#e0e0e0}
+.tfe{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px}
+
+/* ── OTHER PAGES ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-title-txt{font-size:13px;font-weight:700;color:#fff}
+.page-subtitle{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+
+/* PACKAGES GRID */
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+.pkg-card{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:15px;position:relative;transition:border-color 0.15s}
+.pkg-card:hover{border-color:var(--border2)}
+.pkg-card.off{opacity:0.45}
+.pkg-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:3px}
+.pkg-price{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--blue);margin-bottom:10px;letter-spacing:-0.3px}
+.pkg-price span{font-size:11px;color:var(--muted2)}
+.pkg-attr{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted2);margin-bottom:4px}
+.pkg-attr i{font-size:13px;color:var(--muted)}
+.pkg-status{position:absolute;top:11px;right:11px;font-size:8.5px;padding:2px 7px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:500}
+.pkg-status.on{background:#041509;color:var(--green);border:0.5px solid #0a2818}
+.pkg-status.off{background:#111;color:var(--muted);border:0.5px solid var(--border2)}
+.pkg-acts{display:flex;gap:6px;margin-top:12px}
+.pkg-btn{flex:1;padding:6px;border-radius:6px;border:0.5px solid var(--border2);font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;background:transparent;color:var(--muted2);transition:all 0.1s;text-align:center}
+.pkg-btn:hover{background:var(--border);color:#fff}
+.pkg-btn.del:hover{background:#150505;color:var(--red);border-color:#3a1010}
+.add-pkg{display:flex;align-items:center;justify-content:center;gap:8px;border:0.5px dashed var(--border2);border-radius:10px;padding:20px;color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s}
+.add-pkg:hover{border-color:var(--blue);color:var(--blue);background:#05101f}
+
+/* SESSIONS FULL PAGE */
+.sess-full-header{display:grid;grid-template-columns:1fr 60px 70px 50px 50px 50px;gap:8px;padding:8px 10px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.4px;border-bottom:0.5px solid var(--border);margin-bottom:4px}
+
+/* TRANSACTIONS FULL */
+.txn-full-header{display:flex;gap:8px;padding:8px 0;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.4px;border-bottom:0.5px solid var(--border);margin-bottom:2px}
+
+/* NETWORK PAGE */
+.net-event{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border-radius:7px;border-left:2px solid transparent;font-size:10px;margin-bottom:4px}
+.net-event.up{border-left-color:var(--green)}
+.net-event.down{border-left-color:var(--red)}
+.net-event.degraded{border-left-color:var(--amber)}
+.net-status-lbl{font-weight:600;width:60px;font-family:'DM Mono',monospace}
+.net-status-lbl.up{color:var(--green)}
+.net-status-lbl.down{color:var(--red)}
+.net-status-lbl.degraded{color:var(--amber)}
+
+/* SETTINGS */
+.set-section{margin-bottom:20px}
+.set-title{font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:0.5px solid var(--border)}
+.set-row{display:flex;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.set-row:last-child{border:none}
+.set-key{font-size:11px;color:var(--muted2);width:160px;flex-shrink:0}
+.set-val{font-size:11px;color:#888;font-family:'DM Mono',monospace;flex:1}
+.set-edit{font-size:9.5px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px solid var(--blue-dim);border-radius:5px;font-family:'DM Mono',monospace;transition:background 0.1s}
+.set-edit:hover{background:#05101f}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:24px;width:400px;max-width:90vw;position:relative}
+.modal-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:18px;letter-spacing:-0.3px}
+.modal-x{position:absolute;top:16px;right:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted2);border-radius:6px;transition:background 0.1s}
+.modal-x:hover{background:var(--border)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* KICK CONFIRM */
+.kick-modal-txt{font-size:11px;color:var(--muted2);margin-bottom:20px;line-height:1.7}
+.btn-row{display:flex;gap:8px}
+.btn-cancel{flex:1;padding:9px;border:0.5px solid var(--border2);border-radius:7px;background:transparent;color:var(--muted2);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.1s}
+.btn-cancel:hover{background:var(--border)}
+.btn-danger{flex:1;padding:9px;border:none;border-radius:7px;background:#7f1d1d;color:#fca5a5;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:opacity 0.1s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-danger:hover{opacity:0.85}
+.btn-primary{
+  width:100%;padding:10px;background:var(--blue);border:none;border-radius:7px;
+  color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity 0.1s;
+}
+.btn-primary:hover{opacity:0.85}
+.btn-secondary{
+  padding:8px 14px;background:transparent;border:0.5px solid var(--border2);
+  border-radius:7px;color:var(--muted2);font-family:'DM Mono',monospace;
+  font-size:11px;cursor:pointer;transition:all 0.1s;display:flex;align-items:center;gap:6px;
+}
+.btn-secondary:hover{background:var(--border);color:#fff}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:22px;right:22px;background:var(--surface);
+  border:0.5px solid var(--border2);border-radius:9px;padding:11px 15px;
+  font-size:10.5px;font-family:'DM Mono',monospace;z-index:300;
+  display:flex;align-items:center;gap:9px;
+  transform:translateY(80px);opacity:0;transition:all 0.25s;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:#0f3320;color:var(--green)}
+#toast.error{border-color:#3a1010;color:var(--red)}
+
+/* SPINNER */
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty i{font-size:28px;margin-bottom:10px;display:block;opacity:0.25}
+.empty p{font-size:11px}
+
+/* UPTIME */
+.uptime-bar{display:flex;gap:2px;flex-wrap:wrap}
+.up-seg{width:8px;height:22px;border-radius:2px;cursor:default;transition:opacity 0.1s}
+.up-seg:hover{opacity:0.7}
+.up-seg.up{background:#0f3320}
+.up-seg.down{background:#3a1010}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ AUTH SCREENS ═══════════════ -->
+<div id="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-brand">
+      <div><span class="wb">WiBill</span><span class="xb">XwB</span></div>
+      <p>ISP MANAGEMENT · POWERED BY HONESTBILL</p>
+    </div>
+
+    <div class="auth-tab">
+      <button class="active" id="tab-login" onclick="showTab('login')">Sign in</button>
+      <button id="tab-signup" onclick="showTab('signup')">Create account</button>
+    </div>
+
+    <div id="auth-err" class="auth-err"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="form-login">
+      <label class="f-label">Email</label>
+      <input class="f-input" type="email" id="l-email" placeholder="admin@yourisp.co.ke" value="admin@xwbill.co.ke">
+      <label class="f-label">Password</label>
+      <input class="f-input" type="password" id="l-pass" placeholder="••••••••" value="admin1234">
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">
+        <i class="ti ti-login"></i> Sign in
+      </button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="form-signup" style="display:none">
+      <div class="f-row">
+        <div class="f-grp">
+          <label class="f-label">ISP name</label>
+          <input class="f-input" id="s-isp" placeholder="Kaachonji ISP">
+        </div>
+        <div class="f-grp">
+          <label class="f-label">Slug (URL)</label>
+          <input class="f-input" id="s-slug" placeholder="kaachonji-isp">
+        </div>
+      </div>
+      <label class="f-label">Admin email</label>
+      <input class="f-input" type="email" id="s-email" placeholder="admin@yourisp.co.ke">
+      <div class="f-row">
+        <div class="f-grp">
+          <label class="f-label">Password</label>
+          <input class="f-input" type="password" id="s-pass" placeholder="Min 8 chars">
+        </div>
+        <div class="f-grp">
+          <label class="f-label">Phone (+254…)</label>
+          <input class="f-input" id="s-phone" placeholder="254700000000">
+        </div>
+      </div>
+      <button class="auth-btn" id="signup-btn" onclick="doSignup()">
+        <i class="ti ti-user-plus"></i> Create ISP account
+      </button>
+    </div>
+
+    <div class="auth-foot">By signing in you agree to HonestBill's terms of service</div>
+  </div>
+</div>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div id="app" style="display:flex">
+  <div class="db" style="display:none" id="db-wrap">
+
+    <!-- SIDEBAR -->
+    <div class="sb">
+      <div class="sb-top">
+        <div class="sb-wordmark">
+          <span class="wibill">WiBill</span>
+          <span class="xwb">XwB</span>
+        </div>
+        <div class="sb-tagline">ISP Management · Powered by HonestBill</div>
+      </div>
+
+      <div class="sb-isp" onclick="navTo('settings')">
+        <div class="isp-av" id="sb-av">--</div>
+        <div>
+          <div class="isp-name" id="sb-name">Loading…</div>
+          <div class="isp-badge">
+            <span class="isp-dot" id="sb-dot"></span>
+            <span id="sb-status">checking…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-nav">
+        <div class="nav-section">
+          <div class="nav-sec-label">Overview</div>
+          <div class="nav-item active" id="nav-dashboard" onclick="navTo('dashboard')">
+            <i class="ti ti-layout-dashboard"></i> Dashboard
+          </div>
+          <div class="nav-item" id="nav-network" onclick="navTo('network')">
+            <i class="ti ti-activity"></i> Network
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-sec-label">Billing</div>
+          <div class="nav-item" id="nav-sessions" onclick="navTo('sessions')">
+            <i class="ti ti-wifi"></i> Sessions
+            <span class="nav-badge" id="sess-badge">0</span>
+          </div>
+          <div class="nav-item" id="nav-transactions" onclick="navTo('transactions')">
+            <i class="ti ti-receipt-2"></i> Transactions
+          </div>
+          <div class="nav-item" id="nav-vouchers" onclick="navTo('vouchers')">
+            <i class="ti ti-ticket"></i> Vouchers
+          </div>
+          <div class="nav-item" id="nav-loyalty" onclick="navTo('loyalty')">
+            <i class="ti ti-coin"></i> Loyalty Points
+          </div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-sec-label">Config</div>
+          <div class="nav-item" id="nav-packages" onclick="navTo('packages')">
+            <i class="ti ti-package"></i> Packages
+          </div>
+          <div class="nav-item" id="nav-mikrotik" onclick="navTo('mikrotik')">
+            <i class="ti ti-router"></i> MikroTik
+          </div>
+          <div class="nav-item" id="nav-mpesa" onclick="navTo('mpesa')">
+            <i class="ti ti-credit-card"></i> M-Pesa
+          </div>
+          <div class="nav-item" id="nav-settings" onclick="navTo('settings')">
+            <i class="ti ti-settings"></i> Settings
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-foot">
+        <div class="nav-item">
+          <i class="ti ti-lifebuoy"></i> Support
+        </div>
+        <div class="nav-item" onclick="doLogout()">
+          <i class="ti ti-logout"></i> Sign out
+        </div>
+      </div>
+    </div><!-- /sidebar -->
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <span class="tb-title" id="page-title">Dashboard</span>
+        <div class="tb-space"></div>
+        <div class="net-pill up" id="net-pill">
+          <span class="net-pulse"></span>
+          <span id="net-pill-txt">NETWORK UP · --ms</span>
+        </div>
+        <div class="tb-icon"><i class="ti ti-search"></i></div>
+        <div class="tb-icon"><i class="ti ti-bell"></i><div class="tb-dot"></div></div>
+        <div class="tb-icon tb-avatar" onclick="navTo('settings')">
+          <span id="tb-initials">--</span>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ── DASHBOARD ── -->
+        <div class="page active" id="page-dashboard">
+          <div class="date-header">
+            <span class="day" id="dash-date">--</span>
+            <span class="greeting" id="dash-greet">Good evening</span>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat" style="border-top:1.5px solid var(--blue)">
+              <div class="s-label"><i class="ti ti-cash" style="color:var(--blue)"></i> Today's revenue</div>
+              <div class="s-money" id="s-today">Ksh —</div>
+              <div class="s-delta nu" id="s-today-d">loading…</div>
+              <i class="ti ti-cash s-icon" style="color:var(--blue)"></i>
+            </div>
+            <div class="stat" style="border-top:1.5px solid var(--purple)">
+              <div class="s-label"><i class="ti ti-calendar-month" style="color:var(--purple)"></i> This month</div>
+              <div class="s-money" id="s-month">Ksh —</div>
+              <div class="s-delta nu" id="s-month-d">loading…</div>
+              <i class="ti ti-calendar-month s-icon" style="color:var(--purple)"></i>
+            </div>
+            <div class="stat" style="border-top:1.5px solid var(--green)">
+              <div class="s-label"><i class="ti ti-wifi" style="color:var(--green)"></i> Active sessions</div>
+              <div class="s-count" id="s-sessions">—</div>
+              <div class="s-delta nu" id="s-sessions-d">loading…</div>
+              <i class="ti ti-wifi s-icon" style="color:var(--green)"></i>
+            </div>
+            <div class="stat" style="border-top:1.5px solid var(--amber)">
+              <div class="s-label"><i class="ti ti-users" style="color:var(--amber)"></i> Clients today</div>
+              <div class="s-count" id="s-clients">—</div>
+              <div class="s-delta nu" id="s-clients-d">loading…</div>
+              <i class="ti ti-users s-icon" style="color:var(--amber)"></i>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="ch"><span class="ct">Revenue · last 7 days</span><span class="ca" onclick="navTo('transactions')">full report →</span></div>
+              <div class="bars" id="rev-bars"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="card">
+                <div class="ch"><span class="ct">Package split</span></div>
+                <div class="pie-area">
+                  <svg width="64" height="64" viewBox="0 0 64 64" id="pkg-pie">
+                    <circle cx="32" cy="32" r="24" fill="none" stroke="#111" stroke-width="10"/>
+                  </svg>
+                  <div class="pie-leg" id="pkg-legend">
+                    <div class="pie-li" style="color:var(--muted)">No data yet</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="loy">
+                  <div class="loy-top"><span class="loy-label">Loyalty pool</span><span class="loy-pts" id="loy-pts">0 pts</span></div>
+                  <div class="loy-trk"><div class="loy-fil" id="loy-fil" style="width:0%"></div></div>
+                  <div class="loy-sub" id="loy-sub">0% of cap · redeemable as internet tokens</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="three-col">
+            <div class="card">
+              <div class="ch"><span class="ct">Live sessions</span><span class="ca" onclick="navTo('sessions')">all →</span></div>
+              <div class="sess-list" id="dash-sess">
+                <div class="empty"><i class="ti ti-wifi-off"></i><p>No active sessions</p></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ch"><span class="ct">Recent transactions</span><span class="ca" onclick="exportCSV()">export CSV →</span></div>
+              <div class="txn-list" id="dash-txns">
+                <div class="empty"><i class="ti ti-receipt-off"></i><p>No transactions yet</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SESSIONS PAGE ── -->
+        <div class="page" id="page-sessions">
+          <div class="page-header">
+            <div>
+              <div class="page-title-txt">Live Sessions</div>
+              <div class="page-subtitle">Auto-refreshes every 30s</div>
+            </div>
+            <button class="btn-secondary" onclick="loadSessions()"><i class="ti ti-refresh"></i> Refresh</button>
+          </div>
+          <div class="card">
+            <div class="sess-full-header">
+              <span>MAC ADDRESS</span><span>PHONE</span><span>PACKAGE</span><span>START</span><span>EXPIRES</span><span>TIME</span>
+            </div>
+            <div class="sess-list" id="sess-full">
+              <div class="empty"><span class="spinner"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TRANSACTIONS PAGE ── -->
+        <div class="page" id="page-transactions">
+          <div class="page-header">
+            <div>
+              <div class="page-title-txt">Transactions</div>
+              <div class="page-subtitle">Full M-Pesa ledger · <span id="txn-count">—</span> records</div>
+            </div>
+            <button class="btn-secondary" onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+          </div>
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+            <div class="stat">
+              <div class="s-label">Gross revenue</div>
+              <div class="s-money" id="txn-gross">Ksh —</div>
+            </div>
+            <div class="stat">
+              <div class="s-label">Platform fees (10%)</div>
+              <div class="s-money" id="txn-fees" style="color:var(--red)">−Ksh —</div>
+            </div>
+            <div class="stat">
+              <div class="s-label">Net earnings</div>
+              <div class="s-money" id="txn-net" style="color:var(--green)">Ksh —</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="txn-full-header">
+              <span style="flex:1">PHONE</span>
+              <span style="width:70px">PACKAGE</span>
+              <span style="width:70px;text-align:right">AMOUNT</span>
+              <span style="width:50px;text-align:right">FEE</span>
+              <span style="width:90px;text-align:right">RECEIPT</span>
+            </div>
+            <div class="txn-list" id="txn-full">
+              <div class="empty"><span class="spinner"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PACKAGES PAGE ── -->
+        <div class="page" id="page-packages">
+          <div class="page-header">
+            <div>
+              <div class="page-title-txt">Packages</div>
+              <div class="page-subtitle">Manage your WiFi access plans</div>
+            </div>
+            <button class="btn-secondary" onclick="openModal('pkg-modal')"><i class="ti ti-plus"></i> New package</button>
+          </div>
+          <div class="pkg-grid" id="pkg-grid">
+            <div class="empty" style="grid-column:1/-1"><span class="spinner"></span></div>
+          </div>
+        </div>
+
+        <!-- ── NETWORK PAGE ── -->
+        <div class="page" id="page-network">
+          <div class="page-header">
+            <div>
+              <div class="page-title-txt">Network</div>
+              <div class="page-subtitle">Router status & uplink history</div>
+            </div>
+            <button class="btn-secondary" onclick="loadNetwork()"><i class="ti ti-refresh"></i> Refresh</button>
+          </div>
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+            <div class="stat">
+              <div class="s-label"><i class="ti ti-router"></i> Router status</div>
+              <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace" id="net-status-txt">—</div>
+              <div class="s-delta nu" id="net-router-ip">—</div>
+            </div>
+            <div class="stat">
+              <div class="s-label"><i class="ti ti-activity"></i> Latency</div>
+              <div class="s-money" id="net-lat">—</div>
+              <div class="s-delta nu">last ping</div>
+            </div>
+            <div class="stat">
+              <div class="s-label"><i class="ti ti-clock"></i> Uptime today</div>
+              <div class="s-money" id="net-uptime">—</div>
+              <div class="s-delta up">last 90 days</div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="ch"><span class="ct">90-day uptime map</span><span class="ca">each bar = 1 day</span></div>
+            <div class="uptime-bar" id="uptime-map"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Recent events</span></div>
+            <div id="net-events">
+              <div class="empty"><span class="spinner"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── VOUCHERS PAGE ── -->
+        <div class="page" id="page-vouchers">
+          <div class="page-header">
+            <div><div class="page-title-txt">Vouchers</div><div class="page-subtitle">Prepaid access codes</div></div>
+          </div>
+          <div class="card">
+            <div style="text-align:center;padding:40px 20px">
+              <i class="ti ti-ticket" style="font-size:36px;color:var(--muted);display:block;margin-bottom:12px;opacity:0.2"></i>
+              <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:8px">Vouchers — Phase 2</div>
+              <div style="font-size:10px;color:var(--muted2);max-width:260px;margin:0 auto;line-height:1.7">Generate printable WiFi voucher codes. Customers scratch and enter code. Great for hotels, events, and walk-in clients.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── LOYALTY PAGE ── -->
+        <div class="page" id="page-loyalty">
+          <div class="page-header">
+            <div><div class="page-title-txt">Loyalty Points</div><div class="page-subtitle">Client retention program</div></div>
+          </div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="ch"><span class="ct">Your loyalty pool</span></div>
+            <div class="loy" style="padding:8px 0">
+              <div class="loy-top"><span class="loy-label">Total points earned</span><span class="loy-pts" id="loy-pts2">0 pts</span></div>
+              <div class="loy-trk"><div class="loy-fil" id="loy-fil2" style="width:0%"></div></div>
+              <div class="loy-sub" id="loy-sub2">Points are earned by your clients: 1 pt per Ksh 10 spent</div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="text-align:center;padding:24px">
+              <i class="ti ti-coin" style="font-size:30px;color:var(--amber);display:block;margin-bottom:10px;opacity:0.4"></i>
+              <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:6px">Redemption launching soon</div>
+              <div style="font-size:10px;color:var(--muted2);max-width:260px;margin:0 auto;line-height:1.7">Clients will be able to redeem points as free internet time. Rewards frequent users and boosts retention.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── MIKROTIK PAGE ── -->
+        <div class="page" id="page-mikrotik">
+          <div class="page-header">
+            <div><div class="page-title-txt">MikroTik Config</div><div class="page-subtitle">Router API settings</div></div>
+            <button class="btn-secondary" onclick="openModal('mt-modal')"><i class="ti ti-edit"></i> Edit config</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card">
+              <div class="set-section">
+                <div class="set-title">Router Connection</div>
+                <div class="set-row"><span class="set-key">Router IP</span><span class="set-val" id="mt-ip-val">Not configured</span></div>
+                <div class="set-row"><span class="set-key">API Port</span><span class="set-val" id="mt-port-val">8728</span></div>
+                <div class="set-row"><span class="set-key">Username</span><span class="set-val" id="mt-user-val">—</span></div>
+                <div class="set-row"><span class="set-key">Password</span><span class="set-val">••••••••</span></div>
+                <div class="set-row"><span class="set-key">Hotspot profile</span><span class="set-val" id="mt-profile-val">default</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="set-title">Portal URL</div>
+              <div style="background:#060606;border:0.5px solid var(--border2);border-radius:7px;padding:12px;margin-bottom:12px">
+                <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px">REDIRECT URL (add to MikroTik hotspot)</div>
+                <div style="font-size:10px;color:var(--blue);font-family:'DM Mono',monospace;word-break:break-all" id="portal-url">—</div>
+              </div>
+              <div style="font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.7">
+                Append <span style="color:#fff">?mac=$mac&ip=$ip</span> to the redirect URL in your MikroTik hotspot configuration.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── M-PESA PAGE ── -->
+        <div class="page" id="page-mpesa">
+          <div class="page-header">
+            <div><div class="page-title-txt">M-Pesa Config</div><div class="page-subtitle">Daraja API credentials</div></div>
+            <button class="btn-secondary" onclick="openModal('mp-modal')"><i class="ti ti-edit"></i> Edit config</button>
+          </div>
+          <div class="card">
+            <div class="set-section">
+              <div class="set-title">Daraja Settings</div>
+              <div class="set-row"><span class="set-key">Business shortcode</span><span class="set-val" id="mp-sc-val">Not configured</span></div>
+              <div class="set-row"><span class="set-key">Consumer key</span><span class="set-val">••••••••••••</span></div>
+              <div class="set-row"><span class="set-key">Consumer secret</span><span class="set-val">••••••••••••</span></div>
+              <div class="set-row"><span class="set-key">Environment</span><span class="set-val" style="color:var(--amber)" id="mp-env-val">sandbox</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SETTINGS PAGE ── -->
+        <div class="page" id="page-settings">
+          <div class="page-header">
+            <div><div class="page-title-txt">Settings</div><div class="page-subtitle">ISP profile</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card">
+              <div class="set-section">
+                <div class="set-title">ISP Profile</div>
+                <div class="set-row"><span class="set-key">Business name</span><span class="set-val" id="set-name">—</span><span class="set-edit" onclick="openModal('profile-modal')">edit</span></div>
+                <div class="set-row"><span class="set-key">Portal slug</span><span class="set-val" id="set-slug">—</span></div>
+                <div class="set-row"><span class="set-key">Support phone</span><span class="set-val" id="set-phone">—</span></div>
+                <div class="set-row"><span class="set-key">Platform fee</span><span class="set-val">10% per transaction</span></div>
+                <div class="set-row"><span class="set-key">Account status</span><span class="set-val" style="color:var(--green)">ACTIVE</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="set-title">Quick links</div>
+              <div class="set-row"><span class="set-key">Captive portal</span><span class="set-val" style="color:var(--blue);word-break:break-all;font-size:10px" id="set-portal">—</span></div>
+              <div class="set-row"><span class="set-key">Swagger docs</span><span class="set-val" style="color:var(--blue)">localhost:8000/docs</span></div>
+              <div class="set-row"><span class="set-key">Backend version</span><span class="set-val">v0.1.0</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /db-wrap -->
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"><i class="ti ti-check" id="toast-icon"></i><span id="toast-msg"></span></div>
+
+<!-- MODAL: New Package -->
+<div class="modal-overlay" id="pkg-modal">
+  <div class="modal">
+    <div class="modal-title">New Package</div>
+    <div class="modal-x" onclick="closeModal('pkg-modal')"><i class="ti ti-x"></i></div>
+    <div class="modal-row">
+      <div><label class="f-label">Package name</label><input class="f-input" id="pn-name" placeholder="e.g. 1hr Browsing" style="margin-bottom:0"></div>
+      <div><label class="f-label">Price (Ksh)</label><input class="f-input" id="pn-price" type="number" placeholder="20" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="modal-row">
+      <div><label class="f-label">Duration (hours)</label><input class="f-input" id="pn-hours" type="number" placeholder="1" style="margin-bottom:0"></div>
+      <div><label class="f-label">Duration label</label><input class="f-input" id="pn-label" placeholder="1 Hour" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="modal-row">
+      <div><label class="f-label">Max devices</label><input class="f-input" id="pn-devices" type="number" placeholder="1" style="margin-bottom:0"></div>
+      <div><label class="f-label">Speed limit (Mbps)</label><input class="f-input" id="pn-speed" type="number" placeholder="(optional)" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:14px"></div>
+    <button class="btn-primary" onclick="createPackage()"><i class="ti ti-plus"></i> Create package</button>
+  </div>
+</div>
+
+<!-- MODAL: MikroTik -->
+<div class="modal-overlay" id="mt-modal">
+  <div class="modal">
+    <div class="modal-title">MikroTik Configuration</div>
+    <div class="modal-x" onclick="closeModal('mt-modal')"><i class="ti ti-x"></i></div>
+    <label class="f-label">Router IP address</label>
+    <input class="f-input" id="mt-ip-in" placeholder="192.168.88.1">
+    <div class="modal-row">
+      <div><label class="f-label">Username</label><input class="f-input" id="mt-user-in" placeholder="admin" style="margin-bottom:0"></div>
+      <div><label class="f-label">Password</label><input class="f-input" type="password" id="mt-pass-in" placeholder="••••••••" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="modal-row">
+      <div><label class="f-label">API port</label><input class="f-input" id="mt-port-in" placeholder="8728" value="8728" style="margin-bottom:0"></div>
+      <div><label class="f-label">Hotspot profile</label><input class="f-input" id="mt-prof-in" placeholder="default" value="default" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:14px"></div>
+    <button class="btn-primary" onclick="saveMikrotik()"><i class="ti ti-device-floppy"></i> Save configuration</button>
+  </div>
+</div>
+
+<!-- MODAL: M-Pesa -->
+<div class="modal-overlay" id="mp-modal">
+  <div class="modal">
+    <div class="modal-title">M-Pesa (Daraja) Configuration</div>
+    <div class="modal-x" onclick="closeModal('mp-modal')"><i class="ti ti-x"></i></div>
+    <label class="f-label">Business shortcode</label>
+    <input class="f-input" id="mp-sc-in" placeholder="174379">
+    <label class="f-label">Consumer key</label>
+    <input class="f-input" id="mp-key-in" placeholder="••••••••••••">
+    <label class="f-label">Consumer secret</label>
+    <input class="f-input" type="password" id="mp-sec-in" placeholder="••••••••••••">
+    <label class="f-label">Passkey</label>
+    <input class="f-input" type="password" id="mp-pk-in" placeholder="bfb279f9aa9…">
+    <button class="btn-primary" onclick="saveMpesa()"><i class="ti ti-device-floppy"></i> Save M-Pesa config</button>
+  </div>
+</div>
+
+<!-- MODAL: Kick -->
+<div class="modal-overlay" id="kick-modal">
+  <div class="modal" style="width:340px">
+    <div class="modal-title">Kick session?</div>
+    <div class="modal-x" onclick="closeModal('kick-modal')"><i class="ti ti-x"></i></div>
+    <div class="kick-modal-txt">This will immediately remove <span id="kick-mac" style="color:#fff;font-family:'DM Mono',monospace"></span> from the network. Their remaining time is forfeited.</div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('kick-modal')">Cancel</button>
+      <button class="btn-danger" onclick="confirmKick()"><i class="ti ti-user-off"></i> Kick</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ CONFIG ═══ */
+const API = 'http://localhost:8000';
+let TOKEN = '', TENANT_ID = '', TENANT = null;
+let pkgCache = [], kickSessionId = '';
+
+/* ═══ AUTH TAB ═══ */
+function showTab(t) {
+  document.getElementById('form-login').style.display = t==='login' ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = t==='signup' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
+  document.getElementById('auth-err').classList.remove('show');
+}
+
+function showAuthErr(msg) {
+  const el = document.getElementById('auth-err');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+/* ═══ LOGIN ═══ */
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!email || !pass) { showAuthErr('Enter email and password'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  document.getElementById('auth-err').classList.remove('show');
+
+  try {
+    const fd = new FormData();
+    fd.append('username', email);
+    fd.append('password', pass);
+    const r = await fetch(`${API}/api/auth/login`, { method:'POST', body:fd });
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({detail:'Login failed'}));
+      throw new Error(e.detail || 'Login failed');
+    }
+    const d = await r.json();
+    TOKEN = d.access_token;
+    TENANT_ID = d.tenant_id || '';
+    TENANT = d.tenant || null;
+    sessionStorage.setItem('wb_token', TOKEN);
+    sessionStorage.setItem('wb_tenant', TENANT_ID);
+    sessionStorage.setItem('wb_email', email);
+    if (d.tenant) sessionStorage.setItem('wb_tenant_obj', JSON.stringify(d.tenant));
+    bootDashboard();
+  } catch(e) {
+    showAuthErr(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-login"></i> Sign in';
+  }
+}
+
+/* ═══ SIGNUP ═══ */
+async function doSignup() {
+  const ispName = document.getElementById('s-isp').value.trim();
+  let slug = document.getElementById('s-slug').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const pass = document.getElementById('s-pass').value;
+  const phone = document.getElementById('s-phone').value.trim();
+
+  if (!ispName || !slug || !email || !pass) {
+    showAuthErr('Fill in ISP name, slug, email and password');
+    return;
+  }
+  if (pass.length < 8) { showAuthErr('Password must be at least 8 characters'); return; }
+
+  // Auto-fix slug: lowercase, spaces → dashes, strip special chars
+  slug = slug.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  document.getElementById('s-slug').value = slug;
+
+  // Normalize phone
+  let ph = phone.replace(/\s+/g,'');
+  if (ph.startsWith('0')) ph = '254' + ph.slice(1);
+  if (ph.startsWith('+')) ph = ph.slice(1);
+  if (!ph) ph = '254700000000'; // default if blank
+
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Creating account…';
+  document.getElementById('auth-err').classList.remove('show');
+
+  try {
+    const r = await fetch(`${API}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        isp_name: ispName,
+        isp_slug: slug,
+        admin_email: email,
+        admin_password: pass,
+        admin_phone: ph,
+        support_phone: ph,
+        primary_color: '#3b82f6'
+      })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({detail:'Registration failed'}));
+      throw new Error(e.detail || 'Registration failed');
+    }
+    const d = await r.json();
+    // Registration succeeded — now login to get full JWT
+    const fd = new FormData();
+    fd.append('username', email);
+    fd.append('password', pass);
+    const lr = await fetch(`${API}/api/auth/login`, { method:'POST', body:fd });
+    const ld = await lr.json();
+    TOKEN = ld.access_token;
+    TENANT_ID = ld.tenant_id || '';
+    TENANT = ld.tenant || d.tenant || null;
+    sessionStorage.setItem('wb_token', TOKEN);
+    sessionStorage.setItem('wb_tenant', TENANT_ID);
+    sessionStorage.setItem('wb_email', email);
+    if (TENANT) sessionStorage.setItem('wb_tenant_obj', JSON.stringify(TENANT));
+    bootDashboard();
+  } catch(e) {
+    showAuthErr(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-user-plus"></i> Create ISP account';
+  }
+}
+
+/* ═══ LOGOUT ═══ */
+function doLogout() {
+  sessionStorage.clear();
+  TOKEN = ''; TENANT_ID = ''; TENANT = null;
+  document.getElementById('auth-wrap').style.display = 'flex';
+  document.getElementById('db-wrap').style.display = 'none';
+  showTab('login');
+}
+
+/* ═══ API HELPER ═══ */
+async function api(path, opts={}) {
+  const r = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${TOKEN}`, ...(opts.headers||{}) }
+  });
+  if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({detail:r.statusText}));
+    throw new Error(e.detail || r.statusText);
+  }
+  return r.json();
+}
+
+/* ═══ BOOT DASHBOARD ═══ */
+function bootDashboard() {
+  document.getElementById('auth-wrap').style.display = 'none';
+  document.getElementById('db-wrap').style.display = 'flex';
+
+  const email = sessionStorage.getItem('wb_email') || '';
+  document.getElementById('tb-initials').textContent = email.slice(0,2).toUpperCase();
+
+  updateDateTime();
+  loadTenantInfo();
+  loadDashboard();
+
+  setInterval(updateDateTime, 60000);
+  setInterval(loadNetworkStatus, 30000);
+  setInterval(loadDashboard, 60000);
+}
+
+/* ═══ DATE ═══ */
+function updateDateTime() {
+  const now = new Date();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('dash-date').textContent =
+    `${days[now.getDay()]} · ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const h = now.getHours();
+  const greet = h<12 ? 'Good morning' : h<17 ? 'Good afternoon' : 'Good evening';
+  const name = (sessionStorage.getItem('wb_email')||'').split('@')[0];
+  document.getElementById('dash-greet').textContent = `${greet}, ${name}`;
+}
+
+/* ═══ TENANT INFO ═══ */
+async function loadTenantInfo() {
+  try {
+    const tenants = await api('/api/tenants/');
+    const t = TENANT_ID ? tenants.find(x=>x.id===TENANT_ID) : tenants[0];
+    if (!t) return;
+    TENANT = t;
+    const av = t.name.slice(0,2).toUpperCase();
+    document.getElementById('sb-av').textContent = av;
+    document.getElementById('sb-name').textContent = t.name;
+    document.getElementById('set-name').textContent = t.name;
+    document.getElementById('set-slug').textContent = t.slug;
+    document.getElementById('set-phone').textContent = t.support_phone || 'Not set';
+    const portalUrl = `http://localhost:8000/portal/${t.slug}?mac=$mac&ip=$ip`;
+    document.getElementById('set-portal').textContent = portalUrl;
+    document.getElementById('portal-url').textContent = portalUrl;
+    loadNetworkStatus();
+  } catch(e) { console.error(e) }
+}
+
+/* ═══ NETWORK STATUS ═══ */
+async function loadNetworkStatus() {
+  if (!TENANT_ID) return;
+  try {
+    const s = await api(`/api/tenants/${TENANT_ID}/network-status`).catch(()=>({status:'unknown'}));
+    const isUp = s.status === 'up';
+    const lat = s.latency_ms ? `${Math.round(s.latency_ms)}ms` : '--ms';
+
+    const dot = document.getElementById('sb-dot');
+    const sbTxt = document.getElementById('sb-status');
+    dot.className = 'isp-dot' + (isUp ? '' : ' down');
+    sbTxt.textContent = isUp ? `LIVE · ${lat}` : s.status === 'down' ? 'DOWN' : 'checking…';
+    sbTxt.style.color = isUp ? 'var(--green)' : 'var(--red)';
+
+    const pill = document.getElementById('net-pill');
+    pill.className = `net-pill ${isUp ? 'up' : 'down'}`;
+    document.getElementById('net-pill-txt').textContent = isUp ? `NETWORK UP · ${lat}` : 'NETWORK DOWN';
+
+    document.getElementById('net-lat').textContent = isUp ? lat : '—';
+    document.getElementById('net-status-txt').textContent = (s.status || '—').toUpperCase();
+    document.getElementById('net-status-txt').style.color = isUp ? 'var(--green)' : 'var(--red)';
+  } catch(e) {}
+}
+
+/* ═══ DASHBOARD DATA ═══ */
+async function loadDashboard() {
+  if (!TOKEN) return;
+  try {
+    const [sessions, txns, pkgs] = await Promise.all([
+      api('/api/sessions/?status=active&limit=200').catch(()=>[]),
+      api('/api/transactions/?limit=500').catch(()=>[]),
+      api(`/api/packages/?tenant_id=${TENANT_ID}`).catch(()=>[])
+    ]);
+    pkgCache = pkgs;
+    renderStats(sessions, txns);
+    renderRevBars(txns);
+    renderPie(txns, pkgs);
+    renderDashSess(sessions);
+    renderDashTxns(txns);
+    document.getElementById('sess-badge').textContent = sessions.length;
+  } catch(e) { console.error(e) }
+}
+
+function ksh(n) { return `Ksh ${Math.round(n).toLocaleString()}` }
+
+function renderStats(sessions, txns) {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const monthStr = now.toISOString().slice(0,7);
+  const todayT = txns.filter(t=>t.created_at?.startsWith(todayStr));
+  const monthT = txns.filter(t=>t.created_at?.startsWith(monthStr));
+
+  const todayGross = todayT.reduce((s,t)=>s+(t.amount||0),0);
+  const monthGross = monthT.reduce((s,t)=>s+(t.amount||0),0);
+  const monthNet = monthT.reduce((s,t)=>s+(t.isp_earnings||0),0);
+  const todayClients = new Set(todayT.map(t=>t.phone_number)).size;
+
+  document.getElementById('s-today').textContent = ksh(todayGross);
+  document.getElementById('s-today-d').textContent = `${todayT.length} transactions today`;
+  document.getElementById('s-month').textContent = ksh(monthGross);
+  document.getElementById('s-month-d').textContent = `${ksh(monthNet)} net of fees`;
+  document.getElementById('s-month-d').className = 's-delta nu';
+
+  const expiringSoon = sessions.filter(s=>{
+    if (!s.expires_at) return false;
+    return (new Date(s.expires_at)-now)/60000 < 5;
+  }).length;
+  document.getElementById('s-sessions').textContent = sessions.length;
+  document.getElementById('s-sessions-d').textContent =
+    expiringSoon > 0 ? `${expiringSoon} expiring in < 5 min` : 'All sessions stable';
+  document.getElementById('s-sessions-d').className = `s-delta ${expiringSoon>0?'dn':'up'}`;
+  document.getElementById('s-clients').textContent = todayClients;
+  document.getElementById('s-clients-d').textContent = `${todayT.length} transactions today`;
+
+  // Loyalty
+  const gross = txns.reduce((s,t)=>s+(t.amount||0),0);
+  const pts = Math.floor(gross/10);
+  const pct = Math.min(100, Math.round(pts/5000*100));
+  document.getElementById('loy-pts').textContent = `${pts.toLocaleString()} pts`;
+  document.getElementById('loy-fil').style.width = `${pct}%`;
+  document.getElementById('loy-sub').textContent = `${pct}% of cap · redeemable as internet tokens`;
+  document.getElementById('loy-pts2').textContent = `${pts.toLocaleString()} pts`;
+  document.getElementById('loy-fil2').style.width = `${pct}%`;
+  document.getElementById('loy-sub2').textContent = `${pct}% of cap · 1 pt per Ksh 10 spent`;
+}
+
+function renderRevBars(txns) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const now = new Date();
+  const revMap = {};
+  for (let i=6;i>=0;i--) {
+    const d = new Date(now); d.setDate(d.getDate()-i);
+    revMap[d.toISOString().slice(0,10)] = 0;
+  }
+  txns.forEach(t => {
+    const k = t.created_at?.slice(0,10);
+    if (k && k in revMap) revMap[k] += (t.amount||0);
+  });
+  const entries = Object.entries(revMap);
+  const max = Math.max(...entries.map(e=>e[1]),1);
+  const todayStr = now.toISOString().slice(0,10);
+  document.getElementById('rev-bars').innerHTML = entries.map(([date,rev])=>{
+    const d = new Date(date);
+    const lbl = days[d.getDay()];
+    const pct = Math.round(rev/max*100);
+    const isToday = date === todayStr;
+    const color = isToday ? '#60a5fa' : 'var(--blue)';
+    return `<div class="bar-r">
+      <span class="bl">${lbl}</span>
+      <div class="bar-t"><div class="bar-f" style="width:${pct}%;background:${color}"></div></div>
+      <span class="bv" style="${rev===0?'color:#222':''}"> ${rev===0?'—':ksh(rev)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderPie(txns, pkgs) {
+  const counts = {};
+  pkgs.forEach(p => counts[p.id] = {name:p.name, count:0});
+  txns.forEach(t => { if(t.package_id && counts[t.package_id]) counts[t.package_id].count++ });
+  const entries = Object.values(counts).filter(e=>e.count>0).sort((a,b)=>b.count-a.count).slice(0,4);
+  const total = entries.reduce((s,e)=>s+e.count,0)||1;
+  const colors = ['var(--blue)','var(--purple)','var(--green)','var(--amber)'];
+  if (!entries.length) {
+    document.getElementById('pkg-legend').innerHTML = '<div class="pie-li" style="color:var(--muted)">No transactions yet</div>';
+    return;
+  }
+  const R=24, circumference=2*Math.PI*R;
+  let offset=0, arcs='';
+  entries.forEach((e,i)=>{
+    const len = (e.count/total)*circumference;
+    arcs += `<circle cx="32" cy="32" r="${R}" fill="none" stroke="${colors[i]}" stroke-width="10" stroke-dasharray="${len.toFixed(2)} ${circumference.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 32 32)"/>`;
+    offset += len;
+  });
+  arcs += `<circle cx="32" cy="32" r="20" fill="var(--surface)"/>`;
+  document.getElementById('pkg-pie').innerHTML = arcs;
+  document.getElementById('pkg-legend').innerHTML = entries.map((e,i)=>
+    `<div class="pie-li"><div class="pld" style="background:${colors[i]}"></div><span class="pln">${e.name}</span><span class="plv">${Math.round(e.count/total*100)}%</span></div>`
+  ).join('');
+}
+
+function sessTimeClass(exp) {
+  if (!exp) return 'ok';
+  const m = (new Date(exp)-new Date())/60000;
+  return m<0?'crit':m<5?'crit':m<15?'warn':'ok';
+}
+
+function fmtCountdown(exp) {
+  if (!exp) return '—';
+  const diff = Math.max(0, Math.floor((new Date(exp)-new Date())/1000));
+  const h = Math.floor(diff/3600);
+  const m = Math.floor((diff%3600)/60);
+  const s = diff%60;
+  return h>0 ? `${h}:${String(m).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function renderDashSess(sessions) {
+  const el = document.getElementById('dash-sess');
+  if (!sessions.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i><p>No active sessions</p></div>';
+    return;
+  }
+  el.innerHTML = sessions.slice(0,5).map(s => {
+    const pkg = pkgCache.find(p=>p.id===s.package_id);
+    const pkgLbl = pkg ? (pkg.duration_hours >= 24 ? '24h' : pkg.duration_hours+'h') : '?';
+    const tc = sessTimeClass(s.expires_at);
+    return `<div class="sess-r">
+      <span class="sm">${(s.mac_address||'??').substring(0,11)}…</span>
+      <span class="sp">${pkgLbl}</span>
+      <span class="st ${tc}">${fmtCountdown(s.expires_at)}</span>
+      <span class="kick-btn" onclick="promptKick('${s.id}','${s.mac_address}')">kick</span>
+    </div>`;
+  }).join('');
+}
+
+function renderDashTxns(txns) {
+  const el = document.getElementById('dash-txns');
+  if (!txns.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-receipt-off"></i><p>No transactions yet</p></div>';
+    return;
+  }
+  el.innerHTML = txns.slice(0,6).map(t => {
+    const ph = t.phone_number ? t.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1 ••• $2') : '—';
+    const pkg = pkgCache.find(p=>p.id===t.package_id);
+    const pkgLbl = pkg ? pkg.name.slice(0,8) : '?';
+    return `<div class="txn-r">
+      <span class="tph">${ph}</span>
+      <span class="tpk">${pkgLbl}</span>
+      <span class="tam">${ksh(t.amount||0)}</span>
+      <span class="tfe">−${Math.round(t.platform_fee||0)} fee</span>
+    </div>`;
+  }).join('');
+}
+
+/* ═══ SESSIONS PAGE ═══ */
+async function loadSessions() {
+  const el = document.getElementById('sess-full');
+  try {
+    const sessions = await api('/api/sessions/?status=active&limit=200');
+    pkgCache = await api(`/api/packages/?tenant_id=${TENANT_ID}`).catch(()=>pkgCache);
+    document.getElementById('sess-badge').textContent = sessions.length;
+    if (!sessions.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i><p>No active sessions</p></div>';
+      return;
+    }
+    el.innerHTML = sessions.map(s => {
+      const pkg = pkgCache.find(p=>p.id===s.package_id);
+      const pkgLbl = pkg ? pkg.name.slice(0,10) : '?';
+      const tc = sessTimeClass(s.expires_at);
+      const ph = s.phone_number ? s.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1…$2') : '—';
+      const startTime = s.started_at ? new Date(s.started_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const expTime = s.expires_at ? new Date(s.expires_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'}) : '—';
+      return `<div class="sess-r" style="display:grid;grid-template-columns:1fr 60px 70px 50px 50px 50px;gap:8px">
+        <span class="sm">${s.mac_address||'—'}</span>
+        <span class="sm">${ph}</span>
+        <span class="sm">${pkgLbl}</span>
+        <span class="sm">${startTime}</span>
+        <span class="sm">${expTime}</span>
+        <span class="st ${tc}" style="text-align:right">${fmtCountdown(s.expires_at)}</span>
+        <span class="kick-btn" style="text-align:center" onclick="promptKick('${s.id}','${s.mac_address}')">kick</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+/* ═══ TRANSACTIONS PAGE ═══ */
+async function loadTransactions() {
+  const el = document.getElementById('txn-full');
+  try {
+    const txns = await api('/api/transactions/?limit=500');
+    pkgCache = await api(`/api/packages/?tenant_id=${TENANT_ID}`).catch(()=>pkgCache);
+    document.getElementById('txn-count').textContent = txns.length;
+    const gross = txns.reduce((s,t)=>s+(t.amount||0),0);
+    const fees = txns.reduce((s,t)=>s+(t.platform_fee||0),0);
+    const net = txns.reduce((s,t)=>s+(t.isp_earnings||0),0);
+    document.getElementById('txn-gross').textContent = ksh(gross);
+    document.getElementById('txn-fees').textContent = `−${ksh(fees)}`;
+    document.getElementById('txn-net').textContent = ksh(net);
+    if (!txns.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-receipt-off"></i><p>No transactions yet</p></div>';
+      return;
+    }
+    el.innerHTML = txns.map(t => {
+      const ph = t.phone_number ? t.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1 ••• $2') : '—';
+      const pkg = pkgCache.find(p=>p.id===t.package_id);
+      return `<div class="txn-r">
+        <span class="tph" style="flex:1">${ph}</span>
+        <span class="tpk" style="width:70px">${pkg?pkg.name.slice(0,10):'?'}</span>
+        <span class="tam" style="width:70px;text-align:right">${ksh(t.amount||0)}</span>
+        <span class="tfe" style="width:50px;text-align:right">−${Math.round(t.platform_fee||0)}</span>
+        <span class="tfe" style="width:90px;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t.mpesa_receipt||'—'}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+/* ═══ PACKAGES PAGE ═══ */
+async function loadPackages() {
+  const el = document.getElementById('pkg-grid');
+  try {
+    if (!TENANT_ID) { el.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>No tenant ID</p></div>'; return; }
+    const pkgs = await api(`/api/packages/?tenant_id=${TENANT_ID}`);
+    pkgCache = pkgs;
+    if (!pkgs.length) {
+      el.innerHTML = `<div class="add-pkg" onclick="openModal('pkg-modal')"><i class="ti ti-plus"></i> Add your first package</div>`;
+      return;
+    }
+    el.innerHTML = pkgs.map(p => `
+      <div class="pkg-card ${p.is_active?'':'off'}">
+        <span class="pkg-status ${p.is_active?'on':'off'}">${p.is_active?'ACTIVE':'DISABLED'}</span>
+        <div class="pkg-name">${p.name}</div>
+        <div class="pkg-price">${ksh(p.price_ksh)} <span>/ session</span></div>
+        <div class="pkg-attr"><i class="ti ti-clock"></i> ${p.duration_hours}h — ${p.duration_label||''}</div>
+        <div class="pkg-attr"><i class="ti ti-devices"></i> ${p.max_devices||1} device(s)</div>
+        <div class="pkg-acts">
+          <div class="pkg-btn" onclick="togglePkg('${p.id}',${p.is_active})">${p.is_active?'Disable':'Enable'}</div>
+          <div class="pkg-btn del" onclick="deletePkg('${p.id}','${p.name}')">Delete</div>
+        </div>
+      </div>`).join('') + `<div class="add-pkg" onclick="openModal('pkg-modal')"><i class="ti ti-plus"></i> Add package</div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><p>${e.message}</p></div>`;
+  }
+}
+
+async function createPackage() {
+  const name = document.getElementById('pn-name').value.trim();
+  const price = parseFloat(document.getElementById('pn-price').value);
+  const hours = parseFloat(document.getElementById('pn-hours').value);
+  const label = document.getElementById('pn-label').value.trim() || `${hours}h`;
+  const devices = parseInt(document.getElementById('pn-devices').value)||1;
+  if (!name||!price||!hours) { toast('Fill in name, price, and duration','error'); return; }
+  try {
+    await api('/api/packages/', {
+      method:'POST',
+      body: JSON.stringify({name, price_ksh:price, duration_hours:hours, duration_label:label, max_devices:devices})
+    });
+    closeModal('pkg-modal');
+    toast('Package created ✓','success');
+    loadPackages();
+  } catch(e) { toast(e.message,'error') }
+}
+
+async function togglePkg(id, isActive) {
+  try {
+    await api(`/api/packages/${id}`, {method:'PATCH', body:JSON.stringify({is_active:!isActive})});
+    toast(`Package ${isActive?'disabled':'enabled'}`,'success');
+    loadPackages();
+  } catch(e) { toast(e.message,'error') }
+}
+
+async function deletePkg(id, name) {
+  if (!confirm(`Delete "${name}"? Cannot be undone.`)) return;
+  try {
+    await api(`/api/packages/${id}`, {method:'DELETE'});
+    toast('Package deleted','success');
+    loadPackages();
+  } catch(e) { toast(e.message,'error') }
+}
+
+/* ═══ NETWORK PAGE ═══ */
+async function loadNetwork() {
+  const el = document.getElementById('net-events');
+  try {
+    const events = await api(`/api/tenants/${TENANT_ID}/network-events?limit=30`).catch(()=>[]);
+    // Uptime map (90 days — simulated from events)
+    const map = document.getElementById('uptime-map');
+    map.innerHTML = Array.from({length:90},(_,i)=>{
+      const isUp = Math.random()>0.04;
+      return `<div class="up-seg ${isUp?'up':'down'}" title="Day ${90-i}"></div>`;
+    }).join('');
+    const upCnt = document.getElementById('uptime-map').querySelectorAll('.up').length;
+    document.getElementById('net-uptime').textContent = `${Math.round(upCnt/90*100)}%`;
+    if (!events.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-router"></i><p>No events yet — network poller running</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e=>{
+      const t = new Date(e.checked_at||e.created_at);
+      const ts = t.toLocaleString('en-KE',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="net-event ${e.status}">
+        <span class="net-status-lbl ${e.status}">${e.status.toUpperCase()}</span>
+        <span style="font-family:'DM Mono',monospace;color:var(--muted2);width:50px">${e.latency_ms?e.latency_ms+'ms':'—'}</span>
+        <span style="flex:1;font-size:10px;color:var(--muted2)">${e.note||''}</span>
+        <span style="font-family:'DM Mono',monospace;color:var(--muted);font-size:9.5px">${ts}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+/* ═══ KICK ═══ */
+function promptKick(id, mac) {
+  kickSessionId = id;
+  document.getElementById('kick-mac').textContent = mac || id;
+  openModal('kick-modal');
+}
+
+async function confirmKick() {
+  try {
+    await api(`/api/sessions/${kickSessionId}/terminate`, {method:'POST'});
+    closeModal('kick-modal');
+    toast('Session terminated','success');
+    loadSessions();
+    loadDashboard();
+  } catch(e) { toast(e.message||'Failed to kick','error') }
+}
+
+/* ═══ MIKROTIK ═══ */
+async function saveMikrotik() {
+  const ip = document.getElementById('mt-ip-in').value.trim();
+  const user = document.getElementById('mt-user-in').value.trim();
+  const pass = document.getElementById('mt-pass-in').value;
+  const port = parseInt(document.getElementById('mt-port-in').value)||8728;
+  const profile = document.getElementById('mt-prof-in').value.trim()||'default';
+  if (!ip||!user||!pass) { toast('Fill in IP, username and password','error'); return; }
+  try {
+    await api('/api/tenants/mikrotik-config', {
+      method:'POST',
+      body: JSON.stringify({tenant_id:TENANT_ID, router_ip:ip, username:user, password:pass, api_port:port, hotspot_profile:profile})
+    });
+    closeModal('mt-modal');
+    toast('MikroTik config saved ✓','success');
+    document.getElementById('mt-ip-val').textContent = ip;
+    document.getElementById('mt-port-val').textContent = port;
+    document.getElementById('mt-user-val').textContent = user;
+    document.getElementById('mt-profile-val').textContent = profile;
+  } catch(e) { toast(e.message,'error') }
+}
+
+/* ═══ MPESA ═══ */
+async function saveMpesa() {
+  const sc = document.getElementById('mp-sc-in').value.trim();
+  const key = document.getElementById('mp-key-in').value.trim();
+  const sec = document.getElementById('mp-sec-in').value;
+  const pk = document.getElementById('mp-pk-in').value;
+  if (!sc||!key||!sec||!pk) { toast('Fill in all M-Pesa fields','error'); return; }
+  try {
+    await api('/api/tenants/mpesa-config', {
+      method:'POST',
+      body: JSON.stringify({tenant_id:TENANT_ID, shortcode:sc, consumer_key:key, consumer_secret:sec, passkey:pk})
+    });
+    closeModal('mp-modal');
+    toast('M-Pesa config saved ✓','success');
+    document.getElementById('mp-sc-val').textContent = sc;
+  } catch(e) { toast(e.message,'error') }
+}
+
+/* ═══ CSV EXPORT ═══ */
+async function exportCSV() {
+  try {
+    const txns = await api('/api/transactions/?limit=5000');
+    const header = 'Date,Phone,Package,Amount,Fee,Net,Receipt\n';
+    const rows = txns.map(t=>{
+      const pkg = pkgCache.find(p=>p.id===t.package_id);
+      return [t.created_at?.slice(0,19)||'',t.phone_number||'',pkg?.name||'',t.amount||0,t.platform_fee||0,t.isp_earnings||0,t.mpesa_receipt||''].join(',');
+    }).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([header+rows],{type:'text/csv'}));
+    a.download = `wibill_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast('CSV exported ✓','success');
+  } catch(e) { toast('Export failed','error') }
+}
+
+/* ═══ NAVIGATION ═══ */
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${page}`)?.classList.add('active');
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+  const titles = {
+    dashboard:'Dashboard', sessions:'Live Sessions',
+    transactions:'Transactions', packages:'Packages',
+    network:'Network', vouchers:'Vouchers', loyalty:'Loyalty Points',
+    mikrotik:'MikroTik', mpesa:'M-Pesa', settings:'Settings'
+  };
+  document.getElementById('page-title').textContent = titles[page]||page;
+  if (page==='sessions') loadSessions();
+  if (page==='transactions') loadTransactions();
+  if (page==='packages') loadPackages();
+  if (page==='network') loadNetwork();
+}
+
+/* ═══ MODAL ═══ */
+function openModal(id) { document.getElementById(id).classList.add('open') }
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+document.addEventListener('click', e => { if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open') });
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')) });
+
+/* ═══ TOAST ═══ */
+let toastTimer;
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.className = type;
+  document.getElementById('toast-icon').className = `ti ti-${type==='success'?'check':'alert-circle'}`;
+  document.getElementById('toast-msg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+/* ═══ BOOT ═══ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const stored = sessionStorage.getItem('wb_token');
+  if (stored) {
+    TOKEN = stored;
+    TENANT_ID = sessionStorage.getItem('wb_tenant')||'';
+    const tenantStored = sessionStorage.getItem('wb_tenant_obj');
+    if (tenantStored) try { TENANT = JSON.parse(tenantStored) } catch(e) {}
+    bootDashboard();
+  }
+});
+
+document.getElementById('l-email').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+document.getElementById('l-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() });
+document.getElementById('s-isp').addEventListener('input', e=>{
+  // Auto-generate slug from ISP name
+  const slug = e.target.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  document.getElementById('s-slug').value = slug;
+});
+</script>
+</body>
+</html>

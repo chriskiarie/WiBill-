@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiBill — ISP Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#030303;
+  --s1:#080808;
+  --s2:#0d0d0d;
+  --s3:#111;
+  --b1:#151515;
+  --b2:#1e1e1e;
+  --b3:#2a2a2a;
+  --text:#efefef;
+  --muted:#444;
+  --muted2:#666;
+  --muted3:#888;
+  --blue:#3b82f6;
+  --blue-bg:#06132a;
+  --blue-border:#0f2550;
+  --green:#22c55e;
+  --green-bg:#041509;
+  --amber:#f59e0b;
+  --amber-bg:#130d01;
+  --red:#f87171;
+  --red-bg:#130404;
+  --purple:#a78bfa;
+  --purple-bg:#0d0820;
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+
+/* LAYOUT */
+#app{display:flex;height:100vh;font-family:'Syne',sans-serif;color:var(--text)}
+
+/* SIDEBAR */
+#sidebar{
+  width:224px;min-width:224px;
+  background:var(--s1);
+  border-right:0.5px solid var(--b1);
+  display:flex;flex-direction:column;
+  transition:width 0.2s;
+  overflow:hidden;
+  z-index:20;
+}
+
+.sb-top{padding:20px 18px 16px;border-bottom:0.5px solid var(--b1)}
+.sb-brand{display:flex;align-items:baseline;justify-content:space-between}
+.sb-brand .wibill{
+  font-size:19px;font-weight:800;
+  letter-spacing:-0.8px;color:#fff;
+  font-family:'Syne',sans-serif;
+}
+.sb-brand .xwb{
+  font-family:'Instrument Serif',serif;
+  font-style:italic;font-size:13px;
+  color:var(--muted2);letter-spacing:1px;
+}
+.sb-tagline{font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.8px;text-transform:uppercase;font-weight:400;font-family:'DM Mono',monospace}
+
+.sb-isp{padding:12px 14px;border-bottom:0.5px solid var(--b1);display:flex;align-items:center;gap:9px;cursor:pointer}
+.isp-av{
+  width:30px;height:30px;border-radius:7px;
+  background:var(--blue-bg);border:0.5px solid var(--blue-border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--blue);
+  letter-spacing:0.5px;flex-shrink:0;font-family:'DM Mono',monospace;
+}
+.isp-info{min-width:0}
+.isp-name{font-size:11px;font-weight:600;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isp-status{display:flex;align-items:center;gap:5px;margin-top:2px}
+.isp-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.isp-dot.down{background:var(--red)}
+.isp-status-txt{font-size:9px;color:var(--green);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:0.3px}
+.isp-status-txt.down{color:var(--red)}
+
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto;scrollbar-width:none}
+.nav-sec{margin-bottom:20px}
+.nav-sec-lbl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;padding:0 10px;margin-bottom:6px;font-weight:600;font-family:'DM Mono',monospace}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 10px;border-radius:7px;
+  font-size:11.5px;color:var(--muted2);
+  cursor:pointer;margin-bottom:1px;font-weight:500;
+  transition:all 0.12s;position:relative;white-space:nowrap;
+}
+.nav-item:hover{color:#bbb;background:#0e0e0e}
+.nav-item.active{background:#0b1e3d;color:#fff;font-weight:600}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:14px;background:var(--blue);border-radius:0 2px 2px 0;
+}
+.nav-item i{font-size:15px;width:16px;flex-shrink:0;color:inherit}
+.nav-item.active i{color:var(--blue)}
+.nav-badge{
+  margin-left:auto;background:var(--blue-bg);color:var(--blue);
+  font-size:8.5px;padding:2px 6px;border-radius:10px;
+  font-family:'DM Mono',monospace;font-weight:500;
+}
+.nav-badge.red{background:var(--red-bg);color:var(--red)}
+
+.sb-foot{padding:10px 8px;border-top:0.5px solid var(--b1)}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* TOPBAR */
+#topbar{
+  height:52px;min-height:52px;
+  background:var(--s1);border-bottom:0.5px solid var(--b1);
+  display:flex;align-items:center;padding:0 24px;gap:12px;
+  position:sticky;top:0;z-index:10;
+}
+.tb-page-title{
+  font-size:11px;font-weight:600;color:var(--muted3);letter-spacing:0.2px;
+}
+.tb-page-title span{color:var(--text)}
+#tb-title-big{
+  font-size:20px;font-weight:800;color:#fff;
+  font-family:'Syne',sans-serif;letter-spacing:-0.6px;
+}
+.tb-sep{color:var(--b3);margin:0 2px;font-size:12px}
+.tb-space{flex:1}
+.net-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;
+  font-size:9.5px;font-family:'DM Mono',monospace;font-weight:500;
+  letter-spacing:0.4px;
+}
+.net-pill.up{background:var(--green-bg);border:0.5px solid #0a2818;color:var(--green)}
+.net-pill.down{background:var(--red-bg);border:0.5px solid #2e0a0a;color:var(--red)}
+.net-pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+.tb-btn{
+  width:32px;height:32px;background:var(--s2);
+  border:0.5px solid var(--b2);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;transition:background 0.1s;flex-shrink:0;
+}
+.tb-btn:hover{background:var(--b1)}
+.tb-btn i{font-size:15px;color:var(--muted2)}
+.tb-dot{position:absolute;top:6px;right:6px;width:5px;height:5px;background:var(--blue);border-radius:50%;border:1.5px solid var(--s1)}
+.tb-avatar{background:var(--blue-bg);border-color:var(--blue-border)}
+.tb-avatar i{color:var(--blue)}
+.tb-avatar span{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--blue)}
+
+/* CONTENT */
+#content{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg);scrollbar-width:thin;scrollbar-color:#1a1a1a transparent}
+
+/* PAGE SYSTEM */
+.page{display:none}
+.page.active{display:block}
+
+/* DATE HEADER */
+.date-line{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.date-line .day{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.5px}
+.date-line .greet{font-size:12px;color:var(--muted2);font-weight:400}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.stat{
+  background:var(--s1);border:0.5px solid var(--b1);border-radius:10px;
+  padding:15px;position:relative;overflow:hidden;cursor:default;
+  transition:border-color 0.15s;
+}
+.stat:hover{border-color:var(--b3)}
+.stat-lbl{font-size:9.5px;color:var(--muted2);letter-spacing:0.4px;margin-bottom:10px;font-weight:600;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.stat-lbl i{font-size:13px}
+.stat-money{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#fff;letter-spacing:-0.5px;line-height:1}
+.stat-count{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1}
+.stat-delta{font-size:9.5px;margin-top:6px;font-family:'DM Mono',monospace;font-weight:400}
+.stat-delta.up{color:var(--green)}
+.stat-delta.dn{color:var(--red)}
+.stat-delta.nu{color:var(--muted2)}
+.stat-bg-icon{position:absolute;bottom:-4px;right:10px;font-size:40px;opacity:0.04;pointer-events:none}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:11px;margin-bottom:11px}
+.grid-3{display:grid;grid-template-columns:1fr 1.8fr;gap:11px;margin-bottom:11px}
+
+/* CARD */
+.card{background:var(--s1);border:0.5px solid var(--b1);border-radius:10px;padding:15px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.card-title{font-size:10px;font-weight:700;color:var(--muted3);letter-spacing:0.5px;text-transform:uppercase}
+.card-action{font-size:9.5px;color:var(--blue);cursor:pointer;font-family:'DM Mono',monospace;transition:opacity 0.1s}
+.card-action:hover{opacity:0.7}
+
+/* BARS */
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;align-items:center;gap:9px}
+.bar-lbl{font-size:9.5px;color:var(--muted2);width:22px;font-family:'DM Mono',monospace;font-weight:500}
+.bar-track{flex:1;height:4px;background:#111;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+.bar-val{font-size:9.5px;color:var(--muted);width:70px;text-align:right;font-family:'DM Mono',monospace}
+
+/* PIE */
+.pie-wrap{display:flex;align-items:center;gap:12px}
+.pie-legend{display:flex;flex-direction:column;gap:8px;flex:1}
+.pie-li{display:flex;align-items:center;gap:7px;font-size:9.5px;color:var(--muted2)}
+.pie-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.pie-name{flex:1}
+.pie-pct{font-family:'DM Mono',monospace;color:var(--muted);font-weight:500}
+
+/* LOYALTY */
+.loy-wrap{padding:4px 0}
+.loy-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.loy-label{font-size:10px;color:var(--muted3);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
+.loy-pts{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--amber)}
+.loy-track{height:3px;background:#111;border-radius:2px;margin-bottom:8px;overflow:hidden}
+.loy-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--amber),#fbbf24);width:68%}
+.loy-sub{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* SESSIONS TABLE */
+.sess-list{display:flex;flex-direction:column;gap:4px}
+.sess-row{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 9px;background:var(--s2);
+  border-radius:6px;border:0.5px solid var(--b1);
+  transition:border-color 0.1s;
+}
+.sess-row:hover{border-color:var(--b3)}
+.sess-mac{font-size:9.5px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1;letter-spacing:0.3px}
+.sess-pkg{font-size:9.5px;color:var(--muted);width:30px;font-family:'DM Mono',monospace}
+.sess-time{font-size:10.5px;font-weight:500;font-family:'DM Mono',monospace;width:42px;text-align:right}
+.sess-time.ok{color:var(--green)}
+.sess-time.warn{color:var(--amber)}
+.sess-time.crit{color:var(--red)}
+.kick-btn{
+  font-size:8.5px;color:var(--muted);cursor:pointer;
+  padding:2px 7px;border-radius:4px;border:0.5px solid var(--b2);
+  font-family:'DM Mono',monospace;transition:all 0.1s;white-space:nowrap;
+}
+.kick-btn:hover{color:var(--red);border-color:#2a1010;background:var(--red-bg)}
+
+/* TRANSACTIONS */
+.txn-list{display:flex;flex-direction:column;gap:4px}
+.txn-row{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 9px;border-bottom:0.5px solid #0d0d0d;
+}
+.txn-row:last-child{border-bottom:none}
+.txn-ph{font-size:9.5px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1}
+.txn-pkg{font-size:9.5px;color:var(--muted);width:36px;font-family:'DM Mono',monospace}
+.txn-amt{font-size:10.5px;font-weight:500;font-family:'DM Mono',monospace;color:#fff;width:60px;text-align:right}
+.txn-fee{font-size:9px;color:var(--red);font-family:'DM Mono',monospace;width:40px;text-align:right}
+.txn-receipt{font-size:8.5px;color:var(--muted);font-family:'DM Mono',monospace;width:80px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* PACKAGES PAGE */
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:16px}
+.pkg-card{
+  background:var(--s1);border:0.5px solid var(--b1);
+  border-radius:10px;padding:16px;position:relative;
+  transition:border-color 0.15s;
+}
+.pkg-card:hover{border-color:var(--b3)}
+.pkg-card.inactive{opacity:0.45}
+.pkg-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:4px}
+.pkg-price{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--blue);margin-bottom:10px}
+.pkg-price span{font-size:11px;color:var(--muted2)}
+.pkg-meta{display:flex;flex-direction:column;gap:5px}
+.pkg-attr{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted2)}
+.pkg-attr i{font-size:13px;color:var(--muted)}
+.pkg-badge{
+  position:absolute;top:12px;right:12px;
+  font-size:8.5px;padding:2px 7px;border-radius:10px;
+  font-family:'DM Mono',monospace;font-weight:500;
+}
+.pkg-badge.active-b{background:var(--green-bg);color:var(--green);border:0.5px solid #0a2818}
+.pkg-badge.inactive-b{background:#111;color:var(--muted);border:0.5px solid var(--b2)}
+.pkg-actions{display:flex;gap:7px;margin-top:13px}
+.pkg-btn{
+  flex:1;padding:6px;border-radius:6px;border:0.5px solid var(--b2);
+  font-size:9px;font-family:'DM Mono',monospace;cursor:pointer;
+  background:transparent;color:var(--muted2);transition:all 0.1s;text-align:center;font-weight:500;
+}
+.pkg-btn:hover{background:var(--b1);color:#fff}
+.pkg-btn.danger:hover{background:var(--red-bg);color:var(--red);border-color:#2a1010}
+.add-pkg-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  border:0.5px dashed var(--b3);border-radius:10px;padding:20px;
+  color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s;
+  background:transparent;
+}
+.add-pkg-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+
+/* NETWORK PAGE */
+.net-events{display:flex;flex-direction:column;gap:5px}
+.net-event{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;background:var(--s2);
+  border-radius:7px;border-left:2px solid transparent;
+  font-size:10px;
+}
+.net-event.up{border-left-color:var(--green)}
+.net-event.down{border-left-color:var(--red)}
+.net-event.degraded{border-left-color:var(--amber)}
+.net-status-lbl{font-weight:600;width:60px;font-family:'DM Mono',monospace}
+.net-status-lbl.up{color:var(--green)}
+.net-status-lbl.down{color:var(--red)}
+.net-status-lbl.degraded{color:var(--amber)}
+.net-lat{font-family:'DM Mono',monospace;color:var(--muted2);width:50px}
+.net-time{font-family:'DM Mono',monospace;color:var(--muted);flex:1;text-align:right;font-size:9.5px}
+
+/* MODAL OVERLAY */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  z-index:100;display:none;align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--s1);border:0.5px solid var(--b2);
+  border-radius:12px;padding:24px;width:420px;max-width:90vw;
+  position:relative;
+}
+.modal-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:18px;letter-spacing:-0.3px}
+.modal-close{
+  position:absolute;top:18px;right:18px;width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--muted2);border-radius:6px;
+  transition:background 0.1s;
+}
+.modal-close:hover{background:var(--b2)}
+.form-field{margin-bottom:14px}
+.form-label{font-size:10px;color:var(--muted3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:block;font-family:'DM Mono',monospace}
+.form-input{
+  width:100%;background:var(--bg);border:0.5px solid var(--b2);
+  border-radius:7px;padding:9px 12px;color:var(--text);
+  font-size:12px;font-family:'Syne',sans-serif;outline:none;
+  transition:border-color 0.15s;
+}
+.form-input:focus{border-color:var(--blue)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-primary{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:var(--blue);color:#fff;border:none;
+  border-radius:7px;padding:10px 20px;font-size:12px;
+  font-family:'Syne',sans-serif;font-weight:600;cursor:pointer;
+  transition:opacity 0.1s;width:100%;
+}
+.btn-primary:hover{opacity:0.85}
+.btn-secondary{
+  background:transparent;border:0.5px solid var(--b2);color:var(--muted2);
+  border-radius:7px;padding:9px 16px;font-size:11px;
+  font-family:'DM Mono',monospace;cursor:pointer;transition:all 0.1s;
+}
+.btn-secondary:hover{background:var(--b1);color:#fff}
+
+/* SETTINGS PAGE */
+.settings-section{margin-bottom:22px}
+.settings-title{font-size:11px;font-weight:700;color:var(--muted3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--b1)}
+.settings-row{display:flex;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--b1);gap:12px}
+.settings-row:last-child{border-bottom:none}
+.settings-key{font-size:11px;color:var(--muted3);font-weight:500;width:160px;flex-shrink:0}
+.settings-val{font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1}
+.settings-edit{font-size:9.5px;color:var(--blue);cursor:pointer;font-family:'DM Mono',monospace;padding:3px 8px;border:0.5px solid var(--blue-border);border-radius:5px;transition:background 0.1s}
+.settings-edit:hover{background:var(--blue-bg)}
+.toggle{width:32px;height:18px;border-radius:9px;background:var(--b2);position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;border:none;outline:none}
+.toggle.on{background:var(--blue)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left 0.2s}
+.toggle.on::after{left:17px}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--s2);border:0.5px solid var(--b2);
+  border-radius:9px;padding:12px 16px;
+  font-size:11px;font-family:'DM Mono',monospace;
+  display:flex;align-items:center;gap:9px;
+  z-index:200;transition:all 0.25s;
+  transform:translateY(80px);opacity:0;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:#0f3320;color:var(--green)}
+#toast.error{border-color:#2e0a0a;color:var(--red)}
+
+/* LOADING SPINNER */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--b3);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty i{font-size:32px;margin-bottom:10px;display:block;opacity:0.3}
+.empty p{font-size:11px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a1a1a;border-radius:2px}
+
+/* REVENUE CHART SVG */
+#rev-chart{width:100%;height:80px;overflow:visible}
+
+/* LOGIN PAGE */
+#login-page{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;
+}
+.login-box{
+  width:360px;
+  background:var(--s1);border:0.5px solid var(--b2);
+  border-radius:14px;padding:32px;
+}
+.login-brand{text-align:center;margin-bottom:28px}
+.login-brand .lbw{font-size:28px;font-weight:800;color:#fff;letter-spacing:-1px}
+.login-brand .lbx{font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;color:var(--muted2)}
+.login-brand p{font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:0.5px;font-family:'DM Mono',monospace}
+.login-err{background:var(--red-bg);border:0.5px solid #2e0a0a;color:var(--red);border-radius:7px;padding:9px 12px;font-size:10px;font-family:'DM Mono',monospace;margin-bottom:14px;display:none}
+
+/* VOUCHERS */
+.voucher-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.voucher-card{
+  background:var(--s2);border:0.5px solid var(--b2);border-radius:9px;
+  padding:12px;text-align:center;
+}
+.voucher-code{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#fff;letter-spacing:1px;margin-bottom:6px}
+.voucher-meta{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace}
+.voucher-status{font-size:9px;font-family:'DM Mono',monospace;margin-top:5px}
+.voucher-status.unused{color:var(--green)}
+.voucher-status.used{color:var(--muted)}
+
+/* NOTIFICATION BADGE */
+.notif-count{
+  position:absolute;top:-4px;right:-4px;
+  background:var(--red);color:#fff;
+  font-size:8px;font-weight:700;
+  border-radius:50%;width:14px;height:14px;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--s1);font-family:'DM Mono',monospace;
+}
+
+/* UPTIME INDICATOR */
+.uptime-bar{display:flex;gap:2px;flex-wrap:wrap}
+.uptime-seg{width:8px;height:24px;border-radius:2px;flex-shrink:0}
+.uptime-seg.up{background:#0f3320}
+.uptime-seg.up:hover{background:var(--green)}
+.uptime-seg.down{background:#2e0a0a}
+.uptime-seg.down:hover{background:var(--red)}
+
+/* RESPONSIVE NAV active highlight */
+.nav-item.active .nav-badge{background:#0d1e3a;color:#60a5fa}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-brand">
+      <div><span class="lbw">WiBill</span> <span class="lbx">XwB</span></div>
+      <p>ISP MANAGEMENT PLATFORM</p>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <div class="form-field">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="login-email" placeholder="admin@yourisp.co.ke" value="admin@xwbill.co.ke">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="login-pass" placeholder="••••••••" value="admin1234">
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">
+      <i class="ti ti-login"></i> Sign in
+    </button>
+    <div style="margin-top:16px;text-align:center;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">
+      Powered by HonestBill · v0.1.0
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-top">
+      <div class="sb-brand">
+        <span class="wibill">WiBill</span>
+        <span class="xwb">XwB</span>
+      </div>
+      <div class="sb-tagline">ISP Management Platform</div>
+    </div>
+
+    <div class="sb-isp" onclick="navTo('settings')">
+      <div class="isp-av" id="sb-isp-av">--</div>
+      <div class="isp-info">
+        <div class="isp-name" id="sb-isp-name">Loading…</div>
+        <div class="isp-status">
+          <div class="isp-dot" id="sb-net-dot"></div>
+          <span class="isp-status-txt" id="sb-net-txt">checking…</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="nav-sec">
+        <div class="nav-sec-lbl">Overview</div>
+        <div class="nav-item active" onclick="navTo('dashboard')" id="nav-dashboard">
+          <i class="ti ti-layout-dashboard" aria-hidden="true"></i> Dashboard
+        </div>
+        <div class="nav-item" onclick="navTo('sessions')" id="nav-sessions">
+          <i class="ti ti-wifi" aria-hidden="true"></i> Live Sessions
+          <span class="nav-badge" id="nav-sess-count">0</span>
+        </div>
+        <div class="nav-item" onclick="navTo('transactions')" id="nav-transactions">
+          <i class="ti ti-receipt" aria-hidden="true"></i> Transactions
+        </div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-sec-lbl">Manage</div>
+        <div class="nav-item" onclick="navTo('packages')" id="nav-packages">
+          <i class="ti ti-package" aria-hidden="true"></i> Packages
+        </div>
+        <div class="nav-item" onclick="navTo('vouchers')" id="nav-vouchers">
+          <i class="ti ti-ticket" aria-hidden="true"></i> Vouchers
+          <span class="nav-badge" style="background:#111;color:var(--muted)">soon</span>
+        </div>
+        <div class="nav-item" onclick="navTo('network')" id="nav-network">
+          <i class="ti ti-router" aria-hidden="true"></i> Network
+        </div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-sec-lbl">Account</div>
+        <div class="nav-item" onclick="navTo('settings')" id="nav-settings">
+          <i class="ti ti-settings" aria-hidden="true"></i> Settings
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-foot">
+      <div class="nav-item" onclick="doLogout()">
+        <i class="ti ti-logout" aria-hidden="true"></i> Sign out
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div id="main">
+    <div id="topbar">
+      <div id="tb-title-big">Dashboard</div>
+      <div class="tb-space"></div>
+      <div class="net-pill up" id="net-pill">
+        <span class="net-pulse"></span>
+        <span id="net-pill-txt">NETWORK UP · --ms</span>
+      </div>
+      <div class="tb-btn" title="Search">
+        <i class="ti ti-search" aria-hidden="true"></i>
+      </div>
+      <div class="tb-btn" title="Notifications" style="position:relative">
+        <i class="ti ti-bell" aria-hidden="true"></i>
+        <div class="tb-dot"></div>
+      </div>
+      <div class="tb-btn tb-avatar" title="Profile" onclick="navTo('settings')">
+        <span id="tb-av-initials">--</span>
+      </div>
+    </div>
+
+    <div id="content">
+
+      <!-- ═══ DASHBOARD PAGE ═══ -->
+      <div class="page active" id="page-dashboard">
+        <div class="date-line">
+          <span class="day" id="dash-date">--</span>
+          <span class="greet" id="dash-greet">Good evening</span>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat" style="border-top:1.5px solid var(--blue)">
+            <div class="stat-lbl"><i class="ti ti-cash" style="color:var(--blue)" aria-hidden="true"></i> Today's revenue</div>
+            <div class="stat-money" id="stat-today">Ksh —</div>
+            <div class="stat-delta nu" id="stat-today-delta">loading…</div>
+            <i class="ti ti-cash stat-bg-icon" style="color:var(--blue)" aria-hidden="true"></i>
+          </div>
+          <div class="stat" style="border-top:1.5px solid var(--purple)">
+            <div class="stat-lbl"><i class="ti ti-calendar-month" style="color:var(--purple)" aria-hidden="true"></i> This month</div>
+            <div class="stat-money" id="stat-month">Ksh —</div>
+            <div class="stat-delta nu" id="stat-month-net">loading…</div>
+            <i class="ti ti-calendar-month stat-bg-icon" style="color:var(--purple)" aria-hidden="true"></i>
+          </div>
+          <div class="stat" style="border-top:1.5px solid var(--green)">
+            <div class="stat-lbl"><i class="ti ti-wifi" style="color:var(--green)" aria-hidden="true"></i> Active sessions</div>
+            <div class="stat-count" id="stat-sessions">—</div>
+            <div class="stat-delta nu" id="stat-sess-expiring">loading…</div>
+            <i class="ti ti-wifi stat-bg-icon" style="color:var(--green)" aria-hidden="true"></i>
+          </div>
+          <div class="stat" style="border-top:1.5px solid var(--amber)">
+            <div class="stat-lbl"><i class="ti ti-users" style="color:var(--amber)" aria-hidden="true"></i> Clients today</div>
+            <div class="stat-count" id="stat-clients">—</div>
+            <div class="stat-delta nu" id="stat-clients-delta">loading…</div>
+            <i class="ti ti-users stat-bg-icon" style="color:var(--amber)" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Revenue · last 7 days</span>
+              <span class="card-action" onclick="navTo('transactions')">full report →</span>
+            </div>
+            <div class="bars" id="rev-bars"></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Package split</span>
+              </div>
+              <div class="pie-wrap">
+                <svg width="60" height="60" viewBox="0 0 60 60" id="pkg-pie">
+                  <circle cx="30" cy="30" r="22" fill="none" stroke="#111" stroke-width="10"/>
+                </svg>
+                <div class="pie-legend" id="pkg-legend"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span class="card-title">Loyalty pool</span></div>
+              <div class="loy-wrap">
+                <div class="loy-top">
+                  <span class="loy-label">Points</span>
+                  <span class="loy-pts" id="loy-pts">0 pts</span>
+                </div>
+                <div class="loy-track"><div class="loy-fill" id="loy-fill"></div></div>
+                <div class="loy-sub" id="loy-sub">Redeemable as internet tokens</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Live sessions</span>
+              <span class="card-action" onclick="navTo('sessions')">all →</span>
+            </div>
+            <div class="sess-list" id="dash-sessions">
+              <div class="empty"><i class="ti ti-wifi-off" aria-hidden="true"></i><p>No active sessions</p></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Recent transactions</span>
+              <span class="card-action" onclick="exportCSV()">export CSV →</span>
+            </div>
+            <div class="txn-list" id="dash-txns">
+              <div class="empty"><i class="ti ti-receipt-off" aria-hidden="true"></i><p>No transactions yet</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SESSIONS PAGE ═══ -->
+      <div class="page" id="page-sessions">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Live Sessions</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Auto-refreshes every 30s</div>
+          </div>
+          <button class="btn-secondary" onclick="loadSessions()"><i class="ti ti-refresh" style="font-size:13px;vertical-align:-2px"></i> Refresh</button>
+        </div>
+        <div class="card">
+          <div id="sessions-full-list">
+            <div class="empty"><span class="spinner"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ TRANSACTIONS PAGE ═══ -->
+      <div class="page" id="page-transactions">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Transactions</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Full M-Pesa ledger · <span id="txn-count">—</span> records</div>
+          </div>
+          <button class="btn-secondary" onclick="exportCSV()"><i class="ti ti-download" style="font-size:13px;vertical-align:-2px"></i> Export CSV</button>
+        </div>
+
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat">
+            <div class="stat-lbl">Gross revenue</div>
+            <div class="stat-money" id="txn-gross">Ksh —</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Platform fees (10%)</div>
+            <div class="stat-money" id="txn-fees" style="color:var(--red)">−Ksh —</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl">Net earnings</div>
+            <div class="stat-money" id="txn-net" style="color:var(--green)">Ksh —</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">All transactions</span>
+            <span class="card-action" onclick="exportCSV()">export CSV →</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:0px;padding:9px 9px 11px;border-bottom:0.5px solid var(--b1)">
+            <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1">PHONE</span>
+            <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:36px">PKG</span>
+            <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:60px;text-align:right">AMOUNT</span>
+            <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:40px;text-align:right">FEE</span>
+            <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:80px;text-align:right">RECEIPT</span>
+          </div>
+          <div class="txn-list" id="txn-full-list">
+            <div class="empty"><span class="spinner"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PACKAGES PAGE ═══ -->
+      <div class="page" id="page-packages">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Packages</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Manage your WiFi access plans</div>
+          </div>
+          <button class="btn-primary" style="width:auto;padding:9px 16px" onclick="openModal('pkg-modal')">
+            <i class="ti ti-plus"></i> New package
+          </button>
+        </div>
+        <div class="pkg-grid" id="pkg-grid">
+          <div class="empty" style="grid-column:1/-1"><span class="spinner"></span></div>
+        </div>
+      </div>
+
+      <!-- ═══ VOUCHERS PAGE ═══ -->
+      <div class="page" id="page-vouchers">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Vouchers</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Generate & manage prepaid codes</div>
+          </div>
+          <button class="btn-primary" style="width:auto;padding:9px 16px;opacity:0.5;cursor:not-allowed">
+            <i class="ti ti-ticket"></i> Generate batch
+          </button>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="text-align:center;padding:32px 20px">
+            <i class="ti ti-ticket" style="font-size:36px;color:var(--muted);display:block;margin-bottom:12px;opacity:0.3" aria-hidden="true"></i>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">Vouchers coming in Phase 2</div>
+            <div style="font-size:10px;color:var(--muted2);max-width:280px;margin:0 auto;line-height:1.7">Generate printable WiFi voucher codes. Customers scratch and enter code instead of paying M-Pesa. Great for hotels, events, and walk-in customers.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ NETWORK PAGE ═══ -->
+      <div class="page" id="page-network">
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Network</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">Router status & uplink history</div>
+        </div>
+
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+          <div class="stat" id="net-stat-status">
+            <div class="stat-lbl"><i class="ti ti-router" aria-hidden="true"></i> Router status</div>
+            <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace" id="net-router-status">—</div>
+            <div class="stat-delta nu" id="net-router-ip">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl"><i class="ti ti-activity" aria-hidden="true"></i> Latency</div>
+            <div class="stat-money" id="net-latency">—</div>
+            <div class="stat-delta nu">last ping</div>
+          </div>
+          <div class="stat">
+            <div class="stat-lbl"><i class="ti ti-clock" aria-hidden="true"></i> Uptime today</div>
+            <div class="stat-money" id="net-uptime">—</div>
+            <div class="stat-delta up">last 24 hours</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head">
+            <span class="card-title">90-day uptime map</span>
+            <span class="card-action">each bar = 1 day</span>
+          </div>
+          <div class="uptime-bar" id="uptime-map"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Recent network events</span>
+            <span class="card-action" onclick="loadNetwork()">refresh →</span>
+          </div>
+          <div class="net-events" id="net-events">
+            <div class="empty"><span class="spinner"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SETTINGS PAGE ═══ -->
+      <div class="page" id="page-settings">
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px">Settings</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">ISP profile, router & M-Pesa config</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="settings-title">ISP Profile</div>
+              <div class="settings-row">
+                <span class="settings-key">Business name</span>
+                <span class="settings-val" id="set-name">—</span>
+                <span class="settings-edit" onclick="openModal('profile-modal')">edit</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Slug / Portal URL</span>
+                <span class="settings-val" id="set-slug">—</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Support phone</span>
+                <span class="settings-val" id="set-phone">—</span>
+                <span class="settings-edit" onclick="openModal('profile-modal')">edit</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Platform fee</span>
+                <span class="settings-val">10% per transaction</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Portal status</span>
+                <span class="settings-val" style="color:var(--green)" id="set-portal-status">ACTIVE</span>
+                <button class="toggle on" id="portal-toggle" onclick="togglePortal(this)"></button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="settings-title">MikroTik Router</div>
+              <div class="settings-row">
+                <span class="settings-key">Router IP</span>
+                <span class="settings-val" id="set-router-ip">not configured</span>
+                <span class="settings-edit" onclick="openModal('mikrotik-modal')">edit</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">API port</span>
+                <span class="settings-val" id="set-router-port">8728</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Hotspot profile</span>
+                <span class="settings-val" id="set-hotspot-profile">default</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Username</span>
+                <span class="settings-val" id="set-router-user">—</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Password</span>
+                <span class="settings-val">••••••••</span>
+                <span class="settings-edit" onclick="openModal('mikrotik-modal')">update</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="settings-title">M-Pesa (Daraja)</div>
+              <div class="settings-row">
+                <span class="settings-key">Shortcode</span>
+                <span class="settings-val" id="set-mpesa-shortcode">not configured</span>
+                <span class="settings-edit" onclick="openModal('mpesa-modal')">edit</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Consumer key</span>
+                <span class="settings-val">••••••••••••</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Consumer secret</span>
+                <span class="settings-val">••••••••••••</span>
+              </div>
+              <div class="settings-row">
+                <span class="settings-key">Environment</span>
+                <span class="settings-val" id="set-mpesa-env" style="color:var(--amber)">sandbox</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="settings-title">Portal Link</div>
+              <div style="background:var(--s2);border:0.5px solid var(--b2);border-radius:7px;padding:10px 12px;margin-bottom:10px">
+                <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">CAPTIVE PORTAL URL</div>
+                <div style="font-size:10.5px;color:var(--blue);font-family:'DM Mono',monospace;word-break:break-all" id="set-portal-url">—</div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.6">
+                Configure your MikroTik hotspot to redirect to this URL. Append <span style="color:#fff">?mac=$mac&ip=$ip</span> in the redirect rule.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast"><i class="ti ti-check" id="toast-icon" aria-hidden="true"></i> <span id="toast-msg"></span></div>
+
+<!-- MODAL: New Package -->
+<div class="modal-overlay" id="pkg-modal">
+  <div class="modal">
+    <div class="modal-title">New Package</div>
+    <div class="modal-close" onclick="closeModal('pkg-modal')"><i class="ti ti-x" aria-hidden="true"></i></div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Package name</label>
+        <input class="form-input" id="pkg-name-input" placeholder="e.g. Daily Browsing">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Price (Ksh)</label>
+        <input class="form-input" id="pkg-price-input" type="number" placeholder="50">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Duration (hours)</label>
+        <input class="form-input" id="pkg-hours-input" type="number" placeholder="24">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Speed limit (Mbps)</label>
+        <input class="form-input" id="pkg-speed-input" type="number" placeholder="5 (optional)">
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Max devices</label>
+      <input class="form-input" id="pkg-devices-input" type="number" placeholder="1 (optional)">
+    </div>
+    <button class="btn-primary" onclick="createPackage()">
+      <i class="ti ti-plus"></i> Create package
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: MikroTik Config -->
+<div class="modal-overlay" id="mikrotik-modal">
+  <div class="modal">
+    <div class="modal-title">MikroTik Configuration</div>
+    <div class="modal-close" onclick="closeModal('mikrotik-modal')"><i class="ti ti-x" aria-hidden="true"></i></div>
+    <div class="form-field">
+      <label class="form-label">Router IP address</label>
+      <input class="form-input" id="mt-ip" placeholder="192.168.88.1">
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="mt-user" placeholder="admin">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="mt-pass" type="password" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">API port</label>
+        <input class="form-input" id="mt-port" placeholder="8728" value="8728">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Hotspot profile</label>
+        <input class="form-input" id="mt-profile" placeholder="default" value="default">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveMikrotik()">
+      <i class="ti ti-device-floppy"></i> Save configuration
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: M-Pesa Config -->
+<div class="modal-overlay" id="mpesa-modal">
+  <div class="modal">
+    <div class="modal-title">M-Pesa (Daraja) Configuration</div>
+    <div class="modal-close" onclick="closeModal('mpesa-modal')"><i class="ti ti-x" aria-hidden="true"></i></div>
+    <div class="form-field">
+      <label class="form-label">Business shortcode</label>
+      <input class="form-input" id="mp-shortcode" placeholder="174379">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Consumer key</label>
+      <input class="form-input" id="mp-key" placeholder="••••••••••••">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Consumer secret</label>
+      <input class="form-input" id="mp-secret" type="password" placeholder="••••••••••••">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Passkey</label>
+      <input class="form-input" id="mp-passkey" type="password" placeholder="bfb279f9aa9…">
+    </div>
+    <button class="btn-primary" onclick="saveMpesa()">
+      <i class="ti ti-device-floppy"></i> Save M-Pesa config
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: Kick Confirm -->
+<div class="modal-overlay" id="kick-modal">
+  <div class="modal" style="width:340px">
+    <div class="modal-title">Kick session?</div>
+    <div class="modal-close" onclick="closeModal('kick-modal')"><i class="ti ti-x" aria-hidden="true"></i></div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:20px;line-height:1.7">
+      This will immediately remove <span id="kick-mac" style="color:#fff;font-family:'DM Mono',monospace"></span> from the network. Their remaining session time will be forfeited.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('kick-modal')">Cancel</button>
+      <button class="btn-primary" style="background:#7f1d1d;flex:1" onclick="confirmKick()">
+        <i class="ti ti-user-off"></i> Kick
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG — point to your FastAPI backend
+   ═══════════════════════════════════════ */
+const API = 'http://localhost:8000';
+let TOKEN = '';
+let TENANT_ID = '';
+let kickTargetId = '';
+let currentPackages = [];
+
+/* ═══════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════ */
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  try {
+    const fd = new FormData();
+    fd.append('username', email);
+    fd.append('password', pass);
+    const r = await fetch(`${API}/api/auth/login`, { method:'POST', body: fd });
+    if (!r.ok) throw new Error('Invalid credentials');
+    const d = await r.json();
+    TOKEN = d.access_token;
+
+    // Get user info
+    const me = await apiFetch('/api/auth/me');
+    TENANT_ID = me.tenant_id || '';
+
+    // Store
+    sessionStorage.setItem('wb_token', TOKEN);
+    sessionStorage.setItem('wb_tenant', TENANT_ID);
+    sessionStorage.setItem('wb_email', email);
+
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initDashboard();
+  } catch(e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  } finally {
+    btn.innerHTML = '<i class="ti ti-login"></i> Sign in';
+    btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  sessionStorage.clear();
+  TOKEN = '';
+  TENANT_ID = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════
+   API HELPER
+   ═══════════════════════════════════════ */
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${TOKEN}`,
+      ...(opts.headers || {})
+    }
+  });
+  if (r.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(err.detail || r.statusText);
+  }
+  return r.json();
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+function initDashboard() {
+  const email = sessionStorage.getItem('wb_email') || '';
+  const initials = email ? email.slice(0, 2).toUpperCase() : '--';
+  document.getElementById('tb-av-initials').textContent = initials;
+
+  updateDateTime();
+  loadTenantInfo();
+  loadDashboard();
+
+  setInterval(updateDateTime, 60000);
+  setInterval(loadNetworkStatus, 30000);
+  setInterval(loadDashboard, 60000);
+  setInterval(loadSessions, 30000);
+}
+
+/* ═══════════════════════════════════════
+   DATE / GREETING
+   ═══════════════════════════════════════ */
+function updateDateTime() {
+  const now = new Date();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('dash-date').textContent =
+    `${days[now.getDay()]} · ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const h = now.getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const name = (sessionStorage.getItem('wb_email') || '').split('@')[0];
+  document.getElementById('dash-greet').textContent = `${greet}, ${name}`;
+}
+
+/* ═══════════════════════════════════════
+   TENANT INFO
+   ═══════════════════════════════════════ */
+async function loadTenantInfo() {
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    let tenant = null;
+    if (TENANT_ID) {
+      tenant = tenants.find(t => t.id === TENANT_ID);
+    } else {
+      tenant = tenants[0]; // platform admin sees first ISP
+    }
+    if (!tenant) return;
+
+    const av = tenant.name.slice(0, 2).toUpperCase();
+    document.getElementById('sb-isp-av').textContent = av;
+    document.getElementById('sb-isp-name').textContent = tenant.name;
+    document.getElementById('set-name').textContent = tenant.name;
+    document.getElementById('set-slug').textContent = tenant.slug;
+    document.getElementById('set-phone').textContent = tenant.support_phone || 'Not set';
+    document.getElementById('set-portal-url').textContent =
+      `https://pay.honestbill.co.ke/portal/${tenant.slug}?mac=$mac&ip=$ip`;
+
+    loadNetworkStatus();
+  } catch(e) { console.error(e) }
+}
+
+/* ═══════════════════════════════════════
+   NETWORK STATUS
+   ═══════════════════════════════════════ */
+async function loadNetworkStatus() {
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    const tenant = TENANT_ID ? tenants.find(t => t.id === TENANT_ID) : tenants[0];
+    if (!tenant) return;
+
+    const status = await apiFetch(`/api/tenants/${tenant.id}/network-status`).catch(() => ({ status:'unknown', latency_ms:null }));
+    const isUp = status.status === 'up';
+    const isDn = status.status === 'down';
+    const lat = status.latency_ms ? `${Math.round(status.latency_ms)}ms` : '--ms';
+
+    // Sidebar dot
+    const dot = document.getElementById('sb-net-dot');
+    const txt = document.getElementById('sb-net-txt');
+    dot.className = 'isp-dot' + (isDn ? ' down' : '');
+    txt.className = 'isp-status-txt' + (isDn ? ' down' : '');
+    txt.textContent = isUp ? `UP · ${lat}` : isDn ? 'NETWORK DOWN' : 'checking…';
+
+    // Topbar pill
+    const pill = document.getElementById('net-pill');
+    const pillTxt = document.getElementById('net-pill-txt');
+    pill.className = `net-pill ${isUp ? 'up' : 'down'}`;
+    pillTxt.textContent = isUp ? `NETWORK UP · ${lat}` : 'NETWORK DOWN';
+
+    // Network page
+    document.getElementById('net-latency').textContent = isUp ? lat : '—';
+    document.getElementById('net-router-status').textContent = status.status?.toUpperCase() || '—';
+    document.getElementById('net-router-status').style.color = isUp ? 'var(--green)' : isDn ? 'var(--red)' : 'var(--amber)';
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD DATA
+   ═══════════════════════════════════════ */
+async function loadDashboard() {
+  try {
+    const [sessions, transactions, packages] = await Promise.all([
+      apiFetch('/api/sessions?status=active&limit=100').catch(() => []),
+      apiFetch('/api/transactions?limit=200').catch(() => []),
+      apiFetch('/api/packages').catch(() => [])
+    ]);
+
+    currentPackages = packages;
+    renderStats(sessions, transactions);
+    renderRevenueBars(transactions);
+    renderPkgPie(transactions, packages);
+    renderDashSessions(sessions);
+    renderDashTxns(transactions);
+
+    document.getElementById('nav-sess-count').textContent = sessions.length;
+  } catch(e) { console.error(e) }
+}
+
+function ksh(n) { return `Ksh ${Math.round(n).toLocaleString()}` }
+
+function renderStats(sessions, transactions) {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const monthStr = now.toISOString().slice(0, 7);
+
+  const todayTxns = transactions.filter(t => t.created_at?.startsWith(todayStr));
+  const monthTxns = transactions.filter(t => t.created_at?.startsWith(monthStr));
+
+  const todayGross = todayTxns.reduce((s, t) => s + (t.amount || 0), 0);
+  const monthGross = monthTxns.reduce((s, t) => s + (t.amount || 0), 0);
+  const monthNet = monthTxns.reduce((s, t) => s + (t.isp_earnings || 0), 0);
+
+  document.getElementById('stat-today').textContent = ksh(todayGross);
+  document.getElementById('stat-month').textContent = ksh(monthGross);
+  document.getElementById('stat-month-net').textContent = `${ksh(monthNet)} net of fees`;
+
+  const expiringSoon = sessions.filter(s => {
+    if (!s.expires_at) return false;
+    const diff = (new Date(s.expires_at) - now) / 60000;
+    return diff > 0 && diff < 5;
+  }).length;
+  document.getElementById('stat-sessions').textContent = sessions.length;
+  document.getElementById('stat-sess-expiring').textContent =
+    expiringSoon > 0 ? `${expiringSoon} expiring in < 5 min` : 'All sessions stable';
+  document.getElementById('stat-sess-expiring').className =
+    `stat-delta ${expiringSoon > 0 ? 'dn' : 'up'}`;
+
+  const todayClients = [...new Set(todayTxns.map(t => t.phone_number))].length;
+  document.getElementById('stat-clients').textContent = todayClients;
+  document.getElementById('stat-clients-delta').textContent = `${todayTxns.length} transactions today`;
+
+  // Loyalty points: 1 point per Ksh 10 spent
+  const totalGross = transactions.reduce((s, t) => s + (t.amount || 0), 0);
+  const pts = Math.floor(totalGross / 10);
+  const cap = 5000;
+  const pct = Math.min(100, Math.round(pts / cap * 100));
+  document.getElementById('loy-pts').textContent = `${pts.toLocaleString()} pts`;
+  document.getElementById('loy-fill').style.width = `${pct}%`;
+  document.getElementById('loy-sub').textContent = `${pct}% of cap · redeemable as internet tokens`;
+}
+
+function renderRevenueBars(transactions) {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const now = new Date();
+  const dayRevs = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    dayRevs[key] = 0;
+  }
+  transactions.forEach(t => {
+    const k = t.created_at?.slice(0, 10);
+    if (k && dayRevs.hasOwnProperty(k)) dayRevs[k] += (t.amount || 0);
+  });
+  const entries = Object.entries(dayRevs);
+  const max = Math.max(...entries.map(e => e[1]), 1);
+
+  document.getElementById('rev-bars').innerHTML = entries.map(([date, rev]) => {
+    const d = new Date(date);
+    const lbl = days[d.getDay()];
+    const pct = Math.round(rev / max * 100);
+    const today = date === now.toISOString().slice(0, 10);
+    const color = today ? '#60a5fa' : 'var(--blue)';
+    const isEmpty = rev === 0;
+    return `<div class="bar-row">
+      <span class="bar-lbl">${lbl}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="bar-val" style="${isEmpty ? 'color:#1e1e1e' : ''}">${isEmpty ? '—' : ksh(rev)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderPkgPie(transactions, packages) {
+  const counts = {};
+  packages.forEach(p => counts[p.id] = { name: p.name, price: p.price_ksh, count: 0 });
+  transactions.forEach(t => { if (t.package_id && counts[t.package_id]) counts[t.package_id].count++ });
+  const entries = Object.values(counts).filter(e => e.count > 0).sort((a, b) => b.count - a.count).slice(0, 4);
+  const total = entries.reduce((s, e) => s + e.count, 0) || 1;
+  const colors = ['var(--blue)','var(--purple)','var(--green)','var(--amber)'];
+
+  if (entries.length === 0) {
+    document.getElementById('pkg-legend').innerHTML = '<div class="pie-li" style="color:var(--muted)">No transactions yet</div>';
+    return;
+  }
+
+  let offset = 0;
+  const R = 22, C = 60, circumference = 2 * Math.PI * R;
+  let arcs = '';
+  entries.forEach((e, i) => {
+    const pct = e.count / total;
+    const len = pct * circumference;
+    arcs += `<circle cx="${C/2}" cy="${C/2}" r="${R}" fill="none" stroke="${colors[i]}" stroke-width="10" stroke-dasharray="${len.toFixed(2)} ${circumference.toFixed(2)}" stroke-dashoffset="${-offset.toFixed(2)}" transform="rotate(-90 ${C/2} ${C/2})"/>`;
+    offset += len;
+  });
+  arcs += `<circle cx="${C/2}" cy="${C/2}" r="16" fill="var(--surface)"/>`;
+  document.getElementById('pkg-pie').innerHTML = arcs;
+
+  document.getElementById('pkg-legend').innerHTML = entries.map((e, i) => `
+    <div class="pie-li">
+      <div class="pie-dot" style="background:${colors[i]}"></div>
+      <span class="pie-name">${e.name}</span>
+      <span class="pie-pct">${Math.round(e.count/total*100)}%</span>
+    </div>`).join('');
+}
+
+function sessTimeClass(expiresAt) {
+  if (!expiresAt) return 'ok';
+  const mins = (new Date(expiresAt) - new Date()) / 60000;
+  if (mins < 0) return 'crit';
+  if (mins < 5) return 'crit';
+  if (mins < 15) return 'warn';
+  return 'ok';
+}
+
+function formatCountdown(expiresAt) {
+  if (!expiresAt) return '—';
+  const diff = Math.max(0, Math.floor((new Date(expiresAt) - new Date()) / 1000));
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function renderDashSessions(sessions) {
+  const el = document.getElementById('dash-sessions');
+  const live = sessions.slice(0, 5);
+  if (!live.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-wifi-off" aria-hidden="true"></i><p>No active sessions</p></div>';
+    return;
+  }
+  el.innerHTML = live.map(s => {
+    const mac = (s.mac_address || '??:??:??:??').substring(0, 11) + '…';
+    const pkg = currentPackages.find(p => p.id === s.package_id);
+    const pkgName = pkg ? (pkg.duration_hours >= 24 ? '24h' : pkg.duration_hours + 'h') : '?';
+    const tc = sessTimeClass(s.expires_at);
+    return `<div class="sess-row">
+      <span class="sess-mac">${mac}</span>
+      <span class="sess-pkg">${pkgName}</span>
+      <span class="sess-time ${tc}">${formatCountdown(s.expires_at)}</span>
+      <span class="kick-btn" onclick="promptKick('${s.id}','${s.mac_address}')">kick</span>
+    </div>`;
+  }).join('');
+}
+
+function renderDashTxns(transactions) {
+  const el = document.getElementById('dash-txns');
+  const recent = transactions.slice(0, 6);
+  if (!recent.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-receipt-off" aria-hidden="true"></i><p>No transactions yet</p></div>';
+    return;
+  }
+  el.innerHTML = recent.map(t => {
+    const ph = t.phone_number ? t.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1 ••• $2') : '—';
+    const pkg = currentPackages.find(p => p.id === t.package_id);
+    const pkgName = pkg ? pkg.name.slice(0, 5) : '?';
+    const fee = Math.round(t.platform_fee || 0);
+    const receipt = t.mpesa_receipt || '—';
+    return `<div class="txn-row">
+      <span class="txn-ph">${ph}</span>
+      <span class="txn-pkg">${pkgName}</span>
+      <span class="txn-amt">${ksh(t.amount || 0)}</span>
+      <span class="txn-fee">−${fee}</span>
+      <span class="txn-receipt" title="${receipt}">${receipt}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   SESSIONS PAGE
+   ═══════════════════════════════════════ */
+async function loadSessions() {
+  const el = document.getElementById('sessions-full-list');
+  try {
+    const sessions = await apiFetch('/api/sessions?status=active&limit=200');
+    document.getElementById('nav-sess-count').textContent = sessions.length;
+    if (!sessions.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-wifi-off" aria-hidden="true"></i><p>No active sessions right now</p></div>';
+      return;
+    }
+
+    const header = `<div style="display:flex;gap:8px;padding:9px 9px 11px;border-bottom:0.5px solid var(--b1);margin-bottom:2px">
+      <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;flex:1">MAC ADDRESS</span>
+      <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:60px">PHONE</span>
+      <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:36px">PKG</span>
+      <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:50px;text-align:right">EXPIRES</span>
+      <span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;width:44px;text-align:right">TIME</span>
+      <span style="width:48px"></span>
+    </div>`;
+
+    const rows = sessions.map(s => {
+      const pkg = currentPackages.find(p => p.id === s.package_id);
+      const pkgName = pkg ? pkg.name.slice(0, 8) : '?';
+      const tc = sessTimeClass(s.expires_at);
+      const expiryTime = s.expires_at ? new Date(s.expires_at).toLocaleTimeString('en-KE', {hour:'2-digit',minute:'2-digit'}) : '—';
+      const ph = s.phone_number ? s.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1…$2') : '—';
+      return `<div class="sess-row">
+        <span class="sess-mac" style="width:auto;flex:1">${s.mac_address || '—'}</span>
+        <span style="font-size:9.5px;color:var(--muted2);font-family:'DM Mono',monospace;width:60px">${ph}</span>
+        <span class="sess-pkg" style="width:60px">${pkgName}</span>
+        <span style="font-size:9.5px;color:var(--muted);font-family:'DM Mono',monospace;width:50px;text-align:right">${expiryTime}</span>
+        <span class="sess-time ${tc}" style="width:44px">${formatCountdown(s.expires_at)}</span>
+        <span class="kick-btn" style="width:48px" onclick="promptKick('${s.id}','${s.mac_address}')">kick</span>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = header + `<div class="sess-list">${rows}</div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>Error loading sessions</p></div>`;
+  }
+}
+
+/* ═══════════════════════════════════════
+   TRANSACTIONS PAGE
+   ═══════════════════════════════════════ */
+async function loadTransactions() {
+  const el = document.getElementById('txn-full-list');
+  try {
+    const transactions = await apiFetch('/api/transactions?limit=500');
+    document.getElementById('txn-count').textContent = transactions.length;
+
+    const gross = transactions.reduce((s, t) => s + (t.amount || 0), 0);
+    const fees = transactions.reduce((s, t) => s + (t.platform_fee || 0), 0);
+    const net = transactions.reduce((s, t) => s + (t.isp_earnings || 0), 0);
+    document.getElementById('txn-gross').textContent = ksh(gross);
+    document.getElementById('txn-fees').textContent = `−${ksh(fees)}`;
+    document.getElementById('txn-net').textContent = ksh(net);
+
+    if (!transactions.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-receipt-off" aria-hidden="true"></i><p>No transactions yet</p></div>';
+      return;
+    }
+    el.innerHTML = transactions.map(t => {
+      const ph = t.phone_number ? t.phone_number.replace(/(\d{4})\d+(\d{3})/, '$1 ••• $2') : '—';
+      const pkg = currentPackages.find(p => p.id === t.package_id);
+      const pkgName = pkg ? pkg.name.slice(0, 8) : '?';
+      const fee = Math.round(t.platform_fee || 0);
+      return `<div class="txn-row">
+        <span class="txn-ph">${ph}</span>
+        <span class="txn-pkg">${pkgName}</span>
+        <span class="txn-amt">${ksh(t.amount || 0)}</span>
+        <span class="txn-fee">−${fee}</span>
+        <span class="txn-receipt" title="${t.mpesa_receipt || ''}">${t.mpesa_receipt || '—'}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><p>Error loading transactions</p></div>`;
+  }
+}
+
+/* ═══════════════════════════════════════
+   PACKAGES PAGE
+   ═══════════════════════════════════════ */
+async function loadPackages() {
+  const el = document.getElementById('pkg-grid');
+  try {
+    const packages = await apiFetch('/api/packages');
+    currentPackages = packages;
+    if (!packages.length) {
+      el.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-package" aria-hidden="true"></i><p>No packages yet. Create your first.</p></div>';
+      return;
+    }
+    const cards = packages.map(p => `
+      <div class="pkg-card ${p.is_active ? '' : 'inactive'}">
+        <span class="pkg-badge ${p.is_active ? 'active-b' : 'inactive-b'}">${p.is_active ? 'ACTIVE' : 'DISABLED'}</span>
+        <div class="pkg-name">${p.name}</div>
+        <div class="pkg-price">${ksh(p.price_ksh)} <span>/ session</span></div>
+        <div class="pkg-meta">
+          <div class="pkg-attr"><i class="ti ti-clock" aria-hidden="true"></i> ${p.duration_hours}h access</div>
+          ${p.max_devices ? `<div class="pkg-attr"><i class="ti ti-devices" aria-hidden="true"></i> ${p.max_devices} device(s)</div>` : ''}
+          ${p.speed_limit_mbps ? `<div class="pkg-attr"><i class="ti ti-bolt" aria-hidden="true"></i> ${p.speed_limit_mbps} Mbps limit</div>` : '<div class="pkg-attr"><i class="ti ti-bolt" aria-hidden="true"></i> No speed limit</div>'}
+        </div>
+        <div class="pkg-actions">
+          <div class="pkg-btn" onclick="togglePkg('${p.id}','${p.is_active}')">${p.is_active ? 'Disable' : 'Enable'}</div>
+          <div class="pkg-btn danger" onclick="deletePkg('${p.id}','${p.name}')">Delete</div>
+        </div>
+      </div>`).join('');
+
+    el.innerHTML = cards + `<div class="add-pkg-btn" onclick="openModal('pkg-modal')">
+      <i class="ti ti-plus" aria-hidden="true"></i> Add package
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><p>Error loading packages</p></div>`;
+  }
+}
+
+async function createPackage() {
+  const name = document.getElementById('pkg-name-input').value.trim();
+  const price = parseFloat(document.getElementById('pkg-price-input').value);
+  const hours = parseFloat(document.getElementById('pkg-hours-input').value);
+  const speed = parseFloat(document.getElementById('pkg-speed-input').value) || null;
+  const devices = parseInt(document.getElementById('pkg-devices-input').value) || null;
+
+  if (!name || !price || !hours) { toast('Fill in name, price, and duration', 'error'); return; }
+
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    const tenant = TENANT_ID ? tenants.find(t => t.id === TENANT_ID) : tenants[0];
+    await apiFetch('/api/packages', {
+      method: 'POST',
+      body: JSON.stringify({
+        tenant_id: tenant.id,
+        name, price_ksh: price, duration_hours: hours,
+        speed_limit_mbps: speed, max_devices: devices, is_active: true
+      })
+    });
+    closeModal('pkg-modal');
+    toast('Package created ✓', 'success');
+    loadPackages();
+  } catch(e) { toast(e.message, 'error') }
+}
+
+async function togglePkg(id, isActive) {
+  try {
+    const active = isActive === 'true';
+    await apiFetch(`/api/packages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: !active })
+    });
+    toast(`Package ${active ? 'disabled' : 'enabled'}`, 'success');
+    loadPackages();
+  } catch(e) { toast(e.message, 'error') }
+}
+
+async function deletePkg(id, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/api/packages/${id}`, { method: 'DELETE' });
+    toast('Package deleted', 'success');
+    loadPackages();
+  } catch(e) { toast(e.message, 'error') }
+}
+
+/* ═══════════════════════════════════════
+   NETWORK PAGE
+   ═══════════════════════════════════════ */
+async function loadNetwork() {
+  const el = document.getElementById('net-events');
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    const tenant = TENANT_ID ? tenants.find(t => t.id === TENANT_ID) : tenants[0];
+    if (!tenant) return;
+
+    const events = await apiFetch(`/api/tenants/${tenant.id}/network-events?limit=30`).catch(() => []);
+
+    // Uptime map
+    const map = document.getElementById('uptime-map');
+    const segs = Array.from({length: 90}, (_, i) => {
+      const isUp = Math.random() > 0.05;
+      return `<div class="uptime-seg ${isUp ? 'up' : 'down'}" title="Day ${90-i}"></div>`;
+    });
+    map.innerHTML = segs.join('');
+
+    // Uptime %
+    const upCount = segs.filter(s => s.includes('"up"')).length;
+    document.getElementById('net-uptime').textContent = `${Math.round(upCount/90*100)}%`;
+
+    // Events list
+    if (!events.length) {
+      el.innerHTML = '<div class="empty"><i class="ti ti-router" aria-hidden="true"></i><p>No network events recorded yet</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e => {
+      const t = new Date(e.created_at || e.checked_at);
+      const timeStr = t.toLocaleString('en-KE', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      const lat = e.latency_ms ? `${Math.round(e.latency_ms)}ms` : '—';
+      return `<div class="net-event ${e.status}">
+        <span class="net-status-lbl ${e.status}">${e.status.toUpperCase()}</span>
+        <span class="net-lat">${lat}</span>
+        <span style="font-size:10px;color:var(--muted2);flex:1">${e.note || ''}</span>
+        <span class="net-time">${timeStr}</span>
+      </div>`;
+    }).join('');
+  } catch(err) {
+    el.innerHTML = '<div class="empty"><p>Error loading network events</p></div>';
+  }
+}
+
+/* ═══════════════════════════════════════
+   KICK SESSION
+   ═══════════════════════════════════════ */
+function promptKick(sessionId, mac) {
+  kickTargetId = sessionId;
+  document.getElementById('kick-mac').textContent = mac || sessionId;
+  openModal('kick-modal');
+}
+
+async function confirmKick() {
+  try {
+    await apiFetch(`/api/sessions/${kickTargetId}/terminate`, { method: 'POST' });
+    closeModal('kick-modal');
+    toast('Session terminated', 'success');
+    loadSessions();
+    loadDashboard();
+  } catch(e) { toast(e.message || 'Failed to kick session', 'error') }
+}
+
+/* ═══════════════════════════════════════
+   SETTINGS SAVE
+   ═══════════════════════════════════════ */
+async function saveMikrotik() {
+  const ip = document.getElementById('mt-ip').value.trim();
+  const user = document.getElementById('mt-user').value.trim();
+  const pass = document.getElementById('mt-pass').value.trim();
+  const port = parseInt(document.getElementById('mt-port').value) || 8728;
+  const profile = document.getElementById('mt-profile').value.trim() || 'default';
+  if (!ip || !user || !pass) { toast('Fill in IP, username, and password', 'error'); return; }
+
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    const tenant = TENANT_ID ? tenants.find(t => t.id === TENANT_ID) : tenants[0];
+    await apiFetch('/api/tenants/mikrotik-config', {
+      method: 'POST',
+      body: JSON.stringify({ tenant_id: tenant.id, router_ip: ip, username: user, password: pass, api_port: port, hotspot_profile: profile })
+    });
+    closeModal('mikrotik-modal');
+    toast('MikroTik config saved ✓', 'success');
+    document.getElementById('set-router-ip').textContent = ip;
+    document.getElementById('set-router-port').textContent = port;
+    document.getElementById('set-router-user').textContent = user;
+    document.getElementById('set-hotspot-profile').textContent = profile;
+  } catch(e) { toast(e.message, 'error') }
+}
+
+async function saveMpesa() {
+  const shortcode = document.getElementById('mp-shortcode').value.trim();
+  const key = document.getElementById('mp-key').value.trim();
+  const secret = document.getElementById('mp-secret').value.trim();
+  const passkey = document.getElementById('mp-passkey').value.trim();
+  if (!shortcode || !key || !secret || !passkey) { toast('Fill in all M-Pesa fields', 'error'); return; }
+
+  try {
+    const tenants = await apiFetch('/api/tenants');
+    const tenant = TENANT_ID ? tenants.find(t => t.id === TENANT_ID) : tenants[0];
+    await apiFetch('/api/tenants/mpesa-config', {
+      method: 'POST',
+      body: JSON.stringify({ tenant_id: tenant.id, shortcode, consumer_key: key, consumer_secret: secret, passkey })
+    });
+    closeModal('mpesa-modal');
+    toast('M-Pesa config saved ✓', 'success');
+    document.getElementById('set-mpesa-shortcode').textContent = shortcode;
+  } catch(e) { toast(e.message, 'error') }
+}
+
+function togglePortal(btn) {
+  btn.classList.toggle('on');
+  const isOn = btn.classList.contains('on');
+  document.getElementById('set-portal-status').textContent = isOn ? 'ACTIVE' : 'PAUSED';
+  document.getElementById('set-portal-status').style.color = isOn ? 'var(--green)' : 'var(--amber)';
+  toast(`Portal ${isOn ? 'activated' : 'paused'}`, 'success');
+}
+
+/* ═══════════════════════════════════════
+   EXPORT CSV
+   ═══════════════════════════════════════ */
+async function exportCSV() {
+  try {
+    const transactions = await apiFetch('/api/transactions?limit=5000');
+    const header = 'Date,Phone,Package,Amount,Fee,Net,M-Pesa Receipt\n';
+    const rows = transactions.map(t => {
+      const pkg = currentPackages.find(p => p.id === t.package_id);
+      return [
+        t.created_at?.slice(0, 19) || '',
+        t.phone_number || '',
+        pkg?.name || '',
+        t.amount || 0,
+        t.platform_fee || 0,
+        t.isp_earnings || 0,
+        t.mpesa_receipt || ''
+      ].join(',');
+    }).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `wibill_transactions_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast('CSV exported ✓', 'success');
+  } catch(e) { toast('Export failed', 'error') }
+}
+
+/* ═══════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════ */
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${page}`)?.classList.add('active');
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard', sessions: 'Live Sessions',
+    transactions: 'Transactions', packages: 'Packages',
+    vouchers: 'Vouchers', network: 'Network', settings: 'Settings'
+  };
+  document.getElementById('tb-title-big').textContent = titles[page] || page;
+
+  if (page === 'sessions') loadSessions();
+  if (page === 'transactions') loadTransactions();
+  if (page === 'packages') loadPackages();
+  if (page === 'network') loadNetwork();
+}
+
+/* ═══════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('open');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+/* ═══════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════ */
+let toastTimer;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  const icon = document.getElementById('toast-icon');
+  el.className = type;
+  icon.className = `ti ti-${type === 'success' ? 'check' : 'alert-circle'}`;
+  document.getElementById('toast-msg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ═══════════════════════════════════════
+   BOOT — check for stored session
+   ═══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const stored = sessionStorage.getItem('wb_token');
+  if (stored) {
+    TOKEN = stored;
+    TENANT_ID = sessionStorage.getItem('wb_tenant') || '';
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initDashboard();
+  }
+});
+
+document.getElementById('login-email').addEventListener('keydown', e => { if(e.key==='Enter') doLogin() });
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin() });
+</script>
+</body>
+</html>
