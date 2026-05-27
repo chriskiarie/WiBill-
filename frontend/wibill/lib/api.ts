@@ -5,24 +5,54 @@ function getToken(): string | null {
   return localStorage.getItem('wb_token')
 }
 
-async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const token = getToken()
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...opts.headers,
-    },
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Request failed' }))
-    throw new Error(err.detail || 'Request failed')
-  }
-  return res.json()
+interface RequestOptions extends RequestInit {
+  retries?: number
+  retryDelay?: number
 }
 
-// Auth
+async function request<T>(
+  path: string,
+  opts: RequestOptions = {},
+  attempt = 0
+): Promise<T> {
+  const { retries = 3, retryDelay = 1000, ...fetchOpts } = opts
+  const token = getToken()
+
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      ...fetchOpts,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...fetchOpts.headers,
+      },
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw new Error('Unauthorized - Please log in again')
+      }
+      if (res.status === 403) {
+        throw new Error('Access denied')
+      }
+      const err = await res.json().catch(() => ({ detail: 'Request failed' }))
+      throw new Error(err.detail || `HTTP ${res.status}`)
+    }
+
+    return res.json() as Promise<T>
+  } catch (error) {
+    if (attempt < retries) {
+      await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt)))
+      return request<T>(path, opts, attempt + 1)
+    }
+    throw error
+  }
+}
+
+// ============================================================================
+// AUTH ENDPOINTS
+// ============================================================================
+
 export async function login(username: string, password: string) {
   const form = new URLSearchParams({ username, password })
   const res = await fetch(`${BASE}/api/auth/login`, {
@@ -34,33 +64,225 @@ export async function login(username: string, password: string) {
   return res.json()
 }
 
-// Dashboard
+// ============================================================================
+// DASHBOARD API
+// ============================================================================
+
 export const api = {
-  // Sessions
-  getSessions: () => request<any[]>('/api/sessions'),
-  kickSession: (id: string) => request(`/api/sessions/${id}`, { method: 'DELETE' }),
+  // Auth
+  getMe: () => request<any>('/api/auth/me'),
+
+  // ========================================================================
+  // SESSIONS
+  // ========================================================================
+  getSessions: (status?: string) => {
+    const query = status ? `?status=${status}` : ''
+    return request<any[]>(`/api/sessions${query}`)
+  },
+  getSession: (id: string) => request<any>(`/api/sessions/${id}`),
+  kickSession: (id: string) =>
+    request(`/api/sessions/${id}`, { method: 'DELETE' }),
+  terminateSession: (id: string) =>
+    request(`/api/sessions/${id}/terminate`, { method: 'POST' }),
   getSessionStatus: (id: string) => request<any>(`/api/sessions/${id}/status`),
 
-  // Packages
+  // ========================================================================
+  // PACKAGES
+  // ========================================================================
   getPackages: () => request<any[]>('/api/packages'),
-  createPackage: (data: any) => request('/api/packages', { method: 'POST', body: JSON.stringify(data) }),
-  updatePackage: (id: string, data: any) => request(`/api/packages/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deletePackage: (id: string) => request(`/api/packages/${id}`, { method: 'DELETE' }),
+  getPackage: (id: string) => request<any>(`/api/packages/${id}`),
+  createPackage: (data: any) =>
+    request('/api/packages', { method: 'POST', body: JSON.stringify(data) }),
+  updatePackage: (id: string, data: any) =>
+    request(`/api/packages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deletePackage: (id: string) =>
+    request(`/api/packages/${id}`, { method: 'DELETE' }),
 
-  // Transactions
-  getTransactions: () => request<any[]>('/api/sessions/transactions'),
+  // ========================================================================
+  // TRANSACTIONS
+  // ========================================================================
+  getTransactions: (skip?: number, limit?: number) => {
+    const query = new URLSearchParams()
+    if (skip !== undefined) query.append('skip', skip.toString())
+    if (limit !== undefined) query.append('limit', limit.toString())
+    const queryStr = query.toString()
+    return request<any[]>(`/api/sessions/transactions${queryStr ? '?' + queryStr : ''}`)
+  },
+  getTransaction: (id: string) => request<any>(`/api/sessions/transactions/${id}`),
+  getTransactionStats: () => request<any>('/api/sessions/transactions/stats'),
 
-  // Tenants (admin)
-  getTenants: () => request<any[]>('/api/tenants'),
+  // ========================================================================
+  // TENANTS (ISP Management)
+  // ========================================================================
   getTenant: (id: string) => request<any>(`/api/tenants/${id}`),
-  updateTenant: (id: string, data: any) => request(`/api/tenants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateTenant: (id: string, data: any) =>
+    request(`/api/tenants/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  getTenantDashboard: () => request<any>('/api/tenants/dashboard'),
+  getTenantBalance: () => request<{ balance_ksh: number }>('/api/tenants/balance'),
 
-  // Network
+  // ========================================================================
+  // NETWORK & SYSTEM
+  // ========================================================================
   getNetworkStatus: () => request<any>('/api/system/health'),
+  getNetworkStats: () => request<any>('/api/network/stats'),
 
-// Me
-   getMe: () => request<any>('/api/auth/me'),
+  // ========================================================================
+  // MIKROTIK
+  // ========================================================================
+  getMikrotikConfig: () => request<any>('/api/mikrotik/config'),
+  saveMikrotikConfig: (data: any) =>
+    request('/api/mikrotik/config', { method: 'POST', body: JSON.stringify(data) }),
+  getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
+  getMikrotikUser: (username: string) =>
+    request<any>(`/api/mikrotik/users/${username}`),
+  disconnectMikrotikUser: (username: string) =>
+    request(`/api/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
+  testMikrotikConnection: () =>
+    request<{ status: boolean; message: string }>('/api/mikrotik/test'),
 
-   // Portal Config
-   savePortalConfig: (data: any) => request('/api/tenants/portal-config', { method: 'POST', body: JSON.stringify(data) }),
+  // ========================================================================
+  // M-PESA
+  // ========================================================================
+  getMpesaConfig: () => request<any>('/api/mpesa/config'),
+  saveMpesaConfig: (data: any) =>
+    request('/api/mpesa/config', { method: 'POST', body: JSON.stringify(data) }),
+  initiateMpesaPayment: (phone: string, amount: number) =>
+    request('/api/mpesa/stk-push', {
+      method: 'POST',
+      body: JSON.stringify({ phone, amount }),
+    }),
+  getMpesaTransactions: () => request<any[]>('/api/mpesa/transactions'),
+  testMpesaConnection: () =>
+    request<{ status: boolean; message: string }>('/api/mpesa/test'),
+
+  // ========================================================================
+  // PORTAL CONFIGURATION
+  // ========================================================================
+  savePortalConfig: (data: any) =>
+    request('/api/tenants/portal-config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getPortalConfig: () => request<any>('/api/tenants/portal-config'),
+
+  // ========================================================================
+  // ADMIN ENDPOINTS (Platform Admin)
+  // ========================================================================
+  admin: {
+    getTenants: () => request<any[]>('/api/admin/tenants'),
+    getTenant: (id: string) => request<any>(`/api/admin/tenants/${id}`),
+    createTenant: (data: any) =>
+      request('/api/admin/tenants', { method: 'POST', body: JSON.stringify(data) }),
+    updateTenant: (id: string, data: any) =>
+      request(`/api/admin/tenants/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    deleteTenant: (id: string) =>
+      request(`/api/admin/tenants/${id}`, { method: 'DELETE' }),
+
+    // Admin Invites
+    getInvites: () => request<any[]>('/api/admin/invites'),
+    createInvite: (data: any) =>
+      request('/api/admin/invites', { method: 'POST', body: JSON.stringify(data) }),
+    revokeInvite: (id: string) =>
+      request(`/api/admin/invites/${id}`, { method: 'DELETE' }),
+
+    // Admin Transactions
+    getAllTransactions: (skip?: number, limit?: number) => {
+      const query = new URLSearchParams()
+      if (skip !== undefined) query.append('skip', skip.toString())
+      if (limit !== undefined) query.append('limit', limit.toString())
+      const queryStr = query.toString()
+      return request<any[]>(
+        `/api/admin/transactions${queryStr ? '?' + queryStr : ''}`
+      )
+    },
+    getTransactionStats: () => request<any>('/api/admin/transactions/stats'),
+
+    // Admin Revenue
+    getRevenueStats: () => request<any>('/api/admin/revenue/stats'),
+    getRevenueByTenant: () => request<any>('/api/admin/revenue/by-tenant'),
+
+    // System
+    getSystemStats: () => request<any>('/api/admin/system/stats'),
+    getSystemHealth: () => request<any>('/api/admin/system/health'),
+  },
+}
+
+// ============================================================================
+// BATCH OPERATIONS
+// ============================================================================
+
+export async function batchFetch<T>(
+  endpoints: string[],
+  options: { retries?: number } = {}
+): Promise<T[]> {
+  const promises = endpoints.map(ep => request<T>(ep, { retries: options.retries }))
+  return Promise.all(promises)
+}
+
+// ============================================================================
+// EXPORT HELPERS
+// ============================================================================
+
+export type API = typeof api
+
+/**
+ * Format phone number for display
+ * "0712345678" => "0712 ••• 5678"
+ */
+export function maskPhone(phone: string): string {
+  if (!phone || phone.length < 8) return phone
+  const start = phone.slice(0, 4)
+  const end = phone.slice(-4)
+  return `${start} ••• ${end}`
+}
+
+/**
+ * Format currency (KSH)
+ * 1000 => "Ksh 1,000"
+ */
+export function formatKsh(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return 'Ksh 0'
+  return `Ksh ${amount.toLocaleString('en-KE')}`
+}
+
+/**
+ * Format date for display
+ * "2024-01-15T10:30:00Z" => "Jan 15, 10:30"
+ */
+export function formatDate(isoString: string): string {
+  const date = new Date(isoString)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const month = months[date.getMonth()]
+  const day = date.getDate()
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${month} ${day}, ${hours}:${minutes}`
+}
+
+/**
+ * Format relative time
+ * "2024-01-15T10:30:00Z" => "2 hours ago"
+ */
+export function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return formatDate(isoString)
 }
