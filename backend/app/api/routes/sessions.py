@@ -7,18 +7,21 @@ Handles:
 4. Session activation after payment
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from datetime import datetime, timedelta
 from pydantic import BaseModel
-import uuid
+from uuid import UUID, uuid4
+import secrets
+import re
 
 from app.core.database import get_db
 from app.models.tenant import Tenant
 from app.models.package import Package
 from app.models.session import Session as DBSession
+from app.models.transaction import Transaction
 from app.services.session_service import create_session, expire_session
 
 # Phase 3 services - Daraja (M-Pesa) and MikroTik
@@ -41,7 +44,7 @@ class CreateSessionRequest(BaseModel):
     """Request to create a session + initiate payment"""
     mac_address: str
     ip_address: str
-    package_id: int
+    package_id: str  # UUID string
     phone_number: str  # M-Pesa phone number (e.g., 254712345678)
 
 
@@ -70,8 +73,6 @@ async def create_session_with_payment(
     4. Create transaction (status: pending)
     5. Initiate M-Pesa STK push
     6. Return session ID for polling
-    
-    The user then polls GET /portal/{slug}/sessions/{session_id} to check payment status
     """
     
     # 1. Get tenant
@@ -80,10 +81,16 @@ async def create_session_with_payment(
     if not tenant:
         raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
     
-    # 2. Get package
+    # 2. Parse and validate package_id as UUID
+    try:
+        package_uuid = UUID(payload.package_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid package_id format. Expected UUID.")
+    
+    # Get package
     pkg_result = await db.execute(
         select(Package).where(
-            Package.id == payload.package_id,
+            Package.id == package_uuid,
             Package.tenant_id == tenant.id,
             Package.is_active == True
         )
@@ -105,28 +112,26 @@ async def create_session_with_payment(
         phone = "254" + phone[1:]
     
     try:
-        # 4. Create session
+        # 4. Create session - Use duration_hours (not duration_minutes)
         session = await create_session(
             tenant_id=tenant.id,
             mac_address=payload.mac_address,
             ip_address=payload.ip_address,
             package_id=package.id,
-            expires_at=datetime.utcnow() + timedelta(minutes=package.duration_minutes),
+            expires_at=datetime.utcnow() + timedelta(hours=package.duration_hours),
             db=db
         )
         
         # 5. Create transaction (pending status)
         transaction = Transaction(
-            id=uuid.uuid4(),
+            id=uuid4(),
             tenant_id=tenant.id,
             session_id=session.id,
             amount_ksh=float(package.price_ksh),
             platform_fee_ksh=float(package.price_ksh) * 0.1,  # 10% platform fee
             isp_earnings_ksh=float(package.price_ksh) * 0.9,  # 90% to ISP
-            status="pending",
-            mpesa_phone_number=phone,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            phone_number=phone,
+            status="pending"
         )
         db.add(transaction)
         await db.commit()
@@ -176,10 +181,16 @@ async def get_session_status(
     - failed: Payment failed
     """
     
+    # Validate session_id is UUID
+    try:
+        session_uuid = UUID(session_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    
     # Get session
     session_result = await db.execute(
         select(DBSession).where(
-            DBSession.id == uuid.UUID(session_id)
+            DBSession.id == session_uuid
         )
     )
     session = session_result.scalar_one_or_none()
@@ -253,10 +264,16 @@ async def activate_session(
     Creates MikroTik user with session details.
     """
     
+    # Validate session_id is UUID
+    try:
+        session_uuid = UUID(session_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id format")
+    
     # Get session
     session_result = await db.execute(
         select(DBSession).where(
-            DBSession.id == uuid.UUID(session_id)
+            DBSession.id == session_uuid
         )
     )
     session = session_result.scalar_one_or_none()
@@ -319,7 +336,6 @@ async def activate_session(
 
 def _validate_phone_number(phone: str) -> bool:
     """Validate Kenyan phone number"""
-    import re
     # Accept: 254712345678 or 0712345678
     pattern = r'^(254|0)7\d{8}$'
     return bool(re.match(pattern, phone))
@@ -327,5 +343,4 @@ def _validate_phone_number(phone: str) -> bool:
 
 def _generate_temp_password(length: int = 8) -> str:
     """Generate temporary password for MikroTik user"""
-    import secrets
     return secrets.token_urlsafe(length)
