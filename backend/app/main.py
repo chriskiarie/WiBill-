@@ -98,6 +98,8 @@ app.add_middleware(
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
+from app.api.routes import sessions
+
 # Portal preview router removed - using new portal renderer
 
 # ============================================================================

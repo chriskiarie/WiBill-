@@ -1,41 +1,63 @@
-import uuid
+"""
+app/models/session.py - Session model for WiFi sessions
+Tracks: user MAC, IP, payment status, expiry, MikroTik user creation
+"""
+
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, UUID, ForeignKey, Text
+from sqlalchemy.orm import relationship
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
+import uuid
+
 from app.core.database import Base
-import enum
- 
- 
-class SessionStatus(str, enum.Enum):
-    PENDING = "pending"      # STK Push sent, waiting for payment
-    ACTIVE = "active"        # Payment confirmed, internet granted
-    EXPIRED = "expired"      # Duration elapsed, kicked from MikroTik
-    FAILED = "failed"        # Payment failed or timed out
-    REVOKED = "revoked"      # Manually revoked by admin
- 
- 
+from enum import Enum as PyEnum
+
+class SessionStatus(str, PyEnum):
+    """Session lifecycle states"""
+    PENDING_PAYMENT = "pending_payment"
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    DISCONNECTED = "disconnected"
+    FAILED = "failed"
+
+
 class Session(Base):
+    """
+    Represents a WiFi session for a user
+    
+    States:
+    - pending_payment: Waiting for M-Pesa payment
+    - active: Payment received, user on network
+    - expired: Time limit reached
+    - disconnected: User manually disconnected
+    """
+    
     __tablename__ = "sessions"
- 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    package_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False)
-    mac_address: Mapped[str] = mapped_column(String(17), nullable=False, index=True)  # XX:XX:XX:XX:XX:XX
-    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
-    phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
-    checkout_request_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)  # Daraja reference
-    status: Mapped[SessionStatus] = mapped_column(SAEnum(SessionStatus), default=SessionStatus.PENDING, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    reconnect_code: Mapped[str | None] = mapped_column(String(10), unique=True, nullable=True, index=True)
-    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
- 
+    
+    # Identifiers
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
+    package_id = Column(UUID(as_uuid=True), ForeignKey("packages.id"), nullable=False)
+    
+    # Network identifiers
+    mac_address = Column(String(17), nullable=False, index=True)  # e.g., "AA:BB:CC:DD:EE:FF"
+    ip_address = Column(String(15), nullable=False)  # e.g., "192.168.1.100"
+    
+    # Session lifecycle
+    status = Column(String(50), default="pending_payment", nullable=False)  # pending_payment, active, expired, disconnected
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    activated_at = Column(DateTime, nullable=True)  # When payment confirmed + MikroTik user created
+    expires_at = Column(DateTime, nullable=False, index=True)  # When session ends
+    disconnected_at = Column(DateTime, nullable=True)
+    last_seen_at = Column(DateTime, nullable=True)  # Last activity from user
+    
+    # MikroTik integration
+    reconnect_code = Column(String(32), nullable=True, unique=True)  # Username for MikroTik
+    mikrotik_user_id = Column(String(128), nullable=True)  # MikroTik API user ID
+    
     # Relationships
-    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="sessions")
-    package: Mapped["Package"] = relationship("Package", back_populates="sessions")
-    transaction: Mapped["Transaction | None"] = relationship("Transaction", back_populates="session", uselist=False)
- 
-    def __repr__(self) -> str:
-        return f"<Session {self.mac_address} {self.status}>"
+    tenant = relationship("Tenant", back_populates="sessions")
+    package = relationship("Package")
+    transaction = relationship("Transaction", back_populates="session", uselist=False)
+    
+    def __repr__(self):
+        return f"<Session {self.mac_address} on {self.tenant_id} - {self.status}>"

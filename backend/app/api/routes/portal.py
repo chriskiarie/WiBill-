@@ -1,9 +1,9 @@
 """
 app/api/routes/portal.py - Serves rendered portal HTML
-Uses Jinja2 (PortalRenderer) to render your ACTUAL templates with LIVE data from the wizard!
+Uses Jinja2 (PortalRenderer) to render ACTUAL templates with LIVE data from the wizard!
 """
 import json
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -51,7 +51,22 @@ PALETTES = [
 
 @router.get("/api/v1/portal-previews/{template_id}", response_class=HTMLResponse)
 async def preview_portal(template_id: str, request: Request):
-    """Preview portal template with LIVE data dynamically injected into Jinja2 templates"""
+    """
+    Preview portal template with LIVE data dynamically injected into Jinja2 templates
+    
+    Query params:
+    - pkgs: JSON array of packages [{n: name, p: price, d: duration, star: bool}]
+    - palette: palette index (0-7)
+    - font: font family (default: Syne)
+    - shape: card border radius (default: 16px)
+    - name: ISP name
+    - emoji: brand emoji
+    - tag: tagline
+    - loc: location
+    - phone: support phone
+    - showSB: show status banner (true/false)
+    - sbMsg: status banner message
+    """
     
     template_map = {
         'spotlight': 'portal_spotlight.html',
@@ -137,13 +152,27 @@ async def preview_portal(template_id: str, request: Request):
             <h1>Preview Error</h1>
             <p><strong>Template:</strong> {template_id}</p>
             <p><strong>Error:</strong> {str(e)}</p>
+            <pre style="background: #f5f5f5; padding: 10px; overflow-x: auto;">
+{type(e).__name__}: {str(e)}
+            </pre>
         </body></html>
         """
 
 
 @router.get("/portal/{slug}", response_class=HTMLResponse)
-async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
-    """Serve live portal with tenant's actual config mapped to actual Jinja templates"""
+async def get_live_portal(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Serve live portal with tenant's actual config mapped to actual Jinja templates
+    
+    Flow:
+    1. Find tenant by slug
+    2. Load portal_config (brand, design, network settings)
+    3. Fetch active packages
+    4. Render template with Jinja2
+    """
     
     # Find tenant
     result = await db.execute(select(Tenant).where(Tenant.slug == slug))
@@ -152,8 +181,12 @@ async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
     if not tenant:
         raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
     
+    # Check portal is configured
     if not tenant.portal_config:
-        raise HTTPException(status_code=400, detail="Portal not configured")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Portal not configured for ISP '{slug}'. Run seed_portal_configs.py to initialize."
+        )
     
     # Get template ID
     template_id = tenant.portal_config.get('template_id', 'dashboard')
@@ -184,6 +217,7 @@ async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
         }
         for pkg in packages_list
     ]
+    
     if not packages_data:
         packages_data = DEMO_PACKAGES
     
@@ -192,6 +226,7 @@ async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
     network = tenant.portal_config.get('network_awareness', {})
     design = tenant.portal_config.get('design', {})
     
+    # Validate palette index
     try:
         palette_idx = int(design.get('palette_index', 0))
         if palette_idx < 0 or palette_idx >= len(PALETTES):
@@ -199,6 +234,7 @@ async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
     except:
         palette_idx = 0
 
+    # Build rendering context
     context = {
         'brand': brand,
         'packages': packages_data,
@@ -215,4 +251,54 @@ async def get_live_portal(slug: str, db: AsyncSession = Depends(get_db)):
         html = PortalRenderer.render(filename, context)
         return html
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Template rendering error: {str(e)}"
+        )
+
+
+@router.get("/api/v1/portal/{slug}/config", response_class=HTMLResponse)
+async def get_portal_config(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get tenant's portal configuration as JSON (for debugging/admin)
+    """
+    
+    result = await db.execute(select(Tenant).where(Tenant.slug == slug))
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
+    
+    if not tenant.portal_config:
+        raise HTTPException(status_code=400, detail="Portal not configured")
+    
+    return {"slug": slug, "portal_config": tenant.portal_config}
+
+
+@router.get("/api/v1/palettes")
+async def get_available_palettes():
+    """
+    Return all available color palettes for portal design
+    """
+    return {
+        "palettes": [
+            {
+                "index": idx,
+                "name": p["name"],
+                "colors": {
+                    "primary": p["primary"],
+                    "primaryDark": p["primaryDark"],
+                    "bg": p["bg"],
+                    "text": p["text"],
+                    "textDim": p["textDim"],
+                    "card": p["card"],
+                    "cardBorder": p["cardBorder"],
+                    "accent": p["accent"]
+                }
+            }
+            for idx, p in enumerate(PALETTES)
+        ]
+    }

@@ -1,223 +1,325 @@
-import random
-import string
-import logging
-from datetime import datetime, timezone, timedelta
+"""
+app/services/session_service.py - Session management service
+Handles: creation, expiration, MikroTik integration
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from app.models.session import Session, SessionStatus
-from app.models.transaction import Transaction, TransactionStatus
-from app.models.package import Package
-from app.core.config import settings
+from sqlalchemy import select, update
+from datetime import datetime, timedelta
+from uuid import uuid4
+import secrets
+import re
 
-logger = logging.getLogger("honestbill.session")
-
-
-def generate_reconnect_code() -> str:
-    """Generate a short unique reconnect code like WB-4X9K."""
-    chars = string.ascii_uppercase + string.digits
-    suffix = "".join(random.choices(chars, k=4))
-    return f"WB-{suffix}"
+from app.models.session import Session as DBSession
+from app.models.tenant import Tenant
 
 
-async def create_pending_session(
-    tenant_id,
-    package_id,
+async def create_session(
+    tenant_id: str,
     mac_address: str,
     ip_address: str,
-    phone_number: str,
-    db: AsyncSession,
-) -> Session:
+    package_id: str,
+    expires_at: datetime,
+    db: AsyncSession
+) -> DBSession:
     """
-    Create a PENDING session when user initiates payment.
-    STK Push fires after this.
+    Create a new session
+    
+    Args:
+        tenant_id: ISP tenant UUID
+        mac_address: User's device MAC address
+        ip_address: User's IP address
+        package_id: Internet package UUID
+        expires_at: When session should expire
+        db: Database session
+    
+    Returns:
+        Created DBSession object
+    
+    Raises:
+        ValueError: If MAC/IP format invalid
     """
-    # Clean up any existing pending sessions for this MAC
+    
+    # Validate inputs
+    if not _is_valid_mac(mac_address):
+        raise ValueError(f"Invalid MAC address format: {mac_address}")
+    
+    if not _is_valid_ip(ip_address):
+        raise ValueError(f"Invalid IP address format: {ip_address}")
+    
+    # Check for existing active session with same MAC
     existing = await db.execute(
-        select(Session).where(
-            and_(
-                Session.tenant_id == tenant_id,
-                Session.mac_address == mac_address,
-                Session.status == SessionStatus.PENDING,
-            )
+        select(DBSession).where(
+            DBSession.mac_address == mac_address,
+            DBSession.tenant_id == tenant_id,
+            DBSession.status.in_(["pending_payment", "active"])
         )
     )
-    for old in existing.scalars().all():
-        old.status = SessionStatus.FAILED
-        logger.info(f"Cancelled stale pending session {old.id} for MAC {mac_address}")
-
-    session = Session(
+    
+    if existing.scalar_one_or_none():
+        raise ValueError(f"Device {mac_address} already has an active session")
+    
+    # Generate unique reconnect code
+    reconnect_code = _generate_reconnect_code()
+    
+    # Create session
+    session = DBSession(
+        id=uuid4(),
         tenant_id=tenant_id,
         package_id=package_id,
         mac_address=mac_address.upper(),
         ip_address=ip_address,
-        phone_number=phone_number,
-        status=SessionStatus.PENDING,
+        status="pending_payment",
+        reconnect_code=reconnect_code,
+        expires_at=expires_at,
+        created_at=datetime.utcnow()
     )
+    
     db.add(session)
-    await db.flush()  # get session.id
+    await db.commit()
+    await db.refresh(session)
+    
     return session
+
+
+# Alias for backwards compatibility with existing mpesa.py
+async def create_pending_session(
+    tenant_id: str,
+    mac_address: str,
+    ip_address: str,
+    package_id: str,
+    expires_at: datetime,
+    db: AsyncSession
+) -> DBSession:
+    """
+    Create a pending session (alias for create_session)
+    """
+    return await create_session(
+        tenant_id=tenant_id,
+        mac_address=mac_address,
+        ip_address=ip_address,
+        package_id=package_id,
+        expires_at=expires_at,
+        db=db
+    )
 
 
 async def activate_session(
-    session: Session,
-    package: Package,
-    mpesa_receipt: str,
-    amount_paid: float,
-    db: AsyncSession,
-) -> Session:
+    session_id: str,
+    mikrotik_user_id: str = None,
+    db: AsyncSession = None
+) -> DBSession:
     """
-    Called after payment confirmed. Activates session, records transaction.
+    Mark session as active after MikroTik user creation
+    
+    Args:
+        session_id: Session UUID
+        mikrotik_user_id: User ID from MikroTik API (optional)
+        db: Database session
+    
+    Returns:
+        Updated session
     """
-    now = datetime.now(timezone.utc)
-    expires = now + timedelta(hours=package.duration_hours)
-
-    # Generate reconnect code — ensure uniqueness
-    for _ in range(10):
-        code = generate_reconnect_code()
-        existing = await db.execute(
-            select(Session).where(Session.reconnect_code == code)
-        )
-        if not existing.scalar_one_or_none():
-            break
-
-    session.status = SessionStatus.ACTIVE
-    session.started_at = now
-    session.expires_at = expires
-    session.reconnect_code = code
-    session.last_seen_at = now
-
-    # Record transaction with fee split
-    commission = float(settings.DEFAULT_COMMISSION_RATE)
-    platform_fee = round(amount_paid * commission, 2)
-    isp_earnings = round(amount_paid - platform_fee, 2)
-
-    transaction = Transaction(
-        tenant_id=session.tenant_id,
-        session_id=session.id,
-        phone_number=session.phone_number,
-        amount_ksh=amount_paid,
-        platform_fee_ksh=platform_fee,
-        isp_earnings_ksh=isp_earnings,
-        mpesa_receipt=mpesa_receipt,
-        status=TransactionStatus.SUCCESS,
-        confirmed_at=now,
+    
+    if db is None:
+        raise ValueError("Database session required")
+    
+    stmt = update(DBSession).where(
+        DBSession.id == session_id
+    ).values(
+        status="active",
+        mikrotik_user_id=mikrotik_user_id,
+        activated_at=datetime.utcnow()
     )
-    db.add(transaction)
+    
+    await db.execute(stmt)
     await db.commit()
-    await db.refresh(session)
+    
+    # Fetch updated session
+    result = await db.execute(select(DBSession).where(DBSession.id == session_id))
+    return result.scalar_one()
 
-    logger.info(
-        f"Session {session.id} ACTIVATED | MAC={session.mac_address} | "
-        f"code={code} | expires={expires.isoformat()} | "
-        f"receipt={mpesa_receipt} | fee={platform_fee} | isp={isp_earnings}"
+
+async def expire_session(
+    session_id: str,
+    db: AsyncSession
+) -> DBSession:
+    """
+    Mark session as expired
+    Called by scheduler job on expiry
+    
+    Args:
+        session_id: Session UUID
+        db: Database session
+    
+    Returns:
+        Updated session
+    """
+    
+    stmt = update(DBSession).where(
+        DBSession.id == session_id
+    ).values(
+        status="expired",
+        disconnected_at=datetime.utcnow()
     )
-    return session
+    
+    await db.execute(stmt)
+    await db.commit()
+    
+    # Fetch updated session
+    result = await db.execute(select(DBSession).where(DBSession.id == session_id))
+    return result.scalar_one()
 
 
-async def get_active_session_by_mac(
-    tenant_id,
-    mac_address: str,
-    db: AsyncSession,
-) -> Session | None:
+async def update_last_seen(
+    session_id: str,
+    db: AsyncSession
+) -> None:
     """
-    Check if a MAC address has an active session.
-    Used on portal load for reconnect flow.
+    Update last activity timestamp (called on network activity)
     """
-    now = datetime.now(timezone.utc)
+    
+    stmt = update(DBSession).where(
+        DBSession.id == session_id
+    ).values(
+        last_seen_at=datetime.utcnow()
+    )
+    
+    await db.execute(stmt)
+    await db.commit()
+
+
+async def get_active_sessions(
+    tenant_id: str,
+    db: AsyncSession
+) -> list:
+    """
+    Get all active sessions for a tenant
+    """
+    
     result = await db.execute(
-        select(Session).where(
-            and_(
-                Session.tenant_id == tenant_id,
-                Session.mac_address == mac_address.upper(),
-                Session.status == SessionStatus.ACTIVE,
-                Session.expires_at > now,
-            )
+        select(DBSession).where(
+            DBSession.tenant_id == tenant_id,
+            DBSession.status == "active",
+            DBSession.expires_at > datetime.utcnow()
         )
     )
-    session = result.scalar_one_or_none()
-    if session:
-        # Update last_seen_at
-        session.last_seen_at = now
-        await db.commit()
-    return session
+    
+    return result.scalars().all()
 
 
-async def get_session_by_reconnect_code(
-    code: str,
-    db: AsyncSession,
-) -> Session | None:
-    """Get session by reconnect code for manual reconnection."""
+async def get_expired_sessions(
+    tenant_id: str,
+    db: AsyncSession
+) -> list:
+    """
+    Get all sessions that have expired
+    """
+    
     result = await db.execute(
-        select(Session).where(Session.reconnect_code == code.upper())
+        select(DBSession).where(
+            DBSession.tenant_id == tenant_id,
+            DBSession.status == "active",
+            DBSession.expires_at <= datetime.utcnow()
+        )
+    )
+    
+    return result.scalars().all()
+
+
+async def get_session_by_id(
+    session_id: str,
+    db: AsyncSession
+) -> DBSession:
+    """
+    Get session by UUID
+    """
+    result = await db.execute(
+        select(DBSession).where(DBSession.id == session_id)
     )
     return result.scalar_one_or_none()
 
 
-async def get_session_status(session_id, db: AsyncSession) -> dict:
+async def get_session_by_mac(
+    tenant_id: str,
+    mac_address: str,
+    db: AsyncSession
+) -> DBSession:
     """
-    Poll endpoint response. Returns status dict for portal polling.
+    Get active session by MAC address for a tenant
     """
     result = await db.execute(
-        select(Session).where(Session.id == session_id)
-    )
-    session = result.scalar_one_or_none()
-
-    if not session:
-        return {"status": "not_found"}
-
-    now = datetime.now(timezone.utc)
-    time_remaining = None
-
-    if session.status == SessionStatus.ACTIVE and session.expires_at:
-        expires = session.expires_at
-        if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
-        delta = expires - now
-        time_remaining = max(0, int(delta.total_seconds()))
-
-    # Check for STK timeout
-    if session.status == SessionStatus.PENDING:
-        created = session.created_at
-        if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
-        elapsed = (now - created).total_seconds()
-        if elapsed > settings.STK_PUSH_TIMEOUT_SECONDS:
-            session.status = SessionStatus.FAILED
-            await db.commit()
-            return {"status": "failed", "reason": "Payment timed out"}
-
-    return {
-        "status": session.status.value,
-        "reconnect_code": session.reconnect_code if session.status == SessionStatus.ACTIVE else None,
-        "time_remaining_seconds": time_remaining,
-        "expires_at": session.expires_at.isoformat() if session.expires_at else None,
-    }
-
-
-async def expire_old_sessions(db: AsyncSession) -> int:
-    """
-    Find and expire sessions past their expiry time.
-    Called by APScheduler every 60s.
-    Returns count of expired sessions.
-    """
-    now = datetime.now(timezone.utc)
-    result = await db.execute(
-        select(Session).where(
-            and_(
-                Session.status == SessionStatus.ACTIVE,
-                Session.expires_at < now,
-            )
+        select(DBSession).where(
+            DBSession.tenant_id == tenant_id,
+            DBSession.mac_address == mac_address.upper(),
+            DBSession.status.in_(["pending_payment", "active"])
         )
     )
-    sessions = result.scalars().all()
+    return result.scalar_one_or_none()
 
-    expired_count = 0
-    for session in sessions:
-        session.status = SessionStatus.EXPIRED
-        expired_count += 1
-        logger.info(f"Session {session.id} expired | MAC={session.mac_address}")
 
-    if expired_count:
+async def expire_old_sessions(
+    db: AsyncSession
+) -> int:
+    """
+    Expire all sessions that have passed their expiry time
+    Called by scheduler job every minute
+    
+    Returns:
+        Number of sessions expired
+    """
+    
+    now = datetime.utcnow()
+    
+    # Find all active sessions that have expired
+    result = await db.execute(
+        select(DBSession).where(
+            DBSession.status == "active",
+            DBSession.expires_at <= now
+        )
+    )
+    
+    expired_sessions = result.scalars().all()
+    count = 0
+    
+    for session in expired_sessions:
+        stmt = update(DBSession).where(
+            DBSession.id == session.id
+        ).values(
+            status="expired",
+            disconnected_at=now
+        )
+        await db.execute(stmt)
+        count += 1
+    
+    if count > 0:
         await db.commit()
+    
+    return count
 
-    return expired_count
+
+def _is_valid_mac(mac: str) -> bool:
+    """Validate MAC address format"""
+    # Accept: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF
+    pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+    return bool(re.match(pattern, mac))
+
+
+def _is_valid_ip(ip: str) -> bool:
+    """Validate IPv4 address format"""
+    pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    if not re.match(pattern, ip):
+        return False
+    
+    # Check octets are 0-255
+    parts = ip.split('.')
+    return all(0 <= int(p) <= 255 for p in parts)
+
+
+def _generate_reconnect_code(length: int = 16) -> str:
+    """
+    Generate unique reconnect code
+    Format: wifi_XXXXXXXXXX (alphanumeric, lowercase)
+    """
+    random_part = secrets.token_hex(length // 2)
+    return f"wifi_{random_part}".lower()

@@ -1,197 +1,157 @@
 """
-MikroTik RouterOS API service.
-Handles: add hotspot user, remove hotspot user, network check.
-Works with any RouterOS device (hAP lite, hEX, RB4011, CCR, etc.)
+app/services/mikrotik_service.py - MikroTik RouterOS integration
+Phase 3: Stubs for testing
+Phase 4: Real API implementation
 """
 
-import asyncio
-import logging
-from datetime import datetime, timezone
-from typing import Optional
-
-import librouteros
-from librouteros import connect
-from sqlalchemy import select
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import AsyncSessionLocal
-from app.models.mikrotik_config import MikrotikConfig
-from app.models.network_event import NetworkEvent, NetworkStatus
-from app.models.session import Session, SessionStatus
-from app.services.crypto_service import decrypt
-
-logger = logging.getLogger("honestbill")
+from typing import Dict, Any
 
 
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-async def _get_mikrotik_config(tenant_id, db: AsyncSession) -> Optional[MikrotikConfig]:
-    result = await db.execute(
-        select(MikrotikConfig).where(MikrotikConfig.tenant_id == tenant_id)
-    )
-    return result.scalar_one_or_none()
-
-
-def _make_connection(cfg: MikrotikConfig):
-    """Open a synchronous librouteros connection (runs in thread pool)."""
-    password = decrypt(cfg.password_encrypted)
-    return connect(
-        host=cfg.router_ip,
-        username=cfg.username,
-        password=password,
-        port=cfg.api_port or 8728,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-async def add_hotspot_user(
-    tenant_id,
-    mac_address: str,
-    phone_number: str,
-    duration_hours: int,
+async def create_mikrotik_user(
+    tenant_id: str,
     session_id: str,
-    db: AsyncSession,
-) -> bool:
-    """
-    Add a hotspot user to MikroTik. Returns True on success.
-    Username = sanitised MAC (colons stripped).
-    Comment = session_id so we can find and remove it later.
-    """
-    cfg = await _get_mikrotik_config(tenant_id, db)
-    if not cfg:
-        logger.error(f"[MikroTik] No config for tenant {tenant_id}")
-        return False
-
-    username = mac_address.replace(":", "").lower()
-    profile = cfg.hotspot_profile or "default"
-
-    def _add():
-        api = _make_connection(cfg)
-        try:
-            # Remove stale entry for this MAC if it exists
-            users = api.path("ip", "hotspot", "user")
-            existing = [u for u in users if u.get("name") == username]
-            for u in existing:
-                users.remove(u[".id"])
-
-            # Add fresh user
-            users.add(
-                name=username,
-                password=phone_number[-4:],   # last 4 digits of phone as pin
-                profile=profile,
-                comment=session_id,
-                **{"limit-uptime": f"{duration_hours}h"},
-            )
-            logger.info(f"[MikroTik] Added user {username} profile={profile} duration={duration_hours}h")
-            return True
-        except Exception as e:
-            logger.error(f"[MikroTik] add_hotspot_user failed: {e}")
-            return False
-        finally:
-            api.close()
-
-    return await asyncio.get_event_loop().run_in_executor(None, _add)
-
-
-async def remove_hotspot_user(
-    tenant_id,
     mac_address: str,
-    db: AsyncSession,
-) -> bool:
-    """Remove a hotspot user by MAC address."""
-    cfg = await _get_mikrotik_config(tenant_id, db)
-    if not cfg:
-        return False
-
-    username = mac_address.replace(":", "").lower()
-
-    def _remove():
-        api = _make_connection(cfg)
-        try:
-            users = api.path("ip", "hotspot", "user")
-            existing = [u for u in users if u.get("name") == username]
-            for u in existing:
-                users.remove(u[".id"])
-            # Also kick any active session
-            active = api.path("ip", "hotspot", "active")
-            for a in active:
-                if a.get("mac-address", "").replace(":", "").lower() == username:
-                    active.remove(a[".id"])
-            logger.info(f"[MikroTik] Removed user {username}")
-            return True
-        except Exception as e:
-            logger.error(f"[MikroTik] remove_hotspot_user failed: {e}")
-            return False
-        finally:
-            api.close()
-
-    return await asyncio.get_event_loop().run_in_executor(None, _remove)
+    ip_address: str,
+    username: str,
+    password: str,
+    expires_at: datetime,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Create user on MikroTik RouterOS via API
+    
+    Phase 3: Returns mock success response
+    Phase 4: Connects to real MikroTik API
+    
+    Args:
+        tenant_id: ISP tenant UUID
+        session_id: Session UUID
+        mac_address: User's MAC address
+        ip_address: User's IP address
+        username: MikroTik username (reconnect_code)
+        password: Temporary password
+        expires_at: Session expiry time
+        db: Database session
+    
+    Returns:
+        {"success": bool, "message": str, "user_id": str}
+    """
+    
+    # Phase 3: Mock implementation
+    # TODO: Phase 4: Replace with real MikroTik API call
+    
+    try:
+        # For now, just log and return success
+        return {
+            "success": True,
+            "message": f"Mock: MikroTik user '{username}' created",
+            "user_id": f"mock_user_{session_id[:8]}",
+            "mikrotik_response": {
+                "status": "created",
+                "username": username,
+                "ip_address": ip_address,
+                "mac_address": mac_address,
+                "expires": expires_at.isoformat()
+            }
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error creating MikroTik user: {str(e)}",
+            "user_id": None
+        }
 
 
 async def remove_hotspot_user_by_session(
-    session: Session,
-    db: AsyncSession,
-) -> bool:
+    tenant_id: str,
+    session_id: str,
+    db: AsyncSession
+) -> dict:
     """
-    Remove a hotspot user given a Session ORM object.
-    Called by the session expiry job.
+    Remove user from MikroTik by session ID
+    Called by session_expiry job when session expires
+    
+    Phase 3: Mock
+    Phase 4: Real MikroTik API
     """
-    if not session.mac_address:
-        return False
-    return await remove_hotspot_user(session.tenant_id, session.mac_address, db)
-
-
-async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> NetworkStatus:
-    """
-    Ping the router IP. Record a NetworkEvent. Return current status.
-    """
-    import subprocess, platform
-
-    param = "-n" if platform.system().lower() == "windows" else "-c"
-    cmd = ["ping", param, "1", "-w", "2000" if platform.system().lower() == "windows" else "2", router_ip]
-
     try:
-        result = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        await asyncio.wait_for(result.communicate(), timeout=5)
-        status = NetworkStatus.up if result.returncode == 0 else NetworkStatus.down
-    except Exception:
-        status = NetworkStatus.down
-
-    event = NetworkEvent(
-        tenant_id=tenant_id,
-        status=status,
-        checked_at=datetime.now(timezone.utc),
-        router_ip=router_ip,
-    )
-    db.add(event)
-    await db.commit()
-
-    logger.info(f"[Network] tenant={tenant_id} router={router_ip} status={status.value}")
-    return status
-
-
-async def get_current_status(tenant_id) -> dict:
-    """Return the most recent network event for a tenant."""
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(NetworkEvent)
-            .where(NetworkEvent.tenant_id == tenant_id)
-            .order_by(NetworkEvent.checked_at.desc())
-            .limit(1)
-        )
-        event = result.scalar_one_or_none()
-        if not event:
-            return {"status": "unknown", "checked_at": None}
         return {
-            "status": event.status.value,
-            "checked_at": event.checked_at.isoformat(),
+            "success": True,
+            "message": f"Mock: Removed hotspot user for session {session_id}",
+            "removed_at": datetime.utcnow().isoformat()
         }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error removing hotspot user: {str(e)}"
+        }
+
+
+async def remove_mikrotik_user(
+    tenant_id: str,
+    session_id: str,
+    username: str,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Remove user from MikroTik RouterOS via API
+    Called when session expires or user disconnects
+    
+    Phase 3: Mock
+    Phase 4: Real API
+    """
+    
+    try:
+        # Phase 3: Mock
+        return {
+            "success": True,
+            "message": f"Mock: MikroTik user '{username}' removed",
+            "removed_at": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error removing MikroTik user: {str(e)}"
+        }
+
+
+async def check_mikrotik_connection(
+    tenant_id: str,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Check if MikroTik API is reachable
+    Used for health checks
+    """
+    
+    try:
+        # Phase 3: Return mock status
+        return {
+            "connected": True,
+            "status": "Mock MikroTik connection",
+            "api_version": "mock_v1"
+        }
+    
+    except Exception as e:
+        return {
+            "connected": False,
+            "error": str(e)
+        }
+
+
+async def get_active_users(
+    tenant_id: str,
+    db: AsyncSession
+) -> list:
+    """
+    Get list of active users on MikroTik for this tenant
+    Used for monitoring
+    """
+    
+    # Phase 3: Mock empty list
+    # Phase 4: Query real MikroTik API
+    return []
