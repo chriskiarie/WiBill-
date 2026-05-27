@@ -97,6 +97,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions
 from app.api.routes import admin as admin_routes
+from app.api.routes import crud_reads
 # Portal preview router removed - using new portal renderer
 
 # ============================================================================
@@ -115,6 +116,7 @@ app.include_router(tenants.router,  prefix="/api", tags=["tenants"])
 app.include_router(mpesa.router,    prefix="/api", tags=["mpesa"])
 app.include_router(transactions.router, prefix="/api", tags=["transactions"])
 app.include_router(admin_routes.router, prefix="/api", tags=["admin"])
+app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
