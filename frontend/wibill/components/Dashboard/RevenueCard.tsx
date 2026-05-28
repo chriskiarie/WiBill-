@@ -73,7 +73,7 @@ export function RevenueCard({
               marginTop: 7,
               fontFamily: 'DM Mono, monospace',
               color:
-                trend === true ? '#22c55e' : trend === false ? '#f87171' : '#2a2a2a',
+                trend === 'up' ? '#22c55e' : trend === 'down' ? '#f87171' : '#2a2a2a',
             }}
           >
             {sub || '—'}

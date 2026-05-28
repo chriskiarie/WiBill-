@@ -1,7 +1,7 @@
 'use client'
 import { TransactionData } from '@/lib/hooks/useTransactions'
 import { formatDate, maskPhone, formatKsh } from '@/lib/api'
-import { LoadingSpinner } from './LoadingSpinner'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface TransactionListProps {
   transactions: TransactionData[]
