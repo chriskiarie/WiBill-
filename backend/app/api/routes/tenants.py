@@ -87,18 +87,21 @@ async def isp_dashboard(
             func.count(Transaction.id),
         ).where(
             Transaction.tenant_id == tenant_id,
-            Transaction.status == TransactionStatus.SUCCESS,
+            Transaction.status == "success",
         )
     )
     rev = rev_result.one()
     active_result = await db.execute(
         select(func.count(Session.id)).where(
             Session.tenant_id == tenant_id,
-            Session.status == SessionStatus.ACTIVE,
+            Session.status == "active",
         )
     )
     active_count = active_result.scalar() or 0
-    net_status = await get_current_status(tenant_id)
+    try:
+        net_status = await get_current_status(tenant_id)
+    except Exception:
+        net_status = {"status": "unknown", "latency_ms": None, "outage_minutes": None}
     return {
         "revenue": {
             "gross_ksh": float(rev[0] or 0),
@@ -270,3 +273,4 @@ async def tenant_network_events(
         }
         for e in events
     ]
+

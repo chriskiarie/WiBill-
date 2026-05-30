@@ -39,7 +39,7 @@ export function useSession(
 
     setLoading(true)
     try {
-      const res = await fetch(`${API}/api/sessions/?status=${status}`, {
+      const res = await fetch(`${API}/api/sessions?status=${status}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 

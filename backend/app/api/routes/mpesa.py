@@ -1,180 +1,285 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+"""
+backend/app/api/routes/mpesa.py
+M-Pesa payment endpoints -- Phase 4C
+"""
+
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from uuid import UUID
+from decimal import Decimal
 from pydantic import BaseModel
-import uuid
 import logging
 
-from app.core.database import get_db, AsyncSessionLocal
-from app.core.config import settings
-from app.models.session import Session, SessionStatus
-from app.models.package import Package
-from app.models.transaction import Transaction
-from app.models.mpesa_callback import MpesaCallback
-from app.services.daraja_service import initiate_stk_push, extract_callback_data
-from app.services.session_service import create_pending_session, activate_session
-from app.services import mikrotik_service
+from app.core.database import get_db
+from app.models.mpesa_config import MpesaConfig
+from app.services.mpesa_service import (
+    save_mpesa_config,
+    get_mpesa_config,
+    initiate_session_payment,
+    initiate_invoice_payment,
+    process_callback,
+    get_transaction_status,
+)
+from app.services.daraja_service import get_access_token
+from app.services.crypto_service import decrypt, encrypt
+from app.api.routes.auth import get_current_user
 
-router = APIRouter()
-logger = logging.getLogger("honestbill.mpesa")
+router = APIRouter(tags=["mpesa"])
+logger = logging.getLogger(__name__)
 
 
-class PaymentRequest(BaseModel):
-    tenant_id: str
-    package_id: str
-    mac_address: str
-    ip_address: str
+# ============================================================================
+# SCHEMAS
+# ============================================================================
+
+class MpesaConfigInput(BaseModel):
+    consumer_key: str
+    consumer_secret: str
+    shortcode: str
+    passkey: str
+    account_reference: str
+    payout_phone: str
+    payout_account_name: str
+
+
+class SessionPaymentInput(BaseModel):
+    session_id: str
+    phone_number: str
+    amount_ksh: float
+
+
+class InvoicePaymentInput(BaseModel):
+    invoice_id: str
     phone_number: str
 
 
-@router.post("/pay")
-async def initiate_payment(
-    data: PaymentRequest,
-    request: Request,
+# ============================================================================
+# CONFIG ENDPOINTS (ISP Admin)
+# ============================================================================
+
+@router.post("/mpesa/config")
+async def configure_mpesa(
+    payload: MpesaConfigInput,
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Initiate M-Pesa STK Push. Called by captive portal when user hits PAY."""
-    tenant_id = uuid.UUID(data.tenant_id)
-    package_id = uuid.UUID(data.package_id)
+    """Save M-Pesa configuration for the ISP."""
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
 
-    # Get package
-    pkg_result = await db.execute(
-        select(Package).where(
-            Package.id == package_id,
-            Package.tenant_id == tenant_id,
-            Package.is_active == True,
-        )
-    )
-    package = pkg_result.scalar_one_or_none()
-    if not package:
-        raise HTTPException(status_code=404, detail="Package not found")
-
-    # Create pending session
-    session = await create_pending_session(
+    config = await save_mpesa_config(
         tenant_id=tenant_id,
-        package_id=package_id,
-        mac_address=data.mac_address,
-        ip_address=data.ip_address,
-        phone_number=data.phone_number,
+        consumer_key=payload.consumer_key,
+        consumer_secret=payload.consumer_secret,
+        shortcode=payload.shortcode,
+        passkey=payload.passkey,
+        account_reference=payload.account_reference,
+        payout_phone=payload.payout_phone,
+        payout_account_name=payload.payout_account_name,
         db=db,
     )
-
-    base_url = str(request.base_url).rstrip("/")
-
-    stk_result = await initiate_stk_push(
-        tenant_id=tenant_id,
-        phone_number=data.phone_number,
-        amount=int(package.price_ksh),
-        session_id=str(session.id),
-        package_name=package.name,
-        callback_base_url=base_url,
-        db=db,
-    )
-
-    if not stk_result["success"]:
-        session.status = SessionStatus.FAILED
-        await db.commit()
-        raise HTTPException(status_code=502, detail=stk_result.get("error", "STK Push failed"))
-
-    session.checkout_request_id = stk_result["checkout_request_id"]
-    await db.commit()
-
-    logger.info(f"STK Push sent | session={session.id} | checkout={session.checkout_request_id}")
 
     return {
-        "session_id": str(session.id),
-        "checkout_request_id": stk_result["checkout_request_id"],
-        "message": "Check your phone for M-Pesa prompt",
+        "success": True,
+        "config_id": str(config.id),
+        "status": config.status,
+        "message": "M-Pesa configured. Run a test to verify.",
     }
 
 
-@router.post("/callback/{tenant_id}")
-async def mpesa_callback(
-    tenant_id: str,
-    request: Request,
-    background_tasks: BackgroundTasks,
+@router.get("/mpesa/config")
+async def get_config(
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Safaricom calls this after user pays or cancels."""
-    # Verify source IP in production
-    client_ip = request.client.host
-    if settings.APP_ENV == "production" and client_ip not in settings.SAFARICOM_IPS:
-        logger.warning(f"Callback from non-Safaricom IP: {client_ip}")
-        raise HTTPException(status_code=403, detail="Forbidden")
+    """Get current M-Pesa config (safe -- no secrets returned)."""
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
 
-    body = await request.json()
-    t_id = uuid.UUID(tenant_id)
-    parsed = extract_callback_data(body)
+    config = await get_mpesa_config(tenant_id, db)
+    if not config:
+        return {"configured": False}
 
-    # Log raw callback — always, even failures
-    callback_log = MpesaCallback(
-        tenant_id=t_id,
-        checkout_request_id=parsed.get("checkout_request_id", ""),
-        result_code=parsed.get("result_code", -1),
-        result_desc=parsed.get("result_desc", ""),
-        raw_payload=body,
-    )
-    db.add(callback_log)
-    await db.commit()
+    return {
+        "configured": True,
+        "shortcode": config.shortcode,
+        "account_reference": config.account_reference,
+        "payout_phone": config.payout_phone,
+        "payout_account_name": config.payout_account_name,
+        "is_verified": config.is_verified,
+        "status": config.status,
+        "last_test_status": config.last_test_status,
+        "last_test_at": config.last_test_at.isoformat() if config.last_test_at else None,
+    }
 
-    if not parsed["success"]:
-        # Mark session failed
-        if parsed.get("checkout_request_id"):
-            sess_result = await db.execute(
-                select(Session).where(
-                    Session.checkout_request_id == parsed["checkout_request_id"]
-                )
-            )
-            session = sess_result.scalar_one_or_none()
-            if session:
-                session.status = SessionStatus.FAILED
-                await db.commit()
-        logger.info(f"Payment failed: {parsed.get('result_desc')}")
+
+@router.post("/mpesa/config/test")
+async def test_mpesa_config(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Test M-Pesa credentials by getting an access token."""
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
+
+    config = await get_mpesa_config(tenant_id, db)
+    if not config:
+        raise HTTPException(status_code=404, detail="M-Pesa not configured")
+
+    try:
+        consumer_key = decrypt(config.consumer_key_enc)
+        consumer_secret = decrypt(config.consumer_secret_enc)
+        token = await get_access_token(consumer_key, consumer_secret)
+
+        config.is_verified = True
+        config.status = "verified"
+        config.last_test_status = "OK - Token obtained successfully"
+        config.last_test_at = __import__("datetime").datetime.utcnow()
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": "M-Pesa credentials verified successfully",
+            "token_preview": token[:20] + "...",
+        }
+    except Exception as e:
+        config.last_test_status = f"FAILED: {str(e)}"
+        config.last_test_at = __import__("datetime").datetime.utcnow()
+        await db.commit()
+        raise HTTPException(status_code=400, detail=f"M-Pesa verification failed: {str(e)}")
+
+
+# ============================================================================
+# PAYMENT ENDPOINTS
+# ============================================================================
+
+@router.post("/mpesa/pay/session")
+async def pay_for_session(
+    payload: SessionPaymentInput,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Initiate STK push for a session payment."""
+    tenant_id = UUID(str(getattr(current_user, "tenant_id")))
+
+    try:
+        txn = await initiate_session_payment(
+            tenant_id=tenant_id,
+            session_id=UUID(payload.session_id),
+            phone_number=payload.phone_number,
+            amount=Decimal(str(payload.amount_ksh)),
+            db=db,
+        )
+        return {
+            "success": txn.status == "processing",
+            "checkout_request_id": txn.checkout_request_id,
+            "status": txn.status,
+            "message": "Check your phone for M-Pesa prompt" if txn.status == "processing" else txn.error_reason,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/mpesa/pay/invoice")
+async def pay_invoice(
+    payload: InvoicePaymentInput,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Initiate STK push for an invoice payment."""
+    tenant_id = UUID(str(getattr(current_user, "tenant_id")))
+
+    try:
+        txn = await initiate_invoice_payment(
+            tenant_id=tenant_id,
+            invoice_id=UUID(payload.invoice_id),
+            phone_number=payload.phone_number,
+            db=db,
+        )
+        return {
+            "success": txn.status == "processing",
+            "checkout_request_id": txn.checkout_request_id,
+            "status": txn.status,
+            "message": "Check your phone for M-Pesa prompt" if txn.status == "processing" else txn.error_reason,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/mpesa/status/{checkout_request_id}")
+async def poll_payment_status(
+    checkout_request_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Poll payment status. Frontend calls this every 2 seconds.
+    No auth required -- frontend needs this from portal context too.
+    """
+    status = await get_transaction_status(checkout_request_id, db)
+    return status
+
+
+# ============================================================================
+# DARAJA CALLBACK (Public -- called by Safaricom servers)
+# ============================================================================
+
+@router.post("/mpesa/callback")
+async def mpesa_callback(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Receive payment callback from Daraja.
+    This URL must be publicly accessible (use ngrok for local dev).
+    """
+    try:
+        body = await request.json()
+        logger.info(f"M-Pesa callback received: {body}")
+        success = await process_callback(body, db)
+        # Always return 200 to Daraja even on error, so they don't retry endlessly
+        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+    except Exception as e:
+        logger.error(f"Callback error: {e}")
         return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
-    # Payment successful — extract data
-    checkout_id = parsed["checkout_request_id"]
-    receipt = parsed["receipt"]
-    amount = float(parsed["amount"])
 
-    # Find session
-    sess_result = await db.execute(
-        select(Session).where(Session.checkout_request_id == checkout_id)
+# ============================================================================
+# ADMIN ENDPOINTS
+# ============================================================================
+
+@router.get("/mpesa/admin/transactions")
+async def admin_list_transactions(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """ADMIN: List all M-Pesa transactions."""
+    role = getattr(current_user, "role", None)
+    if role not in ("platform_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from app.models.mpesa_transaction import MpesaTransaction
+    result = await db.execute(
+        select(MpesaTransaction).order_by(MpesaTransaction.created_at.desc()).limit(100)
     )
-    session = sess_result.scalar_one_or_none()
-    if not session:
-        logger.error(f"No session for checkout {checkout_id}")
-        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+    txns = result.scalars().all()
 
-    # Idempotency — receipt must be unique
-    existing_tx = await db.execute(
-        select(Transaction).where(Transaction.mpesa_receipt == receipt)
-    )
-    if existing_tx.scalar_one_or_none():
-        logger.warning(f"Duplicate receipt {receipt} — ignoring")
-        return {"ResultCode": 0, "ResultDesc": "Accepted"}
-
-    # Get package
-    pkg_result = await db.execute(select(Package).where(Package.id == session.package_id))
-    package = pkg_result.scalar_one_or_none()
-
-    # Activate session + record transaction
-    session = await activate_session(session, package, receipt, amount, db)
-
-    # Authorize MikroTik in background with its own DB session
-    tenant_id_val = session.tenant_id
-    mac = session.mac_address
-    phone = session.phone_number
-    duration = package.duration_hours
-    session_id_str = str(session.id)
-
-    async def _authorize_mikrotik():
-        async with AsyncSessionLocal() as new_db:
-            await mikrotik_service.add_hotspot_user(
-                tenant_id_val, mac, phone, duration, session_id_str, new_db
-            )
-
-    background_tasks.add_task(_authorize_mikrotik)
-
-    logger.info(f"Payment confirmed | receipt={receipt} | MAC={mac}")
-    return {"ResultCode": 0, "ResultDesc": "Accepted"}
+    return [
+        {
+            "id": str(t.id),
+            "tenant_id": str(t.tenant_id),
+            "amount_ksh": float(t.amount_ksh),
+            "phone_number": t.phone_number,
+            "payment_type": t.payment_type,
+            "status": t.status,
+            "mpesa_receipt": t.mpesa_receipt_number,
+            "created_at": t.created_at.isoformat(),
+        }
+        for t in txns
+    ]

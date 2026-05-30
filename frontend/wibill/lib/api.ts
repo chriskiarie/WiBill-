@@ -109,10 +109,10 @@ export const api = {
     if (skip !== undefined) query.append('skip', skip.toString())
     if (limit !== undefined) query.append('limit', limit.toString())
     const queryStr = query.toString()
-    return request<any[]>(`/api/sessions/transactions${queryStr ? '?' + queryStr : ''}`)
+    return request<any[]>(`/api/transactions${queryStr ? '?' + queryStr : ''}`)
   },
-  getTransaction: (id: string) => request<any>(`/api/sessions/transactions/${id}`),
-  getTransactionStats: () => request<any>('/api/sessions/transactions/stats'),
+  getTransaction: (id: string) => request<any>(`/api/transactions/${id}`),
+  getTransactionStats: () => request<any>('/api/transactions/stats'),
 
   // ========================================================================
   // TENANTS (ISP Management)
@@ -129,22 +129,31 @@ export const api = {
   // ========================================================================
   // NETWORK & SYSTEM
   // ========================================================================
-  getNetworkStatus: () => request<any>('/api/system/health'),
+  getNetworkStatus: () => request<any>('/health'),
   getNetworkStats: () => request<any>('/api/network/stats'),
 
-  // ========================================================================
-  // MIKROTIK
-  // ========================================================================
-  getMikrotikConfig: () => request<any>('/api/mikrotik/config'),
-  saveMikrotikConfig: (data: any) =>
-    request('/api/mikrotik/config', { method: 'POST', body: JSON.stringify(data) }),
-  getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
-  getMikrotikUser: (username: string) =>
-    request<any>(`/api/mikrotik/users/${username}`),
-  disconnectMikrotikUser: (username: string) =>
-    request(`/api/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
-  testMikrotikConnection: () =>
-    request<{ status: boolean; message: string }>('/api/mikrotik/test'),
+   // ========================================================================
+   // MIKROTIK
+   // ========================================================================
+   getMikrotikConfig: () => request<any>('/api/mikrotik/config'),
+   saveMikrotikConfig: (data: any) =>
+     request('/api/mikrotik/config', { method: 'POST', body: JSON.stringify(data) }),
+   getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
+   getMikrotikUser: (username: string) =>
+     request<any>(`/api/mikrotik/users/${username}`),
+   disconnectMikrotikUser: (username: string) =>
+     request(`/api/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
+   testMikrotikConnection: () =>
+     request<{ status: boolean; message: string }>('/api/mikrotik/test'),
+
+    // ========================================================================
+    // INVOICES
+    // ========================================================================
+    getInvoiceStatus: () => request<any>('/api/invoices/current-status'),
+    getInvoices: (status?: string) => {
+      const query = status ? `?status=${status}` : ''
+      return request<any[]>(`/api/invoices${query}`)
+    },
 
   // ========================================================================
   // M-PESA
@@ -153,13 +162,13 @@ export const api = {
   saveMpesaConfig: (data: any) =>
     request('/api/mpesa/config', { method: 'POST', body: JSON.stringify(data) }),
   initiateMpesaPayment: (phone: string, amount: number) =>
-    request('/api/mpesa/stk-push', {
+    request('/api/mpesa/pay/invoice', {
       method: 'POST',
       body: JSON.stringify({ phone, amount }),
     }),
   getMpesaTransactions: () => request<any[]>('/api/mpesa/transactions'),
   testMpesaConnection: () =>
-    request<{ status: boolean; message: string }>('/api/mpesa/test'),
+    request<{ status: boolean; message: string }>('/api/mpesa/config/test'),
 
   // ========================================================================
   // PORTAL CONFIGURATION
@@ -286,3 +295,4 @@ export function formatRelativeTime(isoString: string): string {
   if (diffDays < 7) return `${diffDays}d ago`
   return formatDate(isoString)
 }
+

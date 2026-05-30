@@ -36,7 +36,7 @@ export function useNetworkStatus(
 
     setLoading(true)
     try {
-      const res = await fetch(`${API}/api/system/health`, {
+      const res = await fetch(`${API}/health`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 

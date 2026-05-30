@@ -33,7 +33,7 @@ export default function BatcaveOverview() {
     Promise.all([
       fetch(`${API}/api/tenants/`, { headers: h }).then(r => r.json()),
       fetch(`${API}/api/transactions/?limit=1000`, { headers: h }).then(r => r.json()),
-      fetch(`${API}/api/sessions/?limit=500`, { headers: h }).then(r => r.json()),
+      fetch(`${API}/api/sessions?limit=500`, { headers: h }).then(r => r.json()),
     ]).then(([t, tx, s]) => {
       setIsps(Array.isArray(t) ? t : []);
       setTxns(Array.isArray(tx) ? tx : []);

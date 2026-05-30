@@ -9,7 +9,7 @@ from app.models.admin_user import AdminUser
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("")
 async def get_transactions(
     limit: int = Query(500, le=2000),
     db: AsyncSession = Depends(get_db),
@@ -41,3 +41,4 @@ async def get_transactions(
         }
         for t, pkg_id in rows
     ]
+

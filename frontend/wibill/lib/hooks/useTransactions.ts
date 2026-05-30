@@ -45,7 +45,7 @@ export function useTransactions(
     try {
       const skip = (page - 1) * pageSize
       const res = await fetch(
-        `${API}/api/sessions/transactions?skip=${skip}&limit=${pageSize}`,
+        `${API}/api/transactions?skip=${skip}&limit=${pageSize}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

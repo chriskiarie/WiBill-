@@ -41,11 +41,12 @@ async def lifespan(app: FastAPI):
     if not db_ok:
         logger.error("Database connection failed on startup")
         raise RuntimeError("Cannot connect to database")
-    logger.info("Database connection OK")
+    logger.info("✅ Database connection OK")
 
     # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
+    from app.jobs.invoice_scheduler import start_scheduler as start_invoice_scheduler
 
     scheduler.add_job(
         poll_all_tenants,
@@ -61,8 +62,16 @@ async def lifespan(app: FastAPI):
         name="Session expiry checker",
         replace_existing=True,
     )
+    
+    # Start Invoice Scheduler (Phase 4B)
+    try:
+        start_invoice_scheduler()
+        logger.info("✅ Invoice scheduler initialized")
+    except Exception as e:
+        logger.warning(f"⚠️  Invoice scheduler init (may already be running): {str(e)}")
+    
     scheduler.start()
-    logger.info("Background scheduler started")
+    logger.info("✅ Background scheduler started")
 
     yield
 
@@ -95,19 +104,18 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions
+from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
-from app.api.routes import sessions
 
 # Portal preview router removed - using new portal renderer
 
 # ============================================================================
 # ROUTER REGISTRATION
 # ============================================================================
-# Pattern: Each router has prefix="/auth" or "/admin" in its definition
-# main.py adds the "/api" prefix when including
-# Result: /api/auth/login, /api/admin/invites/generate, etc.
+# Pattern: main.py adds the "/api" prefix for non-portal routers
+# invoices router has NO prefix internally, gets /api added here
+# Result: /api/invoices, /api/invoices/{id}, /api/invoices/current-status, etc.
 # ============================================================================
 
 app.include_router(auth.router,     prefix="/api", tags=["auth"])
@@ -117,6 +125,10 @@ app.include_router(sessions.router, prefix="/api", tags=["sessions"])
 app.include_router(tenants.router,  prefix="/api", tags=["tenants"])
 app.include_router(mpesa.router,    prefix="/api", tags=["mpesa"])
 app.include_router(transactions.router, prefix="/api", tags=["transactions"])
+
+# FIXED: Invoice router - prefix="/api" gets added here
+app.include_router(invoices.router, prefix="/api", tags=["invoices"])
+
 app.include_router(admin_routes.router, prefix="/api", tags=["admin"])
 app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
 

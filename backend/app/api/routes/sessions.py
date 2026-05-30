@@ -344,3 +344,41 @@ def _validate_phone_number(phone: str) -> bool:
 def _generate_temp_password(length: int = 8) -> str:
     """Generate temporary password for MikroTik user"""
     return secrets.token_urlsafe(length)
+
+# -- ISP Dashboard Sessions ---------------------------------------------------
+from app.api.routes.auth import get_current_user
+
+@router.get("")
+async def list_isp_sessions(
+    status: str = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List sessions for the current ISP tenant."""
+    from app.models.session import Session
+    from sqlalchemy import select, desc
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    from uuid import UUID
+    tenant_id = UUID(str(tenant_id_raw))
+    query = select(Session).where(Session.tenant_id == tenant_id)
+    if status:
+        query = query.where(Session.status == status)
+    query = query.order_by(desc(Session.created_at)).offset(skip).limit(limit)
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    return [
+        {
+            "id": str(s.id),
+            "mac_address": s.mac_address,
+            "ip_address": s.ip_address,
+            "status": s.status.value if hasattr(s.status, "value") else s.status,
+            "created_at": s.created_at.isoformat(),
+            "expires_at": s.expires_at.isoformat() if s.expires_at else None,
+            "package_id": str(s.package_id) if s.package_id else None,
+        }
+        for s in sessions
+    ]

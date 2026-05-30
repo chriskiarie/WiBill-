@@ -8,6 +8,9 @@ from alembic import context
 # Import settings and Base
 from app.core.config import settings
 from app.core.database import Base
+from app.models.invoice import Invoice
+from app.models.invoice_transaction import InvoiceTransaction
+from app.models.invoice_reminder import InvoiceReminder
 
 # Import ALL models so Alembic can detect them
 from app.models import (

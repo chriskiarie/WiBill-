@@ -47,7 +47,7 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
             .limit(OUTAGE_THRESHOLD - 1)
         )
         recent_events = recent.scalars().all()
-        all_down = all(e.status == NetworkStatus.DOWN for e in recent_events)
+        all_down = all(e.status == "down" for e in recent_events)
         status = NetworkStatus.DOWN if (len(recent_events) >= OUTAGE_THRESHOLD - 1 and all_down) else NetworkStatus.DEGRADED
     else:
         status = NetworkStatus.UP
@@ -59,7 +59,7 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
             select(NetworkEvent)
             .where(
                 NetworkEvent.tenant_id == tenant_id,
-                NetworkEvent.status == NetworkStatus.UP,
+                NetworkEvent.status == "up",
             )
             .order_by(desc(NetworkEvent.checked_at))
             .limit(1)
@@ -69,7 +69,7 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
 
     event = NetworkEvent(
         tenant_id=tenant_id,
-        status=status,
+        status=status.value,
         latency_ms=latency,
         checked_at=datetime.now(timezone.utc),
         outage_start=outage_start,
@@ -110,3 +110,5 @@ async def get_current_status(tenant_id) -> dict:
             "outage_minutes": outage_minutes,
             "checked_at": event.checked_at.isoformat(),
         }
+
+

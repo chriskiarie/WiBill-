@@ -1,18 +1,30 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Boolean, Numeric, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 
+if TYPE_CHECKING:
+    from app.models.admin_user import AdminUser
+    from app.models.package import Package
+    from app.models.session import Session
+    from app.models.transaction import Transaction
+    from app.models.network_event import NetworkEvent
+    from app.models.mpesa_config import MpesaConfig
+    from app.models.mikrotik_config import MikrotikConfig
+    from app.models.mpesa_callback import MpesaCallback
+    from app.models.invoice import Invoice
+
 
 class Tenant(Base):
     __tablename__ = "tenants"
-    
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="pending_approval", nullable=False)  # pending_approval, active, inactive
+    status: Mapped[str] = mapped_column(String(50), default="pending_approval", nullable=False)
     primary_color: Mapped[str] = mapped_column(String(7), default="#00E676")
     support_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="KES")
@@ -21,7 +33,12 @@ class Tenant(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     portal_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    
+
+    # Account lock fields
+    is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    locked_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     admin_users: Mapped[list["AdminUser"]] = relationship("AdminUser", back_populates="tenant")
     packages: Mapped[list["Package"]] = relationship("Package", back_populates="tenant")
@@ -31,6 +48,7 @@ class Tenant(Base):
     mpesa_config: Mapped["MpesaConfig"] = relationship("MpesaConfig", back_populates="tenant", uselist=False)
     mikrotik_config: Mapped["MikrotikConfig"] = relationship("MikrotikConfig", back_populates="tenant", uselist=False)
     mpesa_callbacks: Mapped[list["MpesaCallback"]] = relationship("MpesaCallback", back_populates="tenant")
-    
+    invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="tenant", cascade="all, delete-orphan")
+
     def __repr__(self) -> str:
         return f"<Tenant {self.slug}>"

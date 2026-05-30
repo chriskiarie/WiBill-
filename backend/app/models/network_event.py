@@ -18,7 +18,7 @@ class NetworkEvent(Base):
  
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    status: Mapped[NetworkStatus] = mapped_column(SAEnum(NetworkStatus), nullable=False)
+    status: Mapped[NetworkStatus] = mapped_column(SAEnum(NetworkStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     outage_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -29,3 +29,4 @@ class NetworkEvent(Base):
  
     def __repr__(self) -> str:
         return f"<NetworkEvent {self.tenant_id} {self.status} {self.checked_at}>"
+

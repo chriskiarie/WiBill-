@@ -16,7 +16,7 @@ async def expire_sessions():
     """
     async with AsyncSessionLocal() as db:
         # Get sessions that expired but still marked ACTIVE
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()  # naive UTC matches TIMESTAMP WITHOUT TIME ZONE column
         result = await db.execute(
             select(Session).where(
                 and_(

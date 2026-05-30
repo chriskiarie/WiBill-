@@ -484,3 +484,75 @@ async def get_top_packages(
             for row in rows
         ]
     }
+
+@router.get("/sessions")
+async def list_sessions(
+    status: str = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.session import Session as SessionModel
+    from sqlalchemy import select, desc
+    from uuid import UUID
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
+    query = select(SessionModel).where(SessionModel.tenant_id == tenant_id)
+    if status:
+        query = query.where(SessionModel.status == status)
+    query = query.order_by(desc(SessionModel.created_at)).offset(skip).limit(limit)
+    result = await db.execute(query)
+    rows = result.scalars().all()
+    return [
+        {
+            "id": str(s.id),
+            "mac_address": s.mac_address,
+            "ip_address": s.ip_address,
+            "status": s.status.value if hasattr(s.status, "value") else s.status,
+            "created_at": s.created_at.isoformat(),
+            "expires_at": s.expires_at.isoformat() if s.expires_at else None,
+            "package_id": str(s.package_id) if s.package_id else None,
+        }
+        for s in rows
+    ]
+
+
+@router.get("/transactions")
+async def list_transactions(
+    skip: int = 0,
+    limit: int = 50,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.transaction import Transaction
+    from sqlalchemy import select, desc
+    from uuid import UUID
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
+    query = (
+        select(Transaction)
+        .where(Transaction.tenant_id == tenant_id)
+        .order_by(desc(Transaction.created_at))
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    rows = result.scalars().all()
+    return [
+        {
+            "id": str(t.id),
+            "phone_number": t.phone_number,
+            "amount": float(t.amount_ksh),
+            "platform_fee": float(t.platform_fee_ksh),
+            "isp_earnings": float(t.isp_earnings_ksh),
+            "mpesa_receipt": t.mpesa_receipt,
+            "status": t.status.value if hasattr(t.status, "value") else t.status,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t in rows
+    ]

@@ -29,6 +29,50 @@ class PackageUpdate(BaseModel):
     is_active: bool | None = None
     display_order: int | None = None
  
+
+class PackageResponse(BaseModel):
+    id: str
+    tenant_id: str
+    name: str
+    price_ksh: float
+    duration_hours: int
+    duration_label: str
+    max_devices: int
+    is_active: bool
+    display_order: int
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ISP ADMIN ENDPOINTS - Get ISP's own packages
+# ────────────────────────────────────────────────────────────────────────────────
+
+@router.get("/mine")
+async def list_my_packages(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Get ISP's own packages (auth required)"""
+    result = await db.execute(
+        select(Package)
+        .where(Package.tenant_id == current_user.tenant_id)
+        .order_by(Package.display_order)
+    )
+    packages = result.scalars().all()
+    return [
+        {
+            "id": str(p.id),
+            "tenant_id": str(p.tenant_id),
+            "name": p.name,
+            "price_ksh": float(p.price_ksh),
+            "duration_hours": p.duration_hours,
+            "duration_label": p.duration_label,
+            "max_devices": p.max_devices,
+            "is_active": p.is_active,
+            "display_order": p.display_order,
+        }
+        for p in packages
+    ]
+
  
 @router.get("/")
 async def list_packages(
@@ -56,13 +100,14 @@ async def list_packages(
         for p in packages
     ]
  
- 
+
 @router.post("/")
 async def create_package(
     data: PackageCreate,
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
+    """Create a new package (ISP admin only)"""
     pkg = Package(
         tenant_id=current_user.tenant_id,
         name=data.name,
@@ -76,7 +121,12 @@ async def create_package(
     db.add(pkg)
     await db.commit()
     await db.refresh(pkg)
-    return {"id": str(pkg.id), "name": pkg.name, "price_ksh": float(pkg.price_ksh)}
+    return {
+        "id": str(pkg.id),
+        "name": pkg.name,
+        "price_ksh": float(pkg.price_ksh),
+        "is_active": pkg.is_active,
+    }
  
  
 @router.patch("/{package_id}")
@@ -86,6 +136,7 @@ async def update_package(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
+    """Update a package (ISP admin only)"""
     result = await db.execute(
         select(Package).where(
             Package.id == uuid.UUID(package_id),
@@ -100,7 +151,7 @@ async def update_package(
         setattr(pkg, field, value)
 
     await db.commit()
-    return {"message": "Package updated"}
+    return {"message": "Package updated", "id": str(pkg.id)}
 
 
 @router.delete("/{package_id}")
@@ -109,6 +160,7 @@ async def delete_package(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
+    """Delete a package (ISP admin only)"""
     try:
         pid = uuid.UUID(package_id)
     except ValueError:

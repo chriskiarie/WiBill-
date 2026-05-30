@@ -1,0 +1,29 @@
+﻿# WiBill Bearer Tokens
+# Generated: 05/30/2026 09:35:45
+# Valid for: ~24 hours
+
+# Platform Admin
+$adminToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGViOGQ2My1kMTk0LTRiNDMtYTJlOS0xNmMzNjFjNDNhNmEiLCJyb2xlIjoicGxhdGZvcm1fYWRtaW4iLCJ0ZW5hbnRfaWQiOm51bGwsImV4cCI6MTc4MDEyNjU0NCwiaWF0IjoxNzgwMTIyOTQ0fQ.8JXROfL2P4B8pvCTjq8iwBnuCEp6xJn6q1q0n_j1do8"
+$adminRole = "platform_admin"
+$adminTenant = ""
+
+# ISP Admin
+$ispToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMTI2NTQ1LCJpYXQiOjE3ODAxMjI5NDV9.wLlx5MIQFc7kQ108FmcO_mvOi_FnAv8RgCFb0vd9rI4"
+$ispRole = "isp_admin"
+$ispTenant = "948ae333-5d10-48ac-be7f-615f314d4523"
+
+# API
+$apiUrl = "http://localhost:8000"
+
+# USAGE EXAMPLES:
+# 1. Test admin token:
+#    $headers = @{ "Authorization" = "Bearer $adminToken" }
+#    Invoke-RestMethod "$apiUrl/api/auth/me" -Headers $headers
+#
+# 2. Get all tenants:
+#    $headers = @{ "Authorization" = "Bearer $adminToken" }
+#    Invoke-RestMethod "$apiUrl/api/tenants" -Headers $headers
+#
+# 3. Get packages as ISP:
+#    $headers = @{ "Authorization" = "Bearer $ispToken" }
+#    Invoke-RestMethod "$apiUrl/api/packages" -Headers $headers

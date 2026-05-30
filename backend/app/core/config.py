@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     # ── M-Pesa / Daraja ──────────────────────────────
     # These are PLATFORM-LEVEL Daraja credentials (your account).
     # Each ISP tenant also has their own credentials stored encrypted in DB.
+    # -- M-Pesa Encryption Key
+    MPESA_ENCRYPTION_KEY: str = "honestbill-mpesa-encrypt-key-2026"
+    MPESA_ENVIRONMENT: str = "sandbox"
+    MPESA_CONSUMER_KEY: str = ""
+    MPESA_CONSUMER_SECRET: str = ""
+    MPESA_SHORTCODE: str = "174379"
+    MPESA_PASSKEY: str = ""
+    MPESA_CALLBACK_URL: str = ""
+
     DARAJA_ENV: str = "sandbox"  # sandbox | production
     DARAJA_BASE_URL: str = "https://sandbox.safaricom.co.ke"
 
