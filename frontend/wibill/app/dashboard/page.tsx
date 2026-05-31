@@ -466,7 +466,7 @@ export default function DashboardPage() {
                     }}
                   >
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#333', flex: 1 }}>
-                      {t.phone.slice(0, 4)} ••• {t.phone.slice(-4)}
+                      {(t.phone_number || t.phone || '').slice(0, 4)} ••• {(t.phone_number || t.phone || '').slice(-4)}
                     </span>
                     <span style={{ fontSize: 10, color: '#222' }}>{t.package}</span>
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, fontWeight: 500, color: '#e0e0e0' }}>

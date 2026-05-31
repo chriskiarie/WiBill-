@@ -120,7 +120,7 @@ from app.api.routes import crud_reads
 
 app.include_router(auth.router,     prefix="/api", tags=["auth"])
 app.include_router(portal.router,   prefix="",                tags=["portal"])
-app.include_router(packages.router, prefix="/api", tags=["packages"])
+app.include_router(packages.router, prefix="/api/packages", tags=["packages"])
 app.include_router(sessions.router, prefix="/api", tags=["sessions"])
 app.include_router(tenants.router,  prefix="/api", tags=["tenants"])
 app.include_router(mpesa.router,    prefix="/api", tags=["mpesa"])

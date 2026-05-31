@@ -73,7 +73,7 @@ async def create_tenant(
     return {"id": str(tenant.id), "slug": tenant.slug, "name": tenant.name}
 
 
-@router.get("/dashboard")
+@router.get("/tenants/dashboard")
 async def isp_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
@@ -87,21 +87,18 @@ async def isp_dashboard(
             func.count(Transaction.id),
         ).where(
             Transaction.tenant_id == tenant_id,
-            Transaction.status == "success",
+            Transaction.status == TransactionStatus.SUCCESS.value,
         )
     )
     rev = rev_result.one()
     active_result = await db.execute(
         select(func.count(Session.id)).where(
             Session.tenant_id == tenant_id,
-            Session.status == "active",
+            Session.status == SessionStatus.ACTIVE.value,
         )
     )
     active_count = active_result.scalar() or 0
-    try:
-        net_status = await get_current_status(tenant_id)
-    except Exception:
-        net_status = {"status": "unknown", "latency_ms": None, "outage_minutes": None}
+    net_status = await get_current_status(tenant_id)
     return {
         "revenue": {
             "gross_ksh": float(rev[0] or 0),
@@ -273,4 +270,3 @@ async def tenant_network_events(
         }
         for e in events
     ]
-

@@ -10,20 +10,23 @@ from app.models.mikrotik_config import MikrotikConfig
 
 logger = logging.getLogger("honestbill.network")
 
-# Consecutive failures before marking as DOWN
 OUTAGE_THRESHOLD = 3
 
+# Use string values throughout since the DB column is VARCHAR
+STATUS_UP = NetworkStatus.UP.value        # 'UP'
+STATUS_DOWN = NetworkStatus.DOWN.value    # 'DOWN'
+STATUS_DEGRADED = NetworkStatus.DEGRADED.value  # 'DEGRADED'
 
-async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> NetworkStatus:
+
+async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> str:
     """
-    Ping the router IP. Record result. Return current status.
+    Ping the router IP. Record result. Return current status string.
     """
     try:
         result = ping(router_ip, count=3, timeout=2, privileged=False)
         is_alive = result.is_alive
         latency = int(result.avg_rtt) if is_alive else None
     except SocketPermissionError:
-        # On Windows, unprivileged ICMP may fail — fall back to TCP check
         import socket
         try:
             sock = socket.create_connection((router_ip, 8728), timeout=3)
@@ -38,7 +41,6 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
         is_alive = False
         latency = None
 
-    # Check recent failures to determine if truly DOWN
     if not is_alive:
         recent = await db.execute(
             select(NetworkEvent)
@@ -47,19 +49,19 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
             .limit(OUTAGE_THRESHOLD - 1)
         )
         recent_events = recent.scalars().all()
-        all_down = all(e.status == "down" for e in recent_events)
-        status = NetworkStatus.DOWN if (len(recent_events) >= OUTAGE_THRESHOLD - 1 and all_down) else NetworkStatus.DEGRADED
+        # Compare string to string
+        all_down = all(e.status == STATUS_DOWN for e in recent_events)
+        status = STATUS_DOWN if (len(recent_events) >= OUTAGE_THRESHOLD - 1 and all_down) else STATUS_DEGRADED
     else:
-        status = NetworkStatus.UP
+        status = STATUS_UP
 
-    # Find active outage
     outage_start = None
-    if status in (NetworkStatus.DOWN, NetworkStatus.DEGRADED):
+    if status in (STATUS_DOWN, STATUS_DEGRADED):
         last_up = await db.execute(
             select(NetworkEvent)
             .where(
                 NetworkEvent.tenant_id == tenant_id,
-                NetworkEvent.status == "up",
+                NetworkEvent.status == STATUS_UP,  # string comparison
             )
             .order_by(desc(NetworkEvent.checked_at))
             .limit(1)
@@ -69,7 +71,7 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
 
     event = NetworkEvent(
         tenant_id=tenant_id,
-        status=status.value,
+        status=status,  # store plain string
         latency_ms=latency,
         checked_at=datetime.now(timezone.utc),
         outage_start=outage_start,
@@ -78,7 +80,7 @@ async def check_tenant_network(tenant_id, router_ip: str, db: AsyncSession) -> N
     db.add(event)
     await db.commit()
 
-    logger.info(f"Tenant {tenant_id} | {router_ip} | {status.value} | latency={latency}ms")
+    logger.info(f"Tenant {tenant_id} | {router_ip} | {status} | latency={latency}ms")
     return status
 
 
@@ -100,15 +102,18 @@ async def get_current_status(tenant_id) -> dict:
             return {"status": "unknown", "latency_ms": None, "outage_minutes": None}
 
         outage_minutes = None
-        if event.status != NetworkStatus.UP and event.outage_start:
-            delta = datetime.now(timezone.utc) - event.outage_start.replace(tzinfo=timezone.utc)
+        # event.status is a plain string, compare to string constant
+        if event.status != STATUS_UP and event.outage_start:
+            # Safe timezone handling — works whether outage_start is naive or aware
+            outage_start = event.outage_start
+            if outage_start.tzinfo is None:
+                outage_start = outage_start.replace(tzinfo=timezone.utc)
+            delta = datetime.now(timezone.utc) - outage_start
             outage_minutes = int(delta.total_seconds() / 60)
 
         return {
-            "status": event.status.value,
+            "status": event.status,
             "latency_ms": event.latency_ms,
             "outage_minutes": outage_minutes,
-            "checked_at": event.checked_at.isoformat(),
+            "checked_at": event.checked_at.isoformat() if event.checked_at else None,
         }
-
-

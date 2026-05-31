@@ -29,49 +29,7 @@ from app.models import (
 router = APIRouter(tags=["crud-reads"])
 
 
-# ============================================================================
-# TENANTS - Single Resource Read
-# ============================================================================
-
-@router.get("/tenants/{tenant_id}", name="get_tenant_details")
-async def get_tenant(
-    tenant_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: AdminUser = Depends(get_current_user),
-):
-    """
-    Get single tenant details.
-    
-    Permissions:
-    - Platform admin: can view any tenant
-    - ISP admin: can only view their own tenant
-    """
-    try:
-        tid = uuid.UUID(tenant_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid tenant ID format")
-    
-    # Check permission
-    if current_user.tenant_id is not None and current_user.tenant_id != tid:
-        raise HTTPException(status_code=403, detail="Can only view your own tenant")
-    
-    result = await db.execute(select(Tenant).where(Tenant.id == tid))
-    tenant = result.scalar_one_or_none()
-    
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-    
-    return {
-        "id": str(tenant.id),
-        "slug": tenant.slug,
-        "name": tenant.name,
-        "is_active": tenant.is_active,
-        "support_phone": getattr(tenant, "support_phone", None),
-        "commission_rate": float(getattr(tenant, "commission_rate", 0.10)),
-        "balance_ksh": float(getattr(tenant, "balance_ksh", 0)),
-        "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
-        "primary_color": getattr(tenant, "primary_color", "#00E676"),
-    }
+# Tenant read handled by tenants.router
 
 
 # ============================================================================
