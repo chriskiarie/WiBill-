@@ -32,7 +32,7 @@ export function useSession(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const API = ""
 
   const fetchSessions = useCallback(async () => {
     if (!token) return
@@ -106,3 +106,4 @@ export function useSession(
     expiringCount,
   }
 }
+

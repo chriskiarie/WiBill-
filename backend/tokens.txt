@@ -1,16 +1,28 @@
 ﻿# WiBill Bearer Tokens
-# Generated: 05/30/2026 09:35:45
+# Generated: 05/31/2026 07:20:09
 # Valid for: ~24 hours
 
 # Platform Admin
-$adminToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGViOGQ2My1kMTk0LTRiNDMtYTJlOS0xNmMzNjFjNDNhNmEiLCJyb2xlIjoicGxhdGZvcm1fYWRtaW4iLCJ0ZW5hbnRfaWQiOm51bGwsImV4cCI6MTc4MDEyNjU0NCwiaWF0IjoxNzgwMTIyOTQ0fQ.8JXROfL2P4B8pvCTjq8iwBnuCEp6xJn6q1q0n_j1do8"
+$adminToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGViOGQ2My1kMTk0LTRiNDMtYTJlOS0xNmMzNjFjNDNhNmEiLCJyb2xlIjoicGxhdGZvcm1fYWRtaW4iLCJ0ZW5hbnRfaWQiOm51bGwsImV4cCI6MTc4MDIwNDgwOCwiaWF0IjoxNzgwMjAxMjA4fQ.fQo9zVGtlWMyzNINJY2qFjHy4OzbcV2BjYt1BivtKx8"
 $adminRole = "platform_admin"
 $adminTenant = ""
 
 # ISP Admin
-$ispToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMTI2NTQ1LCJpYXQiOjE3ODAxMjI5NDV9.wLlx5MIQFc7kQ108FmcO_mvOi_FnAv8RgCFb0vd9rI4"
+$ispToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMjA0ODA5LCJpYXQiOjE3ODAyMDEyMDl9.Jj74LF_iIkctDPBMivO7wSBC4cOMswtwtRmWNU4L7tI"
 $ispRole = "isp_admin"
 $ispTenant = "948ae333-5d10-48ac-be7f-615f314d4523"
+
+
+$ispTok = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMjA0ODA5LCJpYXQiOjE3ODAyMDEyMDl9.Jj74LF_iIkctDPBMivO7wSBC4cOMswtwtRmWNU4L7tI"
+
+try {
+    $result = Invoke-RestMethod "http://localhost:8000/api/tenants/dashboard" -Headers @{"Authorization"="Bearer $ispTok"}
+    $result | ConvertTo-Json
+} catch {
+    $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+    $reader.BaseStream.Position = 0
+    Write-Host $reader.ReadToEnd()
+}
 
 # API
 $apiUrl = "http://localhost:8000"

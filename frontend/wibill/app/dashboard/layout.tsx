@@ -6,12 +6,12 @@ import Sidebar from '@/components/Sidebar'
 import { DashboardProvider } from '@/context/DashboardContext'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth()
+  const { token, hydrated } = useAuth()
   const router = useRouter()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (!token) router.push('/login')
+    if (!token && hydrated) router.push('/login')
     else setReady(true)
   }, [token])
 

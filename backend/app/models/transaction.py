@@ -1,15 +1,10 @@
 import uuid
-import enum
 from datetime import datetime
-from typing import TYPE_CHECKING
 from sqlalchemy import String, DateTime, ForeignKey, Numeric, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
-
-if TYPE_CHECKING:
-    from app.models.tenant import Tenant
-    from app.models.session import Session
+import enum
 
 
 class TransactionStatus(str, enum.Enum):
@@ -29,10 +24,15 @@ class Transaction(Base):
     platform_fee_ksh: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
     isp_earnings_ksh: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
     mpesa_receipt: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True, index=True)
-    status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]), default=TransactionStatus.PENDING, index=True)
+    status: Mapped[str] = mapped_column(
+        SAEnum(TransactionStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]),
+        default=TransactionStatus.PENDING.value,
+        index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="transactions")
     session: Mapped["Session"] = relationship("Session", back_populates="transaction")
 

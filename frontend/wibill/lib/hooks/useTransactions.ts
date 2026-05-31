@@ -36,7 +36,7 @@ export function useTransactions(
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const API = ""
 
   const fetchTransactions = useCallback(async () => {
     if (!token) return
@@ -101,3 +101,4 @@ export function useTransactions(
     pageSize,
   }
 }
+
