@@ -10,6 +10,7 @@ from app.models.mpesa_callback import MpesaCallback
 from app.models.isp_invite import ISPInvite, InviteStatus
 from app.models.mpesa_transaction import MpesaTransaction, MpesaTransactionType, MpesaTransactionStatus
 from app.models.payout_account import PayoutAccount, PayoutAccountType, PayoutAccountStatus, PayoutAccountOwner
+from app.models.voucher import Voucher
 
 __all__ = [
     "Tenant",

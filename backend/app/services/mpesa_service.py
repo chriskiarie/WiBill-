@@ -266,6 +266,9 @@ async def process_callback(callback_body: dict, db: AsyncSession) -> bool:
         else:
             txn.status = "failed"
             txn.error_reason = result_desc
+            # Update session status for failed session payments
+            if txn.payment_type == "session":
+                await _handle_session_failed(txn, db)
 
         await db.commit()
         logger.info(f"Callback processed: {checkout_request_id} --- {txn.status}")
@@ -296,6 +299,15 @@ async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
         session.status = "active"
         session.payment_confirmed = True
         logger.info(f"Session {session.id} activated after payment")
+
+
+async def _handle_session_failed(txn: MpesaTransaction, db: AsyncSession):
+    """Mark session as failed after failed payment."""
+    result = await db.execute(select(Session).where(Session.id == txn.reference_id))
+    session = result.scalar_one_or_none()
+    if session:
+        session.status = "failed"
+        logger.info(f"Session {session.id} marked as failed after payment error: {txn.error_reason}")
 
 
 def _parse_mpesa_date(date_int) -> datetime | None:

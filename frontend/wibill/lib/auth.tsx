@@ -44,9 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tenant: data.tenant,
       isp_name: data.tenant?.name || email.split('@')[0],
     }))
-    // Also set in sessionStorage for dashboard to read (using expected keys)
-    sessionStorage.setItem('token', data.access_token)
-    sessionStorage.setItem('role', data.role)
+    // Clear session check so dashboard re-evaluates onboarding on next login
+    sessionStorage.removeItem('onboarding_checked')
     setToken(data.access_token)
     setRole(data.role)
     setUser({ email, role: data.role, tenant_id: data.tenant_id, isp_name: data.tenant?.name })

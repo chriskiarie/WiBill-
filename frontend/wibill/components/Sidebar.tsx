@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Activity, Wifi, Receipt, Ticket,
-  Coins, Package, Router, CreditCard, Settings, HelpCircle, LogOut, Shield
+  Coins, Package, Router, CreditCard, Settings, HelpCircle, LogOut, Shield, FileText
 } from 'lucide-react'
 
 const nav = [
@@ -13,9 +13,10 @@ const nav = [
     { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics' },
     { href: '/dashboard/network', icon: Activity, label: 'Network' },
   ]},
-  { label: 'Billing', items: [
+  { label: 'Revenue', items: [
     { href: '/dashboard/sessions', icon: Wifi, label: 'Sessions', badge: true },
     { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
+    { href: '/dashboard/billing', icon: FileText, label: 'Billing' },
     { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
     { href: '/dashboard/loyalty', icon: Coins, label: 'Loyalty Points' },
   ]},

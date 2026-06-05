@@ -865,25 +865,57 @@
     {% endif %}
 
     <script>
-        function payment_flow(package_id) {
-            const package_data = {
-                id: package_id,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent
-            };
-            
-            console.log('Initiating payment for package:', package_data);
-            
-            if (window.payment_processor) {
-                window.payment_processor.initiate(package_data);
-            } else {
-                alert('Payment processor not configured. Contact support.');
-            }
-        }
+        // payment_flow defined by WiBill payment processor below
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard Portal initialized');
         });
     </script>
+
+    <!-- WiBill packages data for payment processor -->
+    <script>
+    window.__wibillPackages = {{ packages | tojson }};
+    window.__wibillConfig = {
+        slug: "{{ tenant_slug }}",
+        tenantId: "{{ tenant_id | default('') }}"
+    };
+    </script>
+    <!-- WiBill Payment Processor -->
+    {% raw %}
+    <script>
+    (function(){
+    'use strict';
+    var SLUG=(window.__wibillConfig||{}).slug||'',API_BASE=window.location.origin,POLL_MS=2500,TIMEOUT_MS=90000;
+    var urlParams=new URLSearchParams(window.location.search);
+    var MAC=urlParams.get('mac')||'00:00:00:00:00:00',IP=urlParams.get('ip')||'0.0.0.0',ORIG_URL=urlParams.get('orig-url')||urlParams.get('link-orig')||'';
+    function buildOverlay(){var el=document.createElement('div');el.id='wibill-pay-overlay';el.innerHTML=`<style>#wibill-pay-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);backdrop-filter:blur(4px);font-family:inherit}#wibill-pay-box{background:#0a0a0a;border:0.5px solid #1e1e1e;border-radius:16px;padding:28px 24px;width:340px;max-width:92vw;position:relative;text-align:center}#wibill-pay-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#444;font-size:22px;cursor:pointer;line-height:1}#wibill-pay-close:hover{color:#888}.wp-step{display:none;flex-direction:column;align-items:center;gap:14px}.wp-step.active{display:flex}.wp-title{font-size:15px;font-weight:700;color:#f0f0f0;margin:0}.wp-sub{font-size:12px;color:#555;margin:0;font-family:monospace;line-height:1.5}.wp-pkg{font-size:13px;color:#3b82f6;font-weight:600;font-family:monospace;margin:0}.wp-inp{width:100%;box-sizing:border-box;background:#050505;border:0.5px solid #1e1e1e;border-radius:8px;color:#e0e0e0;font-size:15px;font-family:monospace;padding:11px 14px;outline:none;text-align:center;letter-spacing:1px}.wp-inp:focus{border-color:#3b82f6}.wp-btn{width:100%;padding:12px;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:background .15s}.wp-btn-primary{background:#3b82f6;color:#030303}.wp-btn-primary:hover{background:#60a5fa}.wp-btn-primary:disabled{background:#0a1628;color:#3b82f6;cursor:not-allowed}.wp-btn-ghost{background:transparent;border:0.5px solid #1a1a1a;color:#444;font-size:11px}.wp-btn-ghost:hover{border-color:#333;color:#666}.wp-loader{width:48px;height:48px;position:relative}.wp-loader svg{width:48px;height:48px;animation:wp-spin 1.4s linear infinite}@keyframes wp-spin{to{transform:rotate(360deg)}}.wp-loader circle{fill:none;stroke:#3b82f6;stroke-width:4;stroke-dasharray:100;stroke-dashoffset:0;animation:wp-dash 1.4s ease-in-out infinite;stroke-linecap:round}@keyframes wp-dash{0%{stroke-dashoffset:100;stroke-dasharray:1 150}50%{stroke-dasharray:90 150;stroke-dashoffset:-30}100%{stroke-dasharray:90 150;stroke-dashoffset:-120}}.wp-amount{font-size:26px;font-weight:700;color:#f0f0f0;font-family:monospace;letter-spacing:-1px}.wp-progress{width:100%;height:2px;background:#0d0d0d;border-radius:1px;overflow:hidden}.wp-progress-bar{height:100%;background:#3b82f6;border-radius:1px;transition:width .3s;width:0%}</style><div id="wibill-pay-box"><button id="wibill-pay-close">×</button><div class="wp-step active" id="wp-s1"><p class="wp-title">Buy WiFi Access</p><p class="wp-pkg" id="wp-pkg-name">Loading…</p><p class="wp-amount" id="wp-amount">Ksh 0</p><div style="width:100%"><p style="font-size:10px;color:#444;text-align:left;font-family:monospace;margin:0 0 6px;text-transform:uppercase;letter-spacing:.5px">M-Pesa Number</p><input id="wp-phone" class="wp-inp" type="tel" placeholder="07XXXXXXXX" inputmode="numeric" maxlength="13"/><p style="font-size:11px;color:#2a2a2a;font-family:monospace;text-align:left;margin-top:5px" id="wp-hint">Enter the number to receive the STK prompt</p></div><button class="wp-btn wp-btn-primary" id="wp-pay-btn">Send M-Pesa Prompt →</button><button class="wp-btn wp-btn-ghost" id="wp-cancel1">Cancel</button></div><div class="wp-step" id="wp-s2"><div class="wp-loader"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/></svg></div><p class="wp-title">Waiting for payment</p><p class="wp-sub" id="wp-pending-phone"></p><p class="wp-sub">Check your phone — enter your M-Pesa PIN</p><div class="wp-progress"><div class="wp-progress-bar" id="wp-prog"></div></div><p style="font-size:11px;color:#2a2a2a;font-family:monospace;margin:0">Do not close this page</p></div><div class="wp-step" id="wp-s3"><p style="font-size:44px;line-height:1;margin:4px 0">✅</p><p class="wp-title" style="color:#22c55e">Payment confirmed!</p><p class="wp-pkg" id="wp-success-pkg"></p><p class="wp-sub">Your internet session is now active.</p><button class="wp-btn wp-btn-primary" id="wp-done-btn">Start browsing →</button></div><div class="wp-step" id="wp-s4"><p style="font-size:44px;line-height:1;margin:4px 0">❌</p><p class="wp-title" style="color:#f87171" id="wp-err-title">Payment failed</p><p class="wp-sub" id="wp-err-msg">Please try again.</p><button class="wp-btn wp-btn-primary" id="wp-retry-btn">Try again</button><button class="wp-btn wp-btn-ghost" id="wp-cancel4">Cancel</button></div></div>`;
+    document.body.appendChild(el);
+    document.getElementById('wp-cancel1').onclick=function(){W.close()};
+    document.getElementById('wp-cancel4').onclick=function(){W.close()};
+    document.getElementById('wp-retry-btn').onclick=function(){W.retry()};
+    document.getElementById('wp-done-btn').onclick=function(){W.done()};
+    document.getElementById('wp-pay-btn').onclick=function(){W.submitPhone()};
+    document.getElementById('wibill-pay-close').onclick=function(){W.close()};
+    el.addEventListener('click',function(e){if(e.target===el)W.close()});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')W.close()});
+    }
+    function showStep(n){[1,2,3,4].forEach(function(i){var el=document.getElementById('wp-s'+i);if(el)el.classList.toggle('active',i===n)});}
+    var _pkg=null,_poll=null,_prog=null,_cid=null,_t0=null;
+    var W=window.__wibillPay={
+    initiate:function(pkg){_pkg=pkg;_cid=null;var o=document.getElementById('wibill-pay-overlay');o.style.display='flex';document.getElementById('wp-pkg-name').textContent=pkg.name||'WiFi Package';document.getElementById('wp-amount').textContent='Ksh '+(pkg.price_ksh||pkg.p||0).toLocaleString();var saved=sessionStorage.getItem('wibill_phone')||urlParams.get('phone')||'';var inp=document.getElementById('wp-phone');if(saved)inp.value=saved;showStep(1);setTimeout(function(){inp.focus()},100);},
+    close:function(){this._stop();var o=document.getElementById('wibill-pay-overlay');if(o)o.style.display='none';showStep(1);_pkg=null;},
+    retry:function(){this._stop();showStep(1);},
+    done:function(){this.close();if(ORIG_URL){window.location.href=ORIG_URL;}else{window.location.reload();}},
+    submitPhone:async function(){var phone=document.getElementById('wp-phone').value.trim();var hint=document.getElementById('wp-hint');var btn=document.getElementById('wp-pay-btn');var clean=phone.replace(/\D/g,'');if(clean.length<9||clean.length>12){hint.style.color='#f87171';hint.textContent='Enter a valid number e.g. 0712345678';return;}hint.style.color='#2a2a2a';hint.textContent='Enter the number to receive the STK prompt';sessionStorage.setItem('wibill_phone',phone);btn.disabled=true;btn.textContent='Sending…';try{var res=await fetch(API_BASE+'/api/portal/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:SLUG,package_id:_pkg.id,phone_number:phone,mac_address:MAC,ip_address:IP})});var data=await res.json();if(!res.ok)throw new Error(data.detail||'Payment initiation failed');_cid=data.checkout_request_id;_t0=Date.now();document.getElementById('wp-pending-phone').textContent=phone;showStep(2);this._startPoll();this._startProg();}catch(err){btn.disabled=false;btn.textContent='Send M-Pesa Prompt →';hint.style.color='#f87171';hint.textContent=err.message||'Something went wrong. Try again.';}},
+    _startPoll:function(){var self=this;this._stop();_poll=setInterval(function(){self._doPoll()},POLL_MS);},
+    _startProg:function(){var bar=document.getElementById('wp-prog');if(!bar)return;bar.style.width='0%';_prog=setInterval(function(){bar.style.width=Math.min(98,((Date.now()-_t0)/TIMEOUT_MS)*100)+'%'},500);},
+    _stop:function(){if(_poll){clearInterval(_poll);_poll=null;}if(_prog){clearInterval(_prog);_prog=null;}},
+    _doPoll:async function(){if(!_cid)return;if(Date.now()-_t0>TIMEOUT_MS){this._stop();document.getElementById('wp-err-title').textContent='Request timed out';document.getElementById('wp-err-msg').textContent='No response. Please try again.';showStep(4);return;}try{var res=await fetch(API_BASE+'/api/mpesa/status/'+_cid);if(!res.ok)return;var d=await res.json();if(d.status==='success'){this._stop();document.getElementById('wp-success-pkg').textContent=_pkg.name||'WiFi session';showStep(3);}else if(d.status==='failed'||d.status==='cancelled'){this._stop();document.getElementById('wp-err-title').textContent=d.status==='cancelled'?'Cancelled':'Payment failed';document.getElementById('wp-err-msg').textContent=d.result_description||'Payment was not completed. Try again.';showStep(4);}}catch(e){}},
+    };
+    window.payment_flow=function(pid){var pkg=(window.__wibillPackages||[]).find(function(p){return p.id===pid;});if(!pkg){console.error('Package not found:',pid);return;}W.initiate(pkg);};
+    if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',buildOverlay);}else{buildOverlay();}
+    })();
+    </script>
+    {% endraw %}
 </body>
 </html>

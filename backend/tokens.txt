@@ -1,41 +1,24 @@
-﻿# WiBill Bearer Tokens
-# Generated: 05/31/2026 07:20:09
-# Valid for: ~24 hours
+﻿# WiBill Bearer Tokens - Generated 06/05/2026 08:59:30
+# Valid for approximately 24 hours
 
 # Platform Admin
-$adminToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGViOGQ2My1kMTk0LTRiNDMtYTJlOS0xNmMzNjFjNDNhNmEiLCJyb2xlIjoicGxhdGZvcm1fYWRtaW4iLCJ0ZW5hbnRfaWQiOm51bGwsImV4cCI6MTc4MDIwNDgwOCwiaWF0IjoxNzgwMjAxMjA4fQ.fQo9zVGtlWMyzNINJY2qFjHy4OzbcV2BjYt1BivtKx8"
-$adminRole = "platform_admin"
+$adminToken  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGViOGQ2My1kMTk0LTRiNDMtYTJlOS0xNmMzNjFjNDNhNmEiLCJyb2xlIjoicGxhdGZvcm1fYWRtaW4iLCJ0ZW5hbnRfaWQiOm51bGwsImV4cCI6MTc4MDY0Mjc2OSwiaWF0IjoxNzgwNjM5MTY5fQ.DA8dU3ZfnfVpanM6PKxAwrj1mlc9mnxYQvs4ObyBRFM"
+$adminRole   = "platform_admin"
 $adminTenant = ""
 
 # ISP Admin
-$ispToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMjA0ODA5LCJpYXQiOjE3ODAyMDEyMDl9.Jj74LF_iIkctDPBMivO7wSBC4cOMswtwtRmWNU4L7tI"
-$ispRole = "isp_admin"
+$ispToken  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwNjQyNzcwLCJpYXQiOjE3ODA2MzkxNzB9.3Dc11PZ_dKE7_FQSZyQdpXokCajQIfQ6eHbgbTxvgQ0"
+$ispRole   = "isp_admin"
 $ispTenant = "948ae333-5d10-48ac-be7f-615f314d4523"
-
-
-$ispTok = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNDZkMWRjZS1jOGE0LTRjNWYtOWIzMS02MWFjMTg1YjU1OTciLCJyb2xlIjoiaXNwX2FkbWluIiwidGVuYW50X2lkIjoiOTQ4YWUzMzMtNWQxMC00OGFjLWJlN2YtNjE1ZjMxNGQ0NTIzIiwiZXhwIjoxNzgwMjA0ODA5LCJpYXQiOjE3ODAyMDEyMDl9.Jj74LF_iIkctDPBMivO7wSBC4cOMswtwtRmWNU4L7tI"
-
-try {
-    $result = Invoke-RestMethod "http://localhost:8000/api/tenants/dashboard" -Headers @{"Authorization"="Bearer $ispTok"}
-    $result | ConvertTo-Json
-} catch {
-    $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-    $reader.BaseStream.Position = 0
-    Write-Host $reader.ReadToEnd()
-}
 
 # API
 $apiUrl = "http://localhost:8000"
 
 # USAGE EXAMPLES:
-# 1. Test admin token:
-#    $headers = @{ "Authorization" = "Bearer $adminToken" }
-#    Invoke-RestMethod "$apiUrl/api/auth/me" -Headers $headers
+# Test admin token:
+#   $headers = @{ "Authorization" = "Bearer $adminToken" }
+#   Invoke-RestMethod "$apiUrl/api/auth/me" -Headers $headers
 #
-# 2. Get all tenants:
-#    $headers = @{ "Authorization" = "Bearer $adminToken" }
-#    Invoke-RestMethod "$apiUrl/api/tenants" -Headers $headers
-#
-# 3. Get packages as ISP:
-#    $headers = @{ "Authorization" = "Bearer $ispToken" }
-#    Invoke-RestMethod "$apiUrl/api/packages" -Headers $headers
+# List packages as ISP:
+#   $headers = @{ "Authorization" = "Bearer $ispToken" }
+#   Invoke-RestMethod "$apiUrl/api/packages/mine" -Headers $headers
