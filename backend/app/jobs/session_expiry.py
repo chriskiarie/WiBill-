@@ -1,4 +1,4 @@
-"""
+﻿"""
 app/jobs/session_expiry.py
 """
 import logging
@@ -15,7 +15,7 @@ async def expire_sessions():
     """Find expired sessions, remove from MikroTik, mark as expired. Runs every 60s."""
     try:
         async with AsyncSessionLocal() as db:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
 
             # Compare against string value since column is VARCHAR
             result = await db.execute(

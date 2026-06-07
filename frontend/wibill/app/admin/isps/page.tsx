@@ -507,7 +507,7 @@ export default function AdminISPNetwork() {
         }}>
           {filteredISPs.map(isp => {
             const health = getHealthStatus(isp);
-            const isPending = !isp.is_active;
+            const isPending = isp.status === "pending_approval" || isp.status === "pending";
 
             return (
               <div
