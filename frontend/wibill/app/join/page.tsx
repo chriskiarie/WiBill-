@@ -1,163 +1,166 @@
-"use client";
+﻿"use client";
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export default function PendingApprovalPage() {
+function JoinForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams?.get('token');
+
   const [ispName, setIspName] = useState('');
-  const [isApproved, setIsApproved] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const name = localStorage.getItem('isp_name');
-    if (!name) {
-      router.push('/login');
+    if (!token) {
+      setError('Invalid or missing invite link. Please request a new invite.');
+      const timer = setTimeout(() => router.push('/login'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [token, router]);
+
+  const handleSignup = async (e: any) => {
+    e.preventDefault();
+    if (!ispName.trim() || !email.trim() || !password.trim()) {
+      setError('All fields are required');
       return;
     }
-    setIspName(name);
-
-    // Clear signup data
-    localStorage.removeItem('signup_success');
-    localStorage.removeItem('isp_name');
-  }, [router]);
-
-  // Check if approved every 30 seconds
-  useEffect(() => {
-    const checkApproval = async () => {
-      setCheckingStatus(true);
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) return; // Not logged in yet
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tenants/status`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'active') {
-            setIsApproved(true);
-            // Wait a moment, then redirect
-            setTimeout(() => {
-              router.push('/login');
-            }, 2000);
-          }
-        }
-      } catch (err) {
-        console.error('Error checking approval:', err);
-      } finally {
-        setCheckingStatus(false);
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    if (!email.includes('@')) {
+      setError('Invalid email address');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API}/api/auth/register-isp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isp_name: ispName.trim(),
+          email: email.trim(),
+          password,
+          invite_token: token,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        const message = typeof data.detail === 'string'
+          ? data.detail
+          : Array.isArray(data.detail) && data.detail[0]?.msg
+          ? data.detail[0].msg
+          : 'Signup failed. Please try again.';
+        setError(message);
+        return;
       }
-    };
+      setSuccess(true);
+      setTimeout(() => router.push('/join/pending-approval'), 2000);
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Check immediately, then every 30 seconds
-    checkApproval();
-    const interval = setInterval(checkApproval, 30000);
-
-    return () => clearInterval(interval);
-  }, [router]);
-
-  if (isApproved) {
+  if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700 text-center">
-          <div className="text-5xl mb-4 animate-bounce">✅</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Approved!</h1>
-          <p className="text-slate-300 mb-4">
-            Your account has been approved. Redirecting to login...
-          </p>
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-yellow-400 rounded-full animate-spin mx-auto"></div>
+          <div className="text-6xl mb-6">❌</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Invalid Invite</h2>
+          <p className="text-slate-400">This invite link is invalid or has expired. Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+        <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700 text-center">
+          <div className="text-6xl mb-6">✅</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Account Created!</h2>
+          <p className="text-slate-400">Your ISP account is pending approval. You will be notified once approved.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700">
-        {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
-          <p className="text-slate-400">
-            {ispName ? `Waiting to approve: ${ispName}` : 'Your account is awaiting approval'}
-          </p>
+          <h1 className="text-3xl font-bold text-white">WiBill</h1>
+          <p className="text-slate-400 mt-2">Create your ISP account</p>
         </div>
-
-        {/* Status */}
-        <div className="bg-slate-700 rounded p-6 mb-6 border border-slate-600">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-300">Status</span>
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-              <span className="text-yellow-400 font-bold">Pending</span>
-            </span>
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-6 text-sm">
+            {error}
           </div>
-
-          <div className="bg-slate-600 rounded p-4 text-sm text-slate-300 space-y-2">
-            <p>✓ Account created</p>
-            <p>⏳ Admin reviewing...</p>
-            <p className="text-slate-400 text-xs mt-4">
-              Check back soon or we'll notify you via email when approved
-            </p>
+        )}
+        <form onSubmit={handleSignup} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">ISP / Business Name</label>
+            <input
+              type="text"
+              value={ispName}
+              onChange={e => setIspName(e.target.value)}
+              placeholder="e.g. Nairobi FastNet"
+              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
-        </div>
-
-        {/* What's Next */}
-        <div className="bg-blue-600 bg-opacity-10 border border-blue-500 rounded p-4 mb-6">
-          <h3 className="text-blue-300 font-bold mb-2">What happens next:</h3>
-          <ol className="text-blue-200 text-sm space-y-2">
-            <li>1. Our team reviews your application</li>
-            <li>2. We send you approval email</li>
-            <li>3. You log in and customize your portal</li>
-            <li>4. WiFi users see your branded network</li>
-          </ol>
-        </div>
-
-        {/* FAQ */}
-        <div className="bg-slate-700 rounded p-4 border border-slate-600">
-          <h3 className="text-slate-300 font-bold mb-3">FAQ</h3>
-          
-          <div className="space-y-3 text-sm text-slate-300">
-            <div>
-              <p className="font-bold text-slate-200 mb-1">How long does approval take?</p>
-              <p className="text-slate-400">Usually 1-2 hours during business hours</p>
-            </div>
-
-            <div>
-              <p className="font-bold text-slate-200 mb-1">I haven't received an email?</p>
-              <p className="text-slate-400">Check your spam folder or contact admin@wibill.co.ke</p>
-            </div>
-
-            <div>
-              <p className="font-bold text-slate-200 mb-1">Can I set up while waiting?</p>
-              <p className="text-slate-400">No, please wait for approval. Full setup guide comes after approval.</p>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="admin@yourisp.co.ke"
+              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
           </div>
-        </div>
-
-        {/* Contact */}
-        <div className="mt-6 text-center">
-          <p className="text-slate-400 text-sm mb-2">Need help?</p>
-          <a
-            href="mailto:admin@wibill.co.ke"
-            className="text-blue-400 hover:text-blue-300 text-sm font-bold"
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Min 8 characters"
+              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Contact Admin
-          </a>
-        </div>
-
-        {/* Auto-check indicator */}
-        <div className="mt-4 text-center">
-          <p className="text-slate-500 text-xs">
-            {checkingStatus ? 'Checking status...' : 'Auto-checking every 30 seconds'}
-          </p>
-        </div>
+            {loading ? 'Creating Account...' : 'Create ISP Account'}
+          </button>
+        </form>
       </div>
     </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    }>
+      <JoinForm />
+    </Suspense>
   );
 }
