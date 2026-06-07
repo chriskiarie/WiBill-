@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI):
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
     from app.jobs.invoice_scheduler import start_scheduler as start_invoice_scheduler
+    from app.models.isp_invite import ISPInvite  # noqa — registers table
 
     scheduler.add_job(
         poll_all_tenants,
@@ -62,14 +63,14 @@ async def lifespan(app: FastAPI):
         name="Session expiry checker",
         replace_existing=True,
     )
-    
+
     # Start Invoice Scheduler (Phase 4B)
     try:
         start_invoice_scheduler()
         logger.info("✅ Invoice scheduler initialized")
     except Exception as e:
         logger.warning(f"⚠️  Invoice scheduler init (may already be running): {str(e)}")
-    
+
     scheduler.start()
     logger.info("✅ Background scheduler started")
 
@@ -78,7 +79,6 @@ async def lifespan(app: FastAPI):
     # ── Shutdown ──
     scheduler.shutdown(wait=False)
     logger.info(f"{settings.APP_NAME} shutdown complete")
-    from app.models.isp_invite import ISPInvite  # noqa — registers table
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Hotspot billing SaaS platform",
-    docs_url="/docs" if settings.is_development else None,   # hide docs in prod
+    docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
@@ -104,33 +104,31 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
+from app.api.routes import (
+    auth,
+    portal,
+    packages,
+    sessions,
+    tenants,
+    mpesa,
+    transactions,
+    invoices,
+    vouchers,
+)
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 
-# Portal preview router removed - using new portal renderer
-
-# ============================================================================
-# ROUTER REGISTRATION
-# ============================================================================
-# Pattern: main.py adds the "/api" prefix for non-portal routers
-# invoices router has NO prefix internally, gets /api added here
-# Result: /api/invoices, /api/invoices/{id}, /api/invoices/current-status, etc.
-# ============================================================================
-
-app.include_router(auth.router,     prefix="/api", tags=["auth"])
-app.include_router(portal.router,   prefix="",                tags=["portal"])
-app.include_router(packages.router, prefix="/api/packages", tags=["packages"])
-app.include_router(sessions.router, prefix="/api", tags=["sessions"])
-app.include_router(tenants.router,  prefix="/api", tags=["tenants"])
-app.include_router(mpesa.router,    prefix="/api", tags=["mpesa"])
-app.include_router(transactions.router, prefix="/api", tags=["transactions"])
-
-# FIXED: Invoice router - prefix="/api" gets added here
-app.include_router(invoices.router, prefix="/api", tags=["invoices"])
-
-app.include_router(admin_routes.router, prefix="/api", tags=["admin"])
-app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
+app.include_router(auth.router,          prefix="/api",          tags=["auth"])
+app.include_router(portal.router,        prefix="",              tags=["portal"])
+app.include_router(packages.router,      prefix="/api/packages", tags=["packages"])
+app.include_router(sessions.router,      prefix="/api",          tags=["sessions"])
+app.include_router(tenants.router,       prefix="/api",          tags=["tenants"])
+app.include_router(mpesa.router,         prefix="/api",          tags=["mpesa"])
+app.include_router(transactions.router,  prefix="/api",          tags=["transactions"])
+app.include_router(invoices.router,      prefix="/api",          tags=["invoices"])
+app.include_router(vouchers.router,      prefix="/api/vouchers", tags=["vouchers"])
+app.include_router(admin_routes.router,  prefix="/api",          tags=["admin"])
+app.include_router(crud_reads.router,    prefix="/api",          tags=["crud-reads"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

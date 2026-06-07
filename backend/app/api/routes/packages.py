@@ -125,3 +125,29 @@ async def delete_package(
     await db.delete(pkg)
     await db.commit()
     return {"ok": True, "message": "Package deleted"}
+
+@router.get("/mine")
+async def list_my_packages(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Authenticated ISP endpoint — returns all packages for logged-in ISP."""
+    result = await db.execute(
+        select(Package)
+        .where(Package.tenant_id == current_user.tenant_id)
+        .order_by(Package.display_order)
+    )
+    packages = result.scalars().all()
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "price_ksh": float(p.price_ksh),
+            "duration_hours": p.duration_hours,
+            "duration_label": p.duration_label,
+            "max_devices": p.max_devices,
+            "is_active": p.is_active,
+            "display_order": p.display_order,
+        }
+        for p in packages
+    ]

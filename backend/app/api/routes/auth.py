@@ -337,3 +337,39 @@ async def logout(current_user: AdminUser = Depends(get_current_user)):
     Logout (frontend just deletes JWT from localStorage)
     """
     return {"ok": True, "message": "Logged out successfully"}
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = None
+
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(get_current_user),
+):
+    """Change the current user's password."""
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    current_user.hashed_password = hash_password(data.new_password)
+    await db.commit()
+    return {"ok": True, "message": "Password changed successfully"}
+
+
+@router.patch("/me")
+async def update_profile(
+    data: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(get_current_user),
+):
+    """Update current user's profile."""
+    if data.full_name is not None:
+        current_user.full_name = data.full_name.strip()
+    await db.commit()
+    return {"ok": True, "full_name": current_user.full_name}

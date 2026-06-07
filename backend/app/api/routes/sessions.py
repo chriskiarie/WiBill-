@@ -16,12 +16,14 @@ from pydantic import BaseModel
 from uuid import UUID, uuid4
 import secrets
 import re
+from decimal import Decimal
 
 from app.core.database import get_db
 from app.models.tenant import Tenant
 from app.models.package import Package
 from app.models.session import Session as DBSession
 from app.models.transaction import Transaction
+from app.models.mpesa_config import MpesaConfig
 from app.services.session_service import create_session, expire_session
 
 # Phase 3 services - Daraja (M-Pesa) and MikroTik
@@ -136,14 +138,25 @@ async def create_session_with_payment(
         db.add(transaction)
         await db.commit()
         
-        # 6. Initiate STK push
+        # 6. Fetch M-Pesa configuration for tenant
+        config_result = await db.execute(
+            select(MpesaConfig).where(MpesaConfig.tenant_id == tenant.id)
+        )
+        mpesa_config = config_result.scalar_one_or_none()
+        if not mpesa_config:
+            raise HTTPException(status_code=400, detail="M-Pesa integration is not configured for this ISP.")
+        
+        # Initiate STK push with decrypted credentials
         stk_result = await initiate_stk_push(
-            tenant_id=tenant.id,
+            consumer_key_enc=mpesa_config.consumer_key_enc,
+            consumer_secret_enc=mpesa_config.consumer_secret_enc,
+            shortcode=mpesa_config.shortcode,
+            passkey_enc=mpesa_config.passkey_enc,
             phone_number=phone,
-            amount=int(package.price_ksh),
-            session_id=str(session.id),
-            package_name=package.name,
-            db=db
+            amount=Decimal(str(package.price_ksh)),
+            account_reference=mpesa_config.account_reference or tenant.slug,
+            description=f"WiFi Package: {package.name}",
+            callback_url=f"https://yourdomain.com/api/mpesa/callback"  # TODO: Make dynamic from env
         )
         
         if not stk_result.get("success"):
