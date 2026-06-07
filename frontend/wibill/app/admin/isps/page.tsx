@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 
@@ -18,9 +18,9 @@ interface ISP {
 
 // Health status logic
 const getHealthStatus = (isp: ISP) => {
-  if (!isp.is_active) return { status: 'offline', label: 'Offline', color: '#ef4444', icon: '●' };
-  if (Math.random() > 0.7) return { status: 'warning', label: 'Warning', color: '#f59e0b', icon: '●' };
-  return { status: 'healthy', label: 'Healthy', color: '#22c55e', icon: '●' };
+  if (!isp.is_active) return { status: 'offline', label: 'Offline', color: '#ef4444', icon: 'â—' };
+  if (Math.random() > 0.7) return { status: 'warning', label: 'Warning', color: '#f59e0b', icon: 'â—' };
+  return { status: 'healthy', label: 'Healthy', color: '#22c55e', icon: 'â—' };
 };
 
 // Summary metrics
@@ -60,8 +60,8 @@ export default function AdminISPNetwork() {
 
     try {
       const url = statusFilter
-        ? `${API}/api/admin/tenants?status=${statusFilter}`
-        : `${API}/api/admin/tenants`;
+        ? `${API}/api/?status=${statusFilter}`
+        : `${API}/api/`;
 
       const r = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -70,9 +70,9 @@ export default function AdminISPNetwork() {
       if (!r.ok) throw new Error('Failed to load ISPs');
 
       const data = await r.json();
-      setIsps(Array.isArray(data) ? data : []);
+      setIsps(Array.isArray(data) ? data : Array.isArray(data?.value) ? data.value : []);
     } catch (err) {
-      showToast('❌ Failed to load ISPs');
+      showToast('âŒ Failed to load ISPs');
       console.error(err);
     } finally {
       setLoading(false);
@@ -90,19 +90,21 @@ export default function AdminISPNetwork() {
 
     try {
       const r = await fetch(`${API}/api/admin/invites/generate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expires_in_days: 7 }),
+        });
 
       if (!r.ok) throw new Error('Failed to generate invite');
 
       const data = await r.json();
-      setInviteLink(data.url);
-      await navigator.clipboard.writeText(data.url);
-      showToast('✅ Invite link copied!');
+      const inviteUrl = `${window.location.origin}/login?token=${data.token}`;
+      setInviteLink(inviteUrl);
+      await navigator.clipboard.writeText(inviteUrl);
+      showToast('âœ… Invite link copied!');
       setShowInviteModal(true);
     } catch (err) {
-      showToast('❌ Failed to generate invite');
+      showToast('âŒ Failed to generate invite');
       console.error(err);
     }
   };
@@ -113,17 +115,17 @@ export default function AdminISPNetwork() {
     if (!token) return;
 
     try {
-      const r = await fetch(`${API}/api/admin/tenants/${ispId}/approve`, {
+      const r = await fetch(`${API}/api/tenants/${ispId}/approve`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!r.ok) throw new Error('Failed to approve');
 
-      showToast('✅ ISP approved');
+      showToast('âœ… ISP approved');
       loadISPs();
     } catch (err) {
-      showToast('❌ Failed to approve');
+      showToast('âŒ Failed to approve');
       console.error(err);
     }
   };
@@ -134,17 +136,18 @@ export default function AdminISPNetwork() {
     if (!token) return;
 
     try {
-      const r = await fetch(`${API}/api/admin/tenants/${ispId}/reject`, {
+      const r = await fetch(`${API}/api/${ispId}/status`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: false }),
       });
 
       if (!r.ok) throw new Error('Failed to reject');
 
-      showToast('✅ ISP rejected');
+      showToast('âœ… ISP rejected');
       loadISPs();
     } catch (err) {
-      showToast('❌ Failed to reject');
+      showToast('âŒ Failed to reject');
       console.error(err);
     }
   };
@@ -156,17 +159,17 @@ export default function AdminISPNetwork() {
 
     try {
       const endpoint = shouldActivate ? 'unsuspend' : 'suspend';
-      const r = await fetch(`${API}/api/admin/tenants/${ispId}/${endpoint}`, {
+      const r = await fetch(`${API}/api/tenants/${ispId}/${endpoint}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!r.ok) throw new Error('Failed to update status');
 
-      showToast(`✅ ISP ${shouldActivate ? 'activated' : 'suspended'}`);
+      showToast(`âœ… ISP ${shouldActivate ? 'activated' : 'suspended'}`);
       loadISPs();
     } catch (err) {
-      showToast('❌ Failed to update status');
+      showToast('âŒ Failed to update status');
       console.error(err);
     }
   };
@@ -250,7 +253,7 @@ export default function AdminISPNetwork() {
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              🔗 Generate Invite
+              ðŸ”— Generate Invite
             </button>
           </div>
         </div>
@@ -289,28 +292,28 @@ export default function AdminISPNetwork() {
             label: 'Total ISPs',
             value: metrics.total,
             trend: '+2 this month',
-            icon: '🌐',
+            icon: 'ðŸŒ',
             color: '#fbbf24',
           },
           {
             label: 'Subscribers',
             value: metrics.avgSubscribers,
             trend: '+12%',
-            icon: '👥',
+            icon: 'ðŸ‘¥',
             color: '#22c55e',
           },
           {
             label: 'Revenue',
             value: `KES ${(metrics.revenue / 1000).toFixed(0)}k`,
             trend: '+18%',
-            icon: '💰',
+            icon: 'ðŸ’°',
             color: '#3b82f6',
           },
           {
             label: 'Network Uptime',
             value: '99.8%',
             trend: '+0.1%',
-            icon: '⚡',
+            icon: 'âš¡',
             color: '#06b6d4',
           },
         ].map((card, i) => (
@@ -469,7 +472,7 @@ export default function AdminISPNetwork() {
           borderRadius: 14,
           border: '1px solid rgba(251, 191, 36, 0.1)',
         }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>ðŸ“­</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 6 }}>
             No ISPs found
           </div>
@@ -492,7 +495,7 @@ export default function AdminISPNetwork() {
                 cursor: 'pointer',
               }}
             >
-              🔗 Generate Invite
+              ðŸ”— Generate Invite
             </button>
           )}
         </div>
@@ -504,7 +507,7 @@ export default function AdminISPNetwork() {
         }}>
           {filteredISPs.map(isp => {
             const health = getHealthStatus(isp);
-            const isPending = isp.status === 'pending_approval';
+            const isPending = !isp.is_active;
 
             return (
               <div
@@ -646,7 +649,7 @@ export default function AdminISPNetwork() {
                         color: '#fbbf24',
                         marginBottom: 12,
                       }}>
-                        ⏳ Pending Approval
+                        â³ Pending Approval
                       </span>
                     )}
                   </div>
@@ -679,7 +682,7 @@ export default function AdminISPNetwork() {
                             e.currentTarget.style.background = 'rgba(34, 197, 94, 0.15)';
                           }}
                         >
-                          ✓ Approve
+                          âœ“ Approve
                         </button>
                         <button
                           onClick={() => rejectISP(isp.id)}
@@ -701,7 +704,7 @@ export default function AdminISPNetwork() {
                             e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
                           }}
                         >
-                          ✕ Reject
+                          âœ• Reject
                         </button>
                       </>
                     ) : (
@@ -731,7 +734,7 @@ export default function AdminISPNetwork() {
                           e.currentTarget.style.opacity = '1';
                         }}
                       >
-                        {isp.is_active ? '⏸ Suspend' : '▶ Activate'}
+                        {isp.is_active ? 'â¸ Suspend' : 'â–¶ Activate'}
                       </button>
                     )}
                   </div>
@@ -768,7 +771,7 @@ export default function AdminISPNetwork() {
             }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ fontSize: 32, marginBottom: 16 }}>🔗</div>
+            <div style={{ fontSize: 32, marginBottom: 16 }}>ðŸ”—</div>
             <h2 style={{
               fontSize: 20,
               fontWeight: 800,
@@ -810,7 +813,7 @@ export default function AdminISPNetwork() {
                 onClick={() => {
                   if (inviteLink) {
                     navigator.clipboard.writeText(inviteLink);
-                    showToast('✅ Copied to clipboard');
+                    showToast('âœ… Copied to clipboard');
                   }
                 }}
                 style={{
@@ -828,7 +831,7 @@ export default function AdminISPNetwork() {
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >
-                📋 Copy Link
+                ðŸ“‹ Copy Link
               </button>
               <button
                 onClick={generateInvite}
@@ -845,7 +848,7 @@ export default function AdminISPNetwork() {
                   transition: 'all 0.2s',
                 }}
               >
-                🔄 Generate New
+                ðŸ”„ Generate New
               </button>
               <button
                 onClick={() => setShowInviteModal(false)}

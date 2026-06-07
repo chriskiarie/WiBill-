@@ -210,12 +210,14 @@ async def register(
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # ====== STEP 3: Create Tenant ======
+    # Pending approval if invite used, active immediately if no invite
+    tenant_is_active = not bool(invite)  # False if invite (pending), True if open registration
     tenant_id = uuid.uuid4()
     tenant = Tenant(
         id=tenant_id,
         name=data.isp_name,
         slug=data.isp_slug,
-        is_active=True,
+        is_active=tenant_is_active,
         currency="KES",
         commission_rate=10.0,
         support_phone=data.support_phone,
@@ -231,7 +233,7 @@ async def register(
         full_name=data.isp_name,
         role=AdminRole.ISP_ADMIN,
         tenant_id=tenant.id,
-        is_active=True,  # Can login immediately (no approval needed for self-registration)
+        is_active=tenant_is_active,  # Inactive until approved when using invite
         onboarding_complete=False,
     )
     db.add(admin_user)
@@ -248,6 +250,40 @@ async def register(
 
     # ====== STEP 6: Commit ======
     await db.commit()
+
+    # ====== STEP 7: Send email notification to platform admin ======
+    if invite:
+        try:
+            import httpx
+            resend_key = __import__('os').environ.get('RESEND_API_KEY', '')
+            if resend_key:
+                await httpx.AsyncClient().post(
+                    'https://api.resend.com/emails',
+                    headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
+                    json={
+                        'from': 'WiBill <onboarding@resend.dev>',
+                        'to': ['chriskiarie14@gmail.com'],
+                        'subject': f'New ISP Pending Approval: {data.isp_name}',
+                        'html': f'''<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                            <h2 style="color:#f59e0b">New ISP Registration</h2>
+                            <p><strong>{data.isp_name}</strong> has registered and is pending your approval.</p>
+                            <table style="border-collapse:collapse;width:100%">
+                                <tr><td style="padding:8px;color:#666">ISP Name</td><td style="padding:8px"><strong>{data.isp_name}</strong></td></tr>
+                                <tr><td style="padding:8px;color:#666">Admin Email</td><td style="padding:8px">{data.admin_email}</td></tr>
+                                <tr><td style="padding:8px;color:#666">Slug</td><td style="padding:8px">{data.isp_slug}</td></tr>
+                            </table>
+                            <div style="margin-top:24px">
+                                <a href="https://wi-bill.vercel.app/admin/isps" 
+                                   style="background:#f59e0b;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
+                                    Review in Batcave
+                                </a>
+                            </div>
+                        </div>'''
+                    },
+                    timeout=5.0
+                )
+        except Exception:
+            pass  # Email failure never blocks registration
 
     return {
         "ok": True,
@@ -337,3 +373,39 @@ async def logout(current_user: AdminUser = Depends(get_current_user)):
     Logout (frontend just deletes JWT from localStorage)
     """
     return {"ok": True, "message": "Logged out successfully"}
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = None
+
+
+@router.post("/change-password")
+async def change_password(
+    data: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(get_current_user),
+):
+    """Change the current user's password."""
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    current_user.hashed_password = hash_password(data.new_password)
+    await db.commit()
+    return {"ok": True, "message": "Password changed successfully"}
+
+
+@router.patch("/me")
+async def update_profile(
+    data: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(get_current_user),
+):
+    """Update current user's profile."""
+    if data.full_name is not None:
+        current_user.full_name = data.full_name.strip()
+    await db.commit()
+    return {"ok": True, "full_name": current_user.full_name}

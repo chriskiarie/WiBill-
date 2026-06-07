@@ -28,7 +28,7 @@ class TenantCreate(BaseModel):
 @router.get("/")
 async def list_tenants(
     db: AsyncSession = Depends(get_db),
-    current_user: AdminUser = Depends(require_isp_admin),
+    current_user: AdminUser = Depends(require_platform_admin),  # FIX: was require_isp_admin
 ):
     if current_user.tenant_id:
         result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
@@ -136,7 +136,7 @@ async def save_portal_config(
 ):
     """
     Save ISP portal configuration. Called by onboarding wizard.
-    
+
     Flow:
     1. Validate tenant ownership
     2. Build nested portal_config JSONB structure
@@ -144,12 +144,12 @@ async def save_portal_config(
     4. Mark admin_user.onboarding_complete = True
     5. Return success with portal URL
     """
-    
+
     # Validate: ISP admins must have a tenant
     tenant_id = current_user.tenant_id
     if not tenant_id:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Platform admins don't have a portal to configure"
         )
 
@@ -173,7 +173,7 @@ async def save_portal_config(
             "name": data.name or "",
             "tagline": data.tagline or "",
             "location": data.location or "",
-            "emoji": data.emoji or "🌐",
+            "emoji": data.emoji or "globe",
             "support_phone": data.support_phone or "",
         },
         "network_awareness": {
@@ -191,10 +191,10 @@ async def save_portal_config(
     # CRITICAL: Save portal config and mark onboarding complete
     tenant.portal_config = portal_config
     current_user.onboarding_complete = True
-    
+
     # Commit both changes atomically
     await db.commit()
-    
+
     # Refresh tenant to get accurate state for response
     await db.refresh(tenant)
 
@@ -205,6 +205,56 @@ async def save_portal_config(
         "onboarding_complete": True,
         "tenant_id": str(tenant.id),
     }
+
+
+@router.patch("/tenants/{tenant_id}/approve")
+async def approve_tenant(
+    tenant_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_platform_admin),
+):
+    result = await db.execute(select(Tenant).where(Tenant.id == uuid.UUID(tenant_id)))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    was_inactive = not tenant.is_active
+    tenant.is_active = True
+    await db.commit()
+
+    # Activate admin users and send approval email
+    if was_inactive:
+        from sqlalchemy import update as sa_update
+        from app.models.admin_user import AdminUser as AU
+        await db.execute(
+            sa_update(AU)
+            .where(AU.tenant_id == tenant.id)
+            .values(is_active=True)
+        )
+        await db.commit()
+
+        try:
+            import httpx, os
+            resend_key = os.environ.get('RESEND_API_KEY', '')
+            if resend_key:
+                res = await db.execute(select(AdminUser).where(AdminUser.tenant_id == tenant.id))
+                isp_admin = res.scalar_one_or_none()
+                if isp_admin:
+                    await httpx.AsyncClient().post(
+                        'https://api.resend.com/emails',
+                        headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
+                        json={
+                            'from': 'WiBill <onboarding@resend.dev>',
+                            'to': [isp_admin.email],
+                            'subject': f'Your WiBill account is approved - {tenant.name}',
+                            'html': f'<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#22c55e">You are approved!</h2><p>Your ISP <strong>{tenant.name}</strong> is now live on WiBill.</p><a href="https://wi-bill.vercel.app/login" style="background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:16px">Login to Dashboard</a><p style="margin-top:16px;color:#666;font-size:12px">Login with: {isp_admin.email}</p></div>',
+                        },
+                        timeout=5.0
+                    )
+        except Exception:
+            pass
+
+    return {"ok": True, "is_active": True, "tenant_id": tenant_id}
 
 
 @router.patch("/{tenant_id}/status")
@@ -218,8 +268,56 @@ async def update_tenant_status(
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    was_inactive = not tenant.is_active
     tenant.is_active = data.get("is_active", tenant.is_active)
     await db.commit()
+
+    # If just approved, activate admin users and send email
+    if was_inactive and tenant.is_active:
+        from sqlalchemy import update as sa_update
+        from app.models.admin_user import AdminUser
+        await db.execute(
+            sa_update(AdminUser)
+            .where(AdminUser.tenant_id == tenant.id)
+            .values(is_active=True)
+        )
+        await db.commit()
+
+        # Send approval email
+        try:
+            import httpx, os
+            resend_key = os.environ.get('RESEND_API_KEY', '')
+            if resend_key:
+                result = await db.execute(
+                    select(AdminUser).where(AdminUser.tenant_id == tenant.id)
+                )
+                isp_admin = result.scalar_one_or_none()
+                if isp_admin:
+                    await httpx.AsyncClient().post(
+                        'https://api.resend.com/emails',
+                        headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
+                        json={
+                            'from': 'WiBill <onboarding@resend.dev>',
+                            'to': [isp_admin.email],
+                            'subject': f'Welcome to WiBill - Your account is approved!',
+                            'html': f'''<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                                <h2 style="color:#22c55e">You are approved!</h2>
+                                <p>Your ISP <strong>{tenant.name}</strong> has been approved on WiBill.</p>
+                                <p>You can now log in and set up your captive portal, configure M-Pesa payments, and start onboarding customers.</p>
+                                <div style="margin-top:24px">
+                                    <a href="https://wi-bill.vercel.app/login"
+                                       style="background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
+                                        Login to Dashboard
+                                    </a>
+                                </div>
+                                <p style="margin-top:24px;color:#666;font-size:12px">Login with: {isp_admin.email}</p>
+                            </div>'''
+                        },
+                        timeout=5.0
+                    )
+        except Exception:
+            pass  # Email failure never blocks approval
+
     return {"ok": True, "is_active": tenant.is_active}
 
 
@@ -270,3 +368,139 @@ async def tenant_network_events(
         }
         for e in events
     ]
+
+# ============================================================================
+# MIKROTIK CONFIG ROUTES
+# ============================================================================
+
+from app.models.mikrotik_config import MikrotikConfig
+from app.services.crypto_service import encrypt, decrypt
+
+class MikrotikCreate(BaseModel):
+    router_ip: str
+    api_port: int = 8728
+    api_username: str
+    api_password: str | None = None
+    hotspot_server: str = "hotspot1"
+    nas_ip_address: str | None = None
+
+
+class MikrotikUpdate(BaseModel):
+    router_ip: str | None = None
+    api_port: int | None = None
+    api_username: str | None = None
+    api_password: str | None = None
+    hotspot_server: str | None = None
+    nas_ip_address: str | None = None
+
+
+@router.get("/tenants/mikrotik")
+async def get_mikrotik_config(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Get MikroTik config for current ISP."""
+    result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    cfg = result.scalar_one_or_none()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="MikroTik not configured")
+    return {
+        "id": str(cfg.id),
+        "router_ip": cfg.router_ip,
+        "api_port": cfg.api_port,
+        "api_username": cfg.api_username,
+        "hotspot_server": cfg.hotspot_server,
+        "nas_ip_address": cfg.nas_ip_address,
+        "created_at": cfg.created_at.isoformat(),
+        "updated_at": cfg.updated_at.isoformat(),
+    }
+
+
+@router.post("/tenants/mikrotik")
+async def create_mikrotik_config(
+    data: MikrotikCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Create MikroTik config for current ISP."""
+    existing = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Config already exists -- use PATCH to update")
+    if not data.api_password:
+        raise HTTPException(status_code=400, detail="api_password required for initial setup")
+
+    cfg = MikrotikConfig(
+        tenant_id=current_user.tenant_id,
+        router_ip=data.router_ip,
+        api_port=data.api_port,
+        api_username=data.api_username,
+        api_password_enc=encrypt(data.api_password),
+        hotspot_server=data.hotspot_server,
+        nas_ip_address=data.nas_ip_address,
+    )
+    db.add(cfg)
+    await db.commit()
+    await db.refresh(cfg)
+    return {"ok": True, "id": str(cfg.id)}
+
+
+@router.patch("/tenants/mikrotik")
+async def update_mikrotik_config(
+    data: MikrotikUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Update MikroTik config for current ISP."""
+    result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    cfg = result.scalar_one_or_none()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="Not configured -- use POST first")
+
+    if data.router_ip is not None:      cfg.router_ip        = data.router_ip
+    if data.api_port is not None:       cfg.api_port         = data.api_port
+    if data.api_username is not None:   cfg.api_username     = data.api_username
+    if data.hotspot_server is not None: cfg.hotspot_server   = data.hotspot_server
+    if data.nas_ip_address is not None: cfg.nas_ip_address   = data.nas_ip_address
+    if data.api_password:               cfg.api_password_enc = encrypt(data.api_password)
+
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/tenants/mikrotik/test")
+async def test_mikrotik_connection(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Test MikroTik RouterOS API connectivity."""
+    result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    cfg = result.scalar_one_or_none()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="MikroTik not configured")
+
+    try:
+        from app.services.mikrotik_service import test_connection
+        ok = await test_connection(cfg)
+        if ok:
+            return {"ok": True, "message": f"Connected to {cfg.router_ip}:{cfg.api_port}"}
+        else:
+            raise HTTPException(status_code=502, detail=f"Router unreachable at {cfg.router_ip}")
+    except ImportError:
+        # mikrotik_service may not be available -- ping instead
+        import asyncio
+        proc = await asyncio.create_subprocess_exec(
+            "ping", "-n", "1", "-w", "2000", cfg.router_ip,
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
+        if proc.returncode == 0:
+            return {"ok": True, "message": f"{cfg.router_ip} is reachable"}
+        raise HTTPException(status_code=502, detail=f"Cannot reach {cfg.router_ip}")

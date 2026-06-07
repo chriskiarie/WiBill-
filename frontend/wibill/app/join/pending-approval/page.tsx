@@ -5,157 +5,194 @@ import { useRouter } from 'next/navigation';
 
 export default function PendingApprovalPage() {
   const router = useRouter();
-  const [ispName, setIspName] = useState('');
-  const [isApproved, setIsApproved] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [ispName, setIspName] = useState('Your ISP');
 
   useEffect(() => {
     const name = localStorage.getItem('isp_name');
-    if (!name) {
-      router.push('/login');
-      return;
+    if (name) {
+      setIspName(name);
+      localStorage.removeItem('isp_name');
     }
-    setIspName(name);
-
-    // Clear signup data
-    localStorage.removeItem('signup_success');
-    localStorage.removeItem('isp_name');
-  }, [router]);
-
-  // Check if approved every 30 seconds
-  useEffect(() => {
-    const checkApproval = async () => {
-      setCheckingStatus(true);
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) return; // Not logged in yet
-
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tenants/status`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'active') {
-            setIsApproved(true);
-            // Wait a moment, then redirect
-            setTimeout(() => {
-              router.push('/login');
-            }, 2000);
-          }
-        }
-      } catch (err) {
-        console.error('Error checking approval:', err);
-      } finally {
-        setCheckingStatus(false);
-      }
-    };
-
-    // Check immediately, then every 30 seconds
-    checkApproval();
-    const interval = setInterval(checkApproval, 30000);
-
-    return () => clearInterval(interval);
-  }, [router]);
-
-  if (isApproved) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-        <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700 text-center">
-          <div className="text-5xl mb-4 animate-bounce">✅</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Approved!</h1>
-          <p className="text-slate-300 mb-4">
-            Your account has been approved. Redirecting to login...
-          </p>
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-yellow-400 rounded-full animate-spin mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
-          <p className="text-slate-400">
-            {ispName ? `Waiting to approve: ${ispName}` : 'Your account is awaiting approval'}
-          </p>
+    <div style={{
+      minHeight: '100vh',
+      background: '#030303',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 480,
+        background: '#080808',
+        border: '0.5px solid #1a1a1a',
+        borderRadius: 16,
+        padding: 40,
+        textAlign: 'center',
+      }}>
+        {/* Icon */}
+        <div style={{
+          width: 72,
+          height: 72,
+          background: 'rgba(251,191,36,0.1)',
+          border: '1px solid rgba(251,191,36,0.3)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 32,
+          margin: '0 auto 24px',
+        }}>
+          ⏳
         </div>
 
-        {/* Status */}
-        <div className="bg-slate-700 rounded p-6 mb-6 border border-slate-600">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-300">Status</span>
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-              <span className="text-yellow-400 font-bold">Pending</span>
-            </span>
-          </div>
+        {/* Title */}
+        <h1 style={{
+          fontSize: 24,
+          fontWeight: 800,
+          color: '#fff',
+          margin: '0 0 8px',
+          letterSpacing: '-0.02em',
+        }}>
+          Application Submitted
+        </h1>
+        <p style={{
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.4)',
+          margin: '0 0 32px',
+          lineHeight: 1.6,
+        }}>
+          <strong style={{ color: '#fbbf24' }}>{ispName}</strong> is pending approval from the platform admin.
+        </p>
 
-          <div className="bg-slate-600 rounded p-4 text-sm text-slate-300 space-y-2">
-            <p>✓ Account created</p>
-            <p>⏳ Admin reviewing...</p>
-            <p className="text-slate-400 text-xs mt-4">
-              Check back soon or we'll notify you via email when approved
-            </p>
-          </div>
-        </div>
-
-        {/* What's Next */}
-        <div className="bg-blue-600 bg-opacity-10 border border-blue-500 rounded p-4 mb-6">
-          <h3 className="text-blue-300 font-bold mb-2">What happens next:</h3>
-          <ol className="text-blue-200 text-sm space-y-2">
-            <li>1. Our team reviews your application</li>
-            <li>2. We send you approval email</li>
-            <li>3. You log in and customize your portal</li>
-            <li>4. WiFi users see your branded network</li>
-          </ol>
-        </div>
-
-        {/* FAQ */}
-        <div className="bg-slate-700 rounded p-4 border border-slate-600">
-          <h3 className="text-slate-300 font-bold mb-3">FAQ</h3>
-          
-          <div className="space-y-3 text-sm text-slate-300">
-            <div>
-              <p className="font-bold text-slate-200 mb-1">How long does approval take?</p>
-              <p className="text-slate-400">Usually 1-2 hours during business hours</p>
+        {/* Status steps */}
+        <div style={{
+          background: '#0d0d0d',
+          border: '0.5px solid #1a1a1a',
+          borderRadius: 12,
+          padding: 20,
+          marginBottom: 24,
+          textAlign: 'left',
+        }}>
+          {[
+            { done: true, label: 'Account created', sub: 'Your ISP profile is saved' },
+            { done: false, label: 'Admin reviewing', sub: 'Usually within 1-2 hours', active: true },
+            { done: false, label: 'Approval email sent', sub: 'Check your inbox' },
+            { done: false, label: 'Access your dashboard', sub: 'Login and set up your portal' },
+          ].map((step, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              padding: '10px 0',
+              borderBottom: i < 3 ? '0.5px solid #141414' : 'none',
+            }}>
+              <div style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: step.done
+                  ? 'rgba(34,197,94,0.2)'
+                  : step.active
+                  ? 'rgba(251,191,36,0.2)'
+                  : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${step.done ? '#22c55e' : step.active ? '#fbbf24' : '#1a1a1a'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                color: step.done ? '#22c55e' : step.active ? '#fbbf24' : '#333',
+                flexShrink: 0,
+                marginTop: 2,
+              }}>
+                {step.done ? '✓' : step.active ? '◎' : '○'}
+              </div>
+              <div>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: step.done ? '#22c55e' : step.active ? '#fbbf24' : 'rgba(255,255,255,0.3)',
+                  marginBottom: 2,
+                }}>
+                  {step.label}
+                </div>
+                <div style={{
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.2)',
+                }}>
+                  {step.sub}
+                </div>
+              </div>
             </div>
+          ))}
+        </div>
 
-            <div>
-              <p className="font-bold text-slate-200 mb-1">I haven't received an email?</p>
-              <p className="text-slate-400">Check your spam folder or contact admin@wibill.co.ke</p>
-            </div>
-
-            <div>
-              <p className="font-bold text-slate-200 mb-1">Can I set up while waiting?</p>
-              <p className="text-slate-400">No, please wait for approval. Full setup guide comes after approval.</p>
-            </div>
+        {/* Info box */}
+        <div style={{
+          background: 'rgba(59,130,246,0.06)',
+          border: '0.5px solid rgba(59,130,246,0.2)',
+          borderRadius: 10,
+          padding: '14px 16px',
+          marginBottom: 24,
+          textAlign: 'left',
+        }}>
+          <div style={{ fontSize: 12, color: 'rgba(147,197,253,0.8)', lineHeight: 1.7 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4, color: '#93c5fd' }}>What happens next:</div>
+            You'll receive an email at your registered address once approved.
+            You can then log in and complete your portal setup including
+            MikroTik config, M-Pesa payments, and your branded captive portal.
           </div>
         </div>
 
-        {/* Contact */}
-        <div className="mt-6 text-center">
-          <p className="text-slate-400 text-sm mb-2">Need help?</p>
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10 }}>
           <a
             href="mailto:admin@wibill.co.ke"
-            className="text-blue-400 hover:text-blue-300 text-sm font-bold"
+            style={{
+              flex: 1,
+              display: 'block',
+              background: 'transparent',
+              border: '0.5px solid #1a1a1a',
+              borderRadius: 10,
+              padding: '12px',
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: 12,
+              textDecoration: 'none',
+              textAlign: 'center',
+              fontWeight: 600,
+            }}
           >
-            Contact Admin
+            Contact Support
           </a>
+          <button
+            onClick={() => router.push('/login')}
+            style={{
+              flex: 1,
+              background: 'rgba(251,191,36,0.1)',
+              border: '0.5px solid rgba(251,191,36,0.3)',
+              borderRadius: 10,
+              padding: '12px',
+              color: '#fbbf24',
+              fontSize: 12,
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Back to Login
+          </button>
         </div>
 
-        {/* Auto-check indicator */}
-        <div className="mt-4 text-center">
-          <p className="text-slate-500 text-xs">
-            {checkingStatus ? 'Checking status...' : 'Auto-checking every 30 seconds'}
-          </p>
+        <div style={{
+          marginTop: 20,
+          fontSize: 10,
+          color: '#161616',
+          fontFamily: 'DM Mono, monospace',
+        }}>
+          WiBill - XwB Platform
         </div>
       </div>
     </div>
