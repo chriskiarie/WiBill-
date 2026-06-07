@@ -115,7 +115,7 @@ export default function AdminISPNetwork() {
     if (!token) return;
 
     try {
-      const r = await fetch(`${API}/api/admin/tenants/${ispId}/approve`, {
+      const r = await fetch(`${API}/api/tenants/${ispId}/approve`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -895,5 +895,3 @@ export default function AdminISPNetwork() {
     </div>
   );
 }
-
-
