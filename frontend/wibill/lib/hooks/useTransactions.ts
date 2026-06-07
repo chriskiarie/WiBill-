@@ -3,14 +3,14 @@ import { useState, useEffect, useCallback } from 'react'
 
 export interface TransactionData {
   id: string
-  phone: string
+  phone_number: string  // ← FIXED: was 'phone', should be 'phone_number'
   package: string
   amount_ksh: number
   isp_earnings_ksh: number
   platform_fee_ksh: number
   status: 'pending' | 'success' | 'failed'
   created_at: string
-  mpesa_ref?: string
+  mpesa_receipt?: string  // ← FIXED: was 'mpesa_ref', should be 'mpesa_receipt'
 }
 
 interface UseTransactionsResult {
@@ -36,7 +36,7 @@ export function useTransactions(
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
 
-  const API = ""
+  const API = process.env.NEXT_PUBLIC_API_URL || ""
 
   const fetchTransactions = useCallback(async () => {
     if (!token) return
@@ -101,4 +101,3 @@ export function useTransactions(
     pageSize,
   }
 }
-
