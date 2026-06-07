@@ -1,9 +1,9 @@
 """
-app/models/session.py
+app/models/session.py - FIXED: timezone-aware datetime
 """
 from sqlalchemy import String, DateTime, Boolean, UUID, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from enum import Enum as PyEnum
 from app.core.database import Base
@@ -31,7 +31,7 @@ class Session(Base):
 
     # Session lifecycle — stored as plain VARCHAR, not a Postgres enum
     status       : Mapped[str]            = mapped_column(String(50), default="pending_payment", nullable=False)
-    created_at   : Mapped[datetime]       = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at   : Mapped[datetime]       = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     activated_at : Mapped[datetime | None]= mapped_column(DateTime, nullable=True)
     expires_at   : Mapped[datetime]       = mapped_column(DateTime, nullable=False, index=True)
     disconnected_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
