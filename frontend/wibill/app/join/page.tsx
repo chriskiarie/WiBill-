@@ -10,6 +10,7 @@ function JoinForm() {
   const token = searchParams?.get('token');
 
   const [ispName, setIspName] = useState('');
+  const [ispSlug, setIspSlug] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,8 +47,9 @@ function JoinForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isp_name: ispName.trim(),
-          email: email.trim(),
-          password,
+          isp_slug: ispName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+          admin_email: email.trim(),
+          admin_password: password,
           invite_token: token,
         }),
       });
@@ -164,3 +166,4 @@ export default function JoinPage() {
     </Suspense>
   );
 }
+
