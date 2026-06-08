@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api, formatKsh } from '@/lib/api'
@@ -115,10 +115,10 @@ export default function DashboardPage() {
 
   // Calculate package split from transactions
   const packages = [
-    { name: '1hr · Ksh 20', pct: 0, color: '#3b82f6' },
-    { name: '6hr · Ksh 50', pct: 0, color: '#a78bfa' },
-    { name: '24hr · Ksh 100', pct: 0, color: '#22c55e' },
-    { name: 'Weekly · Ksh 500', pct: 0, color: '#f59e0b' },
+    { name: '1hr Â· Ksh 20', pct: 0, color: '#3b82f6' },
+    { name: '6hr Â· Ksh 50', pct: 0, color: '#a78bfa' },
+    { name: '24hr Â· Ksh 100', pct: 0, color: '#22c55e' },
+    { name: 'Weekly Â· Ksh 500', pct: 0, color: '#f59e0b' },
   ]
 
   // Stat card component
@@ -220,7 +220,7 @@ export default function DashboardPage() {
         {/* Date */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
           <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#252525', letterSpacing: '0.5px' }}>
-            {days[today.getDay()].toUpperCase()} · {today.getDate()} {months[today.getMonth()].toUpperCase()} {today.getFullYear()}
+            {days[today.getDay()].toUpperCase()} Â· {today.getDate()} {months[today.getMonth()].toUpperCase()} {today.getFullYear()}
           </span>
           <span style={{ fontSize: 13, color: '#1e1e1e', fontWeight: 400 }}>
             Good {today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening'}
@@ -231,15 +231,15 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
           <Stat
             label="Today's revenue"
-            value={statsLoading ? '—' : `Ksh ${fmt(today_ksh)}`}
-            sub="↑ +12% vs yesterday"
+            value={statsLoading ? 'â€”' : `Ksh ${fmt(today_ksh)}`}
+            sub="â†‘ +12% vs yesterday"
             up={true}
             color="#3b82f6"
             icon={DollarSign}
           />
           <Stat
             label="This month"
-            value={statsLoading ? '—' : `Ksh ${fmt(dashStats?.revenue?.gross_ksh || 0)}`}
+            value={statsLoading ? 'â€”' : `Ksh ${fmt(dashStats?.revenue?.gross_ksh || 0)}`}
             sub={`Ksh ${fmt(dashStats?.revenue?.isp_earnings_ksh || 0)} net`}
             up={null}
             color="#a78bfa"
@@ -247,7 +247,7 @@ export default function DashboardPage() {
           />
           <Stat
             label="Active sessions"
-            value={sessionsLoading ? '—' : `${sessions.length}`}
+            value={sessionsLoading ? 'â€”' : `${sessions.length}`}
             sub={`${expiringCount} expiring soon`}
             up={true}
             color="#22c55e"
@@ -255,8 +255,8 @@ export default function DashboardPage() {
           />
           <Stat
             label="Clients today"
-            value={statsLoading ? '—' : `${clients_today}`}
-            sub="↓ −4 vs yesterday"
+            value={statsLoading ? 'â€”' : `${clients_today}`}
+            sub="â†“ âˆ’4 vs yesterday"
             up={false}
             color="#f59e0b"
             icon={Users}
@@ -269,10 +269,10 @@ export default function DashboardPage() {
           <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                Revenue · Last 7 days
+                Revenue Â· Last 7 days
               </span>
               <span style={{ fontSize: 10, color: '#3b82f6', fontFamily: 'DM Mono, monospace', cursor: 'pointer' }}>
-                full report →
+                full report â†’
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -293,7 +293,7 @@ export default function DashboardPage() {
                     />
                   </div>
                   <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: w.ksh ? '#555' : '#1a1a1a', width: 60, textAlign: 'right' }}>
-                    {w.ksh ? `Ksh ${fmt(w.ksh)}` : '—'}
+                    {w.ksh ? `Ksh ${fmt(w.ksh)}` : 'â€”'}
                   </span>
                 </div>
               ))}
@@ -360,7 +360,7 @@ export default function DashboardPage() {
                 <div style={{ height: '100%', width: '68%', background: '#f59e0b', borderRadius: 2 }} />
               </div>
               <div style={{ fontSize: 10, color: '#1e1e1e', fontFamily: 'DM Mono, monospace' }}>
-                68% of cap · redeemable as internet tokens
+                68% of cap Â· redeemable as internet tokens
               </div>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                 Live Sessions
               </span>
               <span style={{ fontSize: 10, color: '#3b82f6', fontFamily: 'DM Mono, monospace', cursor: 'pointer' }}>
-                all {sessions.length} →
+                all {sessions.length} â†’
               </span>
             </div>
 
@@ -401,10 +401,10 @@ export default function DashboardPage() {
                     }}
                   >
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#2a2a2a', flex: 1, letterSpacing: '0.3px' }}>
-                      {s.mac?.slice(0, 11)}…
+                      {s.mac?.slice(0, 11)}â€¦
                     </span>
                     <span style={{ fontSize: 10, color: '#222', width: 28 }}>
-                      {s.package || '—'}
+                      {s.package || 'â€”'}
                     </span>
                     <Countdown expires_at={s.expires_at} />
                     <span
@@ -442,7 +442,7 @@ export default function DashboardPage() {
                   cursor: 'pointer',
                 }}
               >
-                refresh →
+                refresh â†’
               </span>
             </div>
 
@@ -466,14 +466,14 @@ export default function DashboardPage() {
                     }}
                   >
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#333', flex: 1 }}>
-                      {(t.phone_number || t.phone || '').slice(0, 4)} ••• {(t.phone_number || t.phone || '').slice(-4)}
+                      {(t.phone_number || '').slice(0, 4)} â€¢â€¢â€¢ {(t.phone_number || '').slice(-4)}
                     </span>
-                    <span style={{ fontSize: 10, color: '#222' }}>{t.package}</span>
+                    <span style={{ fontSize: 10, color: "#222" }}>{t.package || ""}</span>
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 13, fontWeight: 500, color: '#e0e0e0' }}>
                       {formatKsh(t.amount_ksh)}
                     </span>
                     <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, color: '#1e1e1e' }}>
-                      −{formatKsh(t.platform_fee_ksh)} fee
+                      âˆ’{formatKsh(t.platform_fee_ksh)} fee
                     </span>
                   </div>
                 ))}
@@ -485,3 +485,6 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+
+
