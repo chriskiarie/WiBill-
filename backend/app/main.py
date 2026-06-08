@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,27 +13,27 @@ import logging
 from app.core.config import settings
 from app.core.database import check_db_connection
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 logging.basicConfig(
     level=logging.INFO if settings.is_development else logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("honestbill")
 
-# ── Rate limiter ──────────────────────────────────────────────────────────────
+# â”€â”€ Rate limiter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 limiter = Limiter(key_func=get_remote_address)
 
-# ── Scheduler ─────────────────────────────────────────────────────────────────
+# â”€â”€ Scheduler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 scheduler = AsyncIOScheduler()
 
-# ── Templates ─────────────────────────────────────────────────────────────────
+# â”€â”€ Templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 templates = Jinja2Templates(directory="app/templates")
 
 
-# ── Lifespan ──────────────────────────────────────────────────────────────────
+# â”€â”€ Lifespan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──
+    # â”€â”€ Startup â”€â”€
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
     # Verify DB connection
@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     if not db_ok:
         logger.error("Database connection failed on startup")
         raise RuntimeError("Cannot connect to database")
-    logger.info("✅ Database connection OK")
+    logger.info("âœ… Database connection OK")
 
     # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
@@ -66,22 +66,22 @@ async def lifespan(app: FastAPI):
     # Start Invoice Scheduler (Phase 4B)
     try:
         start_invoice_scheduler()
-        logger.info("✅ Invoice scheduler initialized")
+        logger.info("âœ… Invoice scheduler initialized")
     except Exception as e:
-        logger.warning(f"⚠️  Invoice scheduler init (may already be running): {str(e)}")
+        logger.warning(f"âš ï¸  Invoice scheduler init (may already be running): {str(e)}")
     
     scheduler.start()
-    logger.info("✅ Background scheduler started")
+    logger.info("âœ… Background scheduler started")
 
     yield
 
-    # ── Shutdown ──
+    # â”€â”€ Shutdown â”€â”€
     scheduler.shutdown(wait=False)
     logger.info(f"{settings.APP_NAME} shutdown complete")
-    from app.models.isp_invite import ISPInvite  # noqa — registers table
+    from app.models.isp_invite import ISPInvite  # noqa â€” registers table
 
 
-# ── App ───────────────────────────────────────────────────────────────────────
+# â”€â”€ App â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
@@ -91,7 +91,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── Middleware ────────────────────────────────────────────────────────────────
+# â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -103,7 +103,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Routers ───────────────────────────────────────────────────────────────────
+# â”€â”€ Routers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
@@ -129,11 +129,11 @@ app.include_router(transactions.router, prefix="/api", tags=["transactions"])
 # FIXED: Invoice router - prefix="/api" gets added here
 app.include_router(invoices.router, prefix="/api", tags=["invoices"])
 
-app.include_router(admin_routes.router, prefix="/api", tags=["admin"])
+app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
 app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
 
 
-# ── Health check ──────────────────────────────────────────────────────────────
+# â”€â”€ Health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.get("/health", tags=["system"])
 async def health():
     db_ok = await check_db_connection()
