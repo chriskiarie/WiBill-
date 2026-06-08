@@ -40,9 +40,9 @@ export default function AdminInvites() {
       fetch(`${API}/api/admin/invites`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
       fetch(`${API}/api/`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
     ]).then(([inv, isps]) => {
-      setInvites(Array.isArray(inv) ? inv : []);
+      setInvites(Array.isArray(inv) ? inv : Array.isArray(inv?.value) ? inv.value : []);
       const list = Array.isArray(isps) ? isps : Array.isArray(isps?.value) ? isps.value : [];
-      setApprovedISPs(list.filter((i: ApprovedISP) => i.status === 'active'));
+      setApprovedISPs(list.filter((i: any) => i.is_active === true));
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
