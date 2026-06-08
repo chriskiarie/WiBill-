@@ -29,7 +29,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 class TenantRegisterRequest(BaseModel):
     """Registration request - signup via invite link"""
     isp_name: str = Field(..., min_length=2, max_length=100, description="ISP/Company name")
-    username: str = Field(..., min_length=3, max_length=50, regex="^[a-z0-9_-]+$", description="Unique username (lowercase, alphanumeric, dash, underscore)")
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-z0-9_-]+$", description="Unique username (lowercase, alphanumeric, dash, underscore)")
     password: str = Field(..., min_length=8, description="Password (min 8 chars)")
     admin_phone: str = Field(default="254700000000", description="Admin phone number")
 
