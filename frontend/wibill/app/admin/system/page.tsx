@@ -1,252 +1,123 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  Server,
+  Wifi,
+  ShieldCheck,
+  AlertTriangle,
+  Activity,
+  Cpu,
+  Database,
+} from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface HealthStatus {
-  status: string;
-  version: string;
-  database: string;
-  environment: string;
+interface Node {
+  name: string;
+  status: 'ok' | 'warn' | 'bad';
+  latency: number;
 }
 
-interface StatusIndicatorProps {
-  status: string;
-}
+export default function SystemPage() {
+  const [nodes, setNodes] = useState<Node[]>([]);
 
-export default function AdminSystem() {
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const fetchNodes = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+
+      const res = await fetch(`${API}/api/admin/system`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      setNodes(data.nodes || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    fetch(`${API}/health`)
-      .then((r) => r.json())
-      .then((data) => setHealth(data))
-      .catch((e) => console.error('Failed to load health:', e))
-      .finally(() => setLoading(false));
+    fetchNodes();
+    const id = setInterval(fetchNodes, 10000);
+    return () => clearInterval(id);
   }, []);
 
-  const colors = {
-    bgVoid: '#000000',
-    cardBg: '#0a0a0a',
-    border: '#141414',
-    textPrimary: '#f0f0f0',
-    textSecondary: '#666666',
-    textMuted: '#2a2a2a',
-    gold: '#E8B84B',
-    green: '#22c55e',
-    amber: '#f59e0b',
-    red: '#ef4444',
-  };
-
-  const StatusIndicator = ({ status }: StatusIndicatorProps) => {
-    let color = colors.red;
-    if (status === 'ok' || status === 'connected') color = colors.green;
-    else if (status === 'degraded' || status === 'sandbox') color = colors.amber;
-
-    return (
-      <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        background: `${color}15`,
-        border: `0.5px solid ${color}30`,
-      }}>
-        <div style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: color,
-          boxShadow: `0 0 4px ${color}`,
-        }} />
-        <span style={{
-          fontSize: '11px',
-          fontFamily: 'DM Mono, monospace',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          color: color,
-        }}>
-          {status}
-        </span>
-      </div>
-    );
-  };
-
   return (
-    <div style={{ background: colors.bgVoid, color: colors.textPrimary, minHeight: '100vh' }}>
-      {/* Topbar */}
-      <div style={{
-        height: '52px',
-        borderBottom: `0.5px solid ${colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 28px',
-      }}>
-        <div style={{ fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>
-          SYSTEM
-        </div>
+    <div style={{ padding: 24, color: '#e8e4d0' }}>
+      
+      {/* HEADER */}
+      <div style={{ marginBottom: 18 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800 }}>
+          System Core Matrix
+        </h1>
+        <p style={{ fontSize: 12, opacity: 0.4 }}>
+          Live infrastructure telemetry grid
+        </p>
       </div>
 
-      {/* Content */}
-      <div style={{ padding: '28px', maxWidth: '800px', margin: '0 auto' }}>
-        {loading ? (
-          <div style={{ color: colors.textMuted, textAlign: 'center', padding: '60px 20px' }}>
-            Loading system status...
-          </div>
-        ) : !health ? (
-          <div style={{ color: colors.red, textAlign: 'center', padding: '60px 20px' }}>
-            Failed to load system status
-          </div>
-        ) : (
-          <div>
-            {/* Health Summary */}
-            <div style={{
-              background: colors.cardBg,
-              border: `0.5px solid ${health.status === 'ok' ? `${colors.green}30` : `${colors.amber}30`}`,
-              borderTop: `2px solid ${health.status === 'ok' ? colors.green : colors.amber}`,
-              borderRadius: '10px',
-              padding: '20px',
-              marginBottom: '28px',
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    color: colors.textMuted,
-                    marginBottom: '8px',
-                  }}>
-                    System Status
-                  </div>
-                  <div style={{
-                    fontSize: '28px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 700,
-                    color: colors.textPrimary,
-                    letterSpacing: '-0.04em',
-                    textTransform: 'uppercase',
-                  }}>
-                    {health.status}
-                  </div>
-                </div>
-                <StatusIndicator status={health.status} />
-              </div>
+      {/* GRID */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+      }}>
+        {nodes.map((n, i) => (
+          <div
+            key={i}
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              background: '#0b0b0f',
+              border:
+                n.status === 'ok'
+                  ? '1px solid rgba(34,197,94,0.2)'
+                  : n.status === 'warn'
+                  ? '1px solid rgba(250,200,0,0.2)'
+                  : '1px solid rgba(239,68,68,0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>{n.name}</div>
+              <ShieldCheck size={14} />
             </div>
 
-            {/* Details Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '28px',
-            }}>
-              {/* API Version */}
-              <div style={{
-                background: colors.cardBg,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '10px',
-                padding: '20px',
-              }}>
-                <div style={{
-                  fontSize: '10px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: colors.textMuted,
-                  marginBottom: '8px',
-                }}>
-                  API Version
-                </div>
-                <div style={{
-                  fontSize: '18px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 500,
-                  color: colors.gold,
-                }}>
-                  {health.version}
-                </div>
-              </div>
-
-              {/* Environment */}
-              <div style={{
-                background: colors.cardBg,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '10px',
-                padding: '20px',
-              }}>
-                <div style={{
-                  fontSize: '10px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: colors.textMuted,
-                  marginBottom: '8px',
-                }}>
-                  Environment
-                </div>
-                <div style={{
-                  fontSize: '16px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 500,
-                  color: colors.textPrimary,
-                  textTransform: 'uppercase',
-                }}>
-                  {health.environment}
-                </div>
-              </div>
+            <div style={{ marginTop: 10, fontSize: 11, opacity: 0.5 }}>
+              Latency: {n.latency}ms
             </div>
 
-            {/* Database Status */}
-            <div style={{
-              background: colors.cardBg,
-              border: `0.5px solid ${colors.border}`,
-              borderRadius: '10px',
-              padding: '20px',
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    color: colors.textMuted,
-                    marginBottom: '8px',
-                  }}>
-                    Database
-                  </div>
-                  <div style={{
-                    fontSize: '16px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 500,
-                    color: colors.textPrimary,
-                    textTransform: 'capitalize',
-                  }}>
-                    PostgreSQL
-                  </div>
-                </div>
-                <StatusIndicator status={health.database} />
-              </div>
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 11,
+                color:
+                  n.status === 'ok'
+                    ? '#22c55e'
+                    : n.status === 'warn'
+                    ? '#fac800'
+                    : '#ef4444',
+              }}
+            >
+              {n.status.toUpperCase()}
             </div>
           </div>
-        )}
+        ))}
+      </div>
+
+      {/* FOOTER STRIP */}
+      <div style={{
+        marginTop: 18,
+        padding: 12,
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.05)',
+        background: '#0b0b0f',
+        display: 'flex',
+        justifyContent: 'space-between',
+      }}>
+        <span style={{ fontSize: 11, opacity: 0.5 }}>
+          Infrastructure heartbeat active
+        </span>
+        <Activity size={14} />
       </div>
     </div>
   );
