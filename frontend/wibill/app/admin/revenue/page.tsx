@@ -29,188 +29,204 @@ export default function AdminRevenue() {
       .then((data: { value?: Invoice[] }) => {
         const invoiceList = (data.value || []).slice(0, 20);
         setInvoices(invoiceList);
-        setTotal(invoiceList.reduce((s, i) => s + (i.amount_ksh || 0), 0));
+        setTotal(invoiceList.reduce((sum, inv) => sum + (inv.amount_ksh || 0), 0));
       })
-      .catch(console.error)
+      .catch((e: Error) => console.error('Failed to load invoices:', e))
       .finally(() => setLoading(false));
   }, []);
 
-  const isAdminView = true;
-
   const colors = {
-    bg: '#000000',
-    panel: '#0a0a0a',
+    bgVoid: '#000000',
+    cardBg: '#0a0a0a',
     border: '#141414',
-    text: '#f5f5f5',
-    muted: '#6b6b6b',
+    textPrimary: '#f0f0f0',
+    textSecondary: '#666666',
+    textMuted: '#2a2a2a',
     gold: '#E8B84B',
     green: '#22c55e',
     amber: '#f59e0b',
   };
 
   return (
-    <div style={{ background: colors.bg, color: colors.text, minHeight: '100vh' }}>
-
-      {/* TOP BAR */}
+    <div style={{ background: colors.bgVoid, color: colors.textPrimary, minHeight: '100vh' }}>
+      {/* Topbar */}
       <div style={{
-        height: 56,
+        height: '52px',
         borderBottom: `0.5px solid ${colors.border}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 28px',
-        background: 'linear-gradient(180deg, #0a0a0a, #000)'
       }}>
-        <div style={{
-          fontSize: 14,
-          letterSpacing: '0.2em',
-          fontWeight: 700,
-          fontFamily: 'DM Mono, monospace',
-          color: colors.gold
-        }}>
-          REVENUE INTELLIGENCE
-        </div>
-
-        <div style={{
-          fontSize: 10,
-          fontFamily: 'DM Mono, monospace',
-          color: colors.muted
-        }}>
-          LIVE LEDGER STREAM
+        <div style={{ fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>
+          REVENUE
         </div>
       </div>
 
-      {/* CONTENT */}
-      <div style={{ padding: 28, maxWidth: 1200, margin: '0 auto' }}>
-
-        {/* TOTAL CARD */}
+      {/* Content */}
+      <div style={{ padding: '28px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Summary Card */}
         <div style={{
-          background: colors.panel,
+          background: colors.cardBg,
           border: `0.5px solid ${colors.border}`,
           borderTop: `2px solid ${colors.gold}`,
-          borderRadius: 12,
-          padding: 22,
-          marginBottom: 26,
-          boxShadow: '0 0 30px rgba(232,184,75,0.06)'
+          borderRadius: '10px',
+          padding: '20px',
+          marginBottom: '28px',
         }}>
           <div style={{
-            fontSize: 10,
-            letterSpacing: '0.18em',
+            fontSize: '10px',
             fontFamily: 'DM Mono, monospace',
-            color: colors.muted,
-            marginBottom: 10
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            color: colors.textMuted,
+            marginBottom: '12px',
           }}>
-            TOTAL REVENUE
+            Total Revenue
           </div>
-
           <div style={{
-            fontSize: 44,
+            fontSize: '40px',
             fontFamily: 'DM Mono, monospace',
-            fontWeight: 600,
-            color: colors.gold,
-            letterSpacing: '-0.03em'
+            fontWeight: 500,
+            color: colors.textPrimary,
+            letterSpacing: '-0.04em',
           }}>
-            {total.toLocaleString()} <span style={{ fontSize: 14, color: colors.muted }}>KES</span>
+            {total.toLocaleString()} KES
           </div>
         </div>
 
-        {/* TABLE WRAPPER */}
+        {/* Invoices Table */}
         <div style={{
-          background: colors.panel,
+          background: colors.cardBg,
           border: `0.5px solid ${colors.border}`,
-          borderRadius: 12,
-          overflow: 'hidden'
+          borderRadius: '10px',
+          padding: '20px',
         }}>
-
-          {/* HEADER */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr 1fr 0.8fr',
-            padding: '14px 18px',
-            borderBottom: `0.5px solid ${colors.border}`,
-            fontSize: 10,
+            fontSize: '10px',
             fontFamily: 'DM Mono, monospace',
-            letterSpacing: '0.16em',
-            color: colors.muted
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            color: colors.textMuted,
+            marginBottom: '16px',
           }}>
-            <div>INVOICE</div>
-            <div>AMOUNT</div>
-            <div>DUE</div>
-            <div>STATUS</div>
+            All Invoices
           </div>
 
-          {/* BODY */}
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: colors.muted }}>
-              Loading ledger...
+            <div style={{ color: colors.textMuted, textAlign: 'center', padding: '40px' }}>
+              Loading...
             </div>
           ) : invoices.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: colors.muted }}>
-              No revenue records found
+            <div style={{ color: colors.textMuted, textAlign: 'center', padding: '40px' }}>
+              No invoices yet
             </div>
           ) : (
-            invoices.map((inv, i) => {
-              const isPaid = inv.status === 'paid';
+            <div style={{ fontSize: '13px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 120px 120px 100px',
+                gap: '16px',
+                padding: '12px 0',
+                borderBottom: `0.5px solid #0d0d0d`,
+                marginBottom: '8px',
+              }}>
+                <div style={{
+                  fontSize: '10px',
+                  fontFamily: 'DM Mono, monospace',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: colors.textMuted,
+                }}>
+                  Invoice ID
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  fontFamily: 'DM Mono, monospace',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: colors.textMuted,
+                }}>
+                  Amount
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  fontFamily: 'DM Mono, monospace',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: colors.textMuted,
+                }}>
+                  Due Date
+                </div>
+                <div style={{
+                  fontSize: '10px',
+                  fontFamily: 'DM Mono, monospace',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.12em',
+                  color: colors.textMuted,
+                }}>
+                  Status
+                </div>
+              </div>
 
-              return (
+              {invoices.map((inv, i) => (
                 <div
                   key={inv.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1.5fr 1fr 1fr 0.8fr',
-                    padding: '14px 18px',
-                    borderBottom: i === invoices.length - 1 ? 'none' : `0.5px solid ${colors.border}`,
+                    gridTemplateColumns: '1fr 120px 120px 100px',
+                    gap: '16px',
+                    padding: '12px 0',
+                    borderBottom: i < invoices.length - 1 ? `0.5px solid #0d0d0d` : 'none',
                     alignItems: 'center',
-                    transition: '0.2s',
                   }}
                 >
-
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: 12,
-                    color: colors.text
+                    color: colors.textPrimary,
+                    fontSize: '12px',
                   }}>
-                    #{inv.id.slice(0, 8)}
+                    {inv.id.slice(0, 8)}...
                   </div>
-
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: 12,
-                    color: isPaid ? colors.green : colors.gold,
-                    fontWeight: 600
+                    color: colors.textPrimary,
+                    fontSize: '12px',
+                    fontWeight: 500,
                   }}>
-                    {inv.amount_ksh.toLocaleString()} KES
+                    {inv.amount_ksh?.toLocaleString() || '--'} KES
                   </div>
-
                   <div style={{
                     fontFamily: 'DM Mono, monospace',
-                    fontSize: 11,
-                    color: colors.muted
+                    color: colors.textSecondary,
+                    fontSize: '12px',
                   }}>
                     {new Date(inv.due_date).toLocaleDateString()}
                   </div>
-
-                  <div>
-                    <span style={{
-                      fontSize: 10,
-                      fontFamily: 'DM Mono, monospace',
-                      letterSpacing: '0.12em',
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      border: `0.5px solid ${isPaid ? colors.green : colors.amber}`,
-                      color: isPaid ? colors.green : colors.amber,
-                      background: isPaid ? `${colors.green}12` : `${colors.amber}12`,
-                      textTransform: 'uppercase'
-                    }}>
-                      {inv.status}
-                    </span>
+                  <div style={{
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '9px',
+                    fontFamily: 'DM Mono, monospace',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: inv.status === 'paid' ? `${colors.green}15` : `${colors.amber}15`,
+                    color: inv.status === 'paid' ? colors.green : colors.amber,
+                    border: `0.5px solid ${inv.status === 'paid' ? `${colors.green}30` : `${colors.amber}30`}`,
+                    width: 'fit-content',
+                  }}>
+                    {inv.status}
                   </div>
-
                 </div>
-              );
-            })
+              ))}
+            </div>
           )}
-
         </div>
       </div>
     </div>
