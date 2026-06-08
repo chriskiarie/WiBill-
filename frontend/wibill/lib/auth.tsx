@@ -1,7 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { login as apiLogin } from './api'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -10,7 +9,7 @@ interface AuthCtx {
   user: any | null
   role: string | null
   hydrated: boolean
-  login: (email: string, pass: string) => Promise<void>
+  login: (username: string, password: string) => Promise<void>
   logout: () => void
 }
 
@@ -32,35 +31,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u ? JSON.parse(u) : null)
       setRole(r)
     }
-    setHydrated(true) // always set true after reading localStorage
+    setHydrated(true)
   }, [])
 
-  const login = async (email: string, pass: string) => {
-    const data = await apiLogin(email, pass)
+  const login = async (username: string, password: string) => {
+    // Call /api/auth/login with username + password (form-encoded)
+    const formData = new URLSearchParams()
+    formData.append('username', username)
+    formData.append('password', password)
+
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(typeof data.detail === 'string' ? data.detail : 'Login failed')
+    }
+
+    const data = await res.json()
+
     localStorage.setItem('wb_token', data.access_token)
     localStorage.setItem('wb_role', data.role)
     localStorage.setItem('wb_user', JSON.stringify({
-      email,
+      username,
       role: data.role,
       tenant_id: data.tenant_id,
-      tenant: data.tenant,
-      isp_name: data.tenant?.name || email.split('@')[0],
     }))
-    // Also set in sessionStorage for dashboard to read (using expected keys)
-    sessionStorage.setItem('token', data.access_token)
-    sessionStorage.setItem('role', data.role)
+
     setToken(data.access_token)
     setRole(data.role)
-    setUser({ email, role: data.role, tenant_id: data.tenant_id, isp_name: data.tenant?.name })
+    setUser({ username, role: data.role, tenant_id: data.tenant_id })
 
-    // NEW: Check onboarding_complete flag to route appropriately
+    // Check onboarding_complete to route appropriately
     try {
       const meRes = await fetch(`${API}/api/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` }
       })
       if (meRes.ok) {
         const me = await meRes.json()
-        // Platform admin always goes to /admin, ISP admin checks onboarding
+        // Route based on role and onboarding status
         if (data.role === 'platform_admin') {
           router.push('/admin')
         } else if (me.onboarding_complete === false) {
@@ -69,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           router.push('/dashboard')
         }
       } else {
-        // If /me fails, default to /dashboard
+        // Default routing
         if (data.role === 'platform_admin') {
           router.push('/admin')
         } else {
