@@ -1,15 +1,14 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { login as apiLogin } from './api'
 
 interface AuthCtx {
   token: string | null
   user: any | null
   role: string | null
   hydrated: boolean
-  login: (username: string, password: string) => Promise<void>
+  login: (email: string, pass: string) => Promise<void>
   logout: () => void
 }
 
@@ -31,71 +30,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u ? JSON.parse(u) : null)
       setRole(r)
     }
-    setHydrated(true)
+    setHydrated(true) // always set true after reading localStorage
   }, [])
 
-  const login = async (username: string, password: string) => {
-    // Call /api/auth/login with username + password (form-encoded)
-    const formData = new URLSearchParams()
-    formData.append('username', username)
-    formData.append('password', password)
-
-    const res = await fetch(`${API}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData.toString(),
-    })
-
-    if (!res.ok) {
-      const data = await res.json()
-      throw new Error(typeof data.detail === 'string' ? data.detail : 'Login failed')
-    }
-
-    const data = await res.json()
-
+  const login = async (email: string, pass: string) => {
+    const data = await apiLogin(email, pass)
     localStorage.setItem('wb_token', data.access_token)
     localStorage.setItem('wb_role', data.role)
     localStorage.setItem('wb_user', JSON.stringify({
-      username,
+      email,
       role: data.role,
       tenant_id: data.tenant_id,
+      tenant: data.tenant,
+      isp_name: data.tenant?.name || email.split('@')[0],
     }))
-
+    // Also set in sessionStorage for dashboard to read (using expected keys)
+    sessionStorage.setItem('token', data.access_token)
+    sessionStorage.setItem('role', data.role)
     setToken(data.access_token)
     setRole(data.role)
-    setUser({ username, role: data.role, tenant_id: data.tenant_id })
-
-    // Check onboarding_complete to route appropriately
-    try {
-      const meRes = await fetch(`${API}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${data.access_token}` }
-      })
-      if (meRes.ok) {
-        const me = await meRes.json()
-        // Route based on role and onboarding status
-        if (data.role === 'platform_admin') {
-          router.push('/admin')
-        } else if (me.onboarding_complete === false) {
-          router.push('/onboarding')
-        } else {
-          router.push('/dashboard')
-        }
-      } else {
-        // Default routing
-        if (data.role === 'platform_admin') {
-          router.push('/admin')
-        } else {
-          router.push('/dashboard')
-        }
-      }
-    } catch (err) {
-      // Network error, default to dashboard
-      if (data.role === 'platform_admin') {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
-      }
-    }
+    setUser({ email, role: data.role, tenant_id: data.tenant_id, isp_name: data.tenant?.name })
+    router.push('/dashboard')
   }
 
   const logout = () => {
