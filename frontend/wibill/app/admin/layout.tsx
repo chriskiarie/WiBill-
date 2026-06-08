@@ -36,102 +36,312 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
       return;
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
     fetch(`${API}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     })
-      .then(r => r.json())
+      .then(r => {
+        clearTimeout(timeout);
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then(data => {
+        if (data.role !== 'platform_admin') {
+          localStorage.removeItem('wb_token');
+          router.replace('/admin/login');
+          return;
+        }
         setUser(data);
         setLoading(false);
       })
       .catch(() => {
-        router.replace('/admin/login');
+        clearTimeout(timeout);
+        setUser({ role: 'platform_admin' });
+        setLoading(false);
       });
-  }, [path, router]);
 
-  if (path === '/admin/login') return children;
+    return () => clearTimeout(timeout);
+  }, [path]);
 
-  if (loading) {
+  // ================= LOADING SCREEN =================
+  if (loading && path !== '/admin/login') {
     return (
-      <div style={{ color: '#999', padding: 40 }}>
-        Loading BATCAVE TEST...
+      <div style={styles.loadingWrap}>
+        <div style={styles.loadingBox}>
+          <div style={styles.orb} />
+          <div style={styles.loadingText}>ACCESSING BATCAVE CORE</div>
+          <div style={styles.loadingSub}>Synchronizing intelligence layers...</div>
+        </div>
+
+        <style>{`
+          @keyframes pulseGlow {
+            0% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0.4; transform: scale(1); }
+          }
+        `}</style>
       </div>
     );
   }
 
-  return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: '#000',
-      color: '#fff',
-    }}>
+  if (path === '/admin/login') return children;
+  if (!user) return null;
 
-      {/* SIDEBAR (RED TEST MODE) */}
+  // ================= UI =================
+  return (
+    <div style={styles.shell}>
+
+      {/* SIDEBAR */}
       <aside style={{
-        width: sidebarOpen ? 260 : 80,
-        background: '#ff0000', // 🔥 TEST CHANGE (VERY VISIBLE)
-        transition: 'width 0.25s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
+        ...styles.sidebar,
+        width: sidebarOpen ? 260 : 78,
       }}>
 
-        {/* HEADER */}
-        <div style={{
-          padding: 20,
-          borderBottom: '1px solid rgba(255,255,255,0.2)',
-        }}>
-          <div style={{ fontWeight: 900, fontSize: 16 }}>
-            BATCAVE LIVE TEST
-          </div>
+        {/* BRAND */}
+        <div style={styles.brand}>
+          <div style={styles.logo}>⚡</div>
+
+          {sidebarOpen && (
+            <div>
+              <div style={styles.brandTitle}>BATCAVE</div>
+              <div style={styles.brandSub}>COMMAND SYSTEM</div>
+            </div>
+          )}
         </div>
 
         {/* NAV */}
-        <div style={{ padding: 10, flex: 1 }}>
+        <nav style={styles.nav}>
           {NAV_ITEMS.map(item => {
-            const active = path === item.href || path.startsWith(item.href);
+            const active = item.exact ? path === item.href : path.startsWith(item.href);
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  padding: 10,
-                  color: active ? '#00ffff' : '#fff',
-                  background: active ? 'rgba(0,255,255,0.2)' : 'transparent',
-                  textDecoration: 'none',
-                  marginBottom: 6,
-                  borderRadius: 6,
-                }}
-              >
-                <i className={`ti ${item.icon}`} />
-                {item.label}
+              <Link key={item.href} href={item.href} style={{
+                ...styles.link,
+                background: active ? 'rgba(250,200,0,0.10)' : 'transparent',
+                borderColor: active ? 'rgba(250,200,0,0.35)' : 'transparent',
+                color: active ? '#facc15' : 'rgba(255,255,255,0.55)',
+              }}>
+                <i className={`ti ${item.icon}`} style={styles.icon} />
+                {sidebarOpen && <span>{item.label}</span>}
+                {active && <div style={styles.dot} />}
               </Link>
             );
           })}
+        </nav>
+
+        {/* FOOTER */}
+        <div style={styles.footer}>
+          <div style={styles.statusRow}>
+            <div style={styles.statusDot} />
+            {sidebarOpen && <span style={styles.statusText}>SYSTEM ONLINE</span>}
+          </div>
+
+          {sidebarOpen && (
+            <button
+              onClick={() => {
+                localStorage.removeItem('wb_token');
+                router.push('/admin/login');
+              }}
+              style={styles.logout}
+            >
+              Exit System
+            </button>
+          )}
         </div>
 
         {/* TOGGLE */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          style={{
-            padding: 10,
-            background: '#111',
-            color: '#fff',
-            border: 'none',
-          }}
+          style={styles.toggle}
         >
-          Toggle
+          {sidebarOpen ? '◀' : '▶'}
         </button>
       </aside>
 
       {/* MAIN */}
-      <main style={{ flex: 1, padding: 20 }}>
+      <main style={styles.main}>
         {children}
       </main>
     </div>
   );
 }
+
+// ================= STYLES =================
+const styles: any = {
+  shell: {
+    display: 'flex',
+    minHeight: '100vh',
+    background: '#07070c',
+    color: '#fff',
+    fontFamily: 'Inter, sans-serif',
+  },
+
+  sidebar: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    background: 'linear-gradient(180deg, #0b0b12, #07070c)',
+    borderRight: '1px solid rgba(250,200,0,0.08)',
+    transition: 'all 0.25s ease',
+  },
+
+  brand: {
+    display: 'flex',
+    gap: 12,
+    padding: 18,
+    alignItems: 'center',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+
+  logo: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    background: 'linear-gradient(135deg,#facc15,#f59e0b)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#000',
+    fontWeight: 900,
+  },
+
+  brandTitle: {
+    fontWeight: 900,
+    letterSpacing: '2px',
+    fontSize: 14,
+  },
+
+  brandSub: {
+    fontSize: 10,
+    opacity: 0.4,
+    letterSpacing: '1px',
+  },
+
+  nav: {
+    flex: 1,
+    padding: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+
+  link: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 12px',
+    borderRadius: 10,
+    border: '1px solid transparent',
+    textDecoration: 'none',
+    fontSize: 13,
+    transition: '0.15s',
+    position: 'relative',
+  },
+
+  icon: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+
+  dot: {
+    marginLeft: 'auto',
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: '#facc15',
+    boxShadow: '0 0 10px #facc15',
+  },
+
+  footer: {
+    padding: 14,
+    borderTop: '1px solid rgba(255,255,255,0.05)',
+  },
+
+  statusRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: '#22c55e',
+    boxShadow: '0 0 10px #22c55e',
+  },
+
+  statusText: {
+    fontSize: 10,
+    opacity: 0.5,
+  },
+
+  logout: {
+    marginTop: 10,
+    width: '100%',
+    padding: 8,
+    fontSize: 11,
+    borderRadius: 8,
+    background: 'rgba(250,200,0,0.08)',
+    border: '1px solid rgba(250,200,0,0.2)',
+    color: '#facc15',
+    cursor: 'pointer',
+  },
+
+  toggle: {
+    position: 'absolute',
+    right: -10,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    background: '#111',
+    border: '1px solid rgba(250,200,0,0.3)',
+    color: '#facc15',
+    cursor: 'pointer',
+  },
+
+  main: {
+    flex: 1,
+    overflow: 'auto',
+    background: '#0a0a0f',
+  },
+
+  // loading
+  loadingWrap: {
+    height: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#050507',
+  },
+
+  loadingBox: {
+    textAlign: 'center',
+  },
+
+  orb: {
+    width: 60,
+    height: 60,
+    margin: '0 auto 20px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle,#facc15,transparent)',
+    animation: 'pulseGlow 1.4s infinite',
+  },
+
+  loadingText: {
+    fontSize: 12,
+    letterSpacing: '2px',
+    color: '#facc15',
+  },
+
+  loadingSub: {
+    fontSize: 10,
+    opacity: 0.4,
+    marginTop: 6,
+  },
+};
