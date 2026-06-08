@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { TransactionData } from '@/lib/hooks/useTransactions'
 import { formatDate, maskPhone, formatKsh } from '@/lib/api'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -54,7 +54,7 @@ export function TransactionList({
               padding: 0,
             }}
           >
-            refresh →
+            refresh â†’
           </button>
         )}
       </div>
@@ -103,7 +103,7 @@ export function TransactionList({
                   flex: 1,
                 }}
               >
-                {maskPhone(t.phone)}
+                {maskPhone(t.phone_number)}
               </span>
               <span style={{ fontSize: 10, color: '#222' }}>{t.package}</span>
               <span
@@ -123,7 +123,7 @@ export function TransactionList({
                   color: '#1e1e1e',
                 }}
               >
-                −{formatKsh(t.platform_fee_ksh)} fee
+                âˆ’{formatKsh(t.platform_fee_ksh)} fee
               </span>
             </div>
           ))}
