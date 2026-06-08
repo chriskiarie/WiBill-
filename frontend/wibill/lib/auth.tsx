@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation'
 import { login as apiLogin } from './api'
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
 interface AuthCtx {
   token: string | null
   user: any | null
@@ -50,7 +52,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.access_token)
     setRole(data.role)
     setUser({ email, role: data.role, tenant_id: data.tenant_id, isp_name: data.tenant?.name })
-    router.push('/dashboard')
+
+    // NEW: Check onboarding_complete flag to route appropriately
+    try {
+      const meRes = await fetch(`${API}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${data.access_token}` }
+      })
+      if (meRes.ok) {
+        const me = await meRes.json()
+        // Platform admin always goes to /admin, ISP admin checks onboarding
+        if (data.role === 'platform_admin') {
+          router.push('/admin')
+        } else if (me.onboarding_complete === false) {
+          router.push('/onboarding')
+        } else {
+          router.push('/dashboard')
+        }
+      } else {
+        // If /me fails, default to /dashboard
+        if (data.role === 'platform_admin') {
+          router.push('/admin')
+        } else {
+          router.push('/dashboard')
+        }
+      }
+    } catch (err) {
+      // Network error, default to dashboard
+      if (data.role === 'platform_admin') {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
+    }
   }
 
   const logout = () => {
