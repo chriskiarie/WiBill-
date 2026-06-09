@@ -164,89 +164,153 @@ export default function AdminISPNetwork() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingList, setLoadingList] = useState(true);
 
-  // Load invites on mount
-  useEffect(() => {
-    let mounted = true;
+// Load invites on mount
+// Load invites on mount with robust token verification and path fallback
+useEffect(() => {
+  let mounted = true;
 
-    async function loadInvites() {
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) {
-          if (mounted) {
-            setStatusMessage('Login required.');
-            setLoadingList(false);
-          }
-          return;
-        }
-
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await fetch(`${API}/api/admin/invites`, { headers });
-
-        if (response.ok) {
-          const data = await response.json();
-          const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : [];
-          if (mounted) {
-            setIsps(list as ISPInvite[]);
-          }
-        }
-      } catch (e) {
-        console.error('Invite load failed:', e);
-      } finally {
-        if (mounted) setLoadingList(false);
-      }
-    }
-
-    loadInvites();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const generateInvite = async () => {
-    if (!newISPName.trim()) {
-      setStatusMessage('Please enter an ISP name.');
-      return;
-    }
-
-    setLoading(true);
-    setStatusMessage('');
+  async function loadInvites() {
     try {
-      const token = localStorage.getItem('wb_token');
+      const token =
+        localStorage.getItem('wb_token') ||
+        localStorage.getItem('wibill_token');
+
       if (!token) {
-        setStatusMessage('Login required.');
-        setLoading(false);
+        if (mounted) {
+          setStatusMessage(
+            'Authentication token missing. Please sign in again.'
+          );
+          setLoadingList(false);
+        }
         return;
       }
 
-      const response = await fetch(`${API}/api/admin/invites/generate`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isp_name: newISPName.trim(),
-          expires_in_days: 7,
-        }),
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      };
+
+      let response = await fetch(`${API}/api/admin/invites`, {
+        headers,
       });
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}`);
+      if (response.status === 404) {
+        response = await fetch(`${API}/api/invites`, {
+          headers,
+        });
       }
 
-      const data = (await response.json()) as ISPInvite;
-      setGeneratedLink(data);
-      setIsps((prev) => [data, ...prev]);
-      setNewISPName('');
-      setStatusMessage('Invite created successfully.');
+      if (response.ok) {
+        const data = await response.json();
+
+        const list = Array.isArray(data?.value)
+          ? data.value
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        if (mounted) {
+          setIsps(list as ISPInvite[]);
+        }
+      } else if (response.status === 401) {
+        if (mounted) {
+          setStatusMessage('Session expired. Please log back in.');
+        }
+      }
     } catch (e) {
-      console.error('Invite generation failed:', e);
-      setStatusMessage(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      console.error('Invite list retrieval failed:', e);
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoadingList(false);
+      }
     }
+  }
+
+  loadInvites();
+
+  return () => {
+    mounted = false;
   };
+}, []);
+
+const generateInvite = async () => {
+  if (!newISPName.trim()) {
+    setStatusMessage('Please enter a valid ISP name.');
+    return;
+  }
+
+  setLoading(true);
+  setStatusMessage('');
+
+  try {
+    const token =
+      localStorage.getItem('wb_token') ||
+      localStorage.getItem('wibill_token');
+
+    if (!token) {
+      setStatusMessage('Authentication signature required.');
+      setLoading(false);
+      return;
+    }
+
+    const payload = {
+      isp_name: newISPName.trim(),
+      expires_in_days: 7,
+    };
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
+
+    let response = await fetch(
+      `${API}/api/admin/invites/generate`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (response.status === 404) {
+      response = await fetch(
+        `${API}/api/invites/generate`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        }
+      );
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(
+        text || `Server responded with status code ${response.status}`
+      );
+    }
+
+    const data = (await response.json()) as ISPInvite;
+
+    setGeneratedLink(data);
+    setIsps((prev) => [data, ...prev]);
+    setNewISPName('');
+    setStatusMessage(
+      'Invite token issued and saved successfully.'
+    );
+  } catch (e) {
+    console.error('Invite generation transaction failed:', e);
+
+    setStatusMessage(
+      e instanceof Error
+        ? e.message
+        : 'Unknown routing error encountered'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const copyToClipboard = async (text: string) => {
     try {
