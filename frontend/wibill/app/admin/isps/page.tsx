@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
@@ -164,6 +164,7 @@ export default function AdminISPNetwork() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingList, setLoadingList] = useState(true);
 
+  // Load invites on mount
   useEffect(() => {
     let mounted = true;
 
@@ -171,35 +172,21 @@ export default function AdminISPNetwork() {
       try {
         const token = localStorage.getItem('wb_token');
         if (!token) {
-          if (mounted) setStatusMessage('Login required.');
+          if (mounted) {
+            setStatusMessage('Login required.');
+            setLoadingList(false);
+          }
           return;
         }
 
         const headers = { Authorization: `Bearer ${token}` };
-        const endpoints = [`${API}/api/admin/invites`, `${API}/api/invites`];
+        const response = await fetch(`${API}/api/admin/invites`, { headers });
 
-        for (const endpoint of endpoints) {
-          try {
-            const response = await fetch(endpoint, { headers });
-            if (!response.ok) continue;
-            const data = await response.json();
-            const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : [];
-            if (mounted && list.length) {
-              setIsps(
-                list.map((item: Partial<ISPInvite> & { isp_name?: string }) => ({
-                  id: String(item.id || item.token || crypto.randomUUID()),
-                  token: String(item.token || ''),
-                  invite_link: String(item.invite_link || ''),
-                  expires_at: String(item.expires_at || ''),
-                  created_at: String(item.created_at || ''),
-                  status: String(item.status || 'pending'),
-                  isp_name: item.isp_name,
-                }))
-              );
-            }
-            break;
-          } catch {
-            continue;
+        if (response.ok) {
+          const data = await response.json();
+          const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : [];
+          if (mounted) {
+            setIsps(list as ISPInvite[]);
           }
         }
       } catch (e) {
@@ -216,12 +203,21 @@ export default function AdminISPNetwork() {
   }, []);
 
   const generateInvite = async () => {
-    if (!newISPName.trim()) return;
+    if (!newISPName.trim()) {
+      setStatusMessage('Please enter an ISP name.');
+      return;
+    }
 
     setLoading(true);
     setStatusMessage('');
     try {
       const token = localStorage.getItem('wb_token');
+      if (!token) {
+        setStatusMessage('Login required.');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API}/api/admin/invites/generate`, {
         method: 'POST',
         headers: {
@@ -236,26 +232,31 @@ export default function AdminISPNetwork() {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || 'Failed to generate invite');
+        throw new Error(text || `HTTP ${response.status}`);
       }
 
       const data = (await response.json()) as ISPInvite;
       setGeneratedLink(data);
       setIsps((prev) => [data, ...prev]);
       setNewISPName('');
-      setStatusMessage('Invite created.');
+      setStatusMessage('Invite created successfully.');
     } catch (e) {
-      console.error('Failed to generate invite:', e);
-      setStatusMessage('Invite generation failed.');
+      console.error('Invite generation failed:', e);
+      setStatusMessage(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
   const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setShowCopyMessage(true);
-    setTimeout(() => setShowCopyMessage(false), 1800);
+    try {
+      await navigator.clipboard.writeText(text);
+      setShowCopyMessage(true);
+      setTimeout(() => setShowCopyMessage(false), 1800);
+    } catch (e) {
+      console.error('Copy failed:', e);
+      setStatusMessage('Failed to copy to clipboard.');
+    }
   };
 
   const visibleInvites = useMemo(() => {
@@ -270,8 +271,8 @@ export default function AdminISPNetwork() {
     });
   }, [isps, searchTerm]);
 
-  const pendingCount = isps.filter((item) => (item.status || '').toLowerCase().includes('pending')).length;
-  const activeCount = isps.filter((item) => (item.status || '').toLowerCase().includes('active')).length;
+  const pendingCount = isps.filter((item) => (item.status || '').toLowerCase() === 'pending').length;
+  const activeCount = isps.filter((item) => (item.status || '').toLowerCase() === 'active').length;
 
   return (
     <div
@@ -360,7 +361,7 @@ export default function AdminISPNetwork() {
                     Network state
                   </div>
                   <div style={{ marginTop: 4, fontFamily: '"DM Mono", monospace', fontSize: 13 }}>
-                    {activeCount} active / {isps.length} total
+                    {loadingList ? '...' : `${activeCount} active / ${isps.length} total`}
                   </div>
                 </div>
               </div>
@@ -410,6 +411,7 @@ export default function AdminISPNetwork() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') generateInvite();
                     }}
+                    disabled={loading}
                     style={{
                       height: 48,
                       padding: '0 14px',
@@ -420,6 +422,8 @@ export default function AdminISPNetwork() {
                       outline: 'none',
                       fontSize: 14,
                       fontFamily: 'Inter, system-ui, sans-serif',
+                      opacity: loading ? 0.6 : 1,
+                      cursor: loading ? 'not-allowed' : 'text',
                     }}
                   />
                   <button
@@ -441,9 +445,10 @@ export default function AdminISPNetwork() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 8,
+                      transition: 'opacity 0.2s',
                     }}
                   >
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+                    {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Link2 size={16} />}
                     {loading ? 'Creating' : 'Generate'}
                   </button>
                 </div>
@@ -465,8 +470,7 @@ export default function AdminISPNetwork() {
                     </div>
                   </div>
                   <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
-                    A valid ISP name is enough. The system generates a tokenized onboarding URL and attaches the standard
-                    7-day expiry.
+                    Enter an ISP name. The system generates a tokenized onboarding URL and attaches a 7-day expiry.
                   </div>
                 </div>
 
@@ -475,15 +479,19 @@ export default function AdminISPNetwork() {
                     style={{
                       padding: '12px 14px',
                       borderRadius: 14,
-                      border: `1px solid ${statusMessage.includes('failed') ? toneBorder('bad') : toneBorder('good')}`,
-                      background: statusMessage.includes('failed') ? toneBg('bad') : toneBg('good'),
-                      color: statusMessage.includes('failed') ? COLORS.red : COLORS.green,
+                      border: `1px solid ${statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBorder('bad') : toneBorder('good')}`,
+                      background: statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBg('bad') : toneBg('good'),
+                      color: statusMessage.includes('Error') || statusMessage.includes('failed') ? COLORS.red : COLORS.green,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
                     }}
                   >
-                    {statusMessage.includes('failed') ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+                    {statusMessage.includes('Error') || statusMessage.includes('failed') ? (
+                      <AlertTriangle size={14} />
+                    ) : (
+                      <CheckCircle2 size={14} />
+                    )}
                     <span style={{ fontSize: 12 }}>{statusMessage}</span>
                   </div>
                 ) : null}
@@ -540,6 +548,13 @@ export default function AdminISPNetwork() {
                           gap: 8,
                           fontFamily: '"Space Grotesk", Inter, sans-serif',
                           fontWeight: 700,
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseOver={(e) => {
+                          (e.target as HTMLElement).style.background = COLORS.panel2;
+                        }}
+                        onMouseOut={(e) => {
+                          (e.target as HTMLElement).style.background = COLORS.bg;
                         }}
                       >
                         <ClipboardCopy size={15} />
@@ -604,7 +619,25 @@ export default function AdminISPNetwork() {
                 </div>
 
                 <div style={{ display: 'grid', gap: 10 }}>
-                  {visibleInvites.length === 0 ? (
+                  {loadingList ? (
+                    <div
+                      style={{
+                        minHeight: 220,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: `1px dashed ${COLORS.border}`,
+                        borderRadius: 16,
+                        background: COLORS.panel2,
+                        color: COLORS.muted,
+                        gap: 10,
+                      }}
+                    >
+                      <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                      <div>Loading invites...</div>
+                    </div>
+                  ) : visibleInvites.length === 0 ? (
                     <div
                       style={{
                         minHeight: 220,
@@ -627,13 +660,7 @@ export default function AdminISPNetwork() {
                   ) : (
                     visibleInvites.slice(0, 6).map((invite) => {
                       const status = (invite.status || '').toLowerCase();
-                      const tone: Tone = status.includes('active')
-                        ? 'good'
-                        : status.includes('pending')
-                          ? 'warn'
-                          : status.includes('failed')
-                            ? 'bad'
-                            : 'neutral';
+                      const tone: Tone = status === 'active' ? 'good' : status === 'pending' ? 'warn' : 'bad';
                       return (
                         <div
                           key={invite.id}
