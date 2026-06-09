@@ -1,8 +1,8 @@
 ﻿'use client';
+
 import { useState, useEffect } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const FRONTEND = 'https://wi-bill.vercel.app';
 
 interface Invite {
   id: string;
@@ -10,156 +10,489 @@ interface Invite {
   status: 'pending' | 'used' | 'expired';
   created_at: string;
   expires_at: string;
-  url: string;
+  used_at?: string;
+  created_by?: string;
 }
 
-interface ApprovedISP {
-  id: string;
-  name: string;
-  slug: string;
-  status: string;
-  created_at: string;
-}
+// COLOR PALETTE - DEFINED FIRST
+const colors = {
+  void: '#000000',
+  base: '#0a0a0a',
+  raised: '#0d0d0d',
+  border: '#141414',
+  textPrimary: '#f0f0f0',
+  textSecondary: '#666666',
+  textMuted: '#2a2a2a',
+  gold: '#E8B84B',
+  green: '#22c55e',
+  red: '#ef4444',
+  amber: '#f59e0b',
+  blue: '#3b82f6',
+};
 
 export default function AdminInvites() {
   const [invites, setInvites] = useState<Invite[]>([]);
-  const [approvedISPs, setApprovedISPs] = useState<ApprovedISP[]>([]);
   const [loading, setLoading] = useState(true);
   const [expiry, setExpiry] = useState('7');
+  const [showSuccess, setShowSuccess] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
-  const [toast, setToast] = useState('');
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
-
-  const getToken = () => localStorage.getItem('wb_token') || '';
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'used' | 'expired'>('all');
+  const [search, setSearch] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<'delete' | 'extend' | null>(null);
+  const [selectedInvites, setSelectedInvites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const t = getToken();
-    if (!t) return;
-    Promise.all([
-      fetch(`${API}/api/admin/invites`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
-      fetch(`${API}/api/`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
-    ]).then(([inv, isps]) => {
-      setInvites(Array.isArray(inv) ? inv : Array.isArray(inv?.value) ? inv.value : []);
-      const list = Array.isArray(isps) ? isps : Array.isArray(isps?.value) ? isps.value : [];
-      setApprovedISPs(list.filter((i: any) => i.is_active === true));
-    }).catch(console.error).finally(() => setLoading(false));
+    loadInvites();
   }, []);
 
+  const loadInvites = async () => {
+    const token = localStorage.getItem('wb_token');
+    if (!token) return;
+
+    try {
+      const r = await fetch(`${API}/api/admin/invites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      setInvites(Array.isArray(d) ? d : []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateInvite = async () => {
-    const t = getToken();
+    const token = localStorage.getItem('wb_token');
+    if (!token) return;
+
     try {
       const r = await fetch(`${API}/api/admin/invites/generate`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expires_in_days: parseInt(expiry) }),
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!r.ok) throw new Error('Failed');
+
+      if (!r.ok) throw new Error('Failed to generate invite');
+
       const data = await r.json();
       setGeneratedLink(data.url);
-      setInvites(prev => [data, ...prev]);
-      showToast('Invite link generated');
-    } catch { showToast('Failed to generate invite'); }
+      setShowSuccess(true);
+      setExpiry('7');
+
+      await loadInvites();
+      setTimeout(() => setShowSuccess(false), 5000);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const copy = (text: string, label = 'Copied') => {
+  // Calculate metrics
+  const pending = invites.filter(i => i.status === 'pending').length;
+  const accepted = invites.filter(i => i.status === 'used').length;
+  const expired = invites.filter(i => i.status === 'expired').length;
+  const total = pending + accepted + expired;
+  const conversionRate = total > 0 ? ((accepted / total) * 100).toFixed(0) : '0';
+
+  // Filter invites
+  const filtered = invites.filter(invite => {
+    if (selectedFilter !== 'all' && invite.status !== selectedFilter) return false;
+    if (search) {
+      return invite.token.toLowerCase().includes(search.toLowerCase());
+    }
+    return true;
+  });
+
+  // Real activity log
+  const activityLog = invites
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5)
+    .map(invite => ({
+      type: invite.status as 'pending' | 'used' | 'expired',
+      text: invite.status === 'pending' 
+        ? 'Invite generated' 
+        : invite.status === 'used'
+        ? 'Invite accepted'
+        : 'Invite expired',
+      time: new Date(invite.created_at),
+      id: invite.id,
+    }));
+
+  const getTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
-    showToast(label);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const row = (label: string, value: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '0.5px solid #111' }}>
-      <span style={{ fontSize: 11, color: '#444', width: 80, flexShrink: 0 }}>{label}</span>
-      <code style={{ flex: 1, fontSize: 11, color: '#888', fontFamily: 'DM Mono, monospace', wordBreak: 'break-all' }}>{value}</code>
-      <button onClick={() => copy(value)} style={{ background: '#111', border: '0.5px solid #222', borderRadius: 6, padding: '4px 10px', color: '#555', fontSize: 10, cursor: 'pointer' }}>copy</button>
-    </div>
-  );
+  const toggleSelectInvite = (id: string) => {
+    const newSet = new Set(selectedInvites);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedInvites(newSet);
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#030303', padding: '32px 24px', fontFamily: 'Syne, sans-serif' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
+      {/* HEADER */}
+      <div style={{ marginBottom: 40 }}>
+        <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
+          Invite Management
+        </h1>
+        <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
+          Generate, track, and manage ISP onboarding invites with real-time conversion metrics
+        </p>
+      </div>
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Invites Control</h1>
-        <p style={{ fontSize: 12, color: '#333', marginBottom: 32, fontFamily: 'DM Mono, monospace' }}>Generate invite links and manage approved ISP access</p>
+      {/* PRIMARY KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+        {[
+          { label: 'Pending Invites', value: pending, color: colors.amber, icon: '⏳', change: 'Waiting' },
+          { label: 'Accepted', value: accepted, color: colors.green, icon: '✓', change: 'Onboarded' },
+          { label: 'Expired', value: expired, color: colors.red, icon: '✕', change: 'Invalid' },
+          { label: 'Conversion Rate', value: conversionRate + '%', color: colors.blue, icon: '📊', change: 'Success' },
+        ].map((metric, i) => (
+          <div key={i} style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderRadius: '12px',
+            padding: '24px',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: metric.color }} />
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
+                {metric.label}
+              </div>
+              <span style={{ fontSize: 18 }}>{metric.icon}</span>
+            </div>
 
-        {/* Generate */}
-        <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Generate New Invite</h2>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div>
-              <label style={{ fontSize: 10, color: '#444', display: 'block', marginBottom: 4 }}>EXPIRES IN</label>
-              <select value={expiry} onChange={e => setExpiry(e.target.value)} style={{ background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 8, padding: '10px 14px', color: '#f0f0f0', fontFamily: 'DM Mono, monospace', fontSize: 12 }}>
-                <option value="1">1 day</option>
-                <option value="3">3 days</option>
-                <option value="7">7 days</option>
-                <option value="30">30 days</option>
+            <div style={{ fontSize: 28, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace', marginBottom: '8px' }}>
+              {metric.value}
+            </div>
+
+            <div style={{ fontSize: 11, color: metric.color, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
+              {metric.change}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* GENERATOR + ACTIVITY GRID */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '32px' }}>
+        {/* GENERATE INVITE */}
+        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+            Generate New Invite
+          </h2>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
+                Expires In
+              </label>
+              <select
+                value={expiry}
+                onChange={e => setExpiry(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: colors.raised,
+                  border: `0.5px solid ${colors.border}`,
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  color: colors.textPrimary,
+                  fontSize: 12,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="1">1 Day</option>
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30">30 Days</option>
               </select>
             </div>
-            <button onClick={generateInvite} style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', border: 'none', borderRadius: 10, padding: '11px 24px', color: '#0a0800', fontWeight: 700, cursor: 'pointer', fontSize: 13, marginTop: 16 }}>
-              Generate Link
+
+            <button
+              onClick={generateInvite}
+              style={{
+                padding: '10px 16px',
+                background: colors.gold,
+                border: 'none',
+                borderRadius: '8px',
+                color: colors.void,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = '0.9';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.opacity = '1';
+              }}
+            >
+              🔗 Generate
             </button>
           </div>
-          {generatedLink && (
-            <div style={{ marginTop: 16, background: '#0a0a0a', border: '0.5px solid #fbbf2440', borderRadius: 8, padding: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <code style={{ flex: 1, fontSize: 11, color: '#fbbf24', fontFamily: 'DM Mono, monospace', wordBreak: 'break-all' }}>{generatedLink}</code>
-                <button onClick={() => copy(generatedLink, 'Link copied!')} style={{ background: '#fbbf2420', border: '0.5px solid #fbbf2440', borderRadius: 6, padding: '6px 14px', color: '#fbbf24', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Copy</button>
+
+          {showSuccess && (
+            <div style={{
+              background: `${colors.green}15`,
+              border: `0.5px solid ${colors.green}40`,
+              borderRadius: '8px',
+              padding: '12px',
+              color: colors.green,
+              fontSize: 12,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>✓ Invite generated successfully</div>
+              <button
+                onClick={() => copyToClipboard(generatedLink, 'latest')}
+                style={{
+                  background: `${colors.green}20`,
+                  border: `0.5px solid ${colors.green}40`,
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  color: colors.green,
+                  fontSize: 10,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                {copiedId === 'latest' ? '✓ Copied' : 'Copy Link'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ACTIVITY FEED */}
+        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+            Activity Feed
+          </h2>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {activityLog.length === 0 ? (
+              <div style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+                No activity yet
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Approved ISPs - Dashboard Links */}
-        <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 24, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Approved ISPs — Dashboard Links</h2>
-          <p style={{ fontSize: 11, color: '#333', fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>Copy and send these links to approved ISPs so they can access their dashboard</p>
-          {loading ? (
-            <div style={{ color: '#333', fontSize: 12 }}>Loading...</div>
-          ) : approvedISPs.length === 0 ? (
-            <div style={{ color: '#333', fontSize: 12, padding: '16px 0' }}>No approved ISPs yet</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {approvedISPs.map(isp => (
-                <div key={isp.id} style={{ background: '#050505', border: '0.5px solid #1a3a1a', borderRadius: 10, padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{isp.name}</span>
-                    <span style={{ fontSize: 10, color: '#444', fontFamily: 'DM Mono, monospace' }}>/{isp.slug}</span>
+            ) : (
+              activityLog.map((activity, i) => (
+                <div
+                  key={activity.id}
+                  style={{
+                    padding: '10px 12px',
+                    background: colors.raised,
+                    borderLeft: `3px solid ${
+                      activity.type === 'used' ? colors.green :
+                      activity.type === 'expired' ? colors.red :
+                      colors.amber
+                    }`,
+                    borderRadius: '4px 6px 6px 4px',
+                    fontSize: 11,
+                  }}
+                >
+                  <div style={{ color: colors.textPrimary, fontWeight: 600, marginBottom: '2px' }}>
+                    {activity.text}
                   </div>
-                  {row('Dashboard', `${FRONTEND}/login`)}
-                  {row('Portal', `https://wibill-production.up.railway.app/portal/${isp.slug}`)}
-                  {row('Approved', new Date(isp.created_at).toLocaleDateString('en-KE'))}
+                  <div style={{ color: colors.textMuted, fontSize: 10 }}>
+                    {getTimeAgo(activity.time)}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Invite History */}
-        <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 24 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 }}>Invite History</h2>
-          {loading ? <div style={{ color: '#333', fontSize: 12 }}>Loading...</div> : invites.length === 0 ? (
-            <div style={{ color: '#333', fontSize: 12 }}>No invites generated yet</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {invites.map(inv => (
-                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '0.5px solid #0d0d0d' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: inv.status === 'used' ? '#22c55e' : inv.status === 'expired' ? '#ef4444' : '#f59e0b', flexShrink: 0 }} />
-                  <code style={{ flex: 1, fontSize: 10, color: '#444', fontFamily: 'DM Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.url || `${FRONTEND}/login?token=${inv.token}`}</code>
-                  <span style={{ fontSize: 10, color: inv.status === 'used' ? '#22c55e' : inv.status === 'expired' ? '#ef4444' : '#f59e0b', flexShrink: 0, fontFamily: 'DM Mono, monospace' }}>{inv.status}</span>
-                  <button onClick={() => copy(inv.url || `${FRONTEND}/login?token=${inv.token}`, 'Copied!')} style={{ background: '#111', border: '0.5px solid #222', borderRadius: 6, padding: '4px 10px', color: '#555', fontSize: 10, cursor: 'pointer', flexShrink: 0 }}>copy</button>
-                </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, background: '#22c55e', color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, zIndex: 9999 }}>
-          {toast}
+      {/* FILTER + SEARCH */}
+      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '12px' }}>
+          <div>
+            <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
+              Search Invites
+            </label>
+            <input
+              type="text"
+              placeholder="Search by token..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%',
+                background: colors.raised,
+                border: `0.5px solid ${colors.border}`,
+                borderRadius: '8px',
+                padding: '10px 12px',
+                color: colors.textPrimary,
+                fontSize: 12,
+                outline: 'none',
+                fontFamily: '"JetBrains Mono", monospace',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
+              Filter
+            </label>
+            <select
+              value={selectedFilter}
+              onChange={e => setSelectedFilter(e.target.value as any)}
+              style={{
+                width: '100%',
+                background: colors.raised,
+                border: `0.5px solid ${colors.border}`,
+                borderRadius: '8px',
+                padding: '10px 12px',
+                color: colors.textPrimary,
+                fontSize: 12,
+                outline: 'none',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="all">All ({invites.length})</option>
+              <option value="pending">Pending ({pending})</option>
+              <option value="used">Used ({accepted})</option>
+              <option value="expired">Expired ({expired})</option>
+            </select>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* INVITES TABLE */}
+      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', overflowX: 'auto' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+          All Invites ({filtered.length})
+        </h2>
+
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
+            Loading invites...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
+            No invites found
+          </div>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: '"JetBrains Mono", monospace' }}>
+            <thead>
+              <tr style={{ borderBottom: `0.5px solid ${colors.border}` }}>
+                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Token
+                </th>
+                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Created
+                </th>
+                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Expires
+                </th>
+                <th style={{ textAlign: 'center', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Status
+                </th>
+                <th style={{ textAlign: 'center', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 50).map((invite, idx) => {
+                const statusColor = {
+                  pending: colors.amber,
+                  used: colors.green,
+                  expired: colors.red,
+                }[invite.status];
+
+                return (
+                  <tr key={invite.id} style={{ borderBottom: `0.5px solid ${colors.border}`, background: idx % 2 === 0 ? colors.raised : 'transparent' }}>
+                    <td style={{ padding: '12px 0', color: colors.blue }}>
+                      {invite.token.slice(0, 16)}...
+                    </td>
+                    <td style={{ padding: '12px 0', color: colors.textSecondary }}>
+                      {new Date(invite.created_at).toLocaleDateString('en-KE')}
+                    </td>
+                    <td style={{ padding: '12px 0', color: colors.textSecondary }}>
+                      {new Date(invite.expires_at).toLocaleDateString('en-KE')}
+                    </td>
+                    <td style={{ padding: '12px 0', textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        background: `${statusColor}15`,
+                        color: statusColor,
+                        border: `0.5px solid ${statusColor}40`,
+                      }}>
+                        {invite.status === 'pending' ? '⏳' : invite.status === 'used' ? '✓' : '✕'} {invite.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 0', textAlign: 'center' }}>
+                      <button
+                        onClick={() => copyToClipboard(`${window.location.origin}/join?token=${invite.token}`, invite.id)}
+                        style={{
+                          background: colors.raised,
+                          border: `0.5px solid ${colors.border}`,
+                          borderRadius: '4px',
+                          padding: '4px 8px',
+                          color: colors.gold,
+                          fontSize: 10,
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = colors.border;
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = colors.raised;
+                        }}
+                      >
+                        {copiedId === invite.id ? '✓' : '📋'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+
+        {filtered.length > 50 && (
+          <div style={{
+            padding: '16px',
+            textAlign: 'center',
+            color: colors.textMuted,
+            fontSize: 11,
+            borderTop: `0.5px solid ${colors.border}`,
+            marginTop: '16px',
+          }}>
+            Showing 50 of {filtered.length} invites
+          </div>
+        )}
+      </div>
     </div>
   );
 }
