@@ -16,6 +16,22 @@ interface Transaction {
   tenant_id?: string;
 }
 
+// COLOR PALETTE - DEFINED FIRST
+const colors = {
+  void: '#000000',
+  base: '#0a0a0a',
+  raised: '#0d0d0d',
+  border: '#141414',
+  textPrimary: '#f0f0f0',
+  textSecondary: '#666666',
+  textMuted: '#2a2a2a',
+  gold: '#E8B84B',
+  green: '#22c55e',
+  red: '#ef4444',
+  amber: '#f59e0b',
+  blue: '#3b82f6',
+};
+
 export default function AdminTransactions() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +60,13 @@ export default function AdminTransactions() {
   const successRate = txnCount > 0 ? ((completedCount / txnCount) * 100).toFixed(1) : '0';
   const avgTxnSize = txnCount > 0 ? totalVolume / txnCount : 0;
 
+  // Status breakdown - NOW colors is defined
+  const statusBreakdown = [
+    { label: 'Completed', count: completedCount, color: colors.green, percent: txnCount > 0 ? (completedCount / txnCount) * 100 : 0 },
+    { label: 'Pending', count: pendingCount, color: colors.amber, percent: txnCount > 0 ? (pendingCount / txnCount) * 100 : 0 },
+    { label: 'Failed', count: failedCount, color: colors.red, percent: txnCount > 0 ? (failedCount / txnCount) * 100 : 0 },
+  ];
+
   // Filter transactions
   const filtered = txns
     .filter(t => {
@@ -61,13 +84,6 @@ export default function AdminTransactions() {
       if (statusFilter === 'failed') return t.status === 'failed';
       return true;
     });
-
-  // Group by status
-  const statusBreakdown = [
-    { label: 'Completed', count: completedCount, color: colors.green, percent: txnCount > 0 ? (completedCount / txnCount) * 100 : 0 },
-    { label: 'Pending', count: pendingCount, color: colors.amber, percent: txnCount > 0 ? (pendingCount / txnCount) * 100 : 0 },
-    { label: 'Failed', count: failedCount, color: colors.red, percent: txnCount > 0 ? (failedCount / txnCount) * 100 : 0 },
-  ];
 
   // Top paying phones (anonymized)
   const phoneVolume: Record<string, number> = {};
@@ -87,21 +103,6 @@ export default function AdminTransactions() {
     return `KES ${amount.toFixed(0)}`;
   };
 
-  const colors = {
-    void: '#000000',
-    base: '#0a0a0a',
-    raised: '#0d0d0d',
-    border: '#141414',
-    textPrimary: '#f0f0f0',
-    textSecondary: '#666666',
-    textMuted: '#2a2a2a',
-    gold: '#E8B84B',
-    green: '#22c55e',
-    red: '#ef4444',
-    amber: '#f59e0b',
-    blue: '#3b82f6',
-  };
-
   return (
     <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
       {/* HEADER */}
@@ -118,7 +119,7 @@ export default function AdminTransactions() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
           { label: 'Total Volume', value: formatCurrency(totalVolume), color: colors.blue, icon: '💳', change: '+24.8%' },
-          { label: 'Transactions', value: txnCount.toLocaleString(), color: colors.purple = colors.blue, icon: '↔', change: '+18.3%' },
+          { label: 'Transactions', value: txnCount.toLocaleString(), color: colors.blue, icon: '↔', change: '+18.3%' },
           { label: 'Success Rate', value: successRate + '%', color: colors.green, icon: '✓', change: 'Stable' },
           { label: 'Avg Size', value: formatCurrency(avgTxnSize), color: colors.gold, icon: '📊', change: 'Per txn' },
         ].map((metric, i) => (
@@ -195,10 +196,10 @@ export default function AdminTransactions() {
 
           {/* STATUS FILTER BUTTONS */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
-            {['all', 'completed', 'pending', 'failed'].map((filter) => (
+            {(['all', 'completed', 'pending', 'failed'] as const).map((filter) => (
               <button
                 key={filter}
-                onClick={() => setStatusFilter(filter as any)}
+                onClick={() => setStatusFilter(filter)}
                 style={{
                   padding: '8px 12px',
                   background: statusFilter === filter ? colors.border : colors.raised,
@@ -211,6 +212,7 @@ export default function AdminTransactions() {
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
+                  fontFamily: 'inherit',
                 }}
                 onMouseEnter={(e) => {
                   if (statusFilter !== filter) {
@@ -243,61 +245,64 @@ export default function AdminTransactions() {
                 No transaction data
               </div>
             ) : (
-              topPhones.map(([phone, amount], idx) => (
-                <div key={phone} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
+              topPhones.map(([phone, amount], idx) => {
+                const colors_array = [colors.gold, colors.green, colors.blue, colors.amber, colors.red];
+                return (
+                  <div key={phone} style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: colors.void,
+                    gap: '12px',
+                    padding: '12px',
+                    background: colors.raised,
+                    border: `0.5px solid ${colors.border}`,
+                    borderRadius: '8px',
                   }}>
-                    #{idx + 1}
-                  </div>
-
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: colors.textPrimary, marginBottom: '2px', fontFamily: '"JetBrains Mono", monospace' }}>
-                      *****{phone}
-                    </div>
                     <div style={{
-                      height: '4px',
-                      background: colors.border,
-                      borderRadius: '2px',
-                      overflow: 'hidden',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      background: colors_array[idx],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: colors.void,
                     }}>
+                      #{idx + 1}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: colors.textPrimary, marginBottom: '2px', fontFamily: '"JetBrains Mono", monospace' }}>
+                        *****{phone}
+                      </div>
                       <div style={{
-                        height: '100%',
-                        background: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
-                        width: `${Math.min((amount / topPhones[0][1]) * 100, 100)}%`,
-                      }} />
+                        height: '4px',
+                        background: colors.border,
+                        borderRadius: '2px',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          background: colors_array[idx],
+                          width: `${Math.min((amount / topPhones[0][1]) * 100, 100)}%`,
+                        }} />
+                      </div>
+                    </div>
+
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: colors_array[idx],
+                      fontFamily: '"JetBrains Mono", monospace',
+                      textAlign: 'right',
+                      minWidth: '80px',
+                    }}>
+                      {formatCurrency(amount)}
                     </div>
                   </div>
-
-                  <div style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
-                    fontFamily: '"JetBrains Mono", monospace',
-                    textAlign: 'right',
-                    minWidth: '80px',
-                  }}>
-                    {formatCurrency(amount)}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -384,7 +389,7 @@ export default function AdminTransactions() {
               <tbody>
                 {filtered.slice(0, 100).map((txn, idx) => {
                   const status = !txn.status || txn.status === 'completed' ? 'completed' : txn.status === 'pending' ? 'pending' : 'failed';
-                  const statusColors = {
+                  const statusColors: Record<string, { bg: string; text: string }> = {
                     completed: { bg: `${colors.green}15`, text: colors.green },
                     pending: { bg: `${colors.amber}15`, text: colors.amber },
                     failed: { bg: `${colors.red}15`, text: colors.red },
