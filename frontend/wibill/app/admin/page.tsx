@@ -114,297 +114,450 @@ export default function AdminDashboard() {
     blue: '#3b82f6',
   };
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `KES ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `KES ${(amount / 1000).toFixed(0)}k`;
-    return `KES ${amount.toFixed(0)}`;
-  };
-
   return (
     <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       {/* TOPBAR */}
-      <div
-        style={{
-          height: '52px',
-          borderBottom: `0.5px solid ${colors.border}`,
+      <div style={{
+        height: '52px',
+        borderBottom: `0.5px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 32px',
+      }}>
+        <div style={{
+          fontSize: '18px',
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          textTransform: 'uppercase',
+        }}>
+          Dashboard
+        </div>
+        <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 36px',
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Dashboard — Batcave Control Panel
+          gap: '20px',
+          fontSize: '11px',
+          fontFamily: 'DM Mono, monospace',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: colors.green,
+              boxShadow: `0 0 8px ${colors.green}`,
+            }} />
+            <span style={{ color: colors.textMuted }}>LIVE</span>
           </div>
-        </div>
-        <div style={{ fontSize: 11, fontFamily: '"JetBrains Mono", monospace', color: colors.gold, fontWeight: 600 }}>
-          {timeStr}
+          <span style={{ color: colors.textMuted }}>{timeStr}</span>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div style={{ padding: '32px 36px', maxWidth: '1600px', margin: '0 auto' }}>
-        {/* PAGE HEADER */}
-        <div style={{ marginBottom: 40 }}>
-          <h1
-            style={{
-              fontSize: 36,
-              fontWeight: 900,
-              letterSpacing: '-0.025em',
-              margin: '0 0 8px',
-              color: colors.textPrimary,
-              fontFamily: '"Space Grotesk", sans-serif',
-            }}
-          >
-            Control Center
-          </h1>
-          <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-            Real-time platform metrics and operational overview
-          </p>
-        </div>
-
-        {/* ROW 1: METRICS */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '16px',
-            marginBottom: '32px',
-          }}
-        >
-          {[
-            {
-              label: 'Revenue Today',
-              value: formatCurrency(stats.revenue_today),
+      {/* CONTENT */}
+      <div style={{ padding: '32px', maxWidth: '1440px', margin: '0 auto' }}>
+        {/* ROW 1: 4 STAT CARDS */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+          marginBottom: '32px',
+        }}>
+          {/* Revenue Today */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderTop: `2px solid ${colors.gold}`,
+            borderRadius: '10px',
+            padding: '24px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+              marginBottom: '16px',
+            }}>
+              Revenue Today
+            </div>
+            <div style={{
+              fontSize: '36px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 500,
               color: colors.gold,
-              icon: '💰',
-            },
-            {
-              label: 'Monthly Revenue',
-              value: formatCurrency(stats.revenue_month),
-              color: colors.blue,
-              icon: '📊',
-            },
-            {
-              label: 'Active Sessions',
-              value: stats.active_sessions,
-              color: colors.green,
-              icon: '👥',
-            },
-            {
-              label: 'Registered ISPs',
-              value: stats.total_isps,
-              color: colors.amber,
-              icon: '🌐',
-            },
-          ].map((metric, i) => (
-            <div
-              key={i}
-              style={{
-                background: colors.base,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '12px',
-                padding: '20px',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '3px',
-                  background: metric.color,
-                }}
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
-                  {metric.label}
-                </div>
-                <span style={{ fontSize: 18 }}>{metric.icon}</span>
-              </div>
-
-              <div style={{ fontSize: 24, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace' }}>
-                {metric.value}
-              </div>
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              marginBottom: '8px',
+            }}>
+              {stats.revenue_today ? `${(stats.revenue_today / 1000).toFixed(1)}K` : '--'}
             </div>
-          ))}
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'DM Mono, monospace',
+              color: colors.textSecondary,
+            }}>
+              KES
+            </div>
+          </div>
+
+          {/* Revenue Month */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderTop: `2px solid ${colors.blue}`,
+            borderRadius: '10px',
+            padding: '24px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+              marginBottom: '16px',
+            }}>
+              Monthly Revenue
+            </div>
+            <div style={{
+              fontSize: '36px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 500,
+              color: colors.blue,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              marginBottom: '8px',
+            }}>
+              {stats.revenue_month ? `${(stats.revenue_month / 1000).toFixed(1)}K` : '--'}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'DM Mono, monospace',
+              color: colors.textSecondary,
+            }}>
+              KES
+            </div>
+          </div>
+
+          {/* Active Sessions */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderTop: `2px solid ${colors.green}`,
+            borderRadius: '10px',
+            padding: '24px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+              marginBottom: '16px',
+            }}>
+              Active Sessions
+            </div>
+            <div style={{
+              fontSize: '36px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 500,
+              color: colors.green,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              marginBottom: '8px',
+            }}>
+              {stats.active_sessions || '--'}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'DM Mono, monospace',
+              color: colors.textSecondary,
+            }}>
+              Online
+            </div>
+          </div>
+
+          {/* Total ISPs */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderTop: `2px solid ${colors.amber}`,
+            borderRadius: '10px',
+            padding: '24px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+              marginBottom: '16px',
+            }}>
+              Total ISPs
+            </div>
+            <div style={{
+              fontSize: '36px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 500,
+              color: colors.amber,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+              marginBottom: '8px',
+            }}>
+              {stats.total_isps || '--'}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'DM Mono, monospace',
+              color: colors.textSecondary,
+            }}>
+              Network
+            </div>
+          </div>
         </div>
 
-        {/* ROW 2: REVENUE TREND + QUICK ACTIONS */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', marginBottom: '32px' }}>
-          {/* REVENUE CHART */}
-          <div
-            style={{
-              background: colors.base,
-              border: `0.5px solid ${colors.border}`,
-              borderRadius: '12px',
-              padding: '24px',
-            }}
-          >
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 4px', fontFamily: '"Space Grotesk", sans-serif' }}>
-                7-Day Revenue Trend
-              </h3>
-              <p style={{ fontSize: 11, color: colors.textMuted, margin: 0 }}>Platform fees collection</p>
+        {/* ROW 2: REVENUE CHART + NETWORK STATUS */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 320px',
+          gap: '16px',
+          marginBottom: '32px',
+        }}>
+          {/* Revenue Trend Chart */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderRadius: '10px',
+            padding: '24px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+              marginBottom: '24px',
+            }}>
+              7-Day Revenue Trend
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '140px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: '10px',
+              height: '140px',
+              marginBottom: '16px',
+            }}>
               {trend.map((point, i) => {
-                const maxAmount = Math.max(...trend.map((p) => p.amount || 1), 1);
-                const height = Math.max((point.amount / maxAmount) * 120, 4);
+                const maxAmount = Math.max(...trend.map((p) => p.amount), 1);
+                const height = (point.amount / maxAmount) * 100;
                 return (
                   <div
                     key={i}
                     style={{
                       flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '6px',
+                      height: `${height}%`,
+                      background: colors.gold,
+                      borderRadius: '4px 4px 0 0',
+                      minHeight: '4px',
+                      opacity: 0.8,
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s',
                     }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        height: `${height}px`,
-                        background: colors.gold,
-                        borderRadius: '3px',
-                        opacity: 0.7,
-                        transition: 'opacity 0.2s',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.opacity = '1';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.opacity = '0.7';
-                      }}
-                    />
-                    <div style={{ fontSize: 9, color: colors.textMuted, fontFamily: '"JetBrains Mono", monospace' }}>
-                      {point.date.split(' ')[0]}
-                    </div>
-                  </div>
+                    title={`${point.date}: ${point.amount.toFixed(0)} KES`}
+                    onMouseOver={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
+                    onMouseOut={(e) => { (e.target as HTMLElement).style.opacity = '0.8'; }}
+                  />
                 );
               })}
             </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '9px',
+              fontFamily: 'DM Mono, monospace',
+              color: colors.textMuted,
+              paddingTop: '12px',
+              borderTop: `0.5px solid ${colors.raised}`,
+            }}>
+              {trend.map((p, i) => (
+                <span key={i}>{p.date}</span>
+              ))}
+            </div>
           </div>
 
-          {/* QUICK ACTIONS */}
-          <div
-            style={{
-              background: colors.base,
-              border: `0.5px solid ${colors.border}`,
-              borderRadius: '12px',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 12px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              Quick Actions
-            </h3>
-            {['Generate Invite', 'View Analytics', 'System Health', 'Settings'].map((action, i) => (
-              <button
-                key={i}
-                style={{
-                  padding: '10px 12px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                  color: colors.textPrimary,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = colors.border;
-                  (e.currentTarget as HTMLElement).style.borderColor = colors.gold;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = colors.raised;
-                  (e.currentTarget as HTMLElement).style.borderColor = colors.border;
-                }}
-              >
-                {action} →
-              </button>
+          {/* Network Status */}
+          <div style={{
+            background: colors.base,
+            border: `0.5px solid ${colors.border}`,
+            borderRadius: '10px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'DM Mono, monospace',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              color: colors.textMuted,
+            }}>
+              System Status
+            </div>
+
+            {[
+              { label: 'API', status: 'ok' },
+              { label: 'Database', status: 'ok' },
+              { label: 'M-Pesa', status: 'sandbox' },
+            ].map((item) => (
+              <div key={item.label} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingBottom: '12px',
+                borderBottom: `0.5px solid ${colors.raised}`,
+              }}>
+                <span style={{
+                  fontSize: '13px',
+                  color: colors.textSecondary,
+                }}>
+                  {item.label}
+                </span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  <div style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: item.status === 'ok' ? colors.green : colors.amber,
+                    boxShadow: `0 0 4px ${item.status === 'ok' ? colors.green : colors.amber}`,
+                  }} />
+                  <span style={{
+                    fontSize: '10px',
+                    fontFamily: 'DM Mono, monospace',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: item.status === 'ok' ? colors.green : colors.amber,
+                  }}>
+                    {item.status === 'ok' ? 'OK' : 'SANDBOX'}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* ROW 3: ISP NETWORK */}
-        <div
-          style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '32px',
-          }}
-        >
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 4px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              ISP Network Status
-            </h3>
-            <p style={{ fontSize: 11, color: colors.textMuted, margin: 0 }}>Top 5 registered ISP partners</p>
+        {/* ROW 3: ISP NETWORK TABLE */}
+        <div style={{
+          background: colors.base,
+          border: `0.5px solid ${colors.border}`,
+          borderRadius: '10px',
+          padding: '24px',
+          marginBottom: '32px',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontFamily: 'DM Mono, monospace',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: colors.textMuted,
+            marginBottom: '20px',
+          }}>
+            Active ISP Network
           </div>
 
           {isps.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>
-              No ISPs registered yet
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: colors.textMuted,
+              fontSize: '13px',
+            }}>
+              No ISPs configured
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-              {isps.map((isp) => (
+            <div>
+              {isps.map((isp, i) => (
                 <div
                   key={isp.id}
                   style={{
-                    background: colors.raised,
-                    border: `0.5px solid ${colors.border}`,
-                    borderRadius: '10px',
-                    padding: '14px',
-                    textAlign: 'center',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 120px 100px',
+                    gap: '24px',
+                    padding: '16px 0',
+                    borderBottom: i < isps.length - 1 ? `0.5px solid ${colors.raised}` : 'none',
+                    alignItems: 'center',
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
+                  <div>
+                    <div style={{
+                      fontSize: '13px',
                       color: colors.textPrimary,
-                      marginBottom: '8px',
-                      fontFamily: '"Space Grotesk", sans-serif',
-                    }}
-                  >
-                    {isp.name.length > 20 ? isp.name.slice(0, 17) + '...' : isp.name}
+                      fontWeight: 500,
+                      marginBottom: '4px',
+                    }}>
+                      {isp.name}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.textMuted,
+                    }}>
+                      {isp.id.slice(0, 12)}...
+                    </div>
                   </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '4px',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: isp.is_active ? colors.green : colors.red,
-                        boxShadow: isp.is_active ? `0 0 8px ${colors.green}` : `0 0 8px ${colors.red}`,
-                        margin: '0 auto',
-                      }}
-                    />
-                    <div style={{ fontSize: 10, fontFamily: '"JetBrains Mono", monospace', color: isp.is_active ? colors.green : colors.red, marginTop: '6px', textTransform: 'uppercase', fontWeight: 700 }}>
+                  <div style={{
+                    textAlign: 'right',
+                  }}>
+                    <div style={{
+                      fontSize: '10px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.textMuted,
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                    }}>
+                      Commission
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.textPrimary,
+                      fontWeight: 500,
+                    }}>
+                      {isp.commission_rate}%
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: isp.is_active ? colors.green : colors.red,
+                      boxShadow: isp.is_active ? `0 0 8px ${colors.green}` : `0 0 8px ${colors.red}`,
+                      margin: '0 auto',
+                    }} />
+                    <div style={{
+                      fontSize: '10px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: isp.is_active ? colors.green : colors.red,
+                      marginTop: '6px',
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                    }}>
                       {isp.is_active ? 'Live' : 'Offline'}
                     </div>
                   </div>
@@ -415,23 +568,31 @@ export default function AdminDashboard() {
         </div>
 
         {/* ROW 4: RECENT TRANSACTIONS */}
-        <div
-          style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '24px',
-          }}
-        >
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 4px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              Recent Transactions
-            </h3>
-            <p style={{ fontSize: 11, color: colors.textMuted, margin: 0 }}>Latest 6 M-Pesa payments</p>
+        <div style={{
+          background: colors.base,
+          border: `0.5px solid ${colors.border}`,
+          borderRadius: '10px',
+          padding: '24px',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontFamily: 'DM Mono, monospace',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: colors.textMuted,
+            marginBottom: '20px',
+          }}>
+            Recent Transactions
           </div>
 
           {txns.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: colors.textMuted,
+              fontSize: '13px',
+            }}>
               No transactions yet
             </div>
           ) : (
@@ -448,34 +609,49 @@ export default function AdminDashboard() {
                     alignItems: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.textPrimary, fontWeight: 500 }}>
+                  <div style={{
+                    fontSize: '12px',
+                    fontFamily: 'DM Mono, monospace',
+                    color: colors.textPrimary,
+                    fontWeight: 500,
+                  }}>
                     {txn.id.slice(0, 12)}...
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: 12, fontFamily: '"JetBrains Mono", monospace', color: colors.gold, fontWeight: 500 }}>
+                  <div style={{
+                    textAlign: 'right',
+                    fontSize: '12px',
+                    fontFamily: 'DM Mono, monospace',
+                    color: colors.gold,
+                    fontWeight: 500,
+                  }}>
                     {txn.amount_ksh.toLocaleString()} KES
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: 11, fontFamily: '"JetBrains Mono", monospace', color: colors.textMuted }}>
+                  <div style={{
+                    textAlign: 'right',
+                    fontSize: '11px',
+                    fontFamily: 'DM Mono, monospace',
+                    color: colors.textMuted,
+                  }}>
                     <div>Fee: {txn.platform_fee_ksh} KES</div>
-                    <div style={{ color: colors.green, marginTop: '2px' }}>Net: {txn.isp_earnings_ksh} KES</div>
+                    <div style={{ color: colors.green, marginTop: '2px' }}>
+                      Net: {txn.isp_earnings_ksh} KES
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 10px',
-                        borderRadius: '4px',
-                        fontSize: '9px',
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        background:
-                          txn.status === 'completed' ? `${colors.green}15` : `${colors.amber}15`,
-                        color: txn.status === 'completed' ? colors.green : colors.amber,
-                        border: `0.5px solid ${
-                          txn.status === 'completed' ? `${colors.green}40` : `${colors.amber}40`
-                        }`,
-                      }}
-                    >
+                  <div style={{
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      display: 'inline-block',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      fontSize: '9px',
+                      fontFamily: 'DM Mono, monospace',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      background: txn.status === 'completed' ? `${colors.green}15` : `${colors.amber}15`,
+                      color: txn.status === 'completed' ? colors.green : colors.amber,
+                      border: `0.5px solid ${txn.status === 'completed' ? `${colors.green}40` : `${colors.amber}40`}`,
+                    }}>
                       {txn.status}
                     </div>
                   </div>

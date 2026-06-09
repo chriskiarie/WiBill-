@@ -1,289 +1,332 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const C = {
-  void: '#000000', base: '#080808', raised: '#0d0d0d',
-  border: '#141414', dim: '#1e1e1e',
-  text: '#f0f0f0', muted: '#444444',
-  gold: '#E8B84B', green: '#22c55e', amber: '#f59e0b', red: '#ef4444',
-};
-
-interface ISP {
-  id: string; name: string; slug: string; email: string;
-  is_active: boolean; commission_rate: number; created_at: string;
+interface ISPInvite {
+  id: string;
+  token: string;
+  invite_link: string;
+  expires_at: string;
+  created_at: string;
+  status: string;
+  isp_name?: string;
 }
 
-interface Invite {
-  id: string; token: string; status: string; created_at: string; expires_at: string; url: string;
-}
+export default function AdminISPNetwork() {
+  const [isps, setIsps] = useState<ISPInvite[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [newISPName, setNewISPName] = useState('');
+  const [generatedLink, setGeneratedLink] = useState<ISPInvite | null>(null);
+  const [showCopyMessage, setShowCopyMessage] = useState(false);
 
-const lbl = (t: string) => (
-  <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: C.muted, marginBottom: 12 }}>{t}</div>
-);
-
-const badge = (status: string) => {
-  const color = status === 'active' || status === 'used' ? C.green : status === 'inactive' || status === 'expired' ? C.red : C.amber;
-  return (
-    <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, background: `${color}15`, color, border: `0.5px solid ${color}30` }}>
-      {status}
-    </span>
-  );
-};
-
-export default function AdminISPs() {
-  const [isps, setIsps] = useState<ISP[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expiry, setExpiry] = useState('7');
-  const [generating, setGenerating] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState('');
-  const [toast, setToast] = useState('');
-
-  const token = () => localStorage.getItem('wb_token') || '';
-  const h = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
-
-  const showToast = (msg: string, dur = 3000) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), dur);
+  const colors = {
+    void: '#000000',
+    base: '#0a0a0a',
+    raised: '#0d0d0d',
+    border: '#141414',
+    textPrimary: '#f0f0f0',
+    textSecondary: '#666666',
+    textMuted: '#2a2a2a',
+    gold: '#E8B84B',
+    green: '#22c55e',
+    red: '#ef4444',
+    amber: '#f59e0b',
   };
-
-  const load = () => {
-    const t = token();
-    if (!t) return;
-    Promise.allSettled([
-      fetch(`${API}/api/`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
-      fetch(`${API}/api/admin/invites`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json()),
-    ]).then(([ispRes, invRes]) => {
-      const ispList = ispRes.status === 'fulfilled'
-        ? (Array.isArray(ispRes.value) ? ispRes.value : Array.isArray(ispRes.value?.value) ? ispRes.value.value : [])
-        : [];
-      const invList = invRes.status === 'fulfilled'
-        ? (Array.isArray(invRes.value) ? invRes.value : Array.isArray(invRes.value?.value) ? invRes.value.value : [])
-        : [];
-      setIsps(ispList);
-      setInvites(invList);
-      setLoading(false);
-    });
-  };
-
-  useEffect(() => { load(); }, []);
 
   const generateInvite = async () => {
-    setGenerating(true);
+    if (!newISPName.trim()) return;
+
+    setLoading(true);
     try {
-      const r = await fetch(`${API}/api/admin/invites/generate`, {
-        method: 'POST', headers: h(),
-        body: JSON.stringify({ expires_in_days: parseInt(expiry) }),
+      const token = localStorage.getItem('wb_token');
+      const response = await fetch(`${API}/api/admin/invites/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isp_name: newISPName,
+          expires_in_days: 7,
+        }),
       });
-      if (!r.ok) throw new Error();
-      const data = await r.json();
-      setGeneratedLink(data.url || data.invite_link || '');
-      setInvites(prev => [data, ...prev]);
-      showToast('Invite generated');
-    } catch { showToast('Failed to generate'); }
-    finally { setGenerating(false); }
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedLink(data);
+        setNewISPName('');
+      }
+    } catch (e) {
+      console.error('Failed to generate invite:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    showToast('Copied to clipboard');
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    setShowCopyMessage(true);
+    setTimeout(() => setShowCopyMessage(false), 2000);
   };
-
-  const activeISPs = isps.filter(i => i.is_active);
-  const pendingISPs = isps.filter(i => !i.is_active);
 
   return (
-    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif' }}>
       {/* TOPBAR */}
-      <div style={{ height: 52, borderBottom: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px' }}>
-        <div style={{ fontSize: 18, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+      <div style={{
+        height: '52px',
+        borderBottom: `0.5px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 32px',
+      }}>
+        <div style={{
+          fontSize: '18px',
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontWeight: 800,
+          letterSpacing: '-0.02em',
+          textTransform: 'uppercase',
+        }}>
           ISP Network
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted }}>
-            {activeISPs.length} active · {pendingISPs.length} pending
-          </span>
+        <div style={{
+          fontSize: '12px',
+          fontFamily: 'DM Mono, monospace',
+          color: colors.textMuted,
+        }}>
+          {isps.length} Active
         </div>
       </div>
 
-      <div style={{ padding: 28, maxWidth: 1200, margin: '0 auto' }}>
+      {/* CONTENT */}
+      <div style={{ padding: '32px', maxWidth: '1440px', margin: '0 auto' }}>
+        {/* GENERATE INVITE CARD */}
+        <div style={{
+          background: colors.base,
+          border: `0.5px solid ${colors.border}`,
+          borderTop: `2px solid ${colors.gold}`,
+          borderRadius: '10px',
+          padding: '24px',
+          marginBottom: '32px',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontFamily: 'DM Mono, monospace',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: colors.textMuted,
+            marginBottom: '20px',
+          }}>
+            Generate Invite Link
+          </div>
 
-        {/* GENERATE INVITE */}
-        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
-          {lbl('Generate Invite Link')}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' as const }}>
-            <div>
-              <div style={{ fontSize: 10, color: C.muted, fontFamily: 'DM Mono, monospace', marginBottom: 6 }}>EXPIRES IN</div>
-              <select
-                value={expiry}
-                onChange={e => setExpiry(e.target.value)}
-                style={{ background: C.raised, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: '10px 14px', color: C.text, fontFamily: 'DM Mono, monospace', fontSize: 12, outline: 'none' }}
-              >
-                <option value="1">1 day</option>
-                <option value="3">3 days</option>
-                <option value="7">7 days</option>
-                <option value="30">30 days</option>
-              </select>
-            </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 120px',
+            gap: '12px',
+            marginBottom: '16px',
+          }}>
+            <input
+              type="text"
+              placeholder="ISP name"
+              value={newISPName}
+              onChange={(e) => setNewISPName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && generateInvite()}
+              style={{
+                background: colors.raised,
+                border: `0.5px solid ${colors.border}`,
+                borderRadius: '8px',
+                padding: '11px 14px',
+                color: colors.textPrimary,
+                fontSize: '13px',
+                fontFamily: 'DM Mono, monospace',
+                outline: 'none',
+              }}
+            />
             <button
               onClick={generateInvite}
-              disabled={generating}
-              style={{ background: C.gold, border: 'none', borderRadius: 8, padding: '10px 24px', color: '#000', fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', fontSize: 13, cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.6 : 1, marginTop: 22 }}
+              disabled={loading || !newISPName.trim()}
+              style={{
+                background: colors.gold,
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '11px 20px',
+                fontSize: '12px',
+                fontFamily: 'Space Grotesk, sans-serif',
+                fontWeight: 700,
+                cursor: !loading && newISPName.trim() ? 'pointer' : 'not-allowed',
+                opacity: !loading && newISPName.trim() ? 1 : 0.5,
+                transition: 'opacity 0.2s',
+              }}
             >
-              {generating ? 'Generating...' : 'Generate Link'}
+              {loading ? 'Generating...' : 'Generate'}
             </button>
           </div>
 
           {generatedLink && (
-            <div style={{ marginTop: 16, background: C.raised, border: `0.5px solid ${C.gold}30`, borderRadius: 8, padding: 14, display: 'flex', gap: 12, alignItems: 'center' }}>
-              <code style={{ flex: 1, fontSize: 11, color: C.gold, fontFamily: 'DM Mono, monospace', wordBreak: 'break-all' as const }}>{generatedLink}</code>
+            <div style={{
+              background: colors.raised,
+              border: `0.5px solid ${colors.green}40`,
+              borderRadius: '8px',
+              padding: '16px',
+            }}>
+              <div style={{
+                fontSize: '10px',
+                fontFamily: 'DM Mono, monospace',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: colors.green,
+                marginBottom: '8px',
+              }}>
+                Invite Created
+              </div>
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: '12px',
+                color: colors.textPrimary,
+                wordBreak: 'break-all',
+                marginBottom: '12px',
+                background: colors.void,
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: `0.5px solid ${colors.border}`,
+              }}>
+                {generatedLink.invite_link}
+              </div>
               <button
-                onClick={() => copy(generatedLink)}
-                style={{ background: `${C.gold}20`, border: `0.5px solid ${C.gold}40`, borderRadius: 6, padding: '6px 14px', color: C.gold, fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => copyToClipboard(generatedLink.invite_link)}
+                style={{
+                  background: colors.gold,
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  fontSize: '11px',
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
               >
-                Copy
+                {showCopyMessage ? 'Copied' : 'Copy Link'}
               </button>
+              <div style={{
+                fontSize: '10px',
+                fontFamily: 'DM Mono, monospace',
+                color: colors.textMuted,
+                marginTop: '8px',
+              }}>
+                Expires: {new Date(generatedLink.expires_at).toLocaleDateString()}
+              </div>
             </div>
           )}
         </div>
 
-        {/* ACTIVE ISPs */}
-        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
-          {lbl(`Active ISPs (${activeISPs.length})`)}
-          {loading ? (
-            <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace' }}>Loading...</div>
-          ) : activeISPs.length === 0 ? (
-            <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '16px 0' }}>No active ISPs</div>
-          ) : (
-            <div>
-              {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 120px 100px 80px', gap: 16, paddingBottom: 10, borderBottom: `0.5px solid ${C.dim}`, marginBottom: 4 }}>
-                {['ISP', 'Email', 'Commission', 'Since', 'Status'].map(h => (
-                  <div key={h} style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: C.muted }}>{h}</div>
-                ))}
-              </div>
-              {activeISPs.map((isp, i) => (
-                <div key={isp.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 160px 120px 100px 80px',
-                  gap: 16, padding: '14px 0',
-                  borderBottom: i < activeISPs.length - 1 ? `0.5px solid ${C.dim}` : 'none',
-                  alignItems: 'center',
-                }}>
-                  <div>
-                    <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 3 }}>{isp.name}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.muted }}>/{isp.slug}</div>
-                  </div>
-                  <div style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: '#666' }}>{isp.email || '--'}</div>
-                  <div style={{ fontSize: 13, fontFamily: 'DM Mono, monospace', color: C.gold }}>{isp.commission_rate ?? '--'}%</div>
-                  <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted }}>
-                    {new Date(isp.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: '2-digit' })}
-                  </div>
-                  {badge('active')}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* PENDING ISPs */}
-        {(loading || pendingISPs.length > 0) && (
-          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderTop: `2px solid ${C.amber}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
-            {lbl(`Pending Approval (${pendingISPs.length})`)}
-            {loading ? (
-              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace' }}>Loading...</div>
-            ) : pendingISPs.length === 0 ? (
-              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '8px 0' }}>No pending ISPs</div>
-            ) : (
-              <div>
-                {pendingISPs.map((isp, i) => (
-                  <div key={isp.id} style={{
-                    display: 'grid', gridTemplateColumns: '1fr 160px 120px',
-                    gap: 16, padding: '14px 0',
-                    borderBottom: i < pendingISPs.length - 1 ? `0.5px solid ${C.dim}` : 'none',
-                    alignItems: 'center',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 3 }}>{isp.name}</div>
-                      <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.muted }}>
-                        {isp.email || isp.id.slice(0, 12) + '…'} · Registered {new Date(isp.created_at).toLocaleDateString('en-KE')}
-                      </div>
-                    </div>
-                    {badge('pending')}
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const r = await fetch(`${API}/api/admin/isps/${isp.id}/approve`, { method: 'POST', headers: h() });
-                            if (!r.ok) throw new Error();
-                            showToast(`${isp.name} approved`);
-                            load();
-                          } catch { showToast('Approval failed'); }
-                        }}
-                        style={{ background: `${C.green}15`, border: `0.5px solid ${C.green}30`, borderRadius: 6, padding: '6px 14px', color: C.green, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Mono, monospace' }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Reject ${isp.name}?`)) return;
-                          try {
-                            const r = await fetch(`${API}/api/admin/isps/${isp.id}/reject`, { method: 'POST', headers: h() });
-                            if (!r.ok) throw new Error();
-                            showToast(`${isp.name} rejected`);
-                            load();
-                          } catch { showToast('Action failed'); }
-                        }}
-                        style={{ background: `${C.red}15`, border: `0.5px solid ${C.red}30`, borderRadius: 6, padding: '6px 14px', color: C.red, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Mono, monospace' }}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* ISP LIST */}
+        <div style={{
+          background: colors.base,
+          border: `0.5px solid ${colors.border}`,
+          borderRadius: '10px',
+          padding: '24px',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            fontFamily: 'DM Mono, monospace',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            color: colors.textMuted,
+            marginBottom: '20px',
+          }}>
+            All ISPs
           </div>
-        )}
 
-        {/* INVITE HISTORY */}
-        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
-          {lbl('Invite History')}
-          {loading ? (
-            <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace' }}>Loading...</div>
-          ) : invites.length === 0 ? (
-            <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '8px 0' }}>No invites generated yet</div>
+          {isps.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              color: colors.textMuted,
+              fontSize: '13px',
+            }}>
+              No ISPs. Generate invite links above to onboard.
+            </div>
           ) : (
             <div>
-              {invites.map((inv, i) => (
-                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < invites.length - 1 ? `0.5px solid ${C.dim}` : 'none' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: inv.status === 'used' ? C.green : inv.status === 'expired' ? C.red : C.amber, flexShrink: 0 }} />
-                  <code style={{ flex: 1, fontSize: 10, color: C.muted, fontFamily: 'DM Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                    {inv.url || `...token=${inv.token?.slice(0, 16)}...`}
-                  </code>
-                  <span style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, color: inv.status === 'used' ? C.green : inv.status === 'expired' ? C.red : C.amber, textTransform: 'uppercase' as const, flexShrink: 0 }}>
-                    {inv.status}
-                  </span>
-                  <button
-                    onClick={() => copy(inv.url || `${inv.token}`)}
-                    style={{ background: C.raised, border: `0.5px solid ${C.border}`, borderRadius: 6, padding: '4px 10px', color: C.muted, fontSize: 10, cursor: 'pointer', flexShrink: 0 }}
-                  >
-                    copy
-                  </button>
+              {isps.map((isp, i) => (
+                <div
+                  key={isp.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 120px 100px',
+                    gap: '24px',
+                    padding: '16px 0',
+                    borderBottom: i < isps.length - 1 ? `0.5px solid ${colors.raised}` : 'none',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: colors.textPrimary,
+                      fontWeight: 500,
+                      marginBottom: '4px',
+                    }}>
+                      {isp.isp_name || 'Unnamed ISP'}
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.textMuted,
+                    }}>
+                      {isp.id.slice(0, 12)}...
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'right',
+                  }}>
+                    <div style={{
+                      fontSize: '10px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.textMuted,
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                    }}>
+                      Status
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontFamily: 'DM Mono, monospace',
+                      color: colors.amber,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                    }}>
+                      Pending
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: colors.amber,
+                      boxShadow: `0 0 8px ${colors.amber}`,
+                      margin: '0 auto',
+                      marginBottom: '6px',
+                    }} />
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, background: C.base, border: `0.5px solid ${C.green}40`, color: C.green, padding: '12px 20px', borderRadius: 10, fontSize: 12, fontFamily: 'DM Mono, monospace', fontWeight: 700, zIndex: 9999 }}>
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

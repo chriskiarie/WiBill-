@@ -1,205 +1,305 @@
 'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const C = {
-  void: '#000000', base: '#080808', raised: '#0d0d0d',
-  border: '#141414',
-  text: '#f0f0f0', muted: '#444444',
-  gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
-};
-
-// Inner component uses useSearchParams — must be inside Suspense
-function LoginForm() {
+export default function BatcaveLogin() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const prefilledEmail = searchParams?.get('username') || searchParams?.get('email') || '';
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (prefilledEmail) setEmail(prefilledEmail);
-    const token = localStorage.getItem('wb_token');
-    if (token) router.replace('/admin');
-  }, [prefilledEmail, router]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const login = async () => {
     setError('');
     setLoading(true);
     try {
-      const body = new URLSearchParams();
-      body.append('username', email);
-      body.append('password', password);
-      const r = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
+      const form = new FormData();
+      form.append('username', email);
+      form.append('password', password);
+      
+      const r = await fetch(`${API}/api/auth/login`, { 
+        method: 'POST', 
+        body: form 
       });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err?.detail || 'Invalid credentials');
-      }
+      
       const data = await r.json();
+      
+      if (!r.ok) { 
+        setError(data.detail || 'Authentication failed'); 
+        return; 
+      }
+      
+      if (data.role !== 'platform_admin') {
+        setError('Restricted. Platform administrators only.');
+        return;
+      }
+      
+      // ✅ FIX: Store token in localStorage with correct key
+      // This matches what layout.tsx expects
       localStorage.setItem('wb_token', data.access_token);
-      localStorage.setItem('wb_role', data.role || '');
-      router.replace(data.role === 'platform_admin' ? '/admin' : '/dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+      localStorage.setItem('wb_role', data.role);
+      localStorage.setItem('wb_tenant', data.tenant_id || '');
+      localStorage.setItem('wb_email', email);
+      
+      // Redirect to dashboard
+      router.push('/admin');
+    } catch (err: any) { 
+      setError('Cannot reach server — check connection');
+      console.error('Login error:', err);
+    }
+    finally { 
+      setLoading(false); 
     }
   };
 
-  const inp: React.CSSProperties = {
-    width: '100%',
-    background: C.raised,
-    border: `0.5px solid ${C.border}`,
-    borderRadius: 8,
-    padding: '12px 14px',
-    color: C.text,
-    fontFamily: 'DM Mono, monospace',
-    fontSize: 13,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.15s',
-  };
-
   return (
-    <div style={{ width: '100%', maxWidth: 400 }}>
-      {/* Logo */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 28, height: 28, background: C.gold, borderRadius: 6 }} />
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.gold, fontFamily: 'Space Grotesk, sans-serif', letterSpacing: '-0.02em' }}>
-            BATCAVE
+    <div style={{
+      minHeight: '100vh',
+      background: '#030308',
+      display: 'flex',
+      fontFamily: '"Space Grotesk", Inter, sans-serif',
+    }}>
+      {/* Left panel */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '60px 80px',
+        borderRight: '1px solid rgba(250,200,0,0.06)',
+      }}>
+        {/* Logo */}
+        <div style={{ marginBottom: 60 }}>
+          <div style={{
+            width: 48, 
+            height: 48,
+            background: 'linear-gradient(135deg, #fac800, #f59e0b)',
+            borderRadius: 12,
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: 22, 
+            fontWeight: 900, 
+            color: '#0a0800',
+            boxShadow: '0 0 30px rgba(250,200,0,0.25)',
+            marginBottom: 20,
+          }}>X</div>
+          <div style={{ 
+            fontSize: 28, 
+            fontWeight: 900, 
+            color: '#fff', 
+            letterSpacing: '-0.03em', 
+            marginBottom: 8 
+          }}>
+            Xw<span style={{ color: '#fac800' }}>B</span> Batcave
+          </div>
+          <div style={{ 
+            fontSize: 14, 
+            color: 'rgba(255,255,255,0.3)', 
+            lineHeight: 1.6 
+          }}>
+            Platform command center.<br />Restricted to authorized administrators.
           </div>
         </div>
-        <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          Platform Admin
+
+        {/* Stats preview (static) */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: 12 
+        }}>
+          {[
+            { label: 'Your Cut', value: '10%', desc: 'Per transaction' },
+            { label: 'Platform', value: 'WiBill', desc: 'v0.1.0' },
+            { label: 'Security', value: 'JWT', desc: 'Role-gated' },
+            { label: 'Access', value: 'Admin', desc: 'Only you' },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: 'rgba(250,200,0,0.04)',
+              border: '1px solid rgba(250,200,0,0.08)',
+              borderRadius: 12, 
+              padding: '14px 16px',
+            }}>
+              <div style={{ 
+                fontSize: 10, 
+                color: 'rgba(255,255,255,0.25)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.12em', 
+                marginBottom: 6 
+              }}>
+                {s.label}
+              </div>
+              <div style={{ 
+                fontSize: 18, 
+                fontWeight: 800, 
+                color: '#fac800', 
+                letterSpacing: '-0.02em' 
+              }}>
+                {s.value}
+              </div>
+              <div style={{ 
+                fontSize: 11, 
+                color: 'rgba(255,255,255,0.2)', 
+                marginTop: 2 
+              }}>
+                {s.desc}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Card */}
-      <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 28 }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: 'Space Grotesk, sans-serif', marginBottom: 4 }}>
-            Sign In
+      {/* Right panel - login form */}
+      <div style={{
+        width: 420,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '60px 48px',
+      }}>
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ 
+            fontSize: 22, 
+            fontWeight: 800, 
+            color: '#fff', 
+            letterSpacing: '-0.02em', 
+            marginBottom: 6 
+          }}>
+            Admin Access
           </div>
-          <div style={{ fontSize: 12, color: C.muted, fontFamily: 'DM Mono, monospace' }}>
-            {email ? `Continue as ${email}` : 'Enter your credentials'}
+          <div style={{ 
+            fontSize: 13, 
+            color: 'rgba(255,255,255,0.3)' 
+          }}>
+            Enter your platform credentials
           </div>
         </div>
 
-        {prefilledEmail && (
-          <div style={{ background: `${C.green}0d`, border: `0.5px solid ${C.green}20`, borderRadius: 7, padding: '10px 14px', color: C.green, fontSize: 11, fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>
-            Account approved — enter your password to continue
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 16, 
+          marginBottom: 24 
+        }}>
+          {[
+            { 
+              label: 'Email', 
+              value: email, 
+              set: setEmail, 
+              type: 'email', 
+              placeholder: 'admin@xwbill.co.ke' 
+            },
+            { 
+              label: 'Password', 
+              value: password, 
+              set: setPassword, 
+              type: 'password', 
+              placeholder: '••••••••••' 
+            },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: 11, 
+                fontWeight: 600, 
+                color: 'rgba(250,200,0,0.6)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.1em', 
+                marginBottom: 8 
+              }}>
+                {f.label}
+              </label>
+              <input
+                value={f.value}
+                onChange={e => f.set(e.target.value)}
+                type={f.type}
+                placeholder={f.placeholder}
+                onKeyDown={e => e.key === 'Enter' && !loading && login()}
+                disabled={loading}
+                style={{
+                  width: '100%', 
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1.5px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10, 
+                  padding: '12px 16px',
+                  fontSize: 14, 
+                  color: '#fff', 
+                  outline: 'none',
+                  boxSizing: 'border-box', 
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => e.target.style.borderColor = 'rgba(250,200,0,0.3)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              />
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div style={{
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 10, 
+            padding: '11px 16px',
+            fontSize: 13, 
+            color: '#f87171',
+            marginBottom: 20,
+          }}>
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: C.muted, marginBottom: 6 }}>
-              Email / Username
-            </div>
-            <input
-              type="text"
-              placeholder="admin@xwbill.co.ke"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={loading}
-              required
-              autoFocus={!email}
-              style={{ ...inp, opacity: loading ? 0.5 : 1 }}
-              onFocus={e => { e.currentTarget.style.borderColor = C.gold; }}
-              onBlur={e => { e.currentTarget.style.borderColor = C.border; }}
-            />
+        <button
+          onClick={login}
+          disabled={loading || !email || !password}
+          style={{
+            width: '100%',
+            background: loading 
+              ? 'rgba(250,200,0,0.1)' 
+              : 'linear-gradient(135deg, #fac800, #f59e0b)',
+            border: 'none', 
+            borderRadius: 12,
+            padding: '14px', 
+            color: loading ? 'rgba(255,255,255,0.3)' : '#0a0800',
+            fontSize: 14, 
+            fontWeight: 800,
+            cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
+            letterSpacing: '-0.01em',
+            transition: 'all 0.2s',
+            boxShadow: loading ? 'none' : '0 0 24px rgba(250,200,0,0.2)',
+            opacity: !email || !password ? 0.5 : 1,
+          }}>
+          {loading ? 'Authenticating...' : 'Enter the Batcave →'}
+        </button>
+
+        <div style={{ 
+          marginTop: 32, 
+          padding: '16px', 
+          background: 'rgba(255,255,255,0.02)', 
+          borderRadius: 10, 
+          border: '1px solid rgba(255,255,255,0.04)' 
+        }}>
+          <div style={{ 
+            fontSize: 11, 
+            color: 'rgba(255,255,255,0.2)', 
+            marginBottom: 6, 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.1em' 
+          }}>
+            ISP Dashboard
           </div>
-
-          <div>
-            <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: C.muted, marginBottom: 6 }}>
-              Password
-            </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loading}
-              required
-              autoFocus={!!email}
-              style={{ ...inp, opacity: loading ? 0.5 : 1 }}
-              onFocus={e => { e.currentTarget.style.borderColor = C.gold; }}
-              onBlur={e => { e.currentTarget.style.borderColor = C.border; }}
-            />
-          </div>
-
-          {error && (
-            <div style={{ background: `${C.red}0d`, border: `0.5px solid ${C.red}20`, borderRadius: 7, padding: '10px 14px', color: C.red, fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !email || !password}
-            style={{
-              width: '100%', background: C.gold, border: 'none', borderRadius: 8,
-              padding: '13px', color: '#000',
-              fontFamily: 'Space Grotesk, sans-serif', fontSize: 13, fontWeight: 700,
-              cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
-              opacity: loading || !email || !password ? 0.6 : 1,
-              transition: 'opacity 0.15s',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: `0.5px solid ${C.border}`, textAlign: 'center', fontSize: 10, color: C.muted, fontFamily: 'DM Mono, monospace' }}>
-          WiBill Platform · Nairobi, Kenya
+          <a href="/login" style={{ 
+            fontSize: 13, 
+            color: 'rgba(250,200,0,0.5)', 
+            textDecoration: 'none' 
+          }}>
+            dashboard.wibill.co.ke/login ↗
+          </a>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Suspense fallback — same black void, gold spinner
-function LoginSkeleton() {
-  return (
-    <div style={{ width: '100%', maxWidth: 400 }}>
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 28, height: 28, background: '#E8B84B', borderRadius: 6 }} />
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#E8B84B', fontFamily: 'Space Grotesk, sans-serif' }}>BATCAVE</div>
-        </div>
-        <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#444', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Platform Admin</div>
-      </div>
-      <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
-        <div style={{
-          width: 24, height: 24, border: '1px solid #141414',
-          borderTop: '1px solid #E8B84B', borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    </div>
-  );
-}
-
-// Default export wraps LoginForm in Suspense
-export default function AdminLogin() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'Inter, -apple-system, sans-serif' }}>
-      <Suspense fallback={<LoginSkeleton />}>
-        <LoginForm />
-      </Suspense>
     </div>
   );
 }
