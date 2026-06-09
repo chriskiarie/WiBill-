@@ -1,995 +1,249 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  Activity,
-  ArrowUpRight,
-  Clock3,
-  Database,
-  Server,
-  ShieldCheck,
-  Wifi,
-  RefreshCw,
-  AlertTriangle,
-  TrendingUp,
-  Users,
-  ReceiptText,
-  Circle,
-  Loader2,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface StatData {
-  revenue_today: number;
-  revenue_month: number;
-  active_sessions: number;
-  total_isps: number;
-}
-
-interface RevenuePoint {
-  date: string;
-  amount: number;
-}
-
-interface ISP {
-  id: string;
-  name: string;
-  is_active: boolean;
-  commission_rate: number;
-  created_at: string;
-}
-
-interface Transaction {
-  id: string;
-  amount_ksh: number;
-  platform_fee_ksh: number;
-  isp_earnings_ksh: number;
-  status: string;
-  created_at: string;
-}
-
-type Tone = 'good' | 'warn' | 'bad' | 'neutral';
-
-const COLORS = {
-  bg: '#050505',
-  panel: '#0b0b0b',
-  panel2: '#0f0f0f',
-  border: 'rgba(255,255,255,0.07)',
-  borderSoft: 'rgba(255,255,255,0.04)',
-  text: '#f4f4f4',
-  muted: '#8a8a8a',
-  dim: '#5f5f5f',
+const C = {
+  void: '#000000',
+  base: '#080808',
+  raised: '#0d0d0d',
+  border: '#141414',
+  text: '#f0f0f0',
+  muted: '#444444',
+  dim: '#1e1e1e',
   gold: '#E8B84B',
   green: '#22c55e',
-  red: '#ef4444',
   amber: '#f59e0b',
-  blue: '#60a5fa',
+  red: '#ef4444',
+  blue: '#3b82f6',
 };
 
-function money(n?: number) {
-  if (typeof n !== 'number' || Number.isNaN(n)) return '--';
-  return `KES ${new Intl.NumberFormat('en-KE').format(Math.round(n))}`;
-}
+const label = (text: string) => (
+  <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: C.muted, marginBottom: 8 }}>
+    {text}
+  </div>
+);
 
-function shortId(id: string, len = 10) {
-  return id.length > len ? `${id.slice(0, len)}…` : id;
-}
+const StatusDot = ({ ok }: { ok: boolean }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ width: 6, height: 6, borderRadius: '50%', background: ok ? C.green : C.red, boxShadow: `0 0 6px ${ok ? C.green : C.red}` }} />
+    <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase', color: ok ? C.green : C.red }}>
+      {ok ? 'OK' : 'ERR'}
+    </span>
+  </div>
+);
 
-function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function formatDay(date: Date) {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function statusTone(status?: string): Tone {
-  const s = (status || '').toLowerCase();
-  if (['completed', 'paid', 'active', 'success', 'online'].includes(s)) return 'good';
-  if (['pending', 'sandbox', 'processing', 'review'].includes(s)) return 'warn';
-  if (['failed', 'inactive', 'offline', 'error', 'cancelled'].includes(s)) return 'bad';
-  return 'neutral';
-}
-
-function toneColor(tone: Tone) {
-  switch (tone) {
-    case 'good':
-      return COLORS.green;
-    case 'warn':
-      return COLORS.amber;
-    case 'bad':
-      return COLORS.red;
-    default:
-      return COLORS.blue;
-  }
-}
-
-function toneBg(tone: Tone) {
-  const c = toneColor(tone);
-  return `${c}14`;
-}
-
-function toneBorder(tone: Tone) {
-  const c = toneColor(tone);
-  return `${c}33`;
-}
-
-function Panel({
-  title,
-  subtitle,
-  accent = COLORS.gold,
-  children,
-  className = '',
-}: {
-  title: string;
-  subtitle?: string;
-  accent?: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={className}
-      style={{
-        background: COLORS.panel,
-        border: `1px solid ${COLORS.border}`,
-        borderTop: `2px solid ${accent}`,
-        borderRadius: 18,
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          padding: '18px 20px 0 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: 16,
-          alignItems: 'end',
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontFamily: '"Space Grotesk", Inter, sans-serif',
-              fontSize: 15,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {title}
-          </div>
-          {subtitle ? (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 12,
-                color: COLORS.muted,
-                lineHeight: 1.4,
-              }}
-            >
-              {subtitle}
-            </div>
-          ) : null}
-        </div>
-      </div>
-      <div style={{ padding: 20 }}>{children}</div>
-    </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  suffix,
-  tone = 'neutral',
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  tone?: Tone;
-}) {
-  const c = toneColor(tone);
-  return (
-    <div
-      style={{
-        background: COLORS.panel2,
-        border: `1px solid ${toneBorder(tone)}`,
-        borderRadius: 16,
-        padding: 18,
-        minHeight: 110,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: COLORS.muted,
-          marginBottom: 14,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontFamily: '"DM Mono", monospace',
-          fontSize: 30,
-          lineHeight: 1,
-          letterSpacing: '-0.03em',
-          color: c,
-          marginBottom: suffix ? 8 : 0,
-        }}
-      >
-        {value}
-      </div>
-      {suffix ? (
-        <div
-          style={{
-            fontSize: 12,
-            color: COLORS.dim,
-          }}
-        >
-          {suffix}
-        </div>
-      ) : null}
-    </div>
-  );
-}
+interface Stats { revenue_today: number; revenue_month: number; active_sessions: number; total_isps: number; }
+interface Txn { id: string; amount_ksh: number; platform_fee_ksh: number; isp_earnings_ksh: number; status: string; created_at: string; phone_number?: string; }
+interface ISP { id: string; name: string; is_active: boolean; slug: string; created_at: string; }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<StatData>({
-    revenue_today: 0,
-    revenue_month: 0,
-    active_sessions: 0,
-    total_isps: 0,
-  });
-  const [trend, setTrend] = useState<RevenuePoint[]>([]);
+  const [stats, setStats] = useState<Stats>({ revenue_today: 0, revenue_month: 0, active_sessions: 0, total_isps: 0 });
+  const [txns, setTxns] = useState<Txn[]>([]);
   const [isps, setIsps] = useState<ISP[]>([]);
-  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [health, setHealth] = useState<{ status: string; database: string } | null>(null);
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    let mounted = true;
+    const token = localStorage.getItem('wb_token');
+    if (!token) return;
 
-    async function load() {
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) {
-          if (mounted) {
-            setError('Login required.');
-            setLoading(false);
-          }
-          return;
-        }
+    const h = { Authorization: `Bearer ${token}` };
 
-        const headers = { Authorization: `Bearer ${token}` };
+    Promise.allSettled([
+      fetch(`${API}/api/tenants/dashboard`, { headers: h }).then(r => r.json()),
+      fetch(`${API}/api/transactions?limit=6`, { headers: h }).then(r => r.json()),
+      fetch(`${API}/api/`, { headers: h }).then(r => r.json()),
+      fetch(`${API}/health`).then(r => r.json()),
+    ]).then(([dash, txnRes, ispRes, healthRes]) => {
+      const d = dash.status === 'fulfilled' ? dash.value : null;
+      const t = txnRes.status === 'fulfilled' ? txnRes.value : null;
+      const i = ispRes.status === 'fulfilled' ? ispRes.value : null;
+      const hl = healthRes.status === 'fulfilled' ? healthRes.value : null;
 
-        const fetchJson = async (url: string) => {
-          const response = await fetch(url, { headers });
-          try {
-            return await response.json();
-          } catch {
-            return null;
-          }
-        };
+      const ispList: ISP[] = Array.isArray(i) ? i : Array.isArray(i?.value) ? i.value : [];
 
-        const [dash, txnData, sessionData, ispData] = await Promise.all([
-          fetchJson(`${API}/api/tenants/dashboard`),
-          fetchJson(`${API}/api/transactions?limit=50`),
-          fetchJson(`${API}/api/sessions?limit=100`),
-          fetchJson(`${API}/api/`),
-        ]);
-
-        const txnsList: Transaction[] = Array.isArray(txnData?.value) ? txnData.value : [];
-        const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : [];
-        const ispList: ISP[] = Array.isArray(ispData?.value) ? ispData.value : [];
-
-        if (!mounted) return;
-
-        setStats({
-          revenue_today: Number(dash?.revenue_today || 0),
-          revenue_month: Number(dash?.revenue_month || 0),
-          active_sessions: sessionsList.length,
-          total_isps: ispList.length,
-        });
-
-        setTxns(txnsList.slice(0, 6));
-        setIsps(ispList.slice(0, 5));
-
-        const byDay = new Map<string, number>();
-        const now = new Date();
-        for (let i = 6; i >= 0; i -= 1) {
-          const d = new Date();
-          d.setDate(now.getDate() - i);
-          byDay.set(dateKey(d), 0);
-        }
-
-        txnsList.forEach((txn) => {
-          const created = txn.created_at ? new Date(txn.created_at) : null;
-          if (!created || Number.isNaN(created.getTime())) return;
-          const key = dateKey(created);
-          if (!byDay.has(key)) return;
-          const amount = Number(txn.amount_ksh || 0);
-          byDay.set(key, (byDay.get(key) || 0) + amount);
-        });
-
-        const points: RevenuePoint[] = [...byDay.entries()].map(([key, amount]) => ({
-          date: formatDay(new Date(`${key}T00:00:00`)),
-          amount,
-        }));
-        setTrend(points);
-        setError('');
-      } catch (e) {
-        console.error('Dashboard load failed:', e);
-        if (mounted) setError('Dashboard stream unavailable.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      mounted = false;
-    };
+      setStats({
+        revenue_today: d?.revenue_today || 0,
+        revenue_month: d?.revenue_month || 0,
+        active_sessions: d?.active_sessions || 0,
+        total_isps: ispList.length,
+      });
+      setTxns((Array.isArray(t?.value) ? t.value : []).slice(0, 6));
+      setIsps(ispList.slice(0, 6));
+      setHealth(hl);
+      setLoading(false);
+    });
   }, []);
 
-  const timeStr = time.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
-  const trendMax = useMemo(() => Math.max(...trend.map((p) => p.amount), 1), [trend]);
+  const card = (children: React.ReactNode, accent?: string) => (
+    <div style={{
+      background: C.base, border: `0.5px solid ${C.border}`,
+      borderTop: accent ? `2px solid ${accent}` : undefined,
+      borderRadius: 10, padding: 24,
+    }}>
+      {children}
+    </div>
+  );
 
-  const systemNodes = [
-    { label: 'API Gateway', value: 'Online', tone: 'good' as Tone },
-    { label: 'Database', value: 'Online', tone: 'good' as Tone },
-    { label: 'M-Pesa', value: 'Sandbox', tone: 'warn' as Tone },
-  ];
+  const statNum = (val: number | string, color: string) => (
+    <div style={{ fontSize: 36, fontFamily: 'DM Mono, monospace', fontWeight: 500, color, letterSpacing: '-0.03em', lineHeight: 1 }}>
+      {val}
+    </div>
+  );
 
-  const activeCount = isps.filter((isp) => isp.is_active).length;
-  const completedCount = txns.filter((txn) => statusTone(txn.status) === 'good').length;
-  const pendingCount = txns.filter((txn) => statusTone(txn.status) === 'warn').length;
+  const statusBadge = (status: string) => {
+    const ok = status === 'completed' || status === 'paid';
+    return (
+      <span style={{
+        display: 'inline-block', padding: '2px 8px', borderRadius: 4,
+        fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase',
+        background: ok ? `${C.green}15` : `${C.amber}15`,
+        color: ok ? C.green : C.amber,
+        border: `0.5px solid ${ok ? `${C.green}30` : `${C.amber}30`}`,
+      }}>
+        {status}
+      </span>
+    );
+  };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: COLORS.bg,
-        color: COLORS.text,
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1520,
-          margin: '0 auto',
-          padding: '0 28px 36px',
-        }}
-      >
-        <header
-          style={{
-            height: 68,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: `1px solid ${COLORS.border}`,
-            marginBottom: 24,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontFamily: '"Space Grotesk", Inter, sans-serif',
-                fontSize: 18,
-                fontWeight: 800,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-              }}
-            >
-              BATCAVE
-            </div>
-            <div style={{ marginTop: 4, fontSize: 12, color: COLORS.muted }}>
-              WiBill Command Center
-            </div>
+    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+      {/* TOPBAR */}
+      <div style={{ height: 52, borderBottom: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px' }}>
+        <div style={{ fontSize: 18, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+          Dashboard
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, boxShadow: `0 0 8px ${C.green}` }} />
+            <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.muted }}>LIVE</span>
           </div>
+          <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted }}>{timeStr}</span>
+        </div>
+      </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Circle size={9} fill={COLORS.green} color={COLORS.green} />
-              <span style={{ color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                Live
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.muted }}>
-              <Clock3 size={14} />
-              <span style={{ fontFamily: '"DM Mono", monospace' }}>{timeStr}</span>
-            </div>
-          </div>
-        </header>
+      <div style={{ padding: 28, maxWidth: 1400, margin: '0 auto' }}>
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 20,
-              padding: '14px 16px',
-              borderRadius: 14,
-              border: `1px solid ${toneBorder('warn')}`,
-              background: toneBg('warn'),
-              color: COLORS.text,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <AlertTriangle size={16} color={COLORS.amber} />
-            <span>{error}</span>
-          </div>
-        ) : null}
+        {/* STAT CARDS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {card(
+            <>{label('Revenue Today')}{statNum(stats.revenue_today ? `${(stats.revenue_today / 1000).toFixed(1)}K` : '--', C.gold)}<div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, marginTop: 6 }}>KES</div></>,
+            C.gold
+          )}
+          {card(
+            <>{label('Monthly Revenue')}{statNum(stats.revenue_month ? `${(stats.revenue_month / 1000).toFixed(1)}K` : '--', C.blue)}<div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, marginTop: 6 }}>KES</div></>,
+            C.blue
+          )}
+          {card(
+            <>{label('Active Sessions')}{statNum(stats.active_sessions || '--', C.green)}<div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, marginTop: 6 }}>Online</div></>,
+            C.green
+          )}
+          {card(
+            <>{label('ISP Network')}{statNum(stats.total_isps || '--', C.amber)}<div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, marginTop: 6 }}>Partners</div></>,
+            C.amber
+          )}
+        </div>
 
-        <main style={{ display: 'grid', gap: 18 }}>
-          <section
-            style={{
-              background: `linear-gradient(180deg, #0b0b0b 0%, #080808 100%)`,
-              border: `1px solid ${COLORS.border}`,
-              borderTop: `2px solid ${COLORS.gold}`,
-              borderRadius: 22,
-              padding: 22,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 24,
-                alignItems: 'flex-end',
-                marginBottom: 20,
-              }}
-            >
+        {/* BOTTOM GRID: ISPs + Txns + System */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: 16 }}>
+
+          {/* ISP NETWORK */}
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+            {label('ISP Network')}
+            {loading ? (
+              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '20px 0' }}>Loading...</div>
+            ) : isps.length === 0 ? (
+              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '20px 0' }}>No ISPs onboarded yet</div>
+            ) : (
               <div>
-                <div
-                  style={{
-                    fontFamily: '"Space Grotesk", Inter, sans-serif',
-                    fontSize: 34,
-                    lineHeight: 1,
-                    fontWeight: 800,
-                    letterSpacing: '-0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Control Room
-                </div>
-                <div style={{ marginTop: 10, color: COLORS.muted, maxWidth: 720, lineHeight: 1.6 }}>
-                  Operational overview for revenue, sessions, ISP status, and transaction flow. No fake metrics, no
-                  decorative noise.
-                </div>
+                {isps.map((isp, i) => (
+                  <div key={isp.id} style={{
+                    display: 'grid', gridTemplateColumns: '1fr auto',
+                    gap: 16, padding: '12px 0',
+                    borderBottom: i < isps.length - 1 ? `0.5px solid ${C.dim}` : 'none',
+                    alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: C.text, fontWeight: 500, marginBottom: 3 }}>{isp.name}</div>
+                      <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.muted }}>/{isp.slug}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: isp.is_active ? C.green : C.red, boxShadow: `0 0 6px ${isp.is_active ? C.green : C.red}` }} />
+                      <span style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase', color: isp.is_active ? C.green : C.red }}>
+                        {isp.is_active ? 'Live' : 'Off'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
-                  borderRadius: 14,
-                  background: COLORS.panel2,
-                  border: `1px solid ${COLORS.border}`,
-                }}
-              >
-                <RefreshCw size={14} color={COLORS.gold} />
-                <div>
-                  <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: COLORS.muted }}>
-                    Last refresh
-                  </div>
-                  <div style={{ marginTop: 4, fontFamily: '"DM Mono", monospace', fontSize: 13 }}>{timeStr}</div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                gap: 14,
-              }}
-            >
-              <Metric
-                label="Revenue Today"
-                value={loading ? '...' : money(stats.revenue_today)}
-                suffix="cash collected in the current day"
-                tone="neutral"
-              />
-              <Metric
-                label="Monthly Revenue"
-                value={loading ? '...' : money(stats.revenue_month)}
-                suffix="rolled up across the current month"
-                tone="neutral"
-              />
-              <Metric
-                label="Active Sessions"
-                value={loading ? '...' : `${stats.active_sessions}`}
-                suffix="connected users on the network"
-                tone="good"
-              />
-              <Metric
-                label="Active ISPs"
-                value={loading ? '...' : `${activeCount}/${stats.total_isps}`}
-                suffix="online partners out of total configured"
-                tone="warn"
-              />
-            </div>
-          </section>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(320px, 1fr)', gap: 18 }}>
-            <Panel
-              title="Revenue contour"
-              subtitle="Seven-day collection pattern built from real transaction timestamps."
-              accent={COLORS.gold}
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gap: 14,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                    gap: 10,
-                    alignItems: 'end',
-                    minHeight: 230,
-                  }}
-                >
-                  {trend.length === 0 ? (
-                    <div
-                      style={{
-                        gridColumn: '1 / -1',
-                        minHeight: 200,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: COLORS.muted,
-                        border: `1px dashed ${COLORS.border}`,
-                        borderRadius: 16,
-                        background: COLORS.panel2,
-                      }}
-                    >
-                      Awaiting transaction data.
-                    </div>
-                  ) : (
-                    trend.map((point) => {
-                      const height = Math.max((point.amount / trendMax) * 100, 8);
-                      return (
-                        <div key={point.date} style={{ display: 'grid', gap: 10 }}>
-                          <div
-                            style={{
-                              height: 190,
-                              display: 'flex',
-                              alignItems: 'end',
-                              background: COLORS.panel2,
-                              border: `1px solid ${COLORS.border}`,
-                              borderRadius: 14,
-                              padding: 10,
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '100%',
-                                height: `${height}%`,
-                                minHeight: 8,
-                                borderRadius: 12,
-                                background: COLORS.gold,
-                                boxShadow: '0 0 0 1px rgba(0,0,0,0.28) inset',
-                              }}
-                              title={`${point.date}: ${money(point.amount)}`}
-                            />
-                          </div>
-                          <div
-                            style={{
-                              textAlign: 'center',
-                              fontSize: 11,
-                              color: COLORS.muted,
-                              letterSpacing: '0.04em',
-                            }}
-                          >
-                            {point.date}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      background: COLORS.panel2,
-                    }}
-                  >
-                    <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                      Completed
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontFamily: '"DM Mono", monospace',
-                        fontSize: 20,
-                        color: COLORS.green,
-                      }}
-                    >
-                      {completedCount}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      background: COLORS.panel2,
-                    }}
-                  >
-                    <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                      Pending
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontFamily: '"DM Mono", monospace',
-                        fontSize: 20,
-                        color: COLORS.amber,
-                      }}
-                    >
-                      {pendingCount}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 14,
-                      border: `1px solid ${COLORS.border}`,
-                      background: COLORS.panel2,
-                    }}
-                  >
-                    <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                      Transactions
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontFamily: '"DM Mono", monospace',
-                        fontSize: 20,
-                        color: COLORS.text,
-                      }}
-                    >
-                      {txns.length}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Panel>
-
-            <Panel
-              title="System nodes"
-              subtitle="Live platform health and core service states."
-              accent={COLORS.blue}
-            >
-              <div style={{ display: 'grid', gap: 12 }}>
-                {systemNodes.map((node) => {
-                  const c = toneColor(node.tone);
-                  return (
-                    <div
-                      key={node.label}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '14px 0',
-                        borderBottom: `1px solid ${COLORS.borderSoft}`,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 13, color: COLORS.text }}>{node.label}</div>
-                        <div style={{ marginTop: 4, fontSize: 11, color: COLORS.muted }}>
-                          Core dependency check
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Circle size={8} fill={c} color={c} />
-                        <div
-                          style={{
-                            fontSize: 10,
-                            letterSpacing: '0.18em',
-                            textTransform: 'uppercase',
-                            color: c,
-                            fontFamily: '"DM Mono", monospace',
-                          }}
-                        >
-                          {node.value}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                <div
-                  style={{
-                    marginTop: 6,
-                    padding: 16,
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: COLORS.panel2,
-                  }}
-                >
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: COLORS.muted }}>
-                    Network summary
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: 'grid',
-                      gap: 10,
-                      color: COLORS.text,
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <span style={{ color: COLORS.muted }}>Configured ISPs</span>
-                      <span style={{ fontFamily: '"DM Mono", monospace' }}>{stats.total_isps}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <span style={{ color: COLORS.muted }}>Live sessions</span>
-                      <span style={{ fontFamily: '"DM Mono", monospace' }}>{stats.active_sessions}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <span style={{ color: COLORS.muted }}>Platform mode</span>
-                      <span style={{ fontFamily: '"DM Mono", monospace', color: COLORS.gold }}>Operational</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Panel>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.9fr)', gap: 18 }}>
-            <Panel
-              title="Recent transactions"
-              subtitle="Latest movement across the billing layer."
-              accent={COLORS.green}
-            >
-              <div style={{ display: 'grid', gap: 10 }}>
-                {txns.length === 0 ? (
-                  <div
-                    style={{
-                      minHeight: 170,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: `1px dashed ${COLORS.border}`,
-                      borderRadius: 16,
-                      color: COLORS.muted,
-                      background: COLORS.panel2,
-                    }}
-                  >
-                    No transactions yet.
-                  </div>
-                ) : (
-                  txns.map((txn) => {
-                    const tone = statusTone(txn.status);
-                    return (
-                      <div
-                        key={txn.id}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1.2fr 0.8fr 0.9fr 0.6fr',
-                          gap: 12,
-                          alignItems: 'center',
-                          padding: '14px 0',
-                          borderBottom: `1px solid ${COLORS.borderSoft}`,
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontSize: 13, color: COLORS.text, fontFamily: '"DM Mono", monospace' }}>
-                            {shortId(txn.id, 14)}
-                          </div>
-                          <div style={{ marginTop: 5, fontSize: 11, color: COLORS.muted }}>
-                            {txn.created_at ? new Date(txn.created_at).toLocaleString() : '—'}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                            Amount
-                          </div>
-                          <div style={{ marginTop: 6, fontFamily: '"DM Mono", monospace', color: COLORS.gold }}>
-                            {money(txn.amount_ksh)}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                            Net
-                          </div>
-                          <div style={{ marginTop: 6, fontFamily: '"DM Mono", monospace', color: COLORS.green }}>
-                            {money(txn.isp_earnings_ksh)}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: 86,
-                              padding: '6px 10px',
-                              borderRadius: 999,
-                              border: `1px solid ${toneBorder(tone)}`,
-                              background: toneBg(tone),
-                              color: toneColor(tone),
-                              fontSize: 10,
-                              letterSpacing: '0.16em',
-                              textTransform: 'uppercase',
-                              fontFamily: '"DM Mono", monospace',
-                            }}
-                          >
-                            {txn.status || 'unknown'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </Panel>
-
-            <Panel title="ISP network" subtitle="Current partner roster and commission view." accent={COLORS.amber}>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {isps.length === 0 ? (
-                  <div
-                    style={{
-                      minHeight: 170,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: `1px dashed ${COLORS.border}`,
-                      borderRadius: 16,
-                      color: COLORS.muted,
-                      background: COLORS.panel2,
-                      textAlign: 'center',
-                      padding: 20,
-                    }}
-                  >
-                    No ISPs detected from the current stream.
-                  </div>
-                ) : (
-                  isps.map((isp) => (
-                    <div
-                      key={isp.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto',
-                        gap: 12,
-                        alignItems: 'center',
-                        padding: '14px 0',
-                        borderBottom: `1px solid ${COLORS.borderSoft}`,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 13, color: COLORS.text }}>{isp.name}</div>
-                        <div style={{ marginTop: 5, fontSize: 11, color: COLORS.muted, fontFamily: '"DM Mono", monospace' }}>
-                          {shortId(isp.id, 14)}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-                          Commission
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 6,
-                            fontFamily: '"DM Mono", monospace',
-                            color: COLORS.text,
-                          }}
-                        >
-                          {isp.commission_rate}%
-                        </div>
-                        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
-                          <Circle size={8} fill={isp.is_active ? COLORS.green : COLORS.red} color={isp.is_active ? COLORS.green : COLORS.red} />
-                          <span
-                            style={{
-                              fontSize: 10,
-                              letterSpacing: '0.16em',
-                              textTransform: 'uppercase',
-                              color: isp.is_active ? COLORS.green : COLORS.red,
-                              fontFamily: '"DM Mono", monospace',
-                            }}
-                          >
-                            {isp.is_active ? 'live' : 'offline'}
-                          </span>
-                        </div>
-                      </div>
+          {/* RECENT TRANSACTIONS */}
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+            {label('Recent Transactions')}
+            {loading ? (
+              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '20px 0' }}>Loading...</div>
+            ) : txns.length === 0 ? (
+              <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '20px 0' }}>No transactions yet</div>
+            ) : (
+              <div>
+                {txns.map((txn, i) => (
+                  <div key={txn.id} style={{
+                    display: 'grid', gridTemplateColumns: '1fr auto auto',
+                    gap: 12, padding: '12px 0',
+                    borderBottom: i < txns.length - 1 ? `0.5px solid ${C.dim}` : 'none',
+                    alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted }}>{txn.id.slice(0, 8)}…</div>
+                      {txn.phone_number && <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.muted, marginTop: 2 }}>{txn.phone_number}</div>}
                     </div>
-                  ))
-                )}
+                    <div style={{ fontSize: 13, fontFamily: 'DM Mono, monospace', color: C.gold, fontWeight: 500, textAlign: 'right' }}>
+                      {txn.amount_ksh.toLocaleString()}
+                    </div>
+                    {statusBadge(txn.status)}
+                  </div>
+                ))}
               </div>
-            </Panel>
+            )}
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 18,
-            }}
-          >
-            <Panel title="Security" subtitle="Access and status summary." accent={COLORS.red}>
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Auth mode</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>JWT</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Session policy</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>Bearer</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Last check</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{timeStr}</span>
-                </div>
+          {/* SYSTEM STATUS */}
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {label('System Status')}
+            {[
+              { name: 'API Server', ok: !!health },
+              { name: 'Database', ok: health?.database === 'connected' || health?.database === 'ok' },
+              { name: 'M-Pesa', ok: false },
+            ].map((item, i, arr) => (
+              <div key={item.name} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 0',
+                borderBottom: i < arr.length - 1 ? `0.5px solid ${C.dim}` : 'none',
+              }}>
+                <span style={{ fontSize: 13, color: health || i === 0 ? '#888' : C.muted }}>{item.name}</span>
+                <StatusDot ok={item.ok} />
               </div>
-            </Panel>
-
-            <Panel title="Operations" subtitle="What the room is doing right now." accent={COLORS.blue}>
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Topology</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{stats.total_isps} ISPs</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Transactions</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{txns.length} recent</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Sessions</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{stats.active_sessions} active</span>
-                </div>
+            ))}
+            {health && (
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: `0.5px solid ${C.dim}` }}>
+                {label('Version')}
+                <div style={{ fontSize: 14, fontFamily: 'DM Mono, monospace', color: C.gold }}>{(health as any).version || 'v1'}</div>
               </div>
-            </Panel>
-
-            <Panel title="Activity signal" subtitle="High level snapshot." accent={COLORS.gold}>
-              <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Revenue today</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{money(stats.revenue_today)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Revenue month</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace' }}>{money(stats.revenue_month)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14 }}>
-                  <span style={{ color: COLORS.muted }}>Health</span>
-                  <span style={{ fontFamily: '"DM Mono", monospace', color: COLORS.green }}>Stable</span>
-                </div>
-              </div>
-            </Panel>
+            )}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

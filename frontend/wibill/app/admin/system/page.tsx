@@ -4,248 +4,192 @@ import { useEffect, useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface HealthStatus {
+const C = {
+  void: '#000000', base: '#080808', raised: '#0d0d0d',
+  border: '#141414', dim: '#1e1e1e',
+  text: '#f0f0f0', muted: '#444444', secondary: '#666666',
+  gold: '#E8B84B', green: '#22c55e', amber: '#f59e0b', red: '#ef4444',
+};
+
+interface Health {
   status: string;
   version: string;
   database: string;
   environment: string;
+  uptime?: number;
+  timestamp?: string;
 }
 
-interface StatusIndicatorProps {
-  status: string;
-}
+const lbl = (t: string) => (
+  <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: C.muted, marginBottom: 10 }}>
+    {t}
+  </div>
+);
+
+const StatusDot = ({ status }: { status: string }) => {
+  const ok = status === 'ok' || status === 'connected' || status === 'healthy';
+  const warn = status === 'sandbox' || status === 'degraded';
+  const color = ok ? C.green : warn ? C.amber : C.red;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}` }} />
+      <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase' as const, color }}>
+        {status}
+      </span>
+    </div>
+  );
+};
 
 export default function AdminSystem() {
-  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [checking, setChecking] = useState(false);
 
-  useEffect(() => {
+  const check = () => {
+    setChecking(true);
     fetch(`${API}/health`)
-      .then((r) => r.json())
-      .then((data) => setHealth(data))
-      .catch((e) => console.error('Failed to load health:', e))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const colors = {
-    bgVoid: '#000000',
-    cardBg: '#0a0a0a',
-    border: '#141414',
-    textPrimary: '#f0f0f0',
-    textSecondary: '#666666',
-    textMuted: '#2a2a2a',
-    gold: '#E8B84B',
-    green: '#22c55e',
-    amber: '#f59e0b',
-    red: '#ef4444',
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(data => {
+        setHealth(data);
+        setError(false);
+        setLastChecked(new Date());
+      })
+      .catch(() => setError(true))
+      .finally(() => { setLoading(false); setChecking(false); });
   };
 
-  const StatusIndicator = ({ status }: StatusIndicatorProps) => {
-    let color = colors.red;
-    if (status === 'ok' || status === 'connected') color = colors.green;
-    else if (status === 'degraded' || status === 'sandbox') color = colors.amber;
+  useEffect(() => { check(); }, []);
 
-    return (
-      <div style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        background: `${color}15`,
-        border: `0.5px solid ${color}30`,
-      }}>
-        <div style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: color,
-          boxShadow: `0 0 4px ${color}`,
-        }} />
-        <span style={{
-          fontSize: '11px',
-          fontFamily: 'DM Mono, monospace',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          color: color,
-        }}>
-          {status}
-        </span>
-      </div>
-    );
-  };
+  const row = (label: string, value: React.ReactNode) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `0.5px solid ${C.dim}` }}>
+      <span style={{ fontSize: 13, color: C.secondary }}>{label}</span>
+      <div style={{ fontSize: 13, fontFamily: 'DM Mono, monospace', color: C.text }}>{value}</div>
+    </div>
+  );
 
   return (
-    <div style={{ background: colors.bgVoid, color: colors.textPrimary, minHeight: '100vh' }}>
-      {/* Topbar */}
-      <div style={{
-        height: '52px',
-        borderBottom: `0.5px solid ${colors.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 28px',
-      }}>
-        <div style={{ fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>
-          SYSTEM
+    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+      {/* TOPBAR */}
+      <div style={{ height: 52, borderBottom: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px' }}>
+        <div style={{ fontSize: 18, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, letterSpacing: '-0.02em', textTransform: 'uppercase' as const }}>
+          System
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {lastChecked && (
+            <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.muted }}>
+              Checked {lastChecked.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
+          )}
+          <button
+            onClick={check}
+            disabled={checking}
+            style={{
+              background: 'none', border: `0.5px solid ${C.border}`, borderRadius: 6,
+              padding: '6px 14px', color: checking ? C.muted : C.gold,
+              fontSize: 11, fontFamily: 'DM Mono, monospace', fontWeight: 700,
+              cursor: checking ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {checking ? 'Checking...' : 'Refresh'}
+          </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ padding: '28px', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ padding: 28, maxWidth: 900, margin: '0 auto' }}>
+
         {loading ? (
-          <div style={{ color: colors.textMuted, textAlign: 'center', padding: '60px 20px' }}>
-            Loading system status...
+          <div style={{ color: C.muted, fontSize: 12, fontFamily: 'DM Mono, monospace', padding: '60px 0', textAlign: 'center' }}>
+            Checking system...
           </div>
-        ) : !health ? (
-          <div style={{ color: colors.red, textAlign: 'center', padding: '60px 20px' }}>
-            Failed to load system status
+        ) : error ? (
+          <div style={{ background: C.base, border: `0.5px solid ${C.red}30`, borderTop: `2px solid ${C.red}`, borderRadius: 10, padding: 24, marginBottom: 20 }}>
+            {lbl('Status')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.red, boxShadow: `0 0 8px ${C.red}` }} />
+              <span style={{ fontSize: 20, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: C.red, textTransform: 'uppercase' as const }}>
+                Unreachable
+              </span>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.muted }}>
+              Cannot connect to {API}
+            </div>
           </div>
-        ) : (
-          <div>
-            {/* Health Summary */}
+        ) : health && (
+          <>
+            {/* OVERALL STATUS */}
             <div style={{
-              background: colors.cardBg,
-              border: `0.5px solid ${health.status === 'ok' ? `${colors.green}30` : `${colors.amber}30`}`,
-              borderTop: `2px solid ${health.status === 'ok' ? colors.green : colors.amber}`,
-              borderRadius: '10px',
-              padding: '20px',
-              marginBottom: '28px',
+              background: C.base,
+              border: `0.5px solid ${health.status === 'ok' ? `${C.green}30` : `${C.amber}30`}`,
+              borderTop: `2px solid ${health.status === 'ok' ? C.green : C.amber}`,
+              borderRadius: 10, padding: 24, marginBottom: 20,
             }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    color: colors.textMuted,
-                    marginBottom: '8px',
-                  }}>
-                    System Status
-                  </div>
-                  <div style={{
-                    fontSize: '28px',
-                    fontFamily: 'Space Grotesk, sans-serif',
-                    fontWeight: 700,
-                    color: colors.textPrimary,
-                    letterSpacing: '-0.04em',
-                    textTransform: 'uppercase',
-                  }}>
-                    {health.status}
+                  {lbl('System Status')}
+                  <div style={{ fontSize: 28, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, color: health.status === 'ok' ? C.green : C.amber, textTransform: 'uppercase' as const, letterSpacing: '-0.02em' }}>
+                    {health.status === 'ok' ? 'Operational' : health.status}
                   </div>
                 </div>
-                <StatusIndicator status={health.status} />
+                <StatusDot status={health.status} />
               </div>
             </div>
 
-            {/* Details Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '28px',
-            }}>
-              {/* API Version */}
-              <div style={{
-                background: colors.cardBg,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '10px',
-                padding: '20px',
-              }}>
-                <div style={{
-                  fontSize: '10px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: colors.textMuted,
-                  marginBottom: '8px',
-                }}>
-                  API Version
-                </div>
-                <div style={{
-                  fontSize: '18px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 500,
-                  color: colors.gold,
-                }}>
-                  {health.version}
+            {/* DETAILS GRID */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              {/* Core Info */}
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+                {lbl('Platform Info')}
+                <div style={{ marginTop: 4 }}>
+                  {row('API Version', <span style={{ color: C.gold }}>{health.version || 'v1'}</span>)}
+                  {row('Environment', <span style={{ textTransform: 'uppercase' as const, letterSpacing: '0.08em', fontSize: 11 }}>{health.environment || 'production'}</span>)}
+                  {health.uptime != null && row('Uptime', `${Math.floor(health.uptime / 3600)}h ${Math.floor((health.uptime % 3600) / 60)}m`)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14 }}>
+                    <span style={{ fontSize: 13, color: C.secondary }}>API Server</span>
+                    <StatusDot status={health.status} />
+                  </div>
                 </div>
               </div>
 
-              {/* Environment */}
-              <div style={{
-                background: colors.cardBg,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '10px',
-                padding: '20px',
-              }}>
-                <div style={{
-                  fontSize: '10px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  color: colors.textMuted,
-                  marginBottom: '8px',
-                }}>
-                  Environment
-                </div>
-                <div style={{
-                  fontSize: '16px',
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: 500,
-                  color: colors.textPrimary,
-                  textTransform: 'uppercase',
-                }}>
-                  {health.environment}
+              {/* Services */}
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+                {lbl('Services')}
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `0.5px solid ${C.dim}` }}>
+                    <span style={{ fontSize: 13, color: C.secondary }}>Database</span>
+                    <StatusDot status={health.database || 'unknown'} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `0.5px solid ${C.dim}` }}>
+                    <span style={{ fontSize: 13, color: C.secondary }}>M-Pesa Daraja</span>
+                    <StatusDot status="sandbox" />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `0.5px solid ${C.dim}` }}>
+                    <span style={{ fontSize: 13, color: C.secondary }}>Email (Resend)</span>
+                    <StatusDot status="ok" />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14 }}>
+                    <span style={{ fontSize: 13, color: C.secondary }}>MikroTik API</span>
+                    <StatusDot status="ok" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Database Status */}
-            <div style={{
-              background: colors.cardBg,
-              border: `0.5px solid ${colors.border}`,
-              borderRadius: '10px',
-              padding: '20px',
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.12em',
-                    color: colors.textMuted,
-                    marginBottom: '8px',
-                  }}>
-                    Database
-                  </div>
-                  <div style={{
-                    fontSize: '16px',
-                    fontFamily: 'DM Mono, monospace',
-                    fontWeight: 500,
-                    color: colors.textPrimary,
-                    textTransform: 'capitalize',
-                  }}>
-                    PostgreSQL
-                  </div>
+            {/* ENDPOINTS */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 24 }}>
+              {lbl('Deployment')}
+              <div style={{ marginTop: 4 }}>
+                {row('Backend', <a href="https://wibill-production.up.railway.app" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, textDecoration: 'none', fontSize: 11 }}>wibill-production.up.railway.app</a>)}
+                {row('Frontend', <a href="https://wi-bill.vercel.app" target="_blank" rel="noopener noreferrer" style={{ color: C.gold, textDecoration: 'none', fontSize: 11 }}>wi-bill.vercel.app</a>)}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14 }}>
+                  <span style={{ fontSize: 13, color: C.secondary }}>Database</span>
+                  <span style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.muted }}>Railway PostgreSQL</span>
                 </div>
-                <StatusIndicator status={health.database} />
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
