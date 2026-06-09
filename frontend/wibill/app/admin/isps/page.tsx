@@ -22,7 +22,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 interface ISPInvite {
   id: string;
   token: string;
-  invite_link: string;
+  invite_link: string;`n  url?: string;
   expires_at: string;
   created_at: string;
   status: string;
@@ -234,10 +234,7 @@ useEffect(() => {
 }, []);
 
 const generateInvite = async () => {
-  if (!newISPName.trim()) {
-    setStatusMessage('Please enter a valid ISP name.');
-    return;
-  }
+  // isp_name is optional
 
   setLoading(true);
   setStatusMessage('');
@@ -593,12 +590,12 @@ const generateInvite = async () => {
                         color: COLORS.text,
                       }}
                     >
-                      {generatedLink.invite_link}
+                      {generatedLink.url}
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => copyToClipboard(generatedLink.invite_link)}
+                        onClick={() => copyToClipboard(generatedLink.url)}
                         style={{
                           height: 42,
                           padding: '0 14px',
@@ -782,3 +779,4 @@ const generateInvite = async () => {
     </div>
   );
 }
+
