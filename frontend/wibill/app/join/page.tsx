@@ -1,163 +1,244 @@
-"use client";
+﻿'use client'
+import React, { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export default function PendingApprovalPage() {
-  const router = useRouter();
-  const [ispName, setIspName] = useState('');
-  const [isApproved, setIsApproved] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+export default function JoinPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams?.get('token')
 
+  const [ispName, setIspName] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Auto-generate username from ISP name
   useEffect(() => {
-    const name = localStorage.getItem('isp_name');
-    if (!name) {
-      router.push('/login');
-      return;
+    if (ispName) {
+      const auto = ispName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      setUsername(auto)
     }
-    setIspName(name);
+  }, [ispName])
 
-    // Clear signup data
-    localStorage.removeItem('signup_success');
-    localStorage.removeItem('isp_name');
-  }, [router]);
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
 
-  // Check if approved every 30 seconds
-  useEffect(() => {
-    const checkApproval = async () => {
-      setCheckingStatus(true);
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) return; // Not logged in yet
+    if (!ispName.trim()) {
+      setError('ISP name is required')
+      return
+    }
+    if (!username.trim()) {
+      setError('Username is required')
+      return
+    }
+    if (username.length < 3) {
+      setError('Username must be at least 3 characters')
+      return
+    }
+    if (!password) {
+      setError('Password is required')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/tenants/status`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+    if (!token) {
+      setError('Invalid invite link. Please request a new invite.')
+      return
+    }
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'active') {
-            setIsApproved(true);
-            // Wait a moment, then redirect
-            setTimeout(() => {
-              router.push('/login');
-            }, 2000);
-          }
-        }
-      } catch (err) {
-        console.error('Error checking approval:', err);
-      } finally {
-        setCheckingStatus(false);
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API}/api/auth/register?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isp_name: ispName.trim(),
+          username: username.toLowerCase(),
+          password,
+          admin_phone: phone || '254700000000',
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(typeof data.detail === 'string' ? data.detail : 'Signup failed')
       }
-    };
 
-    // Check immediately, then every 30 seconds
-    checkApproval();
-    const interval = setInterval(checkApproval, 30000);
+      router.push('/join/pending-approval')
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    return () => clearInterval(interval);
-  }, [router]);
-
-  if (isApproved) {
+  if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-        <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700 text-center">
-          <div className="text-5xl mb-4 animate-bounce">✅</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Approved!</h1>
-          <p className="text-slate-300 mb-4">
-            Your account has been approved. Redirecting to login...
+      <div className="min-h-screen flex items-center justify-center bg-black p-4">
+        <div className="bg-gray-900 rounded-lg shadow-2xl p-8 max-w-md w-full border border-gray-800 text-center">
+          <div className="text-6xl mb-6">❌</div>
+          <h1 className="text-2xl font-bold text-white mb-2">Invalid Link</h1>
+          <p className="text-gray-400 text-sm mb-6">
+            This invite link is invalid or expired. Please request a new invite from your admin.
           </p>
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-yellow-400 rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-2xl p-8 max-w-md w-full border border-slate-700">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Pending Approval</h1>
-          <p className="text-slate-400">
-            {ispName ? `Waiting to approve: ${ispName}` : 'Your account is awaiting approval'}
-          </p>
-        </div>
-
-        {/* Status */}
-        <div className="bg-slate-700 rounded p-6 mb-6 border border-slate-600">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-300">Status</span>
-            <span className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-              <span className="text-yellow-400 font-bold">Pending</span>
-            </span>
-          </div>
-
-          <div className="bg-slate-600 rounded p-4 text-sm text-slate-300 space-y-2">
-            <p>✓ Account created</p>
-            <p>⏳ Admin reviewing...</p>
-            <p className="text-slate-400 text-xs mt-4">
-              Check back soon or we'll notify you via email when approved
+    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        <div style={{ background: '#080808', borderRadius: 12, border: '0.5px solid #141414', padding: 28 }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8 }}>
+              WiBill
+            </h1>
+            <p style={{ fontSize: 12, color: '#666', fontFamily: 'Inter, sans-serif', marginBottom: 12 }}>
+              Create your ISP account
             </p>
-          </div>
-        </div>
-
-        {/* What's Next */}
-        <div className="bg-blue-600 bg-opacity-10 border border-blue-500 rounded p-4 mb-6">
-          <h3 className="text-blue-300 font-bold mb-2">What happens next:</h3>
-          <ol className="text-blue-200 text-sm space-y-2">
-            <li>1. Our team reviews your application</li>
-            <li>2. We send you approval email</li>
-            <li>3. You log in and customize your portal</li>
-            <li>4. WiFi users see your branded network</li>
-          </ol>
-        </div>
-
-        {/* FAQ */}
-        <div className="bg-slate-700 rounded p-4 border border-slate-600">
-          <h3 className="text-slate-300 font-bold mb-3">FAQ</h3>
-          
-          <div className="space-y-3 text-sm text-slate-300">
-            <div>
-              <p className="font-bold text-slate-200 mb-1">How long does approval take?</p>
-              <p className="text-slate-400">Usually 1-2 hours during business hours</p>
-            </div>
-
-            <div>
-              <p className="font-bold text-slate-200 mb-1">I haven't received an email?</p>
-              <p className="text-slate-400">Check your spam folder or contact admin@wibill.co.ke</p>
-            </div>
-
-            <div>
-              <p className="font-bold text-slate-200 mb-1">Can I set up while waiting?</p>
-              <p className="text-slate-400">No, please wait for approval. Full setup guide comes after approval.</p>
+            <div style={{ fontSize: 11, color: '#4ade80', background: '#0a2a0a', border: '0.5px solid #1a3a1a', borderRadius: 6, padding: 8 }}>
+              ✓ Invite token verified
             </div>
           </div>
-        </div>
 
-        {/* Contact */}
-        <div className="mt-6 text-center">
-          <p className="text-slate-400 text-sm mb-2">Need help?</p>
-          <a
-            href="mailto:admin@wibill.co.ke"
-            className="text-blue-400 hover:text-blue-300 text-sm font-bold"
-          >
-            Contact Admin
-          </a>
-        </div>
+          {error && (
+            <div style={{ background: '#0d0404', border: '0.5px solid #2a0a0a', borderRadius: 7, padding: '10px 14px', color: '#f87171', fontSize: 12, fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
 
-        {/* Auto-check indicator */}
-        <div className="mt-4 text-center">
-          <p className="text-slate-500 text-xs">
-            {checkingStatus ? 'Checking status...' : 'Auto-checking every 30 seconds'}
-          </p>
+          <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                ISP / Company Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Kaachonji Networks"
+                value={ispName}
+                onChange={e => setIspName(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'Inter, sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                Username (Your Login Handle)
+              </label>
+              <input
+                type="text"
+                placeholder="kaachonji-networks"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'DM Mono, monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+                required
+              />
+              <div style={{ fontSize: 10, color: '#555', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
+                You'll use this to log in. Can be edited.
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'Inter, sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'Inter, sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                Phone (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="0712345678"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'Inter, sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '14px', marginTop: 8, background: loading ? '#444' : '#1a6bff', border: 'none',
+                borderRadius: 9, color: '#fff', fontFamily: 'Space Grotesk, sans-serif', fontSize: 13, fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: 0.5, opacity: loading ? 0.6 : 1,
+              } as any}
+            >
+              {loading ? 'Creating account...' : 'CREATE ACCOUNT'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid #1a1a1a', textAlign: 'center', fontSize: 10, color: '#333', fontFamily: 'DM Mono, monospace' }}>
+            This account requires admin approval before you can log in.
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
