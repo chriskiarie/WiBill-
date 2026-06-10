@@ -130,7 +130,6 @@ async def register(
     1. If token provided: validate it (exists, pending, not expired)
     2. Check ISP name/email not already registered
     3. Create Tenant
-    4. Create AdminUser  ← username is set to admin_email (fixes NOT NULL constraint)
     5. If token provided: mark invite as USED
     6. Send email notification
     7. Return success
@@ -177,12 +176,11 @@ async def register(
     await db.flush()
 
     # ── STEP 4: Create AdminUser ─────────────────────────────────────────────
-    # FIX: username column is NOT NULL — set it to admin_email
+    # Create AdminUser — model has no username field, email is the identifier
     admin_user = AdminUser(
         id=uuid.uuid4(),
         tenant_id=tenant.id,
         email=data.admin_email,
-        username=data.admin_email,          # ← THE FIX: was missing, caused 500
         hashed_password=hash_password(data.admin_password),
         full_name=data.isp_name,
         role=AdminRole.ISP_ADMIN,
