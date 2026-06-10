@@ -32,7 +32,7 @@ class ISPInviteResponse(BaseModel):
     expires_at: datetime
     created_at: datetime
     status: str
-    isp_name: str = None
+    isp_name: str | None = None
 
     class Config:
         from_attributes = True
