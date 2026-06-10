@@ -13,37 +13,35 @@ import logging
 from app.core.config import settings
 from app.core.database import check_db_connection
 
-# â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO if settings.is_development else logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("honestbill")
 
-# â”€â”€ Rate limiter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Rate limiter ───────────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
-# â”€â”€ Scheduler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Scheduler ──────────────────────────────────────────────────────────────────
 scheduler = AsyncIOScheduler()
 
-# â”€â”€ Templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Templates ──────────────────────────────────────────────────────────────────
 templates = Jinja2Templates(directory="app/templates")
 
 
-# â”€â”€ Lifespan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Lifespan ───────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # â”€â”€ Startup â”€â”€
+    # ── Startup ──
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
-    # Verify DB connection
     db_ok = await check_db_connection()
     if not db_ok:
         logger.error("Database connection failed on startup")
         raise RuntimeError("Cannot connect to database")
-    logger.info("âœ… Database connection OK")
+    logger.info("✅ Database connection OK")
 
-    # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
     from app.jobs.invoice_scheduler import start_scheduler as start_invoice_scheduler
@@ -62,78 +60,79 @@ async def lifespan(app: FastAPI):
         name="Session expiry checker",
         replace_existing=True,
     )
-    
-    # Start Invoice Scheduler (Phase 4B)
+
     try:
         start_invoice_scheduler()
-        logger.info("âœ… Invoice scheduler initialized")
+        logger.info("✅ Invoice scheduler initialized")
     except Exception as e:
-        logger.warning(f"âš ï¸  Invoice scheduler init (may already be running): {str(e)}")
-    
+        logger.warning(f"⚠️  Invoice scheduler init (may already be running): {str(e)}")
+
     scheduler.start()
-    logger.info("âœ… Background scheduler started")
+    logger.info("✅ Background scheduler started")
 
     yield
 
-    # â”€â”€ Shutdown â”€â”€
+    # ── Shutdown ──
     scheduler.shutdown(wait=False)
     logger.info(f"{settings.APP_NAME} shutdown complete")
-    from app.models.isp_invite import ISPInvite  # noqa â€” registers table
+    from app.models.isp_invite import ISPInvite  # noqa — registers table
 
 
-# â”€â”€ App â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Hotspot billing SaaS platform",
-    docs_url="/docs" if settings.is_development else None,   # hide docs in prod
+    docs_url="/docs" if settings.is_development else None,
     redoc_url="/redoc" if settings.is_development else None,
     lifespan=lifespan,
 )
 
-# â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# ── CORS ───────────────────────────────────────────────────────────────────────
+# IMPORTANT: allow_origins=["*"] is INCOMPATIBLE with allow_credentials=True.
+# Browsers reject this combination. We must list origins explicitly.
+ALLOWED_ORIGINS = [
+    "https://wi-bill.vercel.app",
+    "https://wi-bill-git-main-chriskiaries-projects.vercel.app",
+    # Vercel preview deployments (wildcard not supported by FastAPI CORS,
+    # so we handle them via the custom middleware below)
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://wi-bill-.*\.vercel\.app",  # covers all preview URLs
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
-# â”€â”€ Routers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Rate limiter ───────────────────────────────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── Routers ────────────────────────────────────────────────────────────────────
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 
-# Portal preview router removed - using new portal renderer
-
-# ============================================================================
-# ROUTER REGISTRATION
-# ============================================================================
-# Pattern: main.py adds the "/api" prefix for non-portal routers
-# invoices router has NO prefix internally, gets /api added here
-# Result: /api/invoices, /api/invoices/{id}, /api/invoices/current-status, etc.
-# ============================================================================
-
-app.include_router(auth.router,     prefix="/api", tags=["auth"])
-app.include_router(portal.router,   prefix="",                tags=["portal"])
-app.include_router(packages.router, prefix="/api/packages", tags=["packages"])
-app.include_router(sessions.router, prefix="/api", tags=["sessions"])
-app.include_router(tenants.router,  prefix="/api", tags=["tenants"])
-app.include_router(mpesa.router,    prefix="/api", tags=["mpesa"])
-app.include_router(transactions.router, prefix="/api", tags=["transactions"])
-
-# FIXED: Invoice router - prefix="/api" gets added here
-app.include_router(invoices.router, prefix="/api", tags=["invoices"])
-
-app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
-app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
+app.include_router(auth.router,         prefix="/api",        tags=["auth"])
+app.include_router(portal.router,       prefix="",            tags=["portal"])
+app.include_router(packages.router,     prefix="/api/packages", tags=["packages"])
+app.include_router(sessions.router,     prefix="/api",        tags=["sessions"])
+app.include_router(tenants.router,      prefix="/api",        tags=["tenants"])
+app.include_router(mpesa.router,        prefix="/api",        tags=["mpesa"])
+app.include_router(transactions.router, prefix="/api",        tags=["transactions"])
+app.include_router(invoices.router,     prefix="/api",        tags=["invoices"])
+app.include_router(admin_routes.router, prefix="/api/admin",  tags=["admin"])
+app.include_router(crud_reads.router,   prefix="/api",        tags=["crud-reads"])
 
 
-# â”€â”€ Health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Health check ───────────────────────────────────────────────────────────────
 @app.get("/health", tags=["system"])
 async def health():
     db_ok = await check_db_connection()

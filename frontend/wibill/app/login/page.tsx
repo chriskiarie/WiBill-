@@ -9,38 +9,37 @@ const inp: React.CSSProperties = {
   width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e',
   borderRadius: 9, padding: '13px 16px', color: '#f0f0f0',
   fontFamily: 'DM Mono, monospace', fontSize: 13, outline: 'none',
-  boxSizing: 'border-box',
+  boxSizing: 'border-box', transition: 'border-color 0.15s',
 }
 const lbl: React.CSSProperties = {
   fontSize: 11, color: '#444', fontWeight: 600,
   letterSpacing: '0.4px', marginBottom: 6, display: 'block',
 }
 
-// ── Inner component (uses useSearchParams — must be inside Suspense) ──────────
+// ── Inner component ────────────────────────────────────────────────────────────
 function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // If ?token= is present in URL, this is an invite link → go straight to signup
-  const inviteToken = searchParams?.get('token') || ''
+  const inviteToken   = searchParams?.get('token') || ''
   const prefilledEmail = searchParams?.get('email') || searchParams?.get('username') || ''
 
-  const [tab, setTab] = useState<'login' | 'signup'>(inviteToken ? 'signup' : 'login')
+  // If invite token present → start on signup. Otherwise → login.
+  const [tab, setTab]         = useState<'login' | 'signup'>(inviteToken ? 'signup' : 'login')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
 
   // Login fields
-  const [email, setEmail] = useState(prefilledEmail)
+  const [email, setEmail]       = useState(prefilledEmail)
   const [password, setPassword] = useState('')
 
   // Signup fields
   const [ispName, setIspName] = useState('')
-  const [slug, setSlug] = useState('')
+  const [slug, setSlug]       = useState('')
   const [regEmail, setRegEmail] = useState('')
-  const [regPass, setRegPass] = useState('')
-  const [phone, setPhone] = useState('')
+  const [regPass, setRegPass]   = useState('')
+  const [phone, setPhone]       = useState('')
 
-  // If token arrives after mount (edge case), switch to signup tab
   useEffect(() => {
     if (inviteToken) setTab('signup')
   }, [inviteToken])
@@ -78,7 +77,8 @@ function LoginInner() {
     e.preventDefault()
     setError(''); setLoading(true)
     try {
-      // Append the invite token as a query param if present
+      // Always append token if present — backend uses it to mark invite USED
+      // and sets is_active=True (invited ISPs get instant access)
       const url = inviteToken
         ? `${API}/api/auth/register?token=${encodeURIComponent(inviteToken)}`
         : `${API}/api/auth/register`
@@ -101,33 +101,81 @@ function LoginInner() {
         throw new Error(d.detail || 'Registration failed')
       }
 
-      // Registration succeeded — now log in automatically
-      const loginBody = new URLSearchParams()
-      loginBody.append('username', regEmail)
-      loginBody.append('password', regPass)
-      const lr = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: loginBody.toString(),
-      })
-      if (!lr.ok) {
-        // Registration worked but auto-login failed — send to login tab
-        setTab('login')
-        setEmail(regEmail)
-        setError('Account created. Please sign in.')
-        return
+      const regData = await r.json()
+
+      // ── TWO-PATH FLOW ──────────────────────────────────────────────────────
+      // WITH invite token → backend sets is_active=True → log in immediately
+      // WITHOUT invite token → backend sets is_active=False → show pending screen
+      // ──────────────────────────────────────────────────────────────────────
+
+      if (inviteToken) {
+        // Invited ISP: auto-login and redirect to dashboard
+        const loginBody = new URLSearchParams()
+        loginBody.append('username', regEmail)
+        loginBody.append('password', regPass)
+        const lr = await fetch(`${API}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: loginBody.toString(),
+        })
+        if (!lr.ok) {
+          // Edge case: login failed after registration — tell them to sign in
+          setTab('login')
+          setEmail(regEmail)
+          setError('Account created. Please sign in to continue.')
+          setLoading(false)
+          return
+        }
+        const loginData = await lr.json()
+        localStorage.setItem('wb_token', loginData.access_token)
+        localStorage.setItem('wb_role', loginData.role || '')
+        // Redirect straight to dashboard — no waiting screen
+        router.replace('/dashboard')
+      } else {
+        // Cold signup (no invite): show pending approval message
+        setError('')
+        setLoading(false)
+        // Replace form with pending screen
+        router.replace('/login?pending=1')
       }
-      const loginData = await lr.json()
-      localStorage.setItem('wb_token', loginData.access_token)
-      localStorage.setItem('wb_role', loginData.role || '')
-      router.replace('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Registration failed')
-    } finally {
       setLoading(false)
     }
   }
 
+  // ── Pending approval screen (cold signup) ─────────────────────────────────
+  const isPending = searchParams?.get('pending') === '1'
+  if (isPending) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: 4 }}>WiBill</div>
+          <div style={{ fontSize: 12, color: '#2a2a2a', fontFamily: 'DM Mono, monospace', marginBottom: 40 }}>XwB — ISP Management Portal</div>
+
+          <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 32 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#E8B84B18', border: '0.5px solid #E8B84B40', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#E8B84B' }} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#f0f0f0', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 12 }}>
+              Application Received
+            </div>
+            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.7, marginBottom: 24, fontFamily: 'DM Mono, monospace' }}>
+              Your ISP account is pending review. You'll receive an email once approved and can sign in immediately after.
+            </div>
+            <button
+              onClick={() => router.replace('/login')}
+              style={{ background: 'none', border: '0.5px solid #1e1e1e', borderRadius: 8, padding: '10px 20px', color: '#444', fontSize: 12, fontFamily: 'DM Mono, monospace', cursor: 'pointer' }}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Button style (gold for signup, blue for login) ────────────────────────
   const btnStyle: React.CSSProperties = {
     width: '100%', padding: '14px',
     background: tab === 'signup' ? '#E8B84B' : '#3b82f6',
@@ -153,10 +201,9 @@ function LoginInner() {
           <div style={{ fontSize: 12, color: '#2a2a2a', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
             XwB — ISP Management Portal
           </div>
-          {/* Show invite badge when arriving via token */}
           {inviteToken && (
             <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: '#E8B84B18', border: '0.5px solid #E8B84B40', borderRadius: 20, padding: '5px 14px' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#E8B84B' }} />
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#E8B84B', boxShadow: '0 0 6px #E8B84B' }} />
               <span style={{ fontSize: 10, color: '#E8B84B', fontFamily: 'DM Mono, monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 Invite link active
               </span>
@@ -164,7 +211,7 @@ function LoginInner() {
           )}
         </div>
 
-        {/* Tabs — hide Sign In tab when coming from invite link */}
+        {/* Tabs — hidden when arriving from invite link */}
         {!inviteToken && (
           <div style={{ display: 'flex', background: '#0a0a0a', border: '0.5px solid #161616', borderRadius: 10, padding: 4, marginBottom: 24, gap: 4 }}>
             {(['login', 'signup'] as const).map(t => (
@@ -177,6 +224,7 @@ function LoginInner() {
                   color: tab === t ? '#fff' : '#333',
                   fontFamily: 'Space Grotesk, sans-serif',
                   fontSize: 12, fontWeight: tab === t ? 700 : 400,
+                  transition: 'all 0.15s',
                 }}
               >
                 {t === 'login' ? 'Sign In' : 'Create Account'}
@@ -192,11 +240,23 @@ function LoginInner() {
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={lbl}>EMAIL</label>
-                <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@yourisp.co.ke" required autoFocus={!email} />
+                <input
+                  style={inp} type="email" value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="admin@yourisp.co.ke" required autoFocus={!email}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
               </div>
               <div>
                 <label style={lbl}>PASSWORD</label>
-                <input style={inp} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required autoFocus={!!email} />
+                <input
+                  style={inp} type="password" value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" required autoFocus={!!email}
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
               </div>
               {error && (
                 <div style={{ background: '#0d0404', border: '0.5px solid #2a0a0a', borderRadius: 7, padding: '10px 14px', color: '#f87171', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
@@ -206,7 +266,7 @@ function LoginInner() {
               <button type="submit" style={btnStyle} disabled={loading}>
                 {loading ? 'Signing in...' : 'SIGN IN'}
               </button>
-              <div style={{ textAlign: 'center', fontSize: 10, color: '#1e1e1e', fontFamily: 'DM Mono, monospace', marginTop: 4 }}>
+              <div style={{ textAlign: 'center', fontSize: 10, color: '#1e1e1e', fontFamily: 'DM Mono, monospace', marginTop: 2 }}>
                 admin@xwbill.co.ke · admin1234
               </div>
             </form>
@@ -216,50 +276,79 @@ function LoginInner() {
           {tab === 'signup' && (
             <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {inviteToken && (
-                <div style={{ background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 8, padding: '10px 14px', fontSize: 11, color: '#666', fontFamily: 'DM Mono, monospace', marginBottom: 2 }}>
-                  Fill in your ISP details below. After submitting you'll be taken to your dashboard.
+                <div style={{ background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 8, padding: '10px 14px', fontSize: 11, color: '#555', fontFamily: 'DM Mono, monospace', lineHeight: 1.5 }}>
+                  Fill in your ISP details. You'll be taken straight to your dashboard after submitting.
                 </div>
               )}
               <div>
                 <label style={lbl}>ISP NAME</label>
                 <input
-                  style={inp}
-                  value={ispName}
+                  style={inp} value={ispName} required autoFocus
                   onChange={e => {
                     setIspName(e.target.value)
                     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''))
                   }}
                   placeholder="Kaachonji Networks"
-                  required
-                  autoFocus
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
                 />
               </div>
               <div>
                 <label style={lbl}>ISP SLUG (URL)</label>
-                <input style={inp} value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="kaachonji-networks" required />
+                <input
+                  style={inp} value={slug} required
+                  onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="kaachonji-networks"
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
                 <div style={{ fontSize: 10, color: '#1e1e1e', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
-                  wi-bill.vercel.app/portal/{slug || 'your-isp'}
+                  portal/{slug || 'your-isp'}
                 </div>
               </div>
               <div>
                 <label style={lbl}>EMAIL</label>
-                <input style={inp} type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="admin@yourisp.co.ke" required />
+                <input
+                  style={inp} type="email" value={regEmail} required
+                  onChange={e => setRegEmail(e.target.value)}
+                  placeholder="admin@yourisp.co.ke"
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
               </div>
               <div>
                 <label style={lbl}>PASSWORD</label>
-                <input style={inp} type="password" value={regPass} onChange={e => setRegPass(e.target.value)} placeholder="min 8 characters" minLength={8} required />
+                <input
+                  style={inp} type="password" value={regPass} required minLength={8}
+                  onChange={e => setRegPass(e.target.value)}
+                  placeholder="min 8 characters"
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
               </div>
               <div>
                 <label style={lbl}>PHONE <span style={{ color: '#2a2a2a', fontWeight: 400 }}>(optional)</span></label>
-                <input style={inp} value={phone} onChange={e => setPhone(e.target.value)} placeholder="0712345678" />
+                <input
+                  style={inp} value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="0712345678"
+                  onFocus={e => { e.currentTarget.style.borderColor = '#E8B84B40' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = '#1e1e1e' }}
+                />
               </div>
               {error && (
                 <div style={{ background: '#0d0404', border: '0.5px solid #2a0a0a', borderRadius: 7, padding: '10px 14px', color: '#f87171', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
                   {error}
                 </div>
               )}
-              <button type="submit" style={{ ...btnStyle, marginTop: 4 }} disabled={loading || !ispName || !slug || !regEmail || !regPass}>
-                {loading ? 'Setting up your ISP...' : inviteToken ? 'Launch My Dashboard' : 'Create Account'}
+              <button
+                type="submit"
+                style={{ ...btnStyle, marginTop: 4 }}
+                disabled={loading || !ispName || !slug || !regEmail || !regPass}
+              >
+                {loading
+                  ? (inviteToken ? 'Setting up your ISP...' : 'Creating account...')
+                  : (inviteToken ? 'Launch My Dashboard →' : 'Create Account')}
               </button>
             </form>
           )}
@@ -273,7 +362,7 @@ function LoginInner() {
   )
 }
 
-// ── Suspense wrapper (required for useSearchParams in Next.js 16) ─────────────
+// ── Suspense fallback ──────────────────────────────────────────────────────────
 function LoginSkeleton() {
   return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
