@@ -33,7 +33,6 @@ templates = Jinja2Templates(directory="app/templates")
 # ── Lifespan ───────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
     db_ok = await check_db_connection()
@@ -72,10 +71,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # ── Shutdown ──
     scheduler.shutdown(wait=False)
     logger.info(f"{settings.APP_NAME} shutdown complete")
-    from app.models.isp_invite import ISPInvite  # noqa — registers table
+    from app.models.isp_invite import ISPInvite  # noqa
 
 
 # ── App ────────────────────────────────────────────────────────────────────────
@@ -89,26 +87,18 @@ app = FastAPI(
 )
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
-# IMPORTANT: allow_origins=["*"] is INCOMPATIBLE with allow_credentials=True.
-# Browsers reject this combination. We must list origins explicitly.
-ALLOWED_ORIGINS = [
-    "https://wi-bill.vercel.app",
-    "https://wi-bill-git-main-chriskiaries-projects.vercel.app",
-    # Vercel preview deployments (wildcard not supported by FastAPI CORS,
-    # so we handle them via the custom middleware below)
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-]
-
+# Rules:
+# 1. allow_credentials=True is INCOMPATIBLE with allow_origins=["*"] — browsers block it
+# 2. We use Bearer tokens (Authorization header), NOT cookies
+#    → allow_credentials=False is correct and sufficient
+# 3. With credentials=False, allow_origins=["*"] works perfectly for all origins
+#
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://wi-bill-.*\.vercel\.app",  # covers all preview URLs
-    allow_credentials=True,
+    allow_origins=["*"],      # Safe because credentials=False (Bearer token auth)
+    allow_credentials=False,  # We use Authorization header, not cookies
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 # ── Rate limiter ───────────────────────────────────────────────────────────────
@@ -120,16 +110,16 @@ from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, tra
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 
-app.include_router(auth.router,         prefix="/api",        tags=["auth"])
-app.include_router(portal.router,       prefix="",            tags=["portal"])
+app.include_router(auth.router,         prefix="/api",          tags=["auth"])
+app.include_router(portal.router,       prefix="",              tags=["portal"])
 app.include_router(packages.router,     prefix="/api/packages", tags=["packages"])
-app.include_router(sessions.router,     prefix="/api",        tags=["sessions"])
-app.include_router(tenants.router,      prefix="/api",        tags=["tenants"])
-app.include_router(mpesa.router,        prefix="/api",        tags=["mpesa"])
-app.include_router(transactions.router, prefix="/api",        tags=["transactions"])
-app.include_router(invoices.router,     prefix="/api",        tags=["invoices"])
-app.include_router(admin_routes.router, prefix="/api/admin",  tags=["admin"])
-app.include_router(crud_reads.router,   prefix="/api",        tags=["crud-reads"])
+app.include_router(sessions.router,     prefix="/api",          tags=["sessions"])
+app.include_router(tenants.router,      prefix="/api",          tags=["tenants"])
+app.include_router(mpesa.router,        prefix="/api",          tags=["mpesa"])
+app.include_router(transactions.router, prefix="/api",          tags=["transactions"])
+app.include_router(invoices.router,     prefix="/api",          tags=["invoices"])
+app.include_router(admin_routes.router, prefix="/api/admin",    tags=["admin"])
+app.include_router(crud_reads.router,   prefix="/api",          tags=["crud-reads"])
 
 
 # ── Health check ───────────────────────────────────────────────────────────────
