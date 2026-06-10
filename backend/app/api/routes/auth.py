@@ -165,17 +165,33 @@ async def register(
     """
     Register a new ISP.
     
-    Frontend calls: POST /api/auth/register
-    Body: {isp_name, isp_slug, admin_email, admin_password, admin_phone, support_phone}
-    Optional query param: token (if coming from invite link)
+    TWO-PATH FLOW:
     
-    Flow:
-    1. If token provided: validate it (exists, pending, not expired)
-    2. Check ISP name/email not already registered
-    3. Create Tenant (ISP workspace) with is_active=True
-    4. Create AdminUser (ISP admin) with is_active=True (can login immediately)
-    5. If token provided: mark invite as USED
-    6. Return success response
+    PATH 1: WITH INVITE TOKEN (invited@isp)
+    ─────────────────────────────────────
+    1. Frontend: ISP clicks invite link with token
+    2. Backend: Validate token (exists, pending, not expired)
+    3. Backend: Create Tenant with is_active=TRUE ✅ ACTIVE
+    4. Backend: Create AdminUser with is_active=TRUE ✅ ACTIVE
+    5. Backend: Mark invite as USED
+    6. Frontend: Show loading screen 3 seconds
+    7. Frontend: Auto-login with new credentials
+    8. Frontend: Redirect to /dashboard (INSTANT ACCESS) ✅
+    
+    Result: ISP appears in BATCAVE as "Live" immediately
+    
+    
+    PATH 2: COLD SIGNUP (no token)
+    ─────────────────────────────
+    1. Frontend: ISP creates account without invite
+    2. Backend: Create Tenant with is_active=FALSE ⏳ PENDING
+    3. Backend: Create AdminUser with is_active=FALSE ⏳ PENDING
+    4. Frontend: Show pending approval screen
+    5. Admin: Reviews and approves in BATCAVE
+    6. Admin: ISP gets email "You're approved"
+    7. ISP: Logs in and gets dashboard ✅
+    
+    Result: ISP appears in BATCAVE as "Pending" until approved
     """
 
     # ====== STEP 1: Validate invite token (if provided) ======
@@ -210,12 +226,15 @@ async def register(
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # ====== STEP 3: Create Tenant ======
+    # IMPORTANT: Set is_active based on invite presence
+    # With token (invited) → is_active=TRUE
+    # Without token (cold signup) → is_active=FALSE
     tenant_id = uuid.uuid4()
     tenant = Tenant(
         id=tenant_id,
         name=data.isp_name,
         slug=data.isp_slug,
-        is_active=True,
+        is_active=bool(token),  # ✅ TRUE if invited, FALSE if cold signup
         currency="KES",
         commission_rate=10.0,
         support_phone=data.support_phone,
@@ -224,28 +243,33 @@ async def register(
     await db.flush()
 
     # ====== STEP 4: Create AdminUser ======
+    # IMPORTANT: Set is_active based on invite presence
+    # With token (invited) → is_active=TRUE (can login immediately)
+    # Without token (cold signup) → is_active=FALSE (waiting for approval)
     admin_user = AdminUser(
         id=uuid.uuid4(),
-        username=data.admin_email,  # Use email as username
         email=data.admin_email,
         hashed_password=hash_password(data.admin_password),
         full_name=data.isp_name,
+        username=data.admin_email,  # ✅ Use email as username
         role=AdminRole.ISP_ADMIN,
         tenant_id=tenant.id,
-        is_active=True,  # Can login immediately (no approval needed for self-registration)
+        is_active=bool(token),  # ✅ TRUE if invited, FALSE if cold signup
         onboarding_complete=False,
     )
     db.add(admin_user)
 
     # ====== STEP 5: Mark invite as USED (if provided) ======
-    if invite:
+    if token:
         invite.status = InviteStatus.USED
         db.merge(invite)
-        status_msg = "Account created successfully. Waiting for admin approval."
-        is_active = False
+        status_msg = "Account created successfully. Your dashboard is ready!"
+        next_status = "active"
+        next_step = "Redirecting to your dashboard..."
     else:
-        status_msg = "Account created successfully. You can now login."
-        is_active = True
+        status_msg = "Account created. Waiting for admin approval..."
+        next_status = "pending_approval"
+        next_step = "Check your email for approval notification."
 
     # ====== STEP 6: Commit ======
     await db.commit()
@@ -254,8 +278,8 @@ async def register(
         "ok": True,
         "message": status_msg,
         "tenant_id": str(tenant.id),
-        "status": "pending_approval" if invite else "active",
-        "next_step": "Log in with your credentials to access your dashboard.",
+        "status": next_status,  # ✅ Matches is_active logic
+        "next_step": next_step,
     }
 
 
