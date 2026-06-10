@@ -13,11 +13,6 @@ from app.models.admin_user import AdminUser, AdminRole
 from app.models.tenant import Tenant
 from app.models.isp_invite import ISPInvite, InviteStatus
 
-# ============================================================================
-# IMPORTANT: Router prefix is "/auth" ONLY
-# In main.py, use: app.include_router(auth.router, prefix="/api")
-# This creates routes like: /api/auth/login, /api/auth/validate-token, etc.
-# ============================================================================
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -27,13 +22,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # ============================================================================
 
 class TenantRegisterRequest(BaseModel):
-    """Registration request from frontend - matches exactly what frontend sends"""
-    isp_name: str = Field(..., min_length=2, max_length=100, description="ISP/Company name")
-    isp_slug: str = Field(..., min_length=2, max_length=100, description="ISP slug for URL")
-    admin_email: EmailStr = Field(..., description="Admin email address")
-    admin_password: str = Field(..., min_length=8, description="Password (min 8 chars)")
-    admin_phone: str = Field(default="254700000000", description="Admin phone number")
-    support_phone: str | None = Field(default=None, description="Support phone number")
+    isp_name: str = Field(..., min_length=2, max_length=100)
+    isp_slug: str = Field(..., min_length=2, max_length=100)
+    admin_email: EmailStr
+    admin_password: str = Field(..., min_length=8)
+    admin_phone: str = Field(default="254700000000")
+    support_phone: str | None = Field(default=None)
 
 
 class LoginRequest(BaseModel):
@@ -62,51 +56,33 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> AdminUser:
-    """
-    Verify JWT token and return current user
-    """
     try:
         from jose import jwt
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
-        role: str = payload.get("role")
-        
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    result = await db.execute(
-        select(AdminUser).where(AdminUser.id == uuid.UUID(user_id))
-    )
+    result = await db.execute(select(AdminUser).where(AdminUser.id == uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
 
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
-
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is inactive")
 
     return user
 
 
-async def require_platform_admin(
-    current_user: AdminUser = Depends(get_current_user),
-) -> AdminUser:
-    """
-    Verify user is platform admin
-    """
+async def require_platform_admin(current_user: AdminUser = Depends(get_current_user)) -> AdminUser:
     if current_user.role != AdminRole.PLATFORM_ADMIN:
         raise HTTPException(status_code=403, detail="Only platform admins can access this")
     return current_user
 
 
-async def require_isp_admin(
-    current_user: AdminUser = Depends(get_current_user),
-) -> AdminUser:
-    """
-    Verify user is ISP admin
-    """
+async def require_isp_admin(current_user: AdminUser = Depends(get_current_user)) -> AdminUser:
     if current_user.role != AdminRole.ISP_ADMIN:
         raise HTTPException(status_code=403, detail="Only ISP admins can access this")
     return current_user
@@ -121,33 +97,15 @@ async def validate_token(
     token: str = Query(..., description="Invite token to validate"),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Validate an invite token before signup.
-    Called by frontend /join page.
-    Returns: valid=true if token exists, is pending, and not expired
-    """
-    result = await db.execute(
-        select(ISPInvite).where(ISPInvite.token == token)
-    )
+    result = await db.execute(select(ISPInvite).where(ISPInvite.token == token))
     invite = result.scalar_one_or_none()
 
     if not invite:
-        raise HTTPException(
-            status_code=400,
-            detail="Invite token not found",
-        )
-
+        raise HTTPException(status_code=400, detail="Invite token not found")
     if invite.status != InviteStatus.PENDING:
-        raise HTTPException(
-            status_code=400,
-            detail="This invite is no longer available (already used or expired)",
-        )
-
+        raise HTTPException(status_code=400, detail="This invite is no longer available (already used or expired)")
     if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=400,
-            detail="This invite has expired",
-        )
+        raise HTTPException(status_code=400, detail="This invite has expired")
 
     return ValidateTokenResponse(
         valid=True,
@@ -164,54 +122,47 @@ async def register(
 ):
     """
     Register a new ISP.
-    
-    Frontend calls: POST /api/auth/register
+
+    Frontend calls: POST /api/auth/register?token=<invite_token>
     Body: {isp_name, isp_slug, admin_email, admin_password, admin_phone, support_phone}
-    Optional query param: token (if coming from invite link)
-    
+
     Flow:
     1. If token provided: validate it (exists, pending, not expired)
     2. Check ISP name/email not already registered
-    3. Create Tenant (ISP workspace) with is_active=True
-    4. Create AdminUser (ISP admin) with is_active=True (can login immediately)
+    3. Create Tenant
+    4. Create AdminUser  ← username is set to admin_email (fixes NOT NULL constraint)
     5. If token provided: mark invite as USED
-    6. Return success response
+    6. Send email notification
+    7. Return success
     """
 
-    # ====== STEP 1: Validate invite token (if provided) ======
+    # ── STEP 1: Validate invite token ────────────────────────────────────────
     if token:
-        invite_result = await db.execute(
-            select(ISPInvite).where(ISPInvite.token == token)
-        )
+        invite_result = await db.execute(select(ISPInvite).where(ISPInvite.token == token))
         invite = invite_result.scalar_one_or_none()
 
         if not invite:
             raise HTTPException(status_code=400, detail="Invalid invite token")
-
         if invite.status != InviteStatus.PENDING:
             raise HTTPException(status_code=400, detail="This invite has already been used or is expired")
-
         if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
             raise HTTPException(status_code=400, detail="This invite has expired")
     else:
         invite = None
 
-    # ====== STEP 2: Check ISP name/email not duplicate ======
-    existing_tenant = await db.execute(
-        select(Tenant).where(Tenant.name == data.isp_name)
-    )
+    # ── STEP 2: Check duplicates ─────────────────────────────────────────────
+    existing_tenant = await db.execute(select(Tenant).where(Tenant.name == data.isp_name))
     if existing_tenant.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="ISP name already registered")
 
-    existing_user = await db.execute(
-        select(AdminUser).where(AdminUser.email == data.admin_email)
-    )
+    existing_user = await db.execute(select(AdminUser).where(AdminUser.email == data.admin_email))
     if existing_user.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # ====== STEP 3: Create Tenant ======
-    # Pending approval if invite used, active immediately if no invite
-    tenant_is_active = not bool(invite)  # False if invite (pending), True if open registration
+    # ── STEP 3: Create Tenant ────────────────────────────────────────────────
+    # With invite → pending approval (is_active=False)
+    # Without invite → active immediately (is_active=True)
+    tenant_is_active = not bool(invite)
     tenant_id = uuid.uuid4()
     tenant = Tenant(
         id=tenant_id,
@@ -225,72 +176,78 @@ async def register(
     db.add(tenant)
     await db.flush()
 
-    # ====== STEP 4: Create AdminUser ======
+    # ── STEP 4: Create AdminUser ─────────────────────────────────────────────
+    # FIX: username column is NOT NULL — set it to admin_email
     admin_user = AdminUser(
         id=uuid.uuid4(),
+        tenant_id=tenant.id,
         email=data.admin_email,
+        username=data.admin_email,          # ← THE FIX: was missing, caused 500
         hashed_password=hash_password(data.admin_password),
         full_name=data.isp_name,
         role=AdminRole.ISP_ADMIN,
-        tenant_id=tenant.id,
-        is_active=tenant_is_active,  # Inactive until approved when using invite
+        is_active=tenant_is_active,         # inactive until approved when using invite
         onboarding_complete=False,
     )
     db.add(admin_user)
 
-    # ====== STEP 5: Mark invite as USED (if provided) ======
+    # ── STEP 5: Mark invite as USED ──────────────────────────────────────────
     if invite:
         invite.status = InviteStatus.USED
         db.merge(invite)
-        status_msg = "Account created successfully. Waiting for admin approval."
-        is_active = False
+        status_msg = "Account created. Waiting for admin approval before you can log in."
+        pending = True
     else:
-        status_msg = "Account created successfully. You can now login."
-        is_active = True
+        status_msg = "Account created successfully. You can now log in."
+        pending = False
 
-    # ====== STEP 6: Commit ======
+    # ── STEP 6: Commit ───────────────────────────────────────────────────────
     await db.commit()
 
-    # ====== STEP 7: Send email notification to platform admin ======
+    # ── STEP 7: Email notification ───────────────────────────────────────────
     if invite:
         try:
             import httpx
-            resend_key = __import__('os').environ.get('RESEND_API_KEY', '')
+            import os
+            resend_key = os.environ.get('RESEND_API_KEY', '')
             if resend_key:
-                await httpx.AsyncClient().post(
-                    'https://api.resend.com/emails',
-                    headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
-                    json={
-                        'from': 'WiBill <onboarding@resend.dev>',
-                        'to': ['chriskiarie14@gmail.com'],
-                        'subject': f'New ISP Pending Approval: {data.isp_name}',
-                        'html': f'''<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-                            <h2 style="color:#f59e0b">New ISP Registration</h2>
-                            <p><strong>{data.isp_name}</strong> has registered and is pending your approval.</p>
-                            <table style="border-collapse:collapse;width:100%">
-                                <tr><td style="padding:8px;color:#666">ISP Name</td><td style="padding:8px"><strong>{data.isp_name}</strong></td></tr>
-                                <tr><td style="padding:8px;color:#666">Admin Email</td><td style="padding:8px">{data.admin_email}</td></tr>
-                                <tr><td style="padding:8px;color:#666">Slug</td><td style="padding:8px">{data.isp_slug}</td></tr>
-                            </table>
-                            <div style="margin-top:24px">
-                                <a href="https://wi-bill.vercel.app/admin/isps" 
-                                   style="background:#f59e0b;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">
-                                    Review in Batcave
+                async with httpx.AsyncClient() as client:
+                    await client.post(
+                        'https://api.resend.com/emails',
+                        headers={
+                            'Authorization': f'Bearer {resend_key}',
+                            'Content-Type': 'application/json',
+                        },
+                        json={
+                            'from': 'WiBill <onboarding@resend.dev>',
+                            'to': ['chriskiarie14@gmail.com'],
+                            'subject': f'New ISP Pending Approval: {data.isp_name}',
+                            'html': f'''
+                            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0a0a0a;color:#f0f0f0;padding:32px;border-radius:12px">
+                                <div style="font-size:24px;font-weight:800;color:#E8B84B;margin-bottom:8px">New ISP Registration</div>
+                                <p style="color:#888;margin-bottom:24px"><strong style="color:#f0f0f0">{data.isp_name}</strong> has registered and is pending your approval.</p>
+                                <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
+                                    <tr><td style="padding:10px;color:#666;border-bottom:1px solid #141414">ISP Name</td><td style="padding:10px;border-bottom:1px solid #141414"><strong>{data.isp_name}</strong></td></tr>
+                                    <tr><td style="padding:10px;color:#666;border-bottom:1px solid #141414">Admin Email</td><td style="padding:10px;border-bottom:1px solid #141414">{data.admin_email}</td></tr>
+                                    <tr><td style="padding:10px;color:#666">Slug</td><td style="padding:10px">/{data.isp_slug}</td></tr>
+                                </table>
+                                <a href="https://wi-bill.vercel.app/admin/isps"
+                                   style="background:#E8B84B;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:800;display:inline-block">
+                                    Review in Batcave →
                                 </a>
-                            </div>
-                        </div>'''
-                    },
-                    timeout=5.0
-                )
+                            </div>''',
+                        },
+                        timeout=5.0,
+                    )
         except Exception:
-            pass  # Email failure never blocks registration
+            pass  # Email failure must never block registration
 
     return {
         "ok": True,
         "message": status_msg,
         "tenant_id": str(tenant.id),
-        "status": "pending_approval" if invite else "active",
-        "next_step": "Log in with your credentials to access your dashboard.",
+        "status": "pending_approval" if pending else "active",
+        "next_step": "Await admin approval before logging in." if pending else "Log in with your credentials.",
     }
 
 
@@ -300,10 +257,7 @@ async def register_isp(
     token: str = Query(..., description="Invite token from signup link"),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Register a new ISP via invite token (legacy endpoint).
-    Use /register instead.
-    """
+    """Legacy endpoint — delegates to /register."""
     return await register(data=data, token=token, db=db)
 
 
@@ -312,29 +266,19 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Login with email and password.
-    Returns JWT token.
-    """
-    # Find user by email (username field contains email)
-    result = await db.execute(
-        select(AdminUser).where(AdminUser.email == form_data.username)
-    )
+    """Login with email and password. Returns JWT token."""
+    result = await db.execute(select(AdminUser).where(AdminUser.email == form_data.username))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password",
-        )
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not user.is_active:
         raise HTTPException(
             status_code=403,
-            detail="User account is inactive. Please contact admin.",
+            detail="Your account is pending admin approval. You'll receive an email when approved.",
         )
 
-    # Create JWT token
     access_token = create_access_token(str(user.id), user.role, user.tenant_id)
 
     return TokenResponse(
@@ -350,12 +294,7 @@ async def login(
 # ============================================================================
 
 @router.get("/me")
-async def get_current_user_info(
-    current_user: AdminUser = Depends(get_current_user),
-):
-    """
-    Get info about the logged-in user
-    """
+async def get_current_user_info(current_user: AdminUser = Depends(get_current_user)):
     return {
         "id": str(current_user.id),
         "email": current_user.email,
@@ -369,14 +308,13 @@ async def get_current_user_info(
 
 @router.post("/logout")
 async def logout(current_user: AdminUser = Depends(get_current_user)):
-    """
-    Logout (frontend just deletes JWT from localStorage)
-    """
     return {"ok": True, "message": "Logged out successfully"}
+
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
 
 class UpdateProfileRequest(BaseModel):
     full_name: str | None = None
@@ -388,7 +326,6 @@ async def change_password(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user),
 ):
-    """Change the current user's password."""
     if not verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     if len(data.new_password) < 8:
@@ -404,7 +341,6 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(get_current_user),
 ):
-    """Update current user's profile."""
     if data.full_name is not None:
         current_user.full_name = data.full_name.strip()
     await db.commit()
