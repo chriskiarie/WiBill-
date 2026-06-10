@@ -1,497 +1,719 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  Circle,
+  ClipboardCopy,
+  Loader2,
+  Link2,
+  RefreshCw,
+  ShieldCheck,
+  Clock3,
+  Users,
+  Server,
+  AlertTriangle,
+  CheckCircle2,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface Invite {
+interface ISPInvite {
   id: string;
   token: string;
-  status: 'pending' | 'used' | 'expired';
-  created_at: string;
+  invite_link: string;
   expires_at: string;
-  used_at?: string;
-  created_by?: string;
+  created_at: string;
+  status: string;
+  isp_name?: string;
 }
 
-// COLOR PALETTE - DEFINED FIRST
-const colors = {
-  void: '#000000',
-  base: '#0a0a0a',
-  raised: '#0d0d0d',
-  border: '#141414',
-  textPrimary: '#f0f0f0',
-  textSecondary: '#666666',
-  textMuted: '#2a2a2a',
+type Tone = 'good' | 'warn' | 'bad' | 'neutral';
+
+const COLORS = {
+  bg: '#050505',
+  panel: '#0b0b0b',
+  panel2: '#0f0f0f',
+  border: 'rgba(255,255,255,0.07)',
+  borderSoft: 'rgba(255,255,255,0.04)',
+  text: '#f4f4f4',
+  muted: '#8a8a8a',
+  dim: '#5f5f5f',
   gold: '#E8B84B',
   green: '#22c55e',
   red: '#ef4444',
   amber: '#f59e0b',
-  blue: '#3b82f6',
+  blue: '#60a5fa',
 };
 
-export default function AdminInvites() {
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expiry, setExpiry] = useState('7');
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'used' | 'expired'>('all');
-  const [search, setSearch] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [bulkAction, setBulkAction] = useState<'delete' | 'extend' | null>(null);
-  const [selectedInvites, setSelectedInvites] = useState<Set<string>>(new Set());
+function toneColor(tone: Tone) {
+  switch (tone) {
+    case 'good':
+      return COLORS.green;
+    case 'warn':
+      return COLORS.amber;
+    case 'bad':
+      return COLORS.red;
+    default:
+      return COLORS.blue;
+  }
+}
 
+function toneBg(tone: Tone) {
+  return `${toneColor(tone)}14`;
+}
+
+function toneBorder(tone: Tone) {
+  return `${toneColor(tone)}33`;
+}
+
+function shortId(id: string, len = 10) {
+  return id.length > len ? `${id.slice(0, len)}…` : id;
+}
+
+function Panel({
+  title,
+  subtitle,
+  accent = COLORS.gold,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  accent?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      style={{
+        background: COLORS.panel,
+        border: `1px solid ${COLORS.border}`,
+        borderTop: `2px solid ${accent}`,
+        borderRadius: 18,
+        overflow: 'hidden',
+      }}
+    >
+      <div style={{ padding: '18px 20px 0' }}>
+        <div
+          style={{
+            fontFamily: '"Space Grotesk", Inter, sans-serif',
+            fontSize: 15,
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {title}
+        </div>
+        {subtitle ? (
+          <div style={{ marginTop: 6, fontSize: 12, color: COLORS.muted, lineHeight: 1.4 }}>{subtitle}</div>
+        ) : null}
+      </div>
+      <div style={{ padding: 20 }}>{children}</div>
+    </section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tone?: Tone;
+}) {
+  const c = toneColor(tone);
+  return (
+    <div
+      style={{
+        background: COLORS.panel2,
+        border: `1px solid ${toneBorder(tone)}`,
+        borderRadius: 16,
+        padding: 18,
+      }}
+    >
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: COLORS.muted }}>
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 14,
+          fontFamily: '"DM Mono", monospace',
+          fontSize: 28,
+          lineHeight: 1,
+          color: c,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 12, color: COLORS.dim }}>{sub}</div>
+    </div>
+  );
+}
+
+export default function AdminISPNetwork() {
+  const [isps, setIsps] = useState<ISPInvite[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [newISPName, setNewISPName] = useState('');
+  const [generatedLink, setGeneratedLink] = useState<ISPInvite | null>(null);
+  const [showCopyMessage, setShowCopyMessage] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loadingList, setLoadingList] = useState(true);
+
+  // Load invites on mount
   useEffect(() => {
+    let mounted = true;
+
+    async function loadInvites() {
+      try {
+        const token = localStorage.getItem('wb_token');
+        if (!token) {
+          if (mounted) {
+            setStatusMessage('Login required.');
+            setLoadingList(false);
+          }
+          return;
+        }
+
+        const headers = { Authorization: `Bearer ${token}` };
+        const response = await fetch(`${API}/api/admin/invites`, { headers });
+
+        if (response.ok) {
+          const data = await response.json();
+          const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : [];
+          if (mounted) {
+            setIsps(list as ISPInvite[]);
+          }
+        }
+      } catch (e) {
+        console.error('Invite load failed:', e);
+      } finally {
+        if (mounted) setLoadingList(false);
+      }
+    }
+
     loadInvites();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const loadInvites = async () => {
-    const token = localStorage.getItem('wb_token');
-    if (!token) return;
+  const generateInvite = async () => {
+    if (!newISPName.trim()) {
+      setStatusMessage('Please enter an ISP name.');
+      return;
+    }
 
+    setLoading(true);
+    setStatusMessage('');
     try {
-      const r = await fetch(`${API}/api/admin/invites`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const token = localStorage.getItem('wb_token');
+      if (!token) {
+        setStatusMessage('Login required.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API}/api/admin/invites/generate`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isp_name: newISPName.trim(),
+          expires_in_days: 7,
+        }),
       });
-      const d = await r.json();
-      setInvites(Array.isArray(d) ? d : []);
-    } catch (err) {
-      console.error(err);
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+
+      const data = (await response.json()) as ISPInvite;
+      setGeneratedLink(data);
+      setIsps((prev) => [data, ...prev]);
+      setNewISPName('');
+      setStatusMessage('Invite created successfully.');
+    } catch (e) {
+      console.error('Invite generation failed:', e);
+      setStatusMessage(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateInvite = async () => {
-    const token = localStorage.getItem('wb_token');
-    if (!token) return;
-
+  const copyToClipboard = async (text: string) => {
     try {
-      const r = await fetch(`${API}/api/admin/invites/generate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!r.ok) throw new Error('Failed to generate invite');
-
-      const data = await r.json();
-      setGeneratedLink(data.url);
-      setShowSuccess(true);
-      setExpiry('7');
-
-      await loadInvites();
-      setTimeout(() => setShowSuccess(false), 5000);
-    } catch (err) {
-      console.error(err);
+      await navigator.clipboard.writeText(text);
+      setShowCopyMessage(true);
+      setTimeout(() => setShowCopyMessage(false), 1800);
+    } catch (e) {
+      console.error('Copy failed:', e);
+      setStatusMessage('Failed to copy to clipboard.');
     }
   };
 
-  // Calculate metrics
-  const pending = invites.filter(i => i.status === 'pending').length;
-  const accepted = invites.filter(i => i.status === 'used').length;
-  const expired = invites.filter(i => i.status === 'expired').length;
-  const total = pending + accepted + expired;
-  const conversionRate = total > 0 ? ((accepted / total) * 100).toFixed(0) : '0';
+  const visibleInvites = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return isps;
+    return isps.filter((item) => {
+      return (
+        item.id.toLowerCase().includes(q) ||
+        (item.isp_name || '').toLowerCase().includes(q) ||
+        (item.status || '').toLowerCase().includes(q)
+      );
+    });
+  }, [isps, searchTerm]);
 
-  // Filter invites
-  const filtered = invites.filter(invite => {
-    if (selectedFilter !== 'all' && invite.status !== selectedFilter) return false;
-    if (search) {
-      return invite.token.toLowerCase().includes(search.toLowerCase());
-    }
-    return true;
-  });
-
-  // Real activity log
-  const activityLog = invites
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5)
-    .map(invite => ({
-      type: invite.status as 'pending' | 'used' | 'expired',
-      text: invite.status === 'pending' 
-        ? 'Invite generated' 
-        : invite.status === 'used'
-        ? 'Invite accepted'
-        : 'Invite expired',
-      time: new Date(invite.created_at),
-      id: invite.id,
-    }));
-
-  const getTimeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return `${Math.floor(seconds / 86400)}d ago`;
-  };
-
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const toggleSelectInvite = (id: string) => {
-    const newSet = new Set(selectedInvites);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedInvites(newSet);
-  };
+  const pendingCount = isps.filter((item) => (item.status || '').toLowerCase() === 'pending').length;
+  const activeCount = isps.filter((item) => (item.status || '').toLowerCase() === 'active').length;
 
   return (
-    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
-      {/* HEADER */}
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
-          Invite Management
-        </h1>
-        <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-          Generate, track, and manage ISP onboarding invites with real-time conversion metrics
-        </p>
-      </div>
-
-      {/* PRIMARY KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-        {[
-          { label: 'Pending Invites', value: pending, color: colors.amber, icon: '⏳', change: 'Waiting' },
-          { label: 'Accepted', value: accepted, color: colors.green, icon: '✓', change: 'Onboarded' },
-          { label: 'Expired', value: expired, color: colors.red, icon: '✕', change: 'Invalid' },
-          { label: 'Conversion Rate', value: conversionRate + '%', color: colors.blue, icon: '📊', change: 'Success' },
-        ].map((metric, i) => (
-          <div key={i} style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '24px',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: metric.color }} />
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
-                {metric.label}
-              </div>
-              <span style={{ fontSize: 18 }}>{metric.icon}</span>
-            </div>
-
-            <div style={{ fontSize: 28, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace', marginBottom: '8px' }}>
-              {metric.value}
-            </div>
-
-            <div style={{ fontSize: 11, color: metric.color, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
-              {metric.change}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* GENERATOR + ACTIVITY GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '32px' }}>
-        {/* GENERATE INVITE */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-            Generate New Invite
-          </h2>
-
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
-                Expires In
-              </label>
-              <select
-                value={expiry}
-                onChange={e => setExpiry(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  color: colors.textPrimary,
-                  fontSize: 12,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="1">1 Day</option>
-                <option value="7">7 Days</option>
-                <option value="14">14 Days</option>
-                <option value="30">30 Days</option>
-              </select>
-            </div>
-
-            <button
-              onClick={generateInvite}
+    <div
+      style={{
+        minHeight: '100vh',
+        background: COLORS.bg,
+        color: COLORS.text,
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <div style={{ maxWidth: 1520, margin: '0 auto', padding: '0 28px 36px' }}>
+        <header
+          style={{
+            height: 68,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: `1px solid ${COLORS.border}`,
+            marginBottom: 24,
+          }}
+        >
+          <div>
+            <div
               style={{
-                padding: '10px 16px',
-                background: colors.gold,
-                border: 'none',
-                borderRadius: '8px',
-                color: colors.void,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
+                fontFamily: '"Space Grotesk", Inter, sans-serif',
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.opacity = '0.9';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.opacity = '1';
               }}
             >
-              🔗 Generate
-            </button>
+              BATCAVE
+            </div>
+            <div style={{ marginTop: 4, fontSize: 12, color: COLORS.muted }}>ISP Network</div>
           </div>
 
-          {showSuccess && (
-            <div style={{
-              background: `${colors.green}15`,
-              border: `0.5px solid ${colors.green}40`,
-              borderRadius: '8px',
-              padding: '12px',
-              color: colors.green,
-              fontSize: 12,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>✓ Invite generated successfully</div>
-              <button
-                onClick={() => copyToClipboard(generatedLink, 'latest')}
-                style={{
-                  background: `${colors.green}20`,
-                  border: `0.5px solid ${colors.green}40`,
-                  borderRadius: '4px',
-                  padding: '4px 8px',
-                  color: colors.green,
-                  fontSize: 10,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                {copiedId === 'latest' ? '✓ Copied' : 'Copy Link'}
-              </button>
-            </div>
-          )}
-        </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: COLORS.muted, fontSize: 12 }}>
+            <Circle size={8} fill={COLORS.green} color={COLORS.green} />
+            <span style={{ letterSpacing: '0.14em', textTransform: 'uppercase' }}>Invite operations</span>
+          </div>
+        </header>
 
-        {/* ACTIVITY FEED */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-            Activity Feed
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {activityLog.length === 0 ? (
-              <div style={{ color: colors.textMuted, fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
-                No activity yet
-              </div>
-            ) : (
-              activityLog.map((activity, i) => (
+        <main style={{ display: 'grid', gap: 18 }}>
+          <section
+            style={{
+              background: `linear-gradient(180deg, #0b0b0b 0%, #080808 100%)`,
+              border: `1px solid ${COLORS.border}`,
+              borderTop: `2px solid ${COLORS.gold}`,
+              borderRadius: 22,
+              padding: 22,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-end', marginBottom: 20 }}>
+              <div>
                 <div
-                  key={activity.id}
                   style={{
-                    padding: '10px 12px',
-                    background: colors.raised,
-                    borderLeft: `3px solid ${
-                      activity.type === 'used' ? colors.green :
-                      activity.type === 'expired' ? colors.red :
-                      colors.amber
-                    }`,
-                    borderRadius: '4px 6px 6px 4px',
-                    fontSize: 11,
+                    fontFamily: '"Space Grotesk", Inter, sans-serif',
+                    fontSize: 34,
+                    lineHeight: 1,
+                    fontWeight: 800,
+                    letterSpacing: '-0.04em',
+                    textTransform: 'uppercase',
                   }}
                 >
-                  <div style={{ color: colors.textPrimary, fontWeight: 600, marginBottom: '2px' }}>
-                    {activity.text}
+                  ISP Network
+                </div>
+                <div style={{ marginTop: 10, color: COLORS.muted, maxWidth: 720, lineHeight: 1.6 }}>
+                  Generate onboarding links, inspect invite flow, and track partner status inside the same control room.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  background: COLORS.panel2,
+                  border: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <Server size={14} color={COLORS.gold} />
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: COLORS.muted }}>
+                    Network state
                   </div>
-                  <div style={{ color: colors.textMuted, fontSize: 10 }}>
-                    {getTimeAgo(activity.time)}
+                  <div style={{ marginTop: 4, fontFamily: '"DM Mono", monospace', fontSize: 13 }}>
+                    {loadingList ? '...' : `${activeCount} active / ${isps.length} total`}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
 
-      {/* FILTER + SEARCH */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', marginBottom: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '12px' }}>
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
-              Search Invites
-            </label>
-            <input
-              type="text"
-              placeholder="Search by token..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                background: colors.raised,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '8px',
-                padding: '10px 12px',
-                color: colors.textPrimary,
-                fontSize: 12,
-                outline: 'none',
-                fontFamily: '"JetBrains Mono", monospace',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+              <StatCard
+                label="Total invites"
+                value={loadingList ? '...' : `${isps.length}`}
+                sub="all invite records currently known to the system"
+                tone="neutral"
+              />
+              <StatCard
+                label="Pending"
+                value={loadingList ? '...' : `${pendingCount}`}
+                sub="awaiting ISP completion or review"
+                tone="warn"
+              />
+              <StatCard
+                label="Live partners"
+                value={loadingList ? '...' : `${activeCount}`}
+                sub="already active on the platform"
+                tone="good"
+              />
+            </div>
+          </section>
 
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, display: 'block', marginBottom: '6px' }}>
-              Filter
-            </label>
-            <select
-              value={selectedFilter}
-              onChange={e => setSelectedFilter(e.target.value as any)}
-              style={{
-                width: '100%',
-                background: colors.raised,
-                border: `0.5px solid ${colors.border}`,
-                borderRadius: '8px',
-                padding: '10px 12px',
-                color: colors.textPrimary,
-                fontSize: 12,
-                outline: 'none',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-              }}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(340px, 0.9fr)', gap: 18 }}>
+            <Panel
+              title="Generate invite"
+              subtitle="Create a new ISP onboarding link in one move."
+              accent={COLORS.gold}
             >
-              <option value="all">All ({invites.length})</option>
-              <option value="pending">Pending ({pending})</option>
-              <option value="used">Used ({accepted})</option>
-              <option value="expired">Expired ({expired})</option>
-            </select>
-          </div>
-        </div>
-      </div>
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gap: 12,
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="ISP name"
+                    value={newISPName}
+                    onChange={(e) => setNewISPName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') generateInvite();
+                    }}
+                    disabled={loading}
+                    style={{
+                      height: 48,
+                      padding: '0 14px',
+                      borderRadius: 14,
+                      border: `1px solid ${COLORS.border}`,
+                      background: COLORS.panel2,
+                      color: COLORS.text,
+                      outline: 'none',
+                      fontSize: 14,
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      opacity: loading ? 0.6 : 1,
+                      cursor: loading ? 'not-allowed' : 'text',
+                    }}
+                  />
+                  <button
+                    onClick={generateInvite}
+                    disabled={loading || !newISPName.trim()}
+                    style={{
+                      height: 48,
+                      padding: '0 18px',
+                      borderRadius: 14,
+                      border: 'none',
+                      background: COLORS.gold,
+                      color: '#000',
+                      fontFamily: '"Space Grotesk", Inter, sans-serif',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      cursor: loading || !newISPName.trim() ? 'not-allowed' : 'pointer',
+                      opacity: loading || !newISPName.trim() ? 0.6 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
+                    {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Link2 size={16} />}
+                    {loading ? 'Creating' : 'Generate'}
+                  </button>
+                </div>
 
-      {/* INVITES TABLE */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', overflowX: 'auto' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-          All Invites ({filtered.length})
-        </h2>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 12,
+                    padding: 16,
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panel2,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={14} color={COLORS.gold} />
+                    <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: COLORS.muted }}>
+                      Invite protocol
+                    </div>
+                  </div>
+                  <div style={{ color: COLORS.muted, lineHeight: 1.6 }}>
+                    Enter an ISP name. The system generates a tokenized onboarding URL and attaches a 7-day expiry.
+                  </div>
+                </div>
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
-            Loading invites...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
-            No invites found
-          </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: '"JetBrains Mono", monospace' }}>
-            <thead>
-              <tr style={{ borderBottom: `0.5px solid ${colors.border}` }}>
-                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Token
-                </th>
-                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Created
-                </th>
-                <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Expires
-                </th>
-                <th style={{ textAlign: 'center', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Status
-                </th>
-                <th style={{ textAlign: 'center', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.slice(0, 50).map((invite, idx) => {
-                const statusColor = {
-                  pending: colors.amber,
-                  used: colors.green,
-                  expired: colors.red,
-                }[invite.status];
+                {statusMessage ? (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 14,
+                      border: `1px solid ${statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBorder('bad') : toneBorder('good')}`,
+                      background: statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBg('bad') : toneBg('good'),
+                      color: statusMessage.includes('Error') || statusMessage.includes('failed') ? COLORS.red : COLORS.green,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    {statusMessage.includes('Error') || statusMessage.includes('failed') ? (
+                      <AlertTriangle size={14} />
+                    ) : (
+                      <CheckCircle2 size={14} />
+                    )}
+                    <span style={{ fontSize: 12 }}>{statusMessage}</span>
+                  </div>
+                ) : null}
 
-                return (
-                  <tr key={invite.id} style={{ borderBottom: `0.5px solid ${colors.border}`, background: idx % 2 === 0 ? colors.raised : 'transparent' }}>
-                    <td style={{ padding: '12px 0', color: colors.blue }}>
-                      {invite.token.slice(0, 16)}...
-                    </td>
-                    <td style={{ padding: '12px 0', color: colors.textSecondary }}>
-                      {new Date(invite.created_at).toLocaleDateString('en-KE')}
-                    </td>
-                    <td style={{ padding: '12px 0', color: colors.textSecondary }}>
-                      {new Date(invite.expires_at).toLocaleDateString('en-KE')}
-                    </td>
-                    <td style={{ padding: '12px 0', textAlign: 'center' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        background: `${statusColor}15`,
-                        color: statusColor,
-                        border: `0.5px solid ${statusColor}40`,
-                      }}>
-                        {invite.status === 'pending' ? '⏳' : invite.status === 'used' ? '✓' : '✕'} {invite.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 0', textAlign: 'center' }}>
+                {generatedLink ? (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: 12,
+                      padding: 16,
+                      borderRadius: 16,
+                      border: `1px solid ${toneBorder('good')}`,
+                      background: COLORS.panel2,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: COLORS.green }}>
+                        Invite created
+                      </div>
+                      <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: COLORS.dim }}>
+                        {generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : 'Expiry unknown'}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: 14,
+                        borderRadius: 14,
+                        border: `1px solid ${COLORS.border}`,
+                        background: COLORS.bg,
+                        wordBreak: 'break-all',
+                        fontFamily: '"DM Mono", monospace',
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: COLORS.text,
+                      }}
+                    >
+                      {generatedLink.invite_link}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => copyToClipboard(`${window.location.origin}/join?token=${invite.token}`, invite.id)}
+                        onClick={() => copyToClipboard(generatedLink.invite_link)}
                         style={{
-                          background: colors.raised,
-                          border: `0.5px solid ${colors.border}`,
-                          borderRadius: '4px',
-                          padding: '4px 8px',
-                          color: colors.gold,
-                          fontSize: 10,
+                          height: 42,
+                          padding: '0 14px',
+                          borderRadius: 12,
+                          border: `1px solid ${COLORS.border}`,
+                          background: COLORS.bg,
+                          color: COLORS.text,
                           cursor: 'pointer',
-                          fontWeight: 600,
-                          transition: 'all 0.2s',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          fontFamily: '"Space Grotesk", Inter, sans-serif',
+                          fontWeight: 700,
+                          transition: 'background 0.2s',
                         }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.background = colors.border;
+                        onMouseOver={(e) => {
+                          (e.target as HTMLElement).style.background = COLORS.panel2;
                         }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLElement).style.background = colors.raised;
+                        onMouseOut={(e) => {
+                          (e.target as HTMLElement).style.background = COLORS.bg;
                         }}
                       >
-                        {copiedId === invite.id ? '✓' : '📋'}
+                        <ClipboardCopy size={15} />
+                        {showCopyMessage ? 'Copied' : 'Copy link'}
                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                      <div
+                        style={{
+                          height: 42,
+                          padding: '0 14px',
+                          borderRadius: 12,
+                          border: `1px solid ${COLORS.border}`,
+                          background: toneBg('good'),
+                          color: COLORS.green,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          fontSize: 12,
+                        }}
+                      >
+                        <Clock3 size={14} />
+                        {generatedLink.status || 'pending'}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </Panel>
 
-        {filtered.length > 50 && (
-          <div style={{
-            padding: '16px',
-            textAlign: 'center',
-            color: colors.textMuted,
-            fontSize: 11,
-            borderTop: `0.5px solid ${colors.border}`,
-            marginTop: '16px',
-          }}>
-            Showing 50 of {filtered.length} invites
+            <Panel
+              title="Invite intelligence"
+              subtitle="A compact operational view of the onboarding queue."
+              accent={COLORS.blue}
+            >
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    border: `1px solid ${COLORS.border}`,
+                    background: COLORS.panel2,
+                  }}
+                >
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: COLORS.muted }}>
+                    Search
+                  </div>
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Search size={15} color={COLORS.dim} />
+                    <input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Filter by ISP name, status, or ID"
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        outline: 'none',
+                        background: 'transparent',
+                        color: COLORS.text,
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {loadingList ? (
+                    <div
+                      style={{
+                        minHeight: 220,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: `1px dashed ${COLORS.border}`,
+                        borderRadius: 16,
+                        background: COLORS.panel2,
+                        color: COLORS.muted,
+                        gap: 10,
+                      }}
+                    >
+                      <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                      <div>Loading invites...</div>
+                    </div>
+                  ) : visibleInvites.length === 0 ? (
+                    <div
+                      style={{
+                        minHeight: 220,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: `1px dashed ${COLORS.border}`,
+                        borderRadius: 16,
+                        background: COLORS.panel2,
+                        color: COLORS.muted,
+                        gap: 10,
+                        textAlign: 'center',
+                        padding: 20,
+                      }}
+                    >
+                      <Users size={20} color={COLORS.dim} />
+                      <div>No invite records match this view.</div>
+                    </div>
+                  ) : (
+                    visibleInvites.slice(0, 6).map((invite) => {
+                      const status = (invite.status || '').toLowerCase();
+                      const tone: Tone = status === 'active' ? 'good' : status === 'pending' ? 'warn' : 'bad';
+                      return (
+                        <div
+                          key={invite.id}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr auto',
+                            gap: 12,
+                            alignItems: 'center',
+                            padding: '14px 0',
+                            borderBottom: `1px solid ${COLORS.borderSoft}`,
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 13, color: COLORS.text }}>
+                              {invite.isp_name || 'Unnamed ISP'}
+                            </div>
+                            <div style={{ marginTop: 5, fontSize: 11, color: COLORS.muted, fontFamily: '"DM Mono", monospace' }}>
+                              {shortId(invite.id, 14)}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                minWidth: 86,
+                                padding: '6px 10px',
+                                borderRadius: 999,
+                                border: `1px solid ${toneBorder(tone)}`,
+                                background: toneBg(tone),
+                                color: toneColor(tone),
+                                fontSize: 10,
+                                letterSpacing: '0.16em',
+                                textTransform: 'uppercase',
+                                fontFamily: '"DM Mono", monospace',
+                              }}
+                            >
+                              {invite.status || 'pending'}
+                            </div>
+                            <div style={{ marginTop: 8, fontSize: 11, color: COLORS.dim, fontFamily: '"DM Mono", monospace' }}>
+                              {invite.expires_at ? new Date(invite.expires_at).toLocaleDateString() : 'No expiry'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </Panel>
           </div>
-        )}
+        </main>
       </div>
     </div>
   );
