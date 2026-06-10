@@ -1,4 +1,4 @@
-﻿"""
+"""
 app/api/routes/admin.py - Admin/Platform-only routes for ISP management
 """
 
@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 import uuid
 import secrets
-import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -21,10 +20,6 @@ from app.models.isp_invite import ISPInvite, InviteStatus
 from app.api.routes.auth import get_current_user, require_platform_admin
 
 # ── INLINE SCHEMAS (Fixes No module named 'app.schemas') ─────────────────────
-class GenerateInviteRequest(BaseModel):
-    isp_name: str
-    expires_in_days: int = 7
-
 class ISPInviteResponse(BaseModel):
     id: str
     token: str
@@ -32,7 +27,6 @@ class ISPInviteResponse(BaseModel):
     expires_at: datetime
     created_at: datetime
     status: str
-    isp_name: str | None = None
 
     class Config:
         from_attributes = True
@@ -47,22 +41,15 @@ class TenantResponse(BaseModel):
 
 router = APIRouter(tags=["admin"])
 
-# Get the frontend URL from env, fallback to production
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://wi-bill.vercel.app")
-
 
 @router.post("/invites/generate", response_model=ISPInviteResponse)
 async def generate_invite(
-    req: GenerateInviteRequest,
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
 ) -> ISPInviteResponse:
     """Generate a new ISP invite link (platform_admin only)."""
-    if not req.isp_name or not req.isp_name.strip():
-        raise HTTPException(status_code=400, detail="isp_name is required and cannot be empty")
-    
     token = secrets.token_urlsafe(48)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=req.expires_in_days)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     created_at = datetime.now(timezone.utc)
     
     invite = ISPInvite(
@@ -71,16 +58,14 @@ async def generate_invite(
         created_by=current_user.id,
         status=InviteStatus.PENDING,
         expires_at=expires_at,
-        created_at=created_at,
-        isp_name=req.isp_name.strip()  # Store the ISP name
+        created_at=created_at
     )
     
     db.add(invite)
     await db.commit()
     await db.refresh(invite)
     
-    # Use production URL for invite link
-    invite_link = f"{FRONTEND_URL}/join?ref={token}"
+    invite_link = f"http://localhost:3000/join?ref={token}"
     
     return ISPInviteResponse(
         id=str(invite.id),
@@ -88,8 +73,7 @@ async def generate_invite(
         invite_link=invite_link,
         expires_at=invite.expires_at,
         created_at=invite.created_at,
-        status=invite.status.value,
-        isp_name=invite.isp_name
+        status=invite.status.value
     )
 
 
@@ -107,11 +91,10 @@ async def list_invites(
         ISPInviteResponse(
             id=str(i.id),
             token=i.token,
-            invite_link=f"{FRONTEND_URL}/join?ref={i.token}",
+            invite_link=f"http://localhost:3000/join?ref={i.token}",
             expires_at=i.expires_at,
             created_at=i.created_at,
-            status=i.status.value,
-            isp_name=getattr(i, 'isp_name', None)
+            status=i.status.value
         )
         for i in invites
     ]
