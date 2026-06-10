@@ -930,7 +930,7 @@ export default function XbillPortalWizard() {
 
       console.log('📤 POST /api/tenants/portal-config with payload:', portalConfig);
 
-      const configResponse = await fetch(`${apiBase}/api/portal-config`, {
+      const configResponse = await fetch(`${apiBase}/api/tenants/portal-config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1603,4 +1603,3 @@ export default function XbillPortalWizard() {
     </div>
   );
 }
-
