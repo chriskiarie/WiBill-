@@ -1,6 +1,6 @@
-﻿'use client';
+﻿'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Circle,
   ClipboardCopy,
@@ -15,21 +15,21 @@ import {
   CheckCircle2,
   Search,
   Sparkles,
-} from 'lucide-react';
+} from 'lucide-react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface ISPInvite {
-  id: string;
-  token: string;
-  invite_link: string;
-  expires_at: string;
-  created_at: string;
-  status: string;
-  isp_name?: string;
+  id: string
+  token: string
+  invite_link: string
+  expires_at: string
+  created_at: string
+  status: string
+  isp_name?: string
 }
 
-type Tone = 'good' | 'warn' | 'bad' | 'neutral';
+type Tone = 'good' | 'warn' | 'bad' | 'neutral'
 
 const COLORS = {
   bg: '#050505',
@@ -45,31 +45,31 @@ const COLORS = {
   red: '#ef4444',
   amber: '#f59e0b',
   blue: '#60a5fa',
-};
+}
 
 function toneColor(tone: Tone) {
   switch (tone) {
     case 'good':
-      return COLORS.green;
+      return COLORS.green
     case 'warn':
-      return COLORS.amber;
+      return COLORS.amber
     case 'bad':
-      return COLORS.red;
+      return COLORS.red
     default:
-      return COLORS.blue;
+      return COLORS.blue
   }
 }
 
 function toneBg(tone: Tone) {
-  return `${toneColor(tone)}14`;
+  return `${toneColor(tone)}14`
 }
 
 function toneBorder(tone: Tone) {
-  return `${toneColor(tone)}33`;
+  return `${toneColor(tone)}33`
 }
 
 function shortId(id: string, len = 10) {
-  return id.length > len ? `${id.slice(0, len)}…` : id;
+  return id.length > len ? `${id.slice(0, len)}…` : id
 }
 
 function Panel({
@@ -78,10 +78,10 @@ function Panel({
   accent = COLORS.gold,
   children,
 }: {
-  title: string;
-  subtitle?: string;
-  accent?: string;
-  children: ReactNode;
+  title: string
+  subtitle?: string
+  accent?: string
+  children: ReactNode
 }) {
   return (
     <section
@@ -111,7 +111,7 @@ function Panel({
       </div>
       <div style={{ padding: 20 }}>{children}</div>
     </section>
-  );
+  )
 }
 
 function StatCard({
@@ -120,12 +120,12 @@ function StatCard({
   sub,
   tone = 'neutral',
 }: {
-  label: string;
-  value: string;
-  sub: string;
-  tone?: Tone;
+  label: string
+  value: string
+  sub: string
+  tone?: Tone
 }) {
-  const c = toneColor(tone);
+  const c = toneColor(tone)
   return (
     <div
       style={{
@@ -151,74 +151,76 @@ function StatCard({
       </div>
       <div style={{ marginTop: 8, fontSize: 12, color: COLORS.dim }}>{sub}</div>
     </div>
-  );
+  )
 }
 
 export default function AdminISPNetwork() {
-  const [isps, setIsps] = useState<ISPInvite[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [newISPName, setNewISPName] = useState('');
-  const [generatedLink, setGeneratedLink] = useState<ISPInvite | null>(null);
-  const [showCopyMessage, setShowCopyMessage] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loadingList, setLoadingList] = useState(true);
+  const [isps, setIsps] = useState<ISPInvite[]>([])
+  const [loading, setLoading] = useState(false)
+  const [newISPName, setNewISPName] = useState('')
+  const [generatedLink, setGeneratedLink] = useState<ISPInvite | null>(null)
+  const [showCopyMessage, setShowCopyMessage] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [loadingList, setLoadingList] = useState(true)
 
   // Load invites on mount
   useEffect(() => {
-    let mounted = true;
+    let mounted = true
 
     async function loadInvites() {
       try {
-        const token = localStorage.getItem('wb_token');
+        const token = localStorage.getItem('wb_token')
         if (!token) {
           if (mounted) {
-            setStatusMessage('Login required.');
-            setLoadingList(false);
+            setStatusMessage('Login required.')
+            setLoadingList(false)
           }
-          return;
+          return
         }
 
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await fetch(`${API}/api/admin/invites`, { headers });
+        const headers = { Authorization: `Bearer ${token}` }
+        // ✅ FIXED: Use /api/invites not /api/admin/invites
+        const response = await fetch(`${API}/api/invites`, { headers })
 
         if (response.ok) {
-          const data = await response.json();
-          const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : [];
+          const data = await response.json()
+          const list = Array.isArray(data?.value) ? data.value : Array.isArray(data) ? data : []
           if (mounted) {
-            setIsps(list as ISPInvite[]);
+            setIsps(list as ISPInvite[])
           }
         }
       } catch (e) {
-        console.error('Invite load failed:', e);
+        console.error('Invite load failed:', e)
       } finally {
-        if (mounted) setLoadingList(false);
+        if (mounted) setLoadingList(false)
       }
     }
 
-    loadInvites();
+    loadInvites()
     return () => {
-      mounted = false;
-    };
-  }, []);
+      mounted = false
+    }
+  }, [])
 
   const generateInvite = async () => {
     if (!newISPName.trim()) {
-      setStatusMessage('Please enter an ISP name.');
-      return;
+      setStatusMessage('Please enter an ISP name.')
+      return
     }
 
-    setLoading(true);
-    setStatusMessage('');
+    setLoading(true)
+    setStatusMessage('')
     try {
-      const token = localStorage.getItem('wb_token');
+      const token = localStorage.getItem('wb_token')
       if (!token) {
-        setStatusMessage('Login required.');
-        setLoading(false);
-        return;
+        setStatusMessage('Login required.')
+        setLoading(false)
+        return
       }
 
-      const response = await fetch(`${API}/api/admin/invites/generate`, {
+      // ✅ FIXED: Use /api/invites/generate not /api/admin/invites/generate
+      const response = await fetch(`${API}/api/invites/generate`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -228,51 +230,51 @@ export default function AdminISPNetwork() {
           isp_name: newISPName.trim(),
           expires_in_days: 7,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}`);
+        const text = await response.text()
+        throw new Error(text || `HTTP ${response.status}`)
       }
 
-      const data = (await response.json()) as ISPInvite;
-      setGeneratedLink(data);
-      setIsps((prev) => [data, ...prev]);
-      setNewISPName('');
-      setStatusMessage('Invite created successfully.');
+      const data = (await response.json()) as ISPInvite
+      setGeneratedLink(data)
+      setIsps((prev) => [data, ...prev])
+      setNewISPName('')
+      setStatusMessage('Invite created successfully.')
     } catch (e) {
-      console.error('Invite generation failed:', e);
-      setStatusMessage(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      console.error('Invite generation failed:', e)
+      setStatusMessage(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setShowCopyMessage(true);
-      setTimeout(() => setShowCopyMessage(false), 1800);
+      await navigator.clipboard.writeText(text)
+      setShowCopyMessage(true)
+      setTimeout(() => setShowCopyMessage(false), 1800)
     } catch (e) {
-      console.error('Copy failed:', e);
-      setStatusMessage('Failed to copy to clipboard.');
+      console.error('Copy failed:', e)
+      setStatusMessage('Failed to copy to clipboard.')
     }
-  };
+  }
 
   const visibleInvites = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return isps;
+    const q = searchTerm.trim().toLowerCase()
+    if (!q) return isps
     return isps.filter((item) => {
       return (
         item.id.toLowerCase().includes(q) ||
         (item.isp_name || '').toLowerCase().includes(q) ||
         (item.status || '').toLowerCase().includes(q)
-      );
-    });
-  }, [isps, searchTerm]);
+      )
+    })
+  }, [isps, searchTerm])
 
-  const pendingCount = isps.filter((item) => (item.status || '').toLowerCase() === 'pending').length;
-  const activeCount = isps.filter((item) => (item.status || '').toLowerCase() === 'active').length;
+  const pendingCount = isps.filter((item) => (item.status || '').toLowerCase() === 'pending').length
+  const activeCount = isps.filter((item) => (item.status || '').toLowerCase() === 'active').length
 
   return (
     <div
@@ -409,7 +411,7 @@ export default function AdminISPNetwork() {
                     value={newISPName}
                     onChange={(e) => setNewISPName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') generateInvite();
+                      if (e.key === 'Enter') generateInvite()
                     }}
                     disabled={loading}
                     style={{
@@ -480,7 +482,8 @@ export default function AdminISPNetwork() {
                       padding: '12px 14px',
                       borderRadius: 14,
                       border: `1px solid ${statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBorder('bad') : toneBorder('good')}`,
-                      background: statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBg('bad') : toneBg('good'),
+                      background:
+                        statusMessage.includes('Error') || statusMessage.includes('failed') ? toneBg('bad') : toneBg('good'),
                       color: statusMessage.includes('Error') || statusMessage.includes('failed') ? COLORS.red : COLORS.green,
                       display: 'flex',
                       alignItems: 'center',
@@ -512,7 +515,9 @@ export default function AdminISPNetwork() {
                         Invite created
                       </div>
                       <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: COLORS.dim }}>
-                        {generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : 'Expiry unknown'}
+                        {generatedLink.expires_at
+                          ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}`
+                          : 'Expiry unknown'}
                       </div>
                     </div>
 
@@ -551,10 +556,10 @@ export default function AdminISPNetwork() {
                           transition: 'background 0.2s',
                         }}
                         onMouseOver={(e) => {
-                          (e.target as HTMLElement).style.background = COLORS.panel2;
+                          (e.target as HTMLElement).style.background = COLORS.panel2
                         }}
                         onMouseOut={(e) => {
-                          (e.target as HTMLElement).style.background = COLORS.bg;
+                          (e.target as HTMLElement).style.background = COLORS.bg
                         }}
                       >
                         <ClipboardCopy size={15} />
@@ -659,8 +664,8 @@ export default function AdminISPNetwork() {
                     </div>
                   ) : (
                     visibleInvites.slice(0, 6).map((invite) => {
-                      const status = (invite.status || '').toLowerCase();
-                      const tone: Tone = status === 'active' ? 'good' : status === 'pending' ? 'warn' : 'bad';
+                      const status = (invite.status || '').toLowerCase()
+                      const tone: Tone = status === 'active' ? 'good' : status === 'pending' ? 'warn' : 'bad'
                       return (
                         <div
                           key={invite.id}
@@ -706,7 +711,7 @@ export default function AdminISPNetwork() {
                             </div>
                           </div>
                         </div>
-                      );
+                      )
                     })
                   )}
                 </div>
@@ -716,5 +721,5 @@ export default function AdminISPNetwork() {
         </main>
       </div>
     </div>
-  );
+  )
 }

@@ -1,305 +1,356 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+'use client'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { useState, FormEvent, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
 
-export default function BatcaveLogin() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-  const login = async () => {
-    setError('');
-    setLoading(true);
+function LoginContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { login } = useAuth()
+
+  const [tab, setTab] = useState<'login' | 'signup'>('login')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [setupMessage, setSetupMessage] = useState('')
+
+  // Login fields
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  // Signup fields
+  const [ispName, setIspName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [regEmail, setRegEmail] = useState('')
+  const [regPass, setRegPass] = useState('')
+  const [phone, setPhone] = useState('')
+
+  // Extract token from URL on mount
+  useEffect(() => {
+    const token = searchParams?.get('ref')
+    if (token) {
+      setInviteToken(token)
+      setTab('signup') // Auto-switch to signup if invite token present
+    }
+  }, [searchParams])
+
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
     try {
-      const form = new FormData();
-      form.append('username', email);
-      form.append('password', password);
-      
-      const r = await fetch(`${API}/api/auth/login`, { 
-        method: 'POST', 
-        body: form 
-      });
-      
-      const data = await r.json();
-      
-      if (!r.ok) { 
-        setError(data.detail || 'Authentication failed'); 
-        return; 
-      }
-      
-      if (data.role !== 'platform_admin') {
-        setError('Restricted. Platform administrators only.');
-        return;
-      }
-      
-      // ✅ FIX: Store token in localStorage with correct key
-      // This matches what layout.tsx expects
-      localStorage.setItem('wb_token', data.access_token);
-      localStorage.setItem('wb_role', data.role);
-      localStorage.setItem('wb_tenant', data.tenant_id || '');
-      localStorage.setItem('wb_email', email);
-      
-      // Redirect to dashboard
-      router.push('/admin');
-    } catch (err: any) { 
-      setError('Cannot reach server — check connection');
-      console.error('Login error:', err);
+      await login(email, password)
+      router.push('/dashboard')
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
     }
-    finally { 
-      setLoading(false); 
+  }
+
+  const handleSignup = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      // Build the register URL with token if present
+      let registerUrl = `${API}/api/auth/register`
+      if (inviteToken) {
+        registerUrl += `?token=${encodeURIComponent(inviteToken)}`
+      }
+
+      // Call register endpoint
+      const res = await fetch(registerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isp_name: ispName,
+          isp_slug: slug,
+          admin_email: regEmail,
+          admin_password: regPass,
+          admin_phone: phone || '254700000000',
+          support_phone: phone || null,
+        }),
+      })
+
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.detail || 'Registration failed')
+      }
+
+      const data = await res.json()
+
+      // ✅ PATH 1: INVITED ISP (token present)
+      if (inviteToken) {
+        // Show loading screen
+        setSetupMessage('Setting up your dashboard...')
+        setError('')
+
+        // Wait 3 seconds for backend to settle
+        await new Promise((r) => setTimeout(r, 3000))
+
+        // Auto-login with new credentials
+        try {
+          await login(regEmail, regPass)
+          // Redirect straight to dashboard
+          router.push('/dashboard')
+        } catch (loginErr: any) {
+          console.error('Auto-login failed:', loginErr)
+          // Fallback: show message to login manually
+          setError('Account created! Please log in with your new credentials.')
+          setTab('login')
+          setEmail(regEmail)
+          setPassword('')
+        }
+      }
+      // ✅ PATH 2: COLD SIGNUP (no token)
+      else {
+        // Show pending approval message
+        setSetupMessage('')
+        setError('')
+        router.push('/join/pending-approval')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed')
+      setSetupMessage('')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
+
+  const inp: React.CSSProperties = {
+    width: '100%',
+    background: '#0a0a0a',
+    border: '0.5px solid #1e1e1e',
+    borderRadius: 9,
+    padding: '13px 16px',
+    color: '#f0f0f0',
+    fontFamily: 'DM Mono, monospace',
+    fontSize: 13,
+    outline: 'none',
+  }
+
+  const lbl: React.CSSProperties = {
+    fontSize: 11,
+    color: '#444',
+    fontWeight: 600,
+    letterSpacing: '0.4px',
+    marginBottom: 6,
+    display: 'block',
+  }
+
+  const btn: React.CSSProperties = {
+    width: '100%',
+    padding: '14px',
+    background: inviteToken ? '#10b981' : '#3b82f6',
+    border: 'none',
+    borderRadius: 9,
+    color: '#fff',
+    fontFamily: 'Syne, sans-serif',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    opacity: loading ? 0.6 : 1,
+    letterSpacing: '0.3px',
+  }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#030308',
-      display: 'flex',
-      fontFamily: '"Space Grotesk", Inter, sans-serif',
-    }}>
-      {/* Left panel */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px 80px',
-        borderRight: '1px solid rgba(250,200,0,0.06)',
-      }}>
+    <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
-        <div style={{ marginBottom: 60 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 34, fontWeight: 800, letterSpacing: '-1px', color: '#fff' }}>
+            WiBill
+          </div>
+          <div style={{ fontFamily: 'Instrument Serif, serif', fontStyle: 'italic', fontSize: 14, color: '#2a2a2a', marginTop: 2 }}>
+            XwB — ISP Management Portal
+          </div>
+        </div>
+
+        {/* Show invite status if token present */}
+        {inviteToken && (
           <div style={{
-            width: 48, 
-            height: 48,
-            background: 'linear-gradient(135deg, #fac800, #f59e0b)',
-            borderRadius: 12,
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            fontSize: 22, 
-            fontWeight: 900, 
-            color: '#0a0800',
-            boxShadow: '0 0 30px rgba(250,200,0,0.25)',
+            background: 'rgba(16, 185, 129, 0.1)',
+            border: '0.5px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: 10,
+            padding: '12px 16px',
             marginBottom: 20,
-          }}>X</div>
-          <div style={{ 
-            fontSize: 28, 
-            fontWeight: 900, 
-            color: '#fff', 
-            letterSpacing: '-0.03em', 
-            marginBottom: 8 
+            color: '#10b981',
+            fontSize: 12,
+            textAlign: 'center',
           }}>
-            Xw<span style={{ color: '#fac800' }}>B</span> Batcave
-          </div>
-          <div style={{ 
-            fontSize: 14, 
-            color: 'rgba(255,255,255,0.3)', 
-            lineHeight: 1.6 
-          }}>
-            Platform command center.<br />Restricted to authorized administrators.
-          </div>
-        </div>
-
-        {/* Stats preview (static) */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: 12 
-        }}>
-          {[
-            { label: 'Your Cut', value: '10%', desc: 'Per transaction' },
-            { label: 'Platform', value: 'WiBill', desc: 'v0.1.0' },
-            { label: 'Security', value: 'JWT', desc: 'Role-gated' },
-            { label: 'Access', value: 'Admin', desc: 'Only you' },
-          ].map(s => (
-            <div key={s.label} style={{
-              background: 'rgba(250,200,0,0.04)',
-              border: '1px solid rgba(250,200,0,0.08)',
-              borderRadius: 12, 
-              padding: '14px 16px',
-            }}>
-              <div style={{ 
-                fontSize: 10, 
-                color: 'rgba(255,255,255,0.25)', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.12em', 
-                marginBottom: 6 
-              }}>
-                {s.label}
-              </div>
-              <div style={{ 
-                fontSize: 18, 
-                fontWeight: 800, 
-                color: '#fac800', 
-                letterSpacing: '-0.02em' 
-              }}>
-                {s.value}
-              </div>
-              <div style={{ 
-                fontSize: 11, 
-                color: 'rgba(255,255,255,0.2)', 
-                marginTop: 2 
-              }}>
-                {s.desc}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right panel - login form */}
-      <div style={{
-        width: 420,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px 48px',
-      }}>
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ 
-            fontSize: 22, 
-            fontWeight: 800, 
-            color: '#fff', 
-            letterSpacing: '-0.02em', 
-            marginBottom: 6 
-          }}>
-            Admin Access
-          </div>
-          <div style={{ 
-            fontSize: 13, 
-            color: 'rgba(255,255,255,0.3)' 
-          }}>
-            Enter your platform credentials
-          </div>
-        </div>
-
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 16, 
-          marginBottom: 24 
-        }}>
-          {[
-            { 
-              label: 'Email', 
-              value: email, 
-              set: setEmail, 
-              type: 'email', 
-              placeholder: 'admin@xwbill.co.ke' 
-            },
-            { 
-              label: 'Password', 
-              value: password, 
-              set: setPassword, 
-              type: 'password', 
-              placeholder: '••••••••••' 
-            },
-          ].map(f => (
-            <div key={f.label}>
-              <label style={{ 
-                display: 'block', 
-                fontSize: 11, 
-                fontWeight: 600, 
-                color: 'rgba(250,200,0,0.6)', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.1em', 
-                marginBottom: 8 
-              }}>
-                {f.label}
-              </label>
-              <input
-                value={f.value}
-                onChange={e => f.set(e.target.value)}
-                type={f.type}
-                placeholder={f.placeholder}
-                onKeyDown={e => e.key === 'Enter' && !loading && login()}
-                disabled={loading}
-                style={{
-                  width: '100%', 
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1.5px solid rgba(255,255,255,0.08)',
-                  borderRadius: 10, 
-                  padding: '12px 16px',
-                  fontSize: 14, 
-                  color: '#fff', 
-                  outline: 'none',
-                  boxSizing: 'border-box', 
-                  fontFamily: 'inherit',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={e => e.target.style.borderColor = 'rgba(250,200,0,0.3)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-              />
-            </div>
-          ))}
-        </div>
-
-        {error && (
-          <div style={{
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 10, 
-            padding: '11px 16px',
-            fontSize: 13, 
-            color: '#f87171',
-            marginBottom: 20,
-          }}>
-            {error}
+            🎉 You've been invited to WiBill. Create your account below.
           </div>
         )}
 
-        <button
-          onClick={login}
-          disabled={loading || !email || !password}
-          style={{
-            width: '100%',
-            background: loading 
-              ? 'rgba(250,200,0,0.1)' 
-              : 'linear-gradient(135deg, #fac800, #f59e0b)',
-            border: 'none', 
-            borderRadius: 12,
-            padding: '14px', 
-            color: loading ? 'rgba(255,255,255,0.3)' : '#0a0800',
-            fontSize: 14, 
-            fontWeight: 800,
-            cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
-            letterSpacing: '-0.01em',
-            transition: 'all 0.2s',
-            boxShadow: loading ? 'none' : '0 0 24px rgba(250,200,0,0.2)',
-            opacity: !email || !password ? 0.5 : 1,
+        {/* Show setup message if loading invited signup */}
+        {setupMessage && (
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            border: '0.5px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: 10,
+            padding: '16px',
+            marginBottom: 20,
+            color: '#3b82f6',
+            fontSize: 13,
+            textAlign: 'center',
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 700,
           }}>
-          {loading ? 'Authenticating...' : 'Enter the Batcave →'}
-        </button>
-
-        <div style={{ 
-          marginTop: 32, 
-          padding: '16px', 
-          background: 'rgba(255,255,255,0.02)', 
-          borderRadius: 10, 
-          border: '1px solid rgba(255,255,255,0.04)' 
-        }}>
-          <div style={{ 
-            fontSize: 11, 
-            color: 'rgba(255,255,255,0.2)', 
-            marginBottom: 6, 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.1em' 
-          }}>
-            ISP Dashboard
+            {setupMessage}
           </div>
-          <a href="/login" style={{ 
-            fontSize: 13, 
-            color: 'rgba(250,200,0,0.5)', 
-            textDecoration: 'none' 
-          }}>
-            dashboard.wibill.co.ke/login ↗
-          </a>
+        )}
+
+        {/* Tabs - hide if invite token present */}
+        {!inviteToken && (
+          <div style={{ display: 'flex', background: '#0a0a0a', border: '0.5px solid #161616', borderRadius: 10, padding: 4, marginBottom: 24, gap: 4 }}>
+            {(['login', 'signup'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => {
+                  setTab(t)
+                  setError('')
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  border: 'none',
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  background: tab === t ? '#141414' : 'transparent',
+                  color: tab === t ? '#fff' : '#333',
+                  fontFamily: 'Syne, sans-serif',
+                  fontSize: 12,
+                  fontWeight: tab === t ? 700 : 400,
+                }}
+              >
+                {t === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 12, padding: 28 }}>
+          {(tab === 'login' && !inviteToken) ? (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={lbl}>EMAIL</label>
+                <input
+                  style={inp}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@yourisp.co.ke"
+                  required
+                />
+              </div>
+              <div>
+                <label style={lbl}>PASSWORD</label>
+                <input
+                  style={inp}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {error && (
+                <div style={{ background: '#0d0404', border: '0.5px solid #2a0a0a', borderRadius: 7, padding: '10px 14px', color: '#f87171', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
+                  {error}
+                </div>
+              )}
+              <button type="submit" style={btn} disabled={loading}>
+                {loading ? 'Signing in...' : 'SIGN IN'}
+              </button>
+              <div style={{ textAlign: 'center', fontSize: 11, color: '#222', fontFamily: 'DM Mono, monospace', marginTop: 4 }}>
+                Demo: admin@xwbill.co.ke / admin1234
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={lbl}>ISP NAME</label>
+                <input
+                  style={inp}
+                  type="text"
+                  value={ispName}
+                  onChange={(e) => setIspName(e.target.value)}
+                  placeholder="Your ISP Name"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label style={lbl}>SLUG (URL-SAFE)</label>
+                <input
+                  style={inp}
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                  placeholder="my-isp"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label style={lbl}>ADMIN EMAIL</label>
+                <input
+                  style={inp}
+                  type="email"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="admin@yourisp.co.ke"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label style={lbl}>PASSWORD</label>
+                <input
+                  style={inp}
+                  type="password"
+                  value={regPass}
+                  onChange={(e) => setRegPass(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label style={lbl}>PHONE (OPTIONAL)</label>
+                <input
+                  style={inp}
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+254..."
+                  disabled={loading}
+                />
+              </div>
+              {error && (
+                <div style={{ background: '#0d0404', border: '0.5px solid #2a0a0a', borderRadius: 7, padding: '10px 14px', color: '#f87171', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
+                  {error}
+                </div>
+              )}
+              <button type="submit" style={btn} disabled={loading}>
+                {loading ? 'Creating...' : inviteToken ? '🚀 LAUNCH MY DASHBOARD' : 'CREATE ACCOUNT'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
+  )
 }
