@@ -1,4 +1,4 @@
-"""
+﻿"""
 app/api/routes/admin.py - Admin/Platform-only routes for ISP management
 """
 
@@ -65,7 +65,7 @@ async def generate_invite(
     await db.commit()
     await db.refresh(invite)
     
-    invite_link = f"http://localhost:3000/join?ref={token}"
+    invite_link = f"https://wi-bill.vercel.app/join?ref={token}"
     
     return ISPInviteResponse(
         id=str(invite.id),
@@ -91,7 +91,7 @@ async def list_invites(
         ISPInviteResponse(
             id=str(i.id),
             token=i.token,
-            invite_link=f"http://localhost:3000/join?ref={i.token}",
+            invite_link=f"https://wi-bill.vercel.app/join?ref={i.token}",
             expires_at=i.expires_at,
             created_at=i.created_at,
             status=i.status.value
