@@ -1,8 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { api } from '@/lib/api';
 
 interface StatData {
   revenue_today: number;
@@ -55,38 +54,38 @@ export default function AdminDashboard() {
     if (!token) return;
 
     Promise.all([
-      fetch(`${API}/api/tenants/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json()),
-      fetch(`${API}/api/transactions?limit=6`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json()),
-      fetch(`${API}/api/sessions?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json()),
-      fetch(`${API}/api/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json()),
+      api.getDashboardSummary(),
+      api.getRevenueTrend(7),
+      api.getTopPackages(5),
+      api.getTransactions(0, 6),
+      api.getSessions('active'),
     ])
-      .then(([dash, txnData, sessionData, ispData]) => {
-        setStats({
-          revenue_today: dash?.revenue_today || 0,
-          revenue_month: dash?.revenue_month || 0,
-          active_sessions: sessionData?.value?.length || 0,
-          total_isps: ispData?.value?.length || 0,
-        });
-        setTxns((txnData?.value || []).slice(0, 6));
-        setIsps((ispData?.value || []).slice(0, 5));
-
-        const last7 = Array.from({ length: 7 }, (_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - (6 - i));
-          return {
-            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            amount: Math.random() * 5000,
-          };
-        });
-        setTrend(last7);
+      .then(([dash, trendData, topPackages, txnData, sessionData]) => {
+        const ispMetrics = dash?.metrics;
+        if (ispMetrics) {
+          setStats({
+            revenue_today: ispMetrics.total_revenue_ksh || 0, // This is total, not today
+            revenue_month: ispMetrics.total_revenue_ksh || 0,
+            active_sessions: ispMetrics.active_sessions || 0,
+            total_isps: 1, // ISP sees only themselves
+          });
+        }
+        setTxns((txnData || []).slice(0, 6));
+        
+        // Build trend from real data
+        if (trendData?.trend) {
+          const last7 = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const dayData = trendData.trend.find((t: any) => t.date === dateStr);
+            return {
+              date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              amount: dayData?.total_revenue_ksh || 0,
+            };
+          });
+          setTrend(last7);
+        }
       })
       .catch((e) => console.error('Dashboard load failed:', e));
   }, []);

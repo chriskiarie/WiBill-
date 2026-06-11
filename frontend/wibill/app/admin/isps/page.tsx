@@ -74,7 +74,7 @@ function shortId(id: string, len = 10) { return id.length > len ? `${id.slice(0,
 
 // resolve whichever field the backend returns
 function inviteUrl(inv: Invite): string {
-  return inv.url || inv.invite_link || '';
+  return inv.invite_link || inv.url || '';
 }
 
 function getToken(): string {
@@ -160,7 +160,7 @@ export default function AdminISPNetwork() {
   async function loadISPs() {
     if (!getToken()) { setLoadingISPs(false); return; }
     try {
-      const r = await fetch(`${API}/api/`, { headers: authHeaders() });
+      const r = await fetch(`${API}/api/admin/tenants`, { headers: authHeaders() });
       if (r.ok) {
         const data = await r.json();
         const list: ISP[] = Array.isArray(data) ? data : Array.isArray(data?.value) ? data.value : [];
@@ -205,9 +205,7 @@ export default function AdminISPNetwork() {
     setApprovingId(isp.id);
     setIspMsg('');
     try {
-      // Try both possible endpoint patterns
-      let r = await fetch(`${API}/api/admin/isps/${isp.id}/approve`, { method: 'POST', headers: authHeaders() });
-      if (r.status === 404) r = await fetch(`${API}/api/tenants/${isp.id}/approve`, { method: 'PATCH', headers: authHeaders() });
+      const r = await fetch(`${API}/api/admin/tenants/${isp.id}/approve`, { method: 'PATCH', headers: authHeaders() });
       if (!r.ok) throw new Error(`Approval failed: ${r.status}`);
       setIspMsg(`${isp.name} approved successfully.`);
       await loadISPs();
@@ -223,8 +221,7 @@ export default function AdminISPNetwork() {
     setRejectingId(isp.id);
     setIspMsg('');
     try {
-      let r = await fetch(`${API}/api/admin/isps/${isp.id}/reject`, { method: 'POST', headers: authHeaders() });
-      if (r.status === 404) r = await fetch(`${API}/api/tenants/${isp.id}/reject`, { method: 'PATCH', headers: authHeaders() });
+      const r = await fetch(`${API}/api/admin/tenants/${isp.id}/reject`, { method: 'PATCH', headers: authHeaders() });
       if (!r.ok) throw new Error(`Rejection failed: ${r.status}`);
       setIspMsg(`${isp.name} rejected.`);
       await loadISPs();
@@ -232,6 +229,36 @@ export default function AdminISPNetwork() {
       setIspMsg(e instanceof Error ? e.message : 'Rejection failed.');
     } finally {
       setRejectingId(null);
+    }
+  }
+
+  async function suspendISP(isp: ISP) {
+    setApprovingId(isp.id);
+    setIspMsg('');
+    try {
+      const r = await fetch(`${API}/api/admin/tenants/${isp.id}/suspend`, { method: 'PATCH', headers: authHeaders() });
+      if (!r.ok) throw new Error(`Suspend failed: ${r.status}`);
+      setIspMsg(`${isp.name} suspended.`);
+      await loadISPs();
+    } catch (e) {
+      setIspMsg(e instanceof Error ? e.message : 'Suspend failed.');
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
+  async function unsuspendISP(isp: ISP) {
+    setApprovingId(isp.id);
+    setIspMsg('');
+    try {
+      const r = await fetch(`${API}/api/admin/tenants/${isp.id}/unsuspend`, { method: 'PATCH', headers: authHeaders() });
+      if (!r.ok) throw new Error(`Unsuspend failed: ${r.status}`);
+      setIspMsg(`${isp.name} reactivated.`);
+      await loadISPs();
+    } catch (e) {
+      setIspMsg(e instanceof Error ? e.message : 'Unsuspend failed.');
+    } finally {
+      setApprovingId(null);
     }
   }
 
@@ -373,40 +400,46 @@ export default function AdminISPNetwork() {
             </Panel>
           )}
 
-          {/* ── Active ISPs ── */}
-          <Panel title="Active Partners" subtitle="ISPs currently live on the platform." accent={C.green}>
-            {loadingISPs ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '20px 0' }}>
-                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                Loading ISPs...
+        {/* ── Active ISPs ── */}
+        <Panel title="Active Partners" subtitle="ISPs currently live on the platform." accent={C.green}>
+          {loadingISPs ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '20px 0' }}>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              Loading ISPs...
+            </div>
+          ) : activeISPs.length === 0 ? (
+            <div style={{ color: C.muted, fontSize: 13, padding: '12px 0' }}>No active ISPs yet. Approve a pending registration or send an invite link.</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 2 }}>
+              {/* Table header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, padding: '8px 18px', fontSize: 9, fontFamily: '"DM Mono", monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: C.dim }}>
+                <span>ISP</span><span>Email</span><span>Commission</span><span style={{ textAlign: 'right' }}>Actions</span>
               </div>
-            ) : activeISPs.length === 0 ? (
-              <div style={{ color: C.muted, fontSize: 13, padding: '12px 0' }}>No active ISPs yet. Approve a pending registration or send an invite link.</div>
-            ) : (
-              <div style={{ display: 'grid', gap: 2 }}>
-                {/* Table header */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 100px', gap: 16, padding: '8px 18px', fontSize: 9, fontFamily: '"DM Mono", monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: C.dim }}>
-                  <span>ISP</span><span>Email</span><span>Commission</span><span style={{ textAlign: 'right' }}>Since</span>
-                </div>
-                {activeISPs.map((isp, i) => (
-                  <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 100px', gap: 16, alignItems: 'center', padding: '13px 18px', borderRadius: 12, background: i % 2 === 0 ? 'transparent' : `${C.border}`, borderBottom: `1px solid ${C.borderSoft}` }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}`, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{isp.name}</span>
-                        <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.dim }}>/{isp.slug}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, fontFamily: '"DM Mono", monospace', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{isp.email || '—'}</div>
-                    <div style={{ fontSize: 13, fontFamily: '"DM Mono", monospace', color: C.gold }}>{isp.commission_rate != null ? `${isp.commission_rate}%` : '—'}</div>
-                    <div style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.dim, textAlign: 'right' }}>
-                      {new Date(isp.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: '2-digit' })}
+              {activeISPs.map((isp, i) => (
+                <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, alignItems: 'center', padding: '13px 18px', borderRadius: 12, background: i % 2 === 0 ? 'transparent' : `${C.border}`, borderBottom: `1px solid ${C.borderSoft}` }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}`, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{isp.name}</span>
+                      <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.dim }}>/{isp.slug}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </Panel>
+                  <div style={{ fontSize: 12, fontFamily: '"DM Mono", monospace', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{isp.email || '—'}</div>
+                  <div style={{ fontSize: 13, fontFamily: '"DM Mono", monospace', color: C.gold }}>{isp.commission_rate != null ? `${isp.commission_rate}%` : '—'}</div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => suspendISP(isp)}
+                      disabled={approvingId === isp.id}
+                      style={{ height: 36, padding: '0 14px', borderRadius: 8, border: `1px solid ${toneBorder('warn')}`, background: toneBg('warn'), color: C.amber, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 11, cursor: approvingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, opacity: approvingId === isp.id ? 0.6 : 1 }}
+                    >
+                      {approvingId === isp.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : 'Suspend'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
 
           {/* ── Generate + Invite intelligence ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(340px, 0.9fr)', gap: 18 }}>

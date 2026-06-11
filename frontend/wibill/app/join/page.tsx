@@ -7,7 +7,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 export default function JoinPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = searchParams?.get('token')
+  const token = searchParams?.get('ref') || searchParams?.get('token')
 
   const [ispName, setIspName] = useState('')
   const [username, setUsername] = useState('')

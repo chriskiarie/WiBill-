@@ -27,9 +27,9 @@ function LoginContent() {
   const [regPass, setRegPass] = useState('')
   const [phone, setPhone] = useState('')
 
-  // Extract token from URL on mount
+  // Extract token from URL on mount (supports both ?ref= and ?token=)
   useEffect(() => {
-    const token = searchParams?.get('ref')
+    const token = searchParams?.get('ref') || searchParams?.get('token')
     if (token) {
       setInviteToken(token)
       setTab('signup') // Auto-switch to signup if invite token present

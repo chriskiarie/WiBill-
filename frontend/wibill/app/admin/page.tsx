@@ -284,9 +284,9 @@ export default function AdminDashboard() {
 
         const [dash, txnData, sessionData, ispData] = await Promise.all([
           fetchJson(`${API}/api/tenants/dashboard`),
-          fetchJson(`${API}/api/transactions?limit=50`),
+          fetchJson(`${API}/api/mpesa/admin/transactions?limit=50`),
           fetchJson(`${API}/api/sessions?limit=100`),
-          fetchJson(`${API}/api/`),
+          fetchJson(`${API}/api/admin/tenants`),
         ]);
 
         const txnsList: Transaction[] = Array.isArray(txnData?.value) ? txnData.value : [];

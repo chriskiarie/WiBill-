@@ -14,6 +14,8 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [paying, setPaying] = useState(false)
+  const [paymentPhone, setPaymentPhone] = useState('')
   
   // Fetch current invoice status
   const fetchInvoiceStatus = useCallback(async () => {
@@ -383,79 +385,130 @@ export default function BillingPage() {
         )}
       </div>
       
-      {/* TODO: Payment Dialog (implement in next step) */}
-      {showPaymentDialog && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: '#0a0a0a',
-            border: '0.5px solid #141414',
-            borderRadius: 11,
-            padding: '28px',
-            maxWidth: 400,
-            width: '90%'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16
-            }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>Make Payment</div>
-              <button
-                onClick={() => setShowPaymentDialog(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 20,
-                  color: '#666',
-                  cursor: 'pointer'
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={{
-              padding: '16px',
-              background: '#080808',
-              borderRadius: 6,
-              marginBottom: 16,
-              fontSize: 12,
-              color: '#999'
-            }}>
-              Payment integration coming soon. Use M-Pesa to pay to account.
-              {invoice?.invoice_number && (
-                <div style={{ marginTop: 8, color: '#3b82f6' }}>
-                  Reference: {invoice.invoice_number}
-                </div>
-              )}
-            </div>
-            
-            <button
-              onClick={() => setShowPaymentDialog(false)}
-              style={{
-                width: '100%',
-                padding: '11px',
-                background: '#1a1a1a',
-                border: '0.5px solid #2a2a2a',
-                borderRadius: 6,
-                color: '#9ca3af',
-                cursor: 'pointer'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+       {/* Payment Dialog - Real STK Push */}
+       {showPaymentDialog && (
+         <div style={{
+           position: 'fixed',
+           inset: 0,
+           background: 'rgba(0,0,0,0.7)',
+           display: 'flex',
+           alignItems: 'center',
+           justifyContent: 'center',
+           zIndex: 1000
+         }}>
+           <div style={{
+             background: '#0a0a0a',
+             border: '0.5px solid #141414',
+             borderRadius: 11,
+             padding: '28px',
+             maxWidth: 400,
+             width: '90%'
+           }}>
+             <div style={{
+               display: 'flex',
+               justifyContent: 'space-between',
+               alignItems: 'center',
+               marginBottom: 16
+             }}>
+               <div style={{ fontSize: 14, fontWeight: 700 }}>Make Payment</div>
+               <button
+                 onClick={() => { setShowPaymentDialog(false); setPaymentPhone(''); }}
+                 style={{
+                   background: 'none',
+                   border: 'none',
+                   fontSize: 20,
+                   color: '#666',
+                   cursor: 'pointer'
+                 }}
+               >
+                 ×
+               </button>
+             </div>
+             
+             <div style={{
+               padding: '16px',
+               background: '#080808',
+               borderRadius: 6,
+               marginBottom: 16,
+               fontSize: 12,
+               color: '#999'
+             }}>
+               <div>Invoice: <strong>{invoice?.invoice_number}</strong></div>
+               <div style={{ marginTop: 4 }}>Amount: <strong>Ksh {invoice?.amount_due?.toLocaleString()}</strong></div>
+               <div style={{ marginTop: 4 }}>Enter your M-Pesa phone number to receive STK push</div>
+             </div>
+
+             <div style={{ marginBottom: 16 }}>
+               <label style={{ display: 'block', fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
+                 Phone Number (2547XXXXXXXX)
+               </label>
+               <input
+                 type="tel"
+                 value={paymentPhone}
+                 onChange={(e) => setPaymentPhone(e.target.value)}
+                 placeholder="254712345678"
+                 disabled={paying}
+                 style={{
+                   width: '100%', padding: '10px 12px', background: '#080808',
+                   border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
+                   fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none'
+                 }}
+               />
+             </div>
+
+             {paying && (
+               <div style={{ padding: '12px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 12, fontSize: 11, color: '#5a9fd4' }}>
+                 ⏳ STK Push sent! Check your phone and enter M-Pesa PIN.
+               </div>
+             )}
+
+             <div style={{ display: 'flex', gap: 8 }}>
+               <button
+                 onClick={async () => {
+                   if (!paymentPhone) { showToast('Enter phone number', { type: 'error' }); return; }
+                   if (!token) return;
+                   setPaying(true);
+                   try {
+                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/mpesa/pay/invoice`, {
+                       method: 'POST',
+                       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ invoice_id: invoice.invoice_id || invoice.id, phone_number: paymentPhone }),
+                     });
+                     const data = await res.json();
+                     if (res.ok && data.success) {
+                       showToast('STK Push sent! Check your phone.', { type: 'success' });
+                       setPaymentPhone('');
+                     } else {
+                       showToast(data.message || 'Payment failed', { type: 'error' });
+                     }
+                   } catch (e: any) {
+                     showToast(e.message || 'Error', { type: 'error' });
+                   } finally {
+                     setPaying(false);
+                   }
+                 }}
+                 disabled={paying || !paymentPhone}
+                 style={{
+                   flex: 1, padding: '11px', background: paying ? '#444' : '#3b82f6', border: 'none',
+                   borderRadius: 6, color: '#030303', fontSize: 11, fontWeight: 700,
+                   cursor: paying || !paymentPhone ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1
+                 }}
+               >
+                 {paying ? 'Sending…' : 'Pay with M-Pesa'}
+               </button>
+               <button
+                 onClick={() => { setShowPaymentDialog(false); setPaymentPhone(''); }}
+                 style={{
+                   flex: 1, padding: '11px', background: '#1a1a1a', border: '0.5px solid #2a2a2a',
+                   borderRadius: 6, color: '#9ca3af', fontSize: 11, fontWeight: 700, cursor: 'pointer'
+                 }}
+               >
+                 Close
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
     </div>
   )
 }

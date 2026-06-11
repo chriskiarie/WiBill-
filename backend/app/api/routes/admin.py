@@ -31,25 +31,46 @@ class ISPInviteResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class ISPInviteGenerateRequest(BaseModel):
+    isp_name: str | None = None
+    expires_in_days: int = 7
+
+
 class TenantResponse(BaseModel):
     id: uuid.UUID
-    # Add any fallback fields if your UI expects specific attributes on return
-    status: str
+    slug: str
+    name: str
+    is_active: bool
+    commission_rate: float
+    balance_ksh: float
+    created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class TenantListResponse(BaseModel):
+    id: str
+    slug: str
+    name: str
+    is_active: bool
+    commission_rate: float
+    balance_ksh: float
+    created_at: str
 
 router = APIRouter(tags=["admin"])
 
 
 @router.post("/invites/generate", response_model=ISPInviteResponse)
 async def generate_invite(
+    request: ISPInviteGenerateRequest,
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
 ) -> ISPInviteResponse:
     """Generate a new ISP invite link (platform_admin only)."""
     token = secrets.token_urlsafe(48)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=request.expires_in_days or 7)
     created_at = datetime.now(timezone.utc)
     
     invite = ISPInvite(
@@ -75,6 +96,110 @@ async def generate_invite(
         created_at=invite.created_at,
         status=invite.status.value
     )
+
+
+@router.get("/tenants", response_model=List[TenantListResponse])
+async def list_tenants(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+) -> List[TenantListResponse]:
+    """List all tenants (platform_admin only)"""
+    stmt = select(Tenant).order_by(Tenant.created_at.desc())
+    result = await db.execute(stmt)
+    tenants = result.scalars().all()
+    
+    return [
+        TenantListResponse(
+            id=str(t.id),
+            slug=t.slug,
+            name=t.name,
+            is_active=t.is_active,
+            commission_rate=float(t.commission_rate),
+            balance_ksh=float(t.balance_ksh),
+            created_at=t.created_at.isoformat() if t.created_at else ""
+        )
+        for t in tenants
+    ]
+
+
+@router.patch("/tenants/{tenant_id}/reject", response_model=TenantResponse)
+async def reject_tenant(
+    tenant_id: str,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+) -> TenantResponse:
+    """Reject a pending ISP tenant (deletes the tenant and associated admin users)."""
+    stmt = select(Tenant).where(Tenant.id == uuid.UUID(tenant_id))
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Delete associated admin users first
+    from app.models.admin_user import AdminUser as AU
+    from sqlalchemy import delete as sa_delete
+    await db.execute(sa_delete(AU).where(AU.tenant_id == tenant.id))
+    
+    # Delete the tenant
+    await db.delete(tenant)
+    await db.commit()
+    
+    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=False, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
+
+
+@router.patch("/tenants/{tenant_id}/suspend", response_model=TenantResponse)
+async def suspend_tenant(
+    tenant_id: str,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+) -> TenantResponse:
+    """Suspend an ISP tenant (sets is_active=False)."""
+    stmt = select(Tenant).where(Tenant.id == uuid.UUID(tenant_id))
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    tenant.is_active = False
+    db.add(tenant)
+    await db.commit()
+    await db.refresh(tenant)
+    
+    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
+
+
+@router.patch("/tenants/{tenant_id}/unsuspend", response_model=TenantResponse)
+async def unsuspend_tenant(
+    tenant_id: str,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+) -> TenantResponse:
+    """Unsuspend (reactivate) an ISP tenant (sets is_active=True)."""
+    stmt = select(Tenant).where(Tenant.id == uuid.UUID(tenant_id))
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    tenant.is_active = True
+    db.add(tenant)
+    await db.commit()
+    await db.refresh(tenant)
+    
+    # Also activate admin users
+    from app.models.admin_user import AdminUser as AU
+    from sqlalchemy import update as sa_update
+    await db.execute(
+        sa_update(AU)
+        .where(AU.tenant_id == tenant.id)
+        .values(is_active=True)
+    )
+    await db.commit()
+    
+    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
 
 @router.get("/invites", response_model=List[ISPInviteResponse])

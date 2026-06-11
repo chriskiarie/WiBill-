@@ -210,10 +210,10 @@ export const api = {
       if (limit !== undefined) query.append('limit', limit.toString())
       const queryStr = query.toString()
       return request<any[]>(
-        `/api/admin/transactions${queryStr ? '?' + queryStr : ''}`
+        `/api/mpesa/admin/transactions${queryStr ? '?' + queryStr : ''}`
       )
     },
-    getTransactionStats: () => request<any>('/api/admin/transactions/stats'),
+    getTransactionStats: () => request<any>('/api/mpesa/admin/transactions/stats'),
 
     // Admin Revenue
     getRevenueStats: () => request<any>('/api/admin/revenue/stats'),
@@ -222,6 +222,17 @@ export const api = {
     // System
     getSystemStats: () => request<any>('/api/admin/system/stats'),
     getSystemHealth: () => request<any>('/api/admin/system/health'),
+
+    // Analytics (ISP Dashboard)
+    getRevenueTrend: (days?: number) => {
+      const query = days ? `?days=${days}` : '';
+      return request<any>(`/api/analytics/revenue-trend${query}`);
+    },
+    getTopPackages: (limit?: number) => {
+      const query = limit ? `?limit=${limit}` : '';
+      return request<any>(`/api/analytics/top-packages${query}`);
+    },
+    getDashboardSummary: () => request<any>('/api/dashboard/summary'),
   },
 }
 

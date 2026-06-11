@@ -22,7 +22,7 @@ export default function AdminRevenue() {
     const token = localStorage.getItem('wb_token');
     if (!token) return;
 
-    fetch(`${API}/api/transactions?limit=2000`, {
+    fetch(`${API}/api/mpesa/admin/transactions?limit=2000`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())

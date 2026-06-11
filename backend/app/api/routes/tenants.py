@@ -78,7 +78,11 @@ async def isp_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
+    from datetime import datetime, timedelta
     tenant_id = current_user.tenant_id
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Total revenue
     rev_result = await db.execute(
         select(
             func.sum(Transaction.amount_ksh),
@@ -91,6 +95,17 @@ async def isp_dashboard(
         )
     )
     rev = rev_result.one()
+    
+    # Today's revenue
+    today_rev_result = await db.execute(
+        select(func.sum(Transaction.amount_ksh)).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.created_at >= today_start,
+        )
+    )
+    today_rev = today_rev_result.scalar() or 0
+    
     active_result = await db.execute(
         select(func.count(Session.id)).where(
             Session.tenant_id == tenant_id,
@@ -106,6 +121,8 @@ async def isp_dashboard(
             "platform_fee_ksh": float(rev[2] or 0),
             "transaction_count": rev[3] or 0,
         },
+        "revenue_today": float(today_rev),
+        "revenue_month": float(rev[0] or 0),
         "active_sessions": active_count,
         "network": net_status,
     }
@@ -504,3 +521,30 @@ async def test_mikrotik_connection(
         if proc.returncode == 0:
             return {"ok": True, "message": f"{cfg.router_ip} is reachable"}
         raise HTTPException(status_code=502, detail=f"Cannot reach {cfg.router_ip}")
+
+
+@router.get("/tenants/status")
+async def get_tenant_status(
+    current_user: AdminUser = Depends(require_isp_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current tenant status for pending approval polling."""
+    tenant_id = current_user.tenant_id
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="Platform admins don't have a tenant")
+    
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    return {
+        "tenant_id": str(tenant.id),
+        "name": tenant.name,
+        "slug": tenant.slug,
+        "is_active": tenant.is_active,
+        "onboarding_complete": current_user.onboarding_complete,
+        "status": "active" if tenant.is_active else "pending_approval",
+        "message": "Your account is active" if tenant.is_active else "Waiting for admin approval"
+    }
