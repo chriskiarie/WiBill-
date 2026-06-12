@@ -812,6 +812,7 @@ export default function XbillPortalWizard() {
 
   // ============ BUILD PREVIEW URL FUNCTION ============
   const buildPreviewUrl = (template: string): string => {
+    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const params = new URLSearchParams({
       name: S.name,
       tag: S.tag,
@@ -826,7 +827,7 @@ export default function XbillPortalWizard() {
       showSB: S.showSB.toString(),
       sbMsg: S.sbMsg,
     });
-    return `http://localhost:8000/api/v1/portal-previews/${template}?${params.toString()}`;
+    return `${API}/api/v1/portal-previews/${template}?${params.toString()}`;
   };
   // ============ END BUILD PREVIEW URL ============
 
