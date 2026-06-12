@@ -27,6 +27,7 @@ class AdminUser(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(128), nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     role: Mapped[AdminRole] = mapped_column(SAEnum(AdminRole), nullable=False, default=AdminRole.ISP_ADMIN)

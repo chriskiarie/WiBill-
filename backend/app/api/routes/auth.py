@@ -249,6 +249,7 @@ async def register(
     admin_user = AdminUser(
         id=uuid.uuid4(),
         email=data.admin_email,
+        username=data.admin_email,  # Use email as username
         hashed_password=hash_password(data.admin_password),
         full_name=data.isp_name,
         role=AdminRole.ISP_ADMIN,
