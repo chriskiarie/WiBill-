@@ -603,6 +603,21 @@ const CSS_STYLES = `
 `;
 
 export default function XbillPortalWizard() {
+  // Role guard: redirect platform_admin to Batcave, no token → login
+  const router = useRouter();
+  useEffect(() => {
+    const role = localStorage.getItem('wb_role');
+    const token = localStorage.getItem('wb_token');
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+    if (role === 'platform_admin') {
+      router.replace('/admin');
+      return;
+    }
+  }, [router]);
+
   const [S, setS] = useState<State>({
     step: 1,
     tpl: 'spotlight',
@@ -671,8 +686,6 @@ export default function XbillPortalWizard() {
     dashboard: null,
     stories: null,
   });
-
-  const router = useRouter();
 
   const toast = (msg: string) => {
     setToastMsg(msg);

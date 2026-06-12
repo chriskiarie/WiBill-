@@ -11,9 +11,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (!token && hydrated) router.push('/login')
-    else setReady(true)
-  }, [token])
+    if (!token && hydrated) {
+      router.push('/login')
+    } else {
+      const role = localStorage.getItem('wb_role')
+      if (role === 'platform_admin') {
+        router.replace('/admin')
+        return
+      }
+      setReady(true)
+    }
+  }, [token, hydrated])
 
   if (!ready) return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
