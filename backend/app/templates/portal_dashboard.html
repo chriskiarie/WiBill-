@@ -884,6 +884,45 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard Portal initialized');
         });
+
+        // Listen for live updates from onboarding wizard
+        window.addEventListener('message', function(event) {
+            if (!event.data || !event.data.type) return;
+            
+            const data = event.data;
+            
+            if (data.type === 'UPDATE_PALETTE' && data.colors) {
+                const root = document.documentElement;
+                root.style.setProperty('--bg-primary', data.colors.bgStart);
+                root.style.setProperty('--bg-secondary', data.colors.card);
+                root.style.setProperty('--text-primary', data.colors.text);
+                root.style.setProperty('--text-secondary', data.colors.textDim);
+                root.style.setProperty('--accent-primary', data.colors.primary);
+                root.style.setProperty('--accent-secondary', data.colors.primaryDark);
+                root.style.setProperty('--success', data.colors.accent);
+            }
+            
+            if (data.type === 'UPDATE_BRAND_NAME' && data.name) {
+                const titleEl = document.querySelector('.brand-info h2');
+                if (titleEl) titleEl.textContent = data.name;
+                document.title = data.name + ' - WiFi Access';
+            }
+            
+            if (data.type === 'UPDATE_TYPOGRAPHY' && data.font) {
+                const root = document.documentElement;
+                root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
+                root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
+                const fontLink = document.querySelector('link[href*="fonts.googleapis.com"]');
+                if (fontLink) {
+                    fontLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700&display=swap';
+                }
+            }
+            
+            if (data.type === 'UPDATE_CARD_STYLE' && data.radius) {
+                const root = document.documentElement;
+                root.style.setProperty('--radius', data.radius);
+            }
+        });
     </script>
 </body>
 </html>

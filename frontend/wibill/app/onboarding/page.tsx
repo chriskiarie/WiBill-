@@ -337,22 +337,22 @@ const CSS_STYLES = `
   .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;margin-bottom:1.1rem}
   .card-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
   .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
-  .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
-  .tpl-card{border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;background:var(--white)}
-  .tpl-card:hover{border-color:rgba(91,79,255,.5);transform:translateY(-8px);box-shadow:0 20px 40px rgba(0,0,0,.15)}
-  .tpl-card.sel{border:2px solid var(--accent);box-shadow:0 0 0 1px rgba(91,79,255,.25),0 16px 48px rgba(91,79,255,.2),0 0 80px rgba(91,79,255,.1);transform:translateY(-4px)}
-  .tpl-card.sel::before{content:'';position:absolute;inset:-30px;background:radial-gradient(circle,rgba(91,79,255,.12),transparent 65%);z-index:-1;filter:blur(24px);pointer-events:none}
-  .tpl-card .tpl-thumb{transition:transform .3s ease}
-  .tpl-card:hover .tpl-thumb{transform:scale(1.04)}
-  .tpl-badge{position:absolute;top:.55rem;right:.55rem;background:var(--accent);color:#fff;font-size:.6rem;font-weight:700;padding:.35rem .7rem;border-radius:99px;font-family:'Space Mono',monospace;opacity:0;transition:opacity .3s;box-shadow:0 4px 12px rgba(91,79,255,.3);z-index:5}
+  .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
+  .tpl-card{border:2px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;background:var(--white)}
+  .tpl-card:hover{border-color:rgba(91,79,255,.6);transform:translateY(-12px);box-shadow:0 28px 56px rgba(0,0,0,.18)}
+  .tpl-card.sel{border:3px solid var(--accent);box-shadow:0 0 0 2px rgba(91,79,255,.3),0 20px 60px rgba(91,79,255,.25),0 0 100px rgba(91,79,255,.12);transform:translateY(-6px)}
+  .tpl-card.sel::before{content:'';position:absolute;inset:-40px;background:radial-gradient(circle,rgba(91,79,255,.15),transparent 70%);z-index:-1;filter:blur(32px);pointer-events:none}
+  .tpl-card .tpl-thumb{transition:transform .4s ease}
+  .tpl-card:hover .tpl-thumb{transform:scale(1.03)}
+  .tpl-badge{position:absolute;top:.75rem;right:.75rem;background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:.4rem .85rem;border-radius:99px;font-family:'Space Mono',monospace;opacity:0;transition:opacity .3s;box-shadow:0 6px 16px rgba(91,79,255,.4);z-index:5}
   .tpl-card.sel .tpl-badge{opacity:1}
-  .tpl-thumb{height:280px;overflow:hidden;position:relative;scrollbar-width:none;-ms-overflow-style:none}
+  .tpl-thumb{height:320px;overflow:hidden;position:relative;scrollbar-width:none;-ms-overflow-style:none}
   .tpl-thumb::-webkit-scrollbar{display:none}
-  .tpl-label{padding:1rem 1.2rem;font-size:.95rem;font-weight:700;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
-  .tpl-label small{font-weight:400;color:var(--muted);font-size:.8rem}
-  .tpl-label .tpl-personality{display:flex;flex-direction:column;align-items:flex-end;gap:.1rem}
-  .tpl-label .tpl-personality-main{font-size:.95rem;font-weight:700;color:var(--ink)}
-  .tpl-label .tpl-personality-sub{font-size:.7rem;color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .tpl-label{padding:1.25rem 1.5rem;font-size:1rem;font-weight:700;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
+  .tpl-label small{font-weight:400;color:var(--muted);font-size:.85rem}
+  .tpl-label .tpl-personality{display:flex;flex-direction:column;align-items:flex-end;gap:.15rem}
+  .tpl-label .tpl-personality-main{font-size:1rem;font-weight:700;color:var(--ink)}
+  .tpl-label .tpl-personality-sub{font-size:.75rem;color:var(--muted);font-weight:500;letter-spacing:.05em}
   .tpl-tip{margin-top:1.5rem;padding:1rem;background:#f8f6f1;border-radius:12px;font-size:.85rem;color:#666;line-height:1.6;border-left:4px solid var(--accent)}
   .tpl-tip strong{color:var(--ink);font-weight:700;display:block;margin-bottom:.4rem}
   .opt-row{display:flex;align-items:center;gap:1rem;margin-bottom:.85rem}
@@ -1154,7 +1154,7 @@ export default function XbillPortalWizard() {
                             className="w-full h-full border-none pointer-events-none" 
                             title={`${tpl.label} Preview`}
                             tabIndex={-1}
-                            style={{ display: 'block', width: '100%', height: '100%' }}
+                            style={{ display: 'block', width: '100%', height: '100%', border: 'none' }}
                             sandbox="allow-same-origin"
                           />
                         </div>
