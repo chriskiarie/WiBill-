@@ -10,7 +10,8 @@ function JoinPageInner() {
   const token = searchParams?.get('ref') || searchParams?.get('token')
 
   const [ispName, setIspName] = useState('')
-  const [username, setUsername] = useState('')
+  const [ispSlug, setIspSlug] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [phone, setPhone] = useState('')
@@ -18,11 +19,11 @@ function JoinPageInner() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Auto-generate username from ISP name
+  // Auto-generate slug from ISP name
   useEffect(() => {
     if (ispName) {
       const auto = ispName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-      setUsername(auto)
+      setIspSlug(auto)
     }
   }, [ispName])
 
@@ -34,12 +35,16 @@ function JoinPageInner() {
       setError('ISP name is required')
       return
     }
-    if (!username.trim()) {
-      setError('Username is required')
+    if (!ispSlug.trim()) {
+      setError('Slug is required')
       return
     }
-    if (username.length < 3) {
-      setError('Username must be at least 3 characters')
+    if (ispSlug.length < 3) {
+      setError('Slug must be at least 3 characters')
+      return
+    }
+    if (!adminEmail.trim()) {
+      setError('Admin email is required')
       return
     }
     if (!password) {
@@ -68,8 +73,9 @@ function JoinPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isp_name: ispName.trim(),
-          username: username.toLowerCase(),
-          password,
+          isp_slug: ispSlug.toLowerCase(),
+          admin_email: adminEmail.toLowerCase(),
+          admin_password: password,
           admin_phone: phone || '254700000000',
         }),
       })
@@ -145,13 +151,13 @@ function JoinPageInner() {
 
             <div>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
-                Username (Your Login Handle)
+                Slug (URL-Safe Handle)
               </label>
               <input
                 type="text"
                 placeholder="kaachonji-networks"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
+                value={ispSlug}
+                onChange={e => setIspSlug(e.target.value)}
                 disabled={loading}
                 style={{
                   width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
@@ -161,8 +167,27 @@ function JoinPageInner() {
                 required
               />
               <div style={{ fontSize: 10, color: '#555', marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
-                You'll use this to log in. Can be edited.
+                Your portal URL: portal.honestbill.co.ke/{ispSlug}
               </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#555', marginBottom: 6, fontFamily: 'DM Mono, monospace' }}>
+                Admin Email
+              </label>
+              <input
+                type="email"
+                placeholder="admin@yourisp.co.ke"
+                value={adminEmail}
+                onChange={e => setAdminEmail(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%', background: '#0a0a0a', border: '0.5px solid #1e1e1e', borderRadius: 9, padding: '13px 16px',
+                  color: '#f0f0f0', fontFamily: 'Inter, sans-serif', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                  opacity: loading ? 0.5 : 1,
+                } as any}
+                required
+              />
             </div>
 
             <div>
