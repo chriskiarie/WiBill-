@@ -1,10 +1,10 @@
 ﻿'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export default function JoinPage() {
+function JoinPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams?.get('ref') || searchParams?.get('token')
@@ -240,5 +240,17 @@ export default function JoinPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#030303', color: '#fff' }}>
+        Loading...
+      </div>
+    }>
+      <JoinPageInner />
+    </Suspense>
   )
 }
