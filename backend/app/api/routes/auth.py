@@ -251,7 +251,6 @@ async def register(
         email=data.admin_email,
         hashed_password=hash_password(data.admin_password),
         full_name=data.isp_name,
-        username=data.admin_email,  # ✅ Use email as username
         role=AdminRole.ISP_ADMIN,
         tenant_id=tenant.id,
         is_active=bool(token),  # ✅ TRUE if invited, FALSE if cold signup
