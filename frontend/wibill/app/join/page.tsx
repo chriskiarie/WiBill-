@@ -85,7 +85,14 @@ function JoinPageInner() {
         throw new Error(typeof data.detail === 'string' ? data.detail : 'Signup failed')
       }
 
-      router.push('/join/pending-approval')
+      const data = await res.json()
+      // Invited ISPs get status="active" → go to onboarding
+      // Cold signups get status="pending_approval" → go to waiting screen
+      if (data.status === 'active') {
+        router.push('/onboarding')
+      } else {
+        router.push('/join/pending-approval')
+      }
     } catch (err: any) {
       setError(err?.message || 'An error occurred')
     } finally {
