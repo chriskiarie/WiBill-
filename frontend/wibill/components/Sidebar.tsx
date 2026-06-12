@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Activity, Wifi, Receipt, Ticket,
-  Coins, Package, Router, CreditCard, Settings, HelpCircle, LogOut, Shield
+  Coins, Package, Router, CreditCard, Settings, HelpCircle, LogOut
 } from 'lucide-react'
 
 const nav = [
@@ -25,10 +25,6 @@ const nav = [
     { href: '/dashboard/mpesa', icon: CreditCard, label: 'M-Pesa' },
     { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ]},
-]
-
-const adminNav = [
-  { href: '/admin', icon: Shield, label: 'Batcave' },
 ]
 
 export default function Sidebar({ activeSessions = 0 }: { activeSessions?: number }) {
@@ -220,20 +216,6 @@ export default function Sidebar({ activeSessions = 0 }: { activeSessions?: numbe
 
       {/* FOOTER */}
       <div style={{ padding: '10px 10px', borderTop: '0.5px solid #0d0d0d' }}>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '9px 10px',
-          borderRadius: 8,
-          color: isAdmin ? '#fac800' : '#1e1e1e',
-          fontSize: 12,
-          cursor: 'pointer'
-        }}>
-          <Shield size={14} />
-          <span>Batcave</span>
-        </div>
 
         <div style={{
           display: 'flex',
