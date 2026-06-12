@@ -42,8 +42,27 @@ function LoginContent() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
-      router.push('/dashboard')
+      const form = new URLSearchParams()
+      form.append('username', email)
+      form.append('password', password)
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.detail || 'Login failed')
+      }
+      if (data.role !== 'platform_admin') {
+        throw new Error('Restricted to platform administrators only.')
+      }
+      localStorage.setItem('wb_token', data.access_token)
+      localStorage.setItem('wb_role', data.role)
+      localStorage.setItem('wb_user', JSON.stringify({ email, role: data.role }))
+      sessionStorage.setItem('token', data.access_token)
+      sessionStorage.setItem('role', data.role)
+      router.push('/admin')
     } catch (err: any) {
       setError(err.message || 'Login failed')
     } finally {
