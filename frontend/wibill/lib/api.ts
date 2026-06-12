@@ -181,6 +181,11 @@ export const api = {
   getPortalConfig: () => request<any>('/api/tenants/portal-config'),
 
   // ========================================================================
+  // DASHBOARD SUMMARY
+  // ========================================================================
+  getDashboardSummary: () => request<any>('/api/dashboard/summary'),
+
+  // ========================================================================
   // ADMIN ENDPOINTS (Platform Admin)
   // ========================================================================
   admin: {
@@ -232,7 +237,6 @@ export const api = {
       const query = limit ? `?limit=${limit}` : '';
       return request<any>(`/api/analytics/top-packages${query}`);
     },
-    getDashboardSummary: () => request<any>('/api/dashboard/summary'),
   },
 }
 
