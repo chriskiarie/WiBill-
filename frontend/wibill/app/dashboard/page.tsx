@@ -55,17 +55,19 @@ export default function AdminDashboard() {
 
     Promise.all([
       api.getDashboardSummary(),
+      api.getTenantDashboard(),
       api.getRevenueTrend(7),
       api.getTopPackages(5),
       api.getTransactions(0, 6),
       api.getSessions('active'),
     ])
-      .then(([dash, trendData, topPackages, txnData, sessionData]) => {
+      .then(([dash, tenantDash, trendData, topPackages, txnData, sessionData]) => {
         const ispMetrics = dash?.metrics;
+        const tenantRevenue = tenantDash?.revenue || {};
         if (ispMetrics) {
           setStats({
-            revenue_today: ispMetrics.total_revenue_ksh || 0, // This is total, not today
-            revenue_month: ispMetrics.total_revenue_ksh || 0,
+            revenue_today: tenantRevenue.revenue_today || 0,
+            revenue_month: tenantRevenue.revenue_month || tenantRevenue.gross_ksh || 0,
             active_sessions: ispMetrics.active_sessions || 0,
             total_isps: 1, // ISP sees only themselves
           });

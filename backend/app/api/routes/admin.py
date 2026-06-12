@@ -62,7 +62,7 @@ class TenantListResponse(BaseModel):
 router = APIRouter(tags=["admin"])
 
 
-@router.post("/invites/generate", response_model=ISPInviteResponse)
+@router.post("/admin/invites/generate", response_model=ISPInviteResponse)
 async def generate_invite(
     request: ISPInviteGenerateRequest,
     current_user: AdminUser = Depends(require_platform_admin),
@@ -98,7 +98,7 @@ async def generate_invite(
     )
 
 
-@router.get("/tenants", response_model=List[TenantListResponse])
+@router.get("/admin/tenants", response_model=List[TenantListResponse])
 async def list_tenants(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
@@ -122,7 +122,7 @@ async def list_tenants(
     ]
 
 
-@router.patch("/tenants/{tenant_id}/reject", response_model=TenantResponse)
+@router.patch("/admin/tenants/{tenant_id}/reject", response_model=TenantResponse)
 async def reject_tenant(
     tenant_id: str,
     current_user: AdminUser = Depends(require_platform_admin),
@@ -148,7 +148,7 @@ async def reject_tenant(
     return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=False, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
 
-@router.patch("/tenants/{tenant_id}/suspend", response_model=TenantResponse)
+@router.patch("/admin/tenants/{tenant_id}/suspend", response_model=TenantResponse)
 async def suspend_tenant(
     tenant_id: str,
     current_user: AdminUser = Depends(require_platform_admin),
@@ -170,7 +170,7 @@ async def suspend_tenant(
     return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
 
-@router.patch("/tenants/{tenant_id}/unsuspend", response_model=TenantResponse)
+@router.patch("/admin/tenants/{tenant_id}/unsuspend", response_model=TenantResponse)
 async def unsuspend_tenant(
     tenant_id: str,
     current_user: AdminUser = Depends(require_platform_admin),
@@ -202,7 +202,7 @@ async def unsuspend_tenant(
     return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
 
-@router.get("/invites", response_model=List[ISPInviteResponse])
+@router.get("/admin/invites", response_model=List[ISPInviteResponse])
 async def list_invites(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
@@ -225,7 +225,7 @@ async def list_invites(
     ]
 
 
-@router.patch("/tenants/{tenant_id}/approve", response_model=TenantResponse)
+@router.patch("/admin/tenants/{tenant_id}/approve", response_model=TenantResponse)
 async def approve_tenant(
     tenant_id: str,
     current_user: AdminUser = Depends(require_platform_admin),
