@@ -92,9 +92,9 @@ export const api = {
   getPackages: () => request<any[]>('/api/packages'),
   getPackage: (id: string) => request<any>(`/api/packages/${id}`),
   createPackage: (data: any) =>
-    request('/api/packages', { method: 'POST', body: JSON.stringify(data) }),
+    request<any>('/api/packages', { method: 'POST', body: JSON.stringify(data) }),
   updatePackage: (id: string, data: any) =>
-    request(`/api/packages/${id}`, {
+    request<any>(`/api/packages/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
