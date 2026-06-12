@@ -181,8 +181,16 @@ export const api = {
   getPortalConfig: () => request<any>('/api/tenants/portal-config'),
 
   // ========================================================================
-  // DASHBOARD SUMMARY
+  // ANALYTICS (ISP Dashboard)
   // ========================================================================
+  getRevenueTrend: (days?: number) => {
+    const query = days ? `?days=${days}` : '';
+    return request<any>(`/api/analytics/revenue-trend${query}`);
+  },
+  getTopPackages: (limit?: number) => {
+    const query = limit ? `?limit=${limit}` : '';
+    return request<any>(`/api/analytics/top-packages${query}`);
+  },
   getDashboardSummary: () => request<any>('/api/dashboard/summary'),
 
   // ========================================================================
@@ -227,16 +235,6 @@ export const api = {
     // System
     getSystemStats: () => request<any>('/api/admin/system/stats'),
     getSystemHealth: () => request<any>('/api/admin/system/health'),
-
-    // Analytics (ISP Dashboard)
-    getRevenueTrend: (days?: number) => {
-      const query = days ? `?days=${days}` : '';
-      return request<any>(`/api/analytics/revenue-trend${query}`);
-    },
-    getTopPackages: (limit?: number) => {
-      const query = limit ? `?limit=${limit}` : '';
-      return request<any>(`/api/analytics/top-packages${query}`);
-    },
   },
 }
 
