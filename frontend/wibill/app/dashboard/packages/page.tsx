@@ -139,6 +139,7 @@ export default function PackagesPage() {
   }
 
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Packages" />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: '#030303' }}>
@@ -380,5 +381,6 @@ export default function PackagesPage() {
         </div>
       </div>
     )}
+    </>
   )
 }
