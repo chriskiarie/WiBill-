@@ -96,9 +96,28 @@ function JoinPageInner() {
       }
 
       const data = await res.json()
-      // Invited ISPs get status="active" → go to onboarding
+      // Invited ISPs get status="active" → log in and go to onboarding
       // Cold signups get status="pending_approval" → go to waiting screen
       if (data.status === 'active') {
+        // Log in to get JWT token
+        const loginForm = new URLSearchParams()
+        loginForm.append('username', adminEmail.toLowerCase())
+        loginForm.append('password', password)
+        const loginRes = await fetch(`${API}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: loginForm,
+        })
+        if (!loginRes.ok) {
+          const errData = await loginRes.json()
+          throw new Error(typeof errData.detail === 'string' ? errData.detail : 'Auto-login failed')
+        }
+        const loginData = await loginRes.json()
+        localStorage.setItem('wb_token', loginData.access_token)
+        localStorage.setItem('wb_role', loginData.role)
+        localStorage.setItem('wb_user', JSON.stringify({ email: adminEmail.toLowerCase(), role: loginData.role }))
+        sessionStorage.setItem('token', loginData.access_token)
+        sessionStorage.setItem('role', loginData.role)
         router.push('/onboarding')
       } else {
         router.push('/join/pending-approval')
