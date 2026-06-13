@@ -68,6 +68,16 @@ function JoinPageInner() {
     setLoading(true)
 
     try {
+      // Clear ANY stale auth (from previous admin session) before registering new ISP
+      localStorage.removeItem('wb_token')
+      localStorage.removeItem('wb_role')
+      localStorage.removeItem('wb_user')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('role')
+      sessionStorage.removeItem('wb_token')
+      sessionStorage.removeItem('wb_role')
+      sessionStorage.removeItem('wb_user')
+
       const res = await fetch(`${API}/api/auth/register?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -64,14 +64,10 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
       })
       .catch(err => {
         clearTimeout(timeoutId);
-        // If backend unreachable but token exists, allow it (offline mode)
-        if (token) {
-          setUser({ role: 'platform_admin', email: 'admin' });
-          setLoading(false);
-        } else {
-          localStorage.removeItem('wb_token');
-          router.replace('/admin/login');
-        }
+        // If backend unreachable, DO NOT grant access - redirect to login
+        // Never grant platform_admin access based on token alone without backend verification
+        localStorage.removeItem('wb_token');
+        router.replace('/admin/login');
       });
 
     return () => clearTimeout(timeoutId);
