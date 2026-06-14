@@ -659,62 +659,48 @@
                 align-items: center;
                 gap: var(--spacing-sm);
             }
+            .brand-info h2 { font-size: 1rem; }
+            .brand-info p { font-size: 0.65rem; }
+            .topbar-status { font-size: 0.75rem; }
+            .status-item { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
+            .dashboard-sidebar { gap: var(--spacing-sm); }
+            .sidebar-card { padding: var(--spacing-sm); }
+            .sidebar-section-title { font-size: 0.7rem; }
+            .content-header h1 { font-size: 1.2rem; }
+            .package-item { padding: var(--spacing-sm); }
+            .package-icon { width: 52px; height: 52px; font-size: 1.5rem; }
+            .package-details h3 { font-size: 1rem; }
+            .price-amount { font-size: 1.3rem; }
+            .package-btn { padding: 0.6rem 1.2rem; font-size: 0.8rem; }
+        }
 
-            .brand-info h2 {
-                font-size: 1rem;
-            }
-
-            .brand-info p {
-                font-size: 0.65rem;
-            }
-
-            .topbar-status {
-                font-size: 0.75rem;
-            }
-
-            .status-item {
-                padding: 0.4rem 0.7rem;
-                font-size: 0.75rem;
-            }
-
-            .dashboard-sidebar {
-                gap: var(--spacing-sm);
-            }
-
-            .sidebar-card {
-                padding: var(--spacing-sm);
-            }
-
-            .sidebar-section-title {
-                font-size: 0.7rem;
-            }
-
-            .content-header h1 {
-                font-size: 1.2rem;
-            }
-
-            .package-item {
-                padding: var(--spacing-sm);
-            }
-
-            .package-icon {
-                width: 52px;
-                height: 52px;
-                font-size: 1.5rem;
-            }
-
-            .package-details h3 {
-                font-size: 1rem;
-            }
-
-            .price-amount {
-                font-size: 1.3rem;
-            }
-
-            .package-btn {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.8rem;
-            }
+        @media (max-width: 360px) {
+            .network-banner { font-size: 0.75rem; padding: 0.5rem 0.8rem; }
+            .dashboard-topbar { padding: 0.6rem 0.8rem; }
+            .brand-icon { width: 36px; height: 36px; font-size: 1.2rem; }
+            .brand-info h2 { font-size: 0.85rem; }
+            .brand-info p { font-size: 0.55rem; }
+            .topbar-content { gap: 0.4rem; }
+            .topbar-status { display: none; }
+            .dashboard-container { padding: 0.5rem; gap: 0.6rem; }
+            .dashboard-sidebar { flex-direction: column; gap: 0.5rem; }
+            .sidebar-card { padding: 0.6rem 0.8rem; }
+            .sidebar-section-title { font-size: 0.6rem; }
+            .sidebar-info { font-size: 0.75rem; }
+            .sidebar-badge { font-size: 0.65rem; padding: 0.4rem 0.6rem; }
+            .content-header h1 { font-size: 1rem; }
+            .content-header p { font-size: 0.75rem; }
+            .packages-list { gap: 0.6rem; }
+            .package-item { padding: 0.6rem 0.8rem; gap: 0.4rem; }
+            .package-left { gap: 0.5rem; }
+            .package-icon { display: none; }
+            .package-details h3 { font-size: 0.85rem; }
+            .package-meta { font-size: 0.7rem; gap: 0.5rem; }
+            .package-right { flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+            .price-label { font-size: 0.6rem; }
+            .price-amount { font-size: 1.1rem; }
+            .package-btn { padding: 0.5rem 0.8rem; font-size: 0.7rem; }
+            .featured-badge { font-size: 0.6rem; padding: 0.3rem 0.7rem; top: -8px; left: 0.8rem; }
         }
 
         @keyframes slideUp {

@@ -78,7 +78,7 @@ export default function PortalPreviewPage() {
           {/* ───── PHONE FRAME ───── */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
-              width: 320,
+              width: 320, height: 650,
               border: '2px solid #222',
               borderRadius: 36,
               overflow: 'hidden',
@@ -98,7 +98,7 @@ export default function PortalPreviewPage() {
               }} />
 
               {portalReady === null ? (
-                <div style={{ height: 620, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: 12 }}>
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: 12 }}>
                   Checking portal configuration...
                 </div>
               ) : portalReady ? (
@@ -107,13 +107,13 @@ export default function PortalPreviewPage() {
                   src={portalUrl || ''}
                   title="Portal Preview"
                   style={{
-                    width: '100%', height: 620, border: 'none',
-                    marginTop: 0, display: 'block',
+                    width: '100%', height: '100%', border: 'none',
+                    display: 'block',
                   }}
                   sandbox="allow-scripts allow-forms allow-same-origin"
                 />
               ) : (
-                <div style={{ height: 620, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
                   <Settings size={32} color={C.dim} style={{ marginBottom: 16 }} />
                   <div style={{ color: '#888', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
                     Portal Not Configured

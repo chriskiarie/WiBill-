@@ -17,10 +17,10 @@ router = APIRouter()
 
 # Demo data for previews
 DEMO_PACKAGES = [
-    {"name": "1 Hour", "price_ksh": 20, "duration_label": "60 min", "star": False},
-    {"name": "6 Hours", "price_ksh": 80, "duration_label": "6 hrs", "star": False},
-    {"name": "Daily", "price_ksh": 150, "duration_label": "24 hrs", "star": True},
-    {"name": "Weekly", "price_ksh": 500, "duration_label": "7 days", "star": False},
+    {"n": "1 Hour", "p": 20, "d": "60 min", "s": "Up to 5 Mbps", "star": False},
+    {"n": "6 Hours", "p": 80, "d": "6 hrs", "s": "Up to 10 Mbps", "star": False},
+    {"n": "Daily", "p": 150, "d": "24 hrs", "s": "Up to 15 Mbps", "star": True},
+    {"n": "Weekly", "p": 500, "d": "7 days", "s": "Up to 20 Mbps", "star": False},
 ]
 
 DEMO_BRAND = {
@@ -210,10 +210,12 @@ async def get_live_portal(
     
     packages_data = [
         {
-            "name": pkg.name,
-            "price_ksh": float(pkg.price_ksh),
-            "duration_label": pkg.duration_label,
-            "star": False,  
+            "id": str(pkg.id),
+            "n": pkg.name,
+            "p": float(pkg.price_ksh),
+            "d": pkg.duration_label,
+            "s": "High Speed",
+            "star": False,
         }
         for pkg in packages_list
     ]
