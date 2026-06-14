@@ -68,7 +68,7 @@ export default function IspDashboard() {
 
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Your Dashboard</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Your Dashboard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.mute }}>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: isUp ? C.green : C.red, boxShadow: `0 0 6px ${isUp ? C.green : C.red}` }} />
             <span style={{ color: isUp ? C.green : C.red }}>{isUp ? 'ONLINE' : nw.status === 'unknown' ? 'UNKNOWN' : 'DOWN'}</span>
@@ -114,54 +114,40 @@ export default function IspDashboard() {
 
             {/* ═══ 2. REVENUE SPLIT (4 cards) ═══ */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-              {/* Today's Gross */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '18px 22px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Collected Today</div>
-                <div style={{ fontSize: 26, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: C.gold, letterSpacing: '-0.02em' }}>{fmtKsh(today.gross_ksh)}</div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>{today.count} txns</div>
-              </div>
-              {/* Today's Net */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '18px 22px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>You Earn (net)</div>
-                <div style={{ fontSize: 26, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: C.green, letterSpacing: '-0.02em' }}>{fmtKsh(today.isp_earnings_ksh)}</div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#a16207', marginTop: 4 }}>Fee: {fmtKsh(today.platform_fee_ksh)}</div>
-              </div>
-              {/* Month Gross */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '18px 22px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>30-day Revenue</div>
-                <div style={{ fontSize: 26, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: C.blue, letterSpacing: '-0.02em' }}>{fmtKsh(month.gross_ksh)}</div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>{month.count} txns</div>
-              </div>
-              {/* Active Sessions */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '18px 22px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Active Sessions</div>
-                <div style={{ fontSize: 26, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: C.green, letterSpacing: '-0.02em' }}>{fmt(activeCount)}</div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
-                  {sessions.length > 0 ? `${sessions.length} online now` : 'No active users'}
+              {[
+                { label: 'Collected Today', value: fmtKsh(today.gross_ksh), sub: `${today.count} txns`, color: C.gold },
+                { label: 'You Earn (net)', value: fmtKsh(today.isp_earnings_ksh), sub: `Fee: ${fmtKsh(today.platform_fee_ksh)}`, color: C.green },
+                { label: '30-day Revenue', value: fmtKsh(month.gross_ksh), sub: `${month.count} txns`, color: C.blue },
+                { label: 'Active Sessions', value: fmt(activeCount), sub: sessions.length > 0 ? `${sessions.length} online now` : 'No active users', color: C.green },
+              ].map((c, i) => (
+                <div key={i} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '14px 20px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{c.label}</div>
+                  <div style={{ fontSize: 30, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
+                  <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>{c.sub}</div>
                 </div>
-              </div>
+              ))}
             </div>
 
             {/* ═══ 3. RECENT SESSIONS + TRANSACTIONS ═══ */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
               {/* Sessions */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Active Connections</span>
-                  <Wifi size={13} color={C.green} />
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Active Connections</span>
+                  <Wifi size={14} color={C.green} />
                 </div>
                 {sessions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 30, color: C.mute, fontSize: 12 }}>
-                    <Wifi size={24} color="#1a1a1a" style={{ marginBottom: 8 }} />
-                    <div>No active sessions</div>
-                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 4 }}>Quiet network or portal not configured</div>
+                  <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '20px 16px' }}>
+                    <Wifi size={20} color="#1a1a1a" style={{ marginBottom: 6 }} />
+                    <div style={{ fontSize: 12, color: '#333' }}>No active sessions</div>
+                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 2 }}>Once customers connect, they appear here</div>
                   </div>
                 ) : (
                   <div>
                     {sessions.slice(0, 6).map((s: any) => (
                       <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '0.5px solid #0d0d0d' }}>
-                        <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#888' }}>{s.mac_address || '—'}</div>
-                        <div style={{ fontSize: 10, color: C.dim }}>{(s as any).package_name || (s as any).package || '—'}</div>
+                        <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>{s.mac_address || '—'}</div>
+                        <div style={{ fontSize: 11, color: C.dim }}>{(s as any).package_name || (s as any).package || '—'}</div>
                       </div>
                     ))}
                   </div>
@@ -169,13 +155,17 @@ export default function IspDashboard() {
               </div>
 
               {/* Recent Transactions */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Recent Payments</span>
-                  <DollarSign size={13} color={C.gold} />
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recent Payments</span>
+                  <DollarSign size={14} color={C.gold} />
                 </div>
                 {txns.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 30, color: C.mute, fontSize: 12 }}>No transactions yet</div>
+                  <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '20px 16px' }}>
+                    <DollarSign size={20} color="#1a1a1a" style={{ marginBottom: 6 }} />
+                    <div style={{ fontSize: 12, color: '#333' }}>No transactions yet</div>
+                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 2 }}>Payments appear here in real time</div>
+                  </div>
                 ) : (
                   <div>
                     {txns.slice(0, 6).map((t: any) => {
