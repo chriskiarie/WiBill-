@@ -11,14 +11,17 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'g1h2i3j4k5l6'
-down_revision = 'f35e47d8c40f_add_portal_config_and_onboarding_flag'
+down_revision = '70fa724590f1'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # Add isp_name column if it doesn't exist
-    op.add_column('isp_invites', sa.Column('isp_name', sa.String(255), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('isp_invites')]
+    if 'isp_name' not in columns:
+        op.add_column('isp_invites', sa.Column('isp_name', sa.String(255), nullable=True))
 
 
 def downgrade() -> None:

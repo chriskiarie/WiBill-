@@ -11,14 +11,17 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '006_add_username'
-down_revision = '005'
+down_revision = 'g1h2i3j4k5l6'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # Add username column (nullable initially, then we'll set values, then make NOT NULL)
-    op.add_column('admin_users', sa.Column('username', sa.String(50), nullable=True, unique=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('admin_users')]
+    if 'username' not in columns:
+        op.add_column('admin_users', sa.Column('username', sa.String(50), nullable=True, unique=True))
 
 
 def downgrade() -> None:
