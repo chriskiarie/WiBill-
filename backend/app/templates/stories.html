@@ -747,7 +747,7 @@
                     <!-- Footer Section -->
                     <div class="story-footer">
                         <div class="story-price">KES {{ package.p }}</div>
-                        <button class="story-btn" onclick="payment_flow('{{ package.id }}')">
+                        <button class="story-btn" onclick="openPaymentModal('{{ package.id }}', '{{ package.n }}', {{ package.p }})">
                             Get Now
                         </button>
                     </div>
@@ -781,21 +781,136 @@
     </div>
     {% endif %}
 
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="payment-modal" style="display: none;">
+        <div class="payment-modal-content">
+            <div class="payment-modal-header">
+                <h3>Pay with M-Pesa</h3>
+                <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div class="payment-modal-body">
+                <p>Package: <strong id="payment-package-name"></strong></p>
+                <p>Amount: <strong id="payment-package-price"></strong></p>
+                <input type="hidden" id="payment-package-id">
+                <div class="payment-input-group">
+                    <label for="payment-phone">Phone Number (M-Pesa)</label>
+                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
+                </div>
+                <div id="payment-error" class="payment-error" style="display: none;"></div>
+                <div id="payment-status" class="payment-status" style="display: none;"></div>
+                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function payment_flow(package_id) {
-            const package_data = {
-                id: package_id,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent
-            };
-            
-            console.log('Initiating payment for package:', package_data);
-            
-            if (window.payment_processor) {
-                window.payment_processor.initiate(package_data);
-            } else {
-                alert('Payment processor not configured. Contact support.');
+        // Payment flow - open modal when package clicked
+        function openPaymentModal(packageId, packageName, packagePrice) {
+            document.getElementById('payment-modal').style.display = 'flex';
+            document.getElementById('payment-package-name').textContent = packageName;
+            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
+            document.getElementById('payment-package-id').value = packageId;
+            document.getElementById('payment-phone').value = '';
+            document.getElementById('payment-error').style.display = 'none';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        async function initiatePayment() {
+            const packageId = document.getElementById('payment-package-id').value;
+            const phone = document.getElementById('payment-phone').value.trim();
+            const slug = "{{ brand.slug }}";
+
+            if (!phone) {
+                showError('Please enter your phone number');
+                return;
             }
+
+            if (!/^(254|0)7\d{8}$/.test(phone)) {
+                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
+                return;
+            }
+
+            const submitBtn = document.getElementById('payment-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                // Get MAC and IP from URL params (set by MikroTik hotspot)
+                const urlParams = new URLSearchParams(window.location.search);
+                const mac = urlParams.get('mac') || '';
+                const ip = urlParams.get('ip') || '';
+
+                const response = await fetch('/portal/{{ brand.slug }}/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package_id: packageId,
+                        phone_number: phone,
+                        mac_address: mac,
+                        ip_address: ip
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to initiate payment');
+                }
+
+                // Payment initiated, start polling
+                pollPaymentStatus(data.session_id);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Pay with M-Pesa';
+            }
+        }
+
+        function pollPaymentStatus(sessionId) {
+            const statusEl = document.getElementById('payment-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Waiting for payment...';
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(`/portal/{{ brand.slug }}/sessions/${sessionId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'active') {
+                        // Payment successful - redirect to success page
+                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
+                        return;
+                    } else if (data.status === 'failed' || data.status === 'expired') {
+                        showError('Payment failed or timed out. Please try again.');
+                        return;
+                    } else if (data.status === 'pending_payment') {
+                        // Still waiting, continue polling
+                        setTimeout(poll, 3000);
+                    }
+                } catch (error) {
+                    showError('Error checking payment status');
+                }
+            };
+
+            setTimeout(poll, 3000);
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('payment-error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
         }
 
         function scroll_to_card(index) {
@@ -835,6 +950,115 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Stories Portal initialized');
         });
+
+        // Payment flow - open modal when package clicked
+        function openPaymentModal(packageId, packageName, packagePrice) {
+            document.getElementById('payment-modal').style.display = 'flex';
+            document.getElementById('payment-package-name').textContent = packageName;
+            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
+            document.getElementById('payment-package-id').value = packageId;
+            document.getElementById('payment-phone').value = '';
+            document.getElementById('payment-error').style.display = 'none';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        async function initiatePayment() {
+            const packageId = document.getElementById('payment-package-id').value;
+            const phone = document.getElementById('payment-phone').value.trim();
+            const slug = "{{ brand.slug }}";
+
+            if (!phone) {
+                showError('Please enter your phone number');
+                return;
+            }
+
+            if (!/^(254|0)7\d{8}$/.test(phone)) {
+                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
+                return;
+            }
+
+            const submitBtn = document.getElementById('payment-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                // Get MAC and IP from URL params (set by MikroTik hotspot)
+                const urlParams = new URLSearchParams(window.location.search);
+                const mac = urlParams.get('mac') || '';
+                const ip = urlParams.get('ip') || '';
+
+                const response = await fetch('/portal/{{ brand.slug }}/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package_id: packageId,
+                        phone_number: phone,
+                        mac_address: mac,
+                        ip_address: ip
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to initiate payment');
+                }
+
+                // Payment initiated, start polling
+                pollPaymentStatus(data.session_id);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Pay with M-Pesa';
+            }
+        }
+
+        function pollPaymentStatus(sessionId) {
+            const statusEl = document.getElementById('payment-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Waiting for payment...';
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(`/portal/{{ brand.slug }}/sessions/${sessionId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'active') {
+                        // Payment successful - redirect to success page
+                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
+                        return;
+                    } else if (data.status === 'failed' || data.status === 'expired') {
+                        showError('Payment failed or timed out. Please try again.');
+                        return;
+                    } else if (data.status === 'pending_payment') {
+                        // Still waiting, continue polling
+                        setTimeout(poll, 3000);
+                    }
+                } catch (error) {
+                    showError('Error checking payment status');
+                }
+            };
+
+            setTimeout(poll, 3000);
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('payment-error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
 
         // Listen for live updates from onboarding wizard
         window.addEventListener('message', function(event) {

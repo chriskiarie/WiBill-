@@ -181,6 +181,42 @@ export const api = {
   getPortalConfig: () => request<any>('/api/tenants/portal-config'),
 
   // ========================================================================
+  // VOUCHERS
+  // ========================================================================
+  getVouchers: (params?: { status?: string; batch_id?: string; search?: string; skip?: number; limit?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.status) q.append('status', params.status)
+    if (params?.batch_id) q.append('batch_id', params.batch_id)
+    if (params?.search) q.append('search', params.search)
+    if (params?.skip !== undefined) q.append('skip', params.skip.toString())
+    if (params?.limit !== undefined) q.append('limit', params.limit.toString())
+    const qs = q.toString()
+    return request<any>(`/api/vouchers${qs ? '?' + qs : ''}`)
+  },
+  generateVouchers: (data: { package_id: string; quantity: number; prefix?: string; expires_in_days?: number }) =>
+    request<any>('/api/vouchers/generate', { method: 'POST', body: JSON.stringify(data) }),
+  checkVoucherStatus: (code: string) => request<any>(`/api/vouchers/${code}/status`),
+  voidVoucher: (id: string) => request(`/api/vouchers/${id}`, { method: 'DELETE' }),
+
+  // ========================================================================
+  // LOYALTY
+  // ========================================================================
+  getLoyaltyAccounts: (params?: { search?: string; sort_by?: string; skip?: number; limit?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.search) q.append('search', params.search)
+    if (params?.sort_by) q.append('sort_by', params.sort_by)
+    if (params?.skip !== undefined) q.append('skip', params.skip.toString())
+    if (params?.limit !== undefined) q.append('limit', params.limit.toString())
+    const qs = q.toString()
+    return request<any>(`/api/loyalty/accounts${qs ? '?' + qs : ''}`)
+  },
+  getLoyaltyAccountByPhone: (phone: string) => request<any>(`/api/loyalty/accounts/${phone}`),
+  getLoyaltyStats: () => request<any>('/api/loyalty/stats'),
+  getLoyaltyConfig: () => request<any>('/api/loyalty/config'),
+  redeemLoyaltyPortal: (data: { phone_number: string; mac_address?: string; ip_address?: string }) =>
+    request<any>('/api/loyalty/redeem-portal', { method: 'POST', body: JSON.stringify(data) }),
+
+  // ========================================================================
   // ANALYTICS (ISP Dashboard)
   // ========================================================================
   getRevenueTrend: (days?: number) => {

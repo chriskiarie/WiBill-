@@ -23,6 +23,9 @@ from app.models import (
     MpesaConfig,
     MikrotikConfig,
     MpesaCallback,
+    Voucher,
+    LoyaltyAccount,
+    LoyaltyTransaction,
 )
 
 # Alembic Config object
