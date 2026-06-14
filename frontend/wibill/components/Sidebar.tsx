@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import {
-  LayoutDashboard, LineChart, Activity, Wifi, Receipt, Ticket,
-  Coins, Package, Router, CreditCard, Settings, HelpCircle, LogOut
+  LayoutDashboard, LineChart, Activity, Wifi, Receipt,
+  Package, Router, CreditCard, Settings, HelpCircle, LogOut
 } from 'lucide-react'
 
 const nav = [
@@ -16,8 +16,6 @@ const nav = [
   { label: 'Billing', items: [
     { href: '/dashboard/sessions', icon: Wifi, label: 'Sessions', badge: true },
     { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
-    { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
-    { href: '/dashboard/loyalty', icon: Coins, label: 'Loyalty Points' },
   ]},
   { label: 'Config', items: [
     { href: '/dashboard/packages', icon: Package, label: 'Packages' },

@@ -81,8 +81,9 @@ async def isp_dashboard(
     from datetime import datetime, timedelta
     tenant_id = current_user.tenant_id
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    # Total revenue
+    month_start = today_start - timedelta(days=30)
+
+    # All-time totals
     rev_result = await db.execute(
         select(
             func.sum(Transaction.amount_ksh),
@@ -95,17 +96,38 @@ async def isp_dashboard(
         )
     )
     rev = rev_result.one()
-    
-    # Today's revenue
-    today_rev_result = await db.execute(
-        select(func.sum(Transaction.amount_ksh)).where(
+
+    # Today's split
+    today_result = await db.execute(
+        select(
+            func.sum(Transaction.amount_ksh),
+            func.sum(Transaction.platform_fee_ksh),
+            func.sum(Transaction.isp_earnings_ksh),
+            func.count(Transaction.id),
+        ).where(
             Transaction.tenant_id == tenant_id,
             Transaction.status == TransactionStatus.SUCCESS.value,
             Transaction.created_at >= today_start,
         )
     )
-    today_rev = today_rev_result.scalar() or 0
-    
+    today = today_result.one()
+
+    # Last 30 days split
+    month_result = await db.execute(
+        select(
+            func.sum(Transaction.amount_ksh),
+            func.sum(Transaction.platform_fee_ksh),
+            func.sum(Transaction.isp_earnings_ksh),
+            func.count(Transaction.id),
+        ).where(
+            Transaction.tenant_id == tenant_id,
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.created_at >= month_start,
+        )
+    )
+    month = month_result.one()
+
+    # Active sessions
     active_result = await db.execute(
         select(func.count(Session.id)).where(
             Session.tenant_id == tenant_id,
@@ -113,16 +135,35 @@ async def isp_dashboard(
         )
     )
     active_count = active_result.scalar() or 0
+
+    # Failed / pending recent transactions
+    recent_txns = await db.execute(
+        select(Transaction)
+        .where(Transaction.tenant_id == tenant_id)
+        .order_by(desc(Transaction.created_at))
+        .limit(5)
+    )
+
     net_status = await get_current_status(tenant_id)
     return {
-        "revenue": {
-            "gross_ksh": float(rev[0] or 0),
-            "isp_earnings_ksh": float(rev[1] or 0),
-            "platform_fee_ksh": float(rev[2] or 0),
-            "transaction_count": rev[3] or 0,
+        "today": {
+            "gross_ksh": float(today[0] or 0),
+            "platform_fee_ksh": float(today[1] or 0),
+            "isp_earnings_ksh": float(today[2] or 0),
+            "count": today[3] or 0,
         },
-        "revenue_today": float(today_rev),
-        "revenue_month": float(rev[0] or 0),
+        "month": {
+            "gross_ksh": float(month[0] or 0),
+            "platform_fee_ksh": float(month[1] or 0),
+            "isp_earnings_ksh": float(month[2] or 0),
+            "count": month[3] or 0,
+        },
+        "all_time": {
+            "gross_ksh": float(rev[0] or 0),
+            "platform_fee_ksh": float(rev[1] or 0),
+            "isp_earnings_ksh": float(rev[2] or 0),
+            "count": rev[3] or 0,
+        },
         "active_sessions": active_count,
         "network": net_status,
     }
