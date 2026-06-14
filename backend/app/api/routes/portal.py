@@ -257,7 +257,7 @@ async def get_live_portal(
         )
 
 
-@router.get("/api/v1/portal/{slug}/config", response_class=HTMLResponse)
+@router.get("/api/v1/portal/{slug}/config")
 async def get_portal_config(
     slug: str,
     db: AsyncSession = Depends(get_db)

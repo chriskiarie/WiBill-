@@ -186,6 +186,24 @@ class PortalConfigUpdateRequest(BaseModel):
     enabled_features: dict = None
 
 
+@router.get("/tenants/portal-config")
+async def get_portal_config(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    tenant_id = current_user.tenant_id
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="Platform admins don't have a portal")
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    return {
+        "portal_config": tenant.portal_config,
+        "configured": tenant.portal_config is not None,
+    }
+
+
 @router.post("/portal-config")
 async def save_portal_config(
     data: PortalConfigUpdateRequest,

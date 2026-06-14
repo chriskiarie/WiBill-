@@ -194,8 +194,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getPortalConfig: () => request<any>('/api/tenants/portal-config'),
-  checkPortalReady: (slug: string) =>
-    request<{ slug: string; portal_config: any }>(`/api/v1/portal/${slug}/config`),
+  checkPortalReady: () =>
+    request<{ portal_config: any; configured: boolean }>('/api/tenants/portal-config'),
 
   // ========================================================================
   // VOUCHERS

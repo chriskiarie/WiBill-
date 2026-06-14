@@ -32,14 +32,14 @@ export default function PortalPreviewPage() {
   }, [token, user?.tenant_id])
 
   useEffect(() => {
-    if (!slug) return
+    if (!token) return
     setPortalReady(null)
-    api.checkPortalReady(slug).then(() => {
-      setPortalReady(true)
+    api.getPortalConfig().then((res: any) => {
+      setPortalReady(res?.configured === true)
     }).catch(() => {
       setPortalReady(false)
     })
-  }, [slug])
+  }, [token])
 
   const handleCopy = () => {
     if (!portalUrl) return
