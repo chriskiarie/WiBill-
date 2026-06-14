@@ -75,27 +75,34 @@ export const api = {
   // ========================================================================
   // SESSIONS
   // ========================================================================
-  getSessions: (status?: string) => {
-    const query = status ? `?status=${status}` : ''
-    return request<any[]>(`/api/sessions${query}`)
+  getSessions: (params?: { status?: string; skip?: number; limit?: number }) => {
+    const query = new URLSearchParams()
+    if (params?.status) query.append('status', params.status)
+    if (params?.skip !== undefined) query.append('skip', params.skip.toString())
+    if (params?.limit !== undefined) query.append('limit', params.limit.toString())
+    const qs = query.toString()
+    return request<any[]>(`/api/sessions${qs ? '?' + qs : ''}`)
   },
   getSession: (id: string) => request<any>(`/api/sessions/${id}`),
   kickSession: (id: string) =>
-    request(`/api/sessions/${id}`, { method: 'DELETE' }),
+    request<any>(`/api/sessions/${id}/terminate`, { method: 'POST' }),
   terminateSession: (id: string) =>
-    request(`/api/sessions/${id}/terminate`, { method: 'POST' }),
-  getSessionStatus: (id: string) => request<any>(`/api/sessions/${id}/status`),
+    request<any>(`/api/sessions/${id}/terminate`, { method: 'POST' }),
+  getSessionStatus: (id: string) => request<any>(`/api/sessions/${id}`),
 
   // ========================================================================
   // PACKAGES
   // ========================================================================
-  getPackages: () => request<any[]>('/api/packages'),
+  getPackages: (tenant_id?: string) => {
+    const query = tenant_id ? `?tenant_id=${tenant_id}` : ''
+    return request<any[]>(`/api/packages${query}`)
+  },
   getPackage: (id: string) => request<any>(`/api/packages/${id}`),
   createPackage: (data: any) =>
     request<any>('/api/packages', { method: 'POST', body: JSON.stringify(data) }),
   updatePackage: (id: string, data: any) =>
     request<any>(`/api/packages/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(data),
     }),
   deletePackage: (id: string) =>

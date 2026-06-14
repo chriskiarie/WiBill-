@@ -112,8 +112,11 @@ export default function MpesaPage() {
       setConfig(data)
       setShowForm(false)
     } catch (err: any) {
-      // 404 means not configured yet — show form
-      if (err.message?.includes('404') || err.message?.includes('not found') || err.message?.includes('No M-Pesa')) {
+      if (err.message?.includes('No tenant')) {
+        setConfig(null)
+        setShowForm(false)
+        showToast('Complete account setup first — contact support', { type: 'error' })
+      } else if (err.message?.includes('404') || err.message?.includes('not found') || err.message?.includes('No M-Pesa')) {
         setConfig(null)
         setShowForm(true)
       }

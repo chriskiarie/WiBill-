@@ -401,6 +401,8 @@ async def get_top_packages(
     """
     from sqlalchemy import and_
     
+    from app.models.session import Session as SessionModel
+
     query = select(
         Package.id,
         Package.name,
@@ -408,8 +410,12 @@ async def get_top_packages(
         func.count(Transaction.id).label("sold_count"),
         func.sum(Transaction.amount_ksh).label("total_revenue"),
     ).join(
+        SessionModel,
+        Package.id == SessionModel.package_id,
+        isouter=True
+    ).join(
         Transaction,
-        Package.id == Transaction.session_id,  # May need adjustment based on actual schema
+        SessionModel.id == Transaction.session_id,
         isouter=True
     ).where(
         Transaction.status == TransactionStatus.SUCCESS
@@ -476,6 +482,36 @@ async def list_sessions(
         }
         for s in rows
     ]
+
+
+@router.post("/sessions/{session_id}/terminate")
+async def terminate_session(
+    session_id: str,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import datetime
+    from app.models.session import Session as SessionModel
+    from sqlalchemy import select
+    from uuid import UUID
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
+    result = await db.execute(
+        select(SessionModel).where(
+            SessionModel.id == UUID(session_id),
+            SessionModel.tenant_id == tenant_id,
+        )
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.status == "active":
+        session.status = "disconnected"
+        session.disconnected_at = datetime.utcnow()
+        await db.commit()
+    return {"status": "terminated"}
 
 
 @router.get("/transactions")

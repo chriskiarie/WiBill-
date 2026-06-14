@@ -12,7 +12,7 @@ export default function IspDashboard() {
   const { showToast } = useToast();
 
   const [stats, setStats] = useState({
-    revenue_today: 0, revenue_month: 0, active_sessions: 0, data_sold_gb: 0,
+    revenue_today: 0, revenue_month: 0, active_sessions: 0, active_subscribers: 0,
   });
   const [trend, setTrend] = useState<{ date: string; amount: number }[]>([]);
   const [recentTxns, setRecentTxns] = useState<any[]>([]);
@@ -33,7 +33,7 @@ export default function IspDashboard() {
         api.getRevenueTrend(7),
         api.getTopPackages(5),
         api.getTransactions(0, 10),
-        api.getSessions('active'),
+        api.getSessions({ status: 'active' }),
       ]);
 
       const rev = tenantDash?.revenue || {};
@@ -42,7 +42,7 @@ export default function IspDashboard() {
         revenue_today: rev.revenue_today || 0,
         revenue_month: rev.revenue_month || rev.gross_ksh || 0,
         active_sessions: metrics.active_sessions || sessionData?.length || 0,
-        data_sold_gb: metrics.data_sold_today_gb || 0,
+        active_subscribers: metrics.active_subscribers || sessionData?.length || 0,
       });
 
       setRecentTxns(Array.isArray(txnData) ? txnData.slice(0, 10) : []);
@@ -116,7 +116,7 @@ export default function IspDashboard() {
               <KpiCard label="Revenue Today" value={fmtKsh(stats.revenue_today)} sub="KES" color={colors.gold} icon={<DollarSign size={14} color={colors.gold} />} />
               <KpiCard label="Monthly Revenue" value={fmtKsh(stats.revenue_month)} sub="KES" color={colors.blue} icon={<TrendingUp size={14} color={colors.blue} />} />
               <KpiCard label="Active Sessions" value={fmt(stats.active_sessions)} sub="Online" color={colors.green} icon={<Wifi size={14} color={colors.green} />} />
-              <KpiCard label="Data Sold Today" value={`${stats.data_sold_gb.toFixed(1)} GB`} sub="Total" color={colors.amber} icon={<Activity size={14} color={colors.amber} />} />
+              <KpiCard label="Active Subscribers" value={fmt(stats.active_subscribers)} sub="Unique" color={colors.amber} icon={<Users size={14} color={colors.amber} />} />
             </div>
 
             {/* Row 2: Revenue Chart + System Status */}

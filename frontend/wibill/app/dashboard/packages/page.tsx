@@ -30,7 +30,7 @@ interface PackageForm {
 }
 
 export default function PackagesPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showToast } = useToast()
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +51,7 @@ export default function PackagesPage() {
     if (!token) return
     setLoading(true)
     try {
-      const data = await api.getPackages()
+      const data = await api.getPackages(user?.tenant_id)
       setPackages(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {

@@ -1,12 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
+import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
 import { Search, X, Clock, Wifi, ChevronRight } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface Session {
   id: string; mac?: string; mac_address?: string; ip_address?: string
@@ -47,14 +46,11 @@ export default function SessionsPage() {
     if (!token) return
     setLoading(true)
     try {
-      const status = tab === 'active' ? 'active' : undefined
-      const res = await fetch(`${API}/api/sessions${status ? `?status=${status}` : ''}`, { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) throw new Error('Failed to fetch')
-      const data = await res.json()
+      const data = await api.getSessions()
       setSessions(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) { setError((err as Error).message); setSessions([]) } finally { setLoading(false) }
-  }, [token, tab])
+  }, [token])
 
   useEffect(() => { fetchSessions() }, [fetchSessions])
   useEffect(() => { if (tab === 'active') { const t = setInterval(fetchSessions, 30000); return () => clearInterval(t) } }, [tab, fetchSessions])
@@ -62,8 +58,7 @@ export default function SessionsPage() {
   const handleKick = async (id: string) => {
     if (!confirm('Terminate this session?')) return
     try {
-      const res = await fetch(`${API}/api/sessions/${id}/terminate`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) throw new Error('Failed')
+      await api.terminateSession(id)
       setSessions(s => s.filter(x => x.id !== id))
       showToast('Session terminated', { type: 'success' })
     } catch { showToast('Failed to terminate', { type: 'error' }) }
@@ -72,7 +67,7 @@ export default function SessionsPage() {
   const viewMacDetail = async (mac: string) => {
     setSelectedMac(mac); setDetailLoading(true)
     try {
-      const allSessions = await fetch(`${API}/api/sessions`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+      const allSessions = await api.getSessions()
       const macSessions = (Array.isArray(allSessions) ? allSessions : []).filter((s: any) => (s.mac || s.mac_address) === mac)
       const totalSpent = macSessions.reduce((sum: number, s: any) => sum + (s.amount_ksh || 0), 0)
       const now = new Date()
@@ -83,6 +78,8 @@ export default function SessionsPage() {
   }
 
   const filtered = sessions.filter(s => {
+    if (tab === 'active' && s.status !== 'active') return false
+    if (tab === 'history' && s.status === 'active') return false
     const mac = (s.mac || s.mac_address || '').toLowerCase()
     const ip = (s.ip_address || '').toLowerCase()
     const phone = (s.phone || s.phone_number || '').toLowerCase()
