@@ -358,13 +358,20 @@ async def list_isp_sessions(
 ):
     """List sessions for the current ISP tenant."""
     from app.models.session import Session
+    from app.models.package import Package
+    from app.models.transaction import Transaction
     from sqlalchemy import select, desc
+    from sqlalchemy.orm import selectinload
     tenant_id_raw = getattr(current_user, "tenant_id", None)
     if not tenant_id_raw:
         raise HTTPException(status_code=400, detail="No tenant on this account")
     from uuid import UUID
     tenant_id = UUID(str(tenant_id_raw))
-    query = select(Session).where(Session.tenant_id == tenant_id)
+    query = (
+        select(Session)
+        .options(selectinload(Session.package), selectinload(Session.transaction))
+        .where(Session.tenant_id == tenant_id)
+    )
     if status:
         query = query.where(Session.status == status)
     query = query.order_by(desc(Session.created_at)).offset(skip).limit(limit)
@@ -375,10 +382,14 @@ async def list_isp_sessions(
             "id": str(s.id),
             "mac_address": s.mac_address,
             "ip_address": s.ip_address,
+            "phone_number": s.phone_number,
             "status": s.status.value if hasattr(s.status, "value") else s.status,
             "created_at": s.created_at.isoformat(),
             "expires_at": s.expires_at.isoformat() if s.expires_at else None,
             "package_id": str(s.package_id) if s.package_id else None,
+            "package_name": s.package.name if s.package else None,
+            "duration_label": s.package.duration_label if s.package else None,
+            "amount_ksh": float(s.transaction.amount_ksh) if s.transaction else None,
         }
         for s in sessions
     ]
