@@ -1,0 +1,192 @@
+'use client'
+import { useEffect, useState, useRef } from 'react'
+import { useAuth } from '@/lib/auth'
+import { api } from '@/lib/api'
+import Topbar from '@/components/Topbar'
+import { Smartphone, Copy, Check, ExternalLink, Package, Palette, QrCode } from 'lucide-react'
+
+const C = {
+  void: '#000000', base: '#0a0a0a', border: '#141414',
+  text: '#f0f0f0', dim: '#666', mute: '#2a2a2a',
+  gold: '#E8B84B', green: '#22c55e', blue: '#3b82f6',
+}
+
+export default function PortalPreviewPage() {
+  const { user, token } = useAuth()
+  const [copied, setCopied] = useState(false)
+  const [packages, setPackages] = useState<any[]>([])
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production.up.railway.app'
+  const slug = user?.tenant_slug
+  const portalUrl = slug ? `${backendUrl}/portal/${slug}` : null
+
+  // QR code URL using a public API — simple, no library needed
+  const qrUrl = portalUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(portalUrl)}` : null
+
+  useEffect(() => {
+    if (!token || !user?.tenant_id) return
+    api.getPackages(user.tenant_id).then((pkgs: any) => {
+      setPackages(Array.isArray(pkgs) ? pkgs : [])
+    }).catch(() => {})
+  }, [token, user?.tenant_id])
+
+  const handleCopy = () => {
+    if (!portalUrl) return
+    navigator.clipboard.writeText(portalUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (!slug) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Topbar title="Portal Preview" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim, fontSize: 13 }}>
+          Set up your ISP account to preview your portal
+        </div>
+      </div>
+    )
+  }
+
+  const activePkgs = packages.filter((p: any) => p.is_active !== false)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <Topbar title="Portal Preview" />
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: C.void, color: C.text }}>
+
+        {/* header */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Portal Preview</h1>
+          <p style={{ margin: 0, fontSize: 11, color: C.dim }}>
+            This is what your customers see when they connect to your WiFi.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 320px', gap: 24, alignItems: 'start' }}>
+
+          {/* ───── PHONE FRAME ───── */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{
+              width: 320,
+              border: '2px solid #222',
+              borderRadius: 36,
+              overflow: 'hidden',
+              background: '#111',
+              boxShadow: '0 0 40px rgba(0,0,0,0.6)',
+              position: 'relative',
+            }}>
+              {/* notch */}
+              <div style={{
+                position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                width: 100, height: 20, background: '#111',
+                borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
+                zIndex: 2,
+              }} />
+              <div style={{
+                position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
+                width: 8, height: 8, borderRadius: '50%', background: '#222', zIndex: 3,
+              }} />
+              <iframe
+                ref={iframeRef}
+                src={portalUrl || ''}
+                title="Portal Preview"
+                style={{
+                  width: '100%', height: 620, border: 'none',
+                  marginTop: 0, display: 'block',
+                }}
+                sandbox="allow-scripts allow-forms allow-same-origin"
+              />
+            </div>
+          </div>
+
+          {/* ───── SIDE PANEL ───── */}
+          <div>
+            {/* Status */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 14 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14 }}>Portal Status</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}` }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Live and accepting payments</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 10, color: C.dim }}>Portal URL:</span>
+                <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
+                  fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.blue,
+                  wordBreak: 'break-all', textDecoration: 'none',
+                }}>{portalUrl}</a>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button onClick={handleCopy} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.dim, fontSize: 11, cursor: 'pointer',
+                }}>
+                  {copied ? <Check size={13} color={C.green} /> : <Copy size={13} />}
+                  {copied ? 'Copied' : 'Copy URL'}
+                </button>
+                <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.dim, fontSize: 11, cursor: 'pointer',
+                  textDecoration: 'none',
+                }}>
+                  <ExternalLink size={13} />
+                  Open Live
+                </a>
+              </div>
+            </div>
+
+            {/* QR Code */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Customer QR Code</span>
+                <QrCode size={14} color={C.dim} />
+              </div>
+              {qrUrl ? (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={qrUrl} alt="Portal QR Code" style={{ width: 140, height: 140, borderRadius: 8, background: '#fff', padding: 8 }} />
+                  <div style={{ fontSize: 9, color: C.dim, marginTop: 8, fontFamily: 'DM Mono, monospace' }}>
+                    Print this and place at your hotspot
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20, color: C.dim, fontSize: 11 }}>Configure your portal to generate QR</div>
+              )}
+            </div>
+
+            {/* Packages */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Packages</span>
+                <Package size={14} color={C.dim} />
+              </div>
+              <div style={{ fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: C.gold, marginBottom: 4 }}>
+                {activePkgs.length}
+              </div>
+              <div style={{ fontSize: 10, color: C.dim, marginBottom: 12 }}>
+                {activePkgs.length === 1 ? '1 active package' : `${activePkgs.length} active packages`}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <a href="/dashboard/packages" style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.blue, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
+                }}>
+                  <Package size={12} />
+                  Edit Packages
+                </a>
+                <a href="/dashboard/settings" style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.blue, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
+                }}>
+                  <Palette size={12} />
+                  Change Theme
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -41,15 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       role: data.role,
       tenant_id: data.tenant_id,
-      tenant: data.tenant,
-      isp_name: data.tenant?.name || email.split('@')[0],
+      tenant_name: data.tenant_name,
+      tenant_slug: data.tenant_slug,
+      isp_name: data.tenant_name || email.split('@')[0],
     }))
     // Also set in sessionStorage for dashboard to read (using expected keys)
     sessionStorage.setItem('token', data.access_token)
     sessionStorage.setItem('role', data.role)
     setToken(data.access_token)
     setRole(data.role)
-    setUser({ email, role: data.role, tenant_id: data.tenant_id, isp_name: data.tenant?.name })
+    setUser({ email, role: data.role, tenant_id: data.tenant_id, tenant_name: data.tenant_name, tenant_slug: data.tenant_slug, isp_name: data.tenant_name || email.split('@')[0] })
     router.push('/dashboard')
   }
 

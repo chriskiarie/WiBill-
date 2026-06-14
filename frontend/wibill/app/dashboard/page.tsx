@@ -68,10 +68,10 @@ export default function IspDashboard() {
 
         {/* ── HEADER ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Command Overview</h1>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Your Dashboard</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.mute }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}` }} />
-            LIVE
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: isUp ? C.green : C.red, boxShadow: `0 0 6px ${isUp ? C.green : C.red}` }} />
+            <span style={{ color: isUp ? C.green : C.red }}>{isUp ? 'ONLINE' : nw.status === 'unknown' ? 'UNKNOWN' : 'DOWN'}</span>
             <span style={{ color: '#333' }}>{timeStr}</span>
           </div>
         </div>

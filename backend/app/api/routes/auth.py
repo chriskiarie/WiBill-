@@ -46,6 +46,8 @@ class TokenResponse(BaseModel):
     token_type: str
     role: str
     tenant_id: str | None
+    tenant_name: str | None = None
+    tenant_slug: str | None = None
 
 
 class ValidateTokenResponse(BaseModel):
@@ -326,11 +328,22 @@ async def login(
     # Create JWT token
     access_token = create_access_token(str(user.id), user.role, user.tenant_id)
 
+    tenant_name = None
+    tenant_slug = None
+    if user.tenant_id:
+        t_result = await db.execute(select(Tenant).where(Tenant.id == user.tenant_id))
+        tenant = t_result.scalar_one_or_none()
+        if tenant:
+            tenant_name = tenant.name
+            tenant_slug = tenant.slug
+
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
         role=user.role.value,
         tenant_id=str(user.tenant_id) if user.tenant_id else None,
+        tenant_name=tenant_name,
+        tenant_slug=tenant_slug,
     )
 
 
@@ -341,16 +354,28 @@ async def login(
 @router.get("/me")
 async def get_current_user_info(
     current_user: AdminUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get info about the logged-in user
     """
+    tenant_name = None
+    tenant_slug = None
+    if current_user.tenant_id:
+        t_result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
+        tenant = t_result.scalar_one_or_none()
+        if tenant:
+            tenant_name = tenant.name
+            tenant_slug = tenant.slug
+
     return {
         "id": str(current_user.id),
         "email": current_user.email,
         "full_name": current_user.full_name,
         "role": current_user.role.value,
         "tenant_id": str(current_user.tenant_id) if current_user.tenant_id else None,
+        "tenant_name": tenant_name,
+        "tenant_slug": tenant_slug,
         "is_active": current_user.is_active,
         "onboarding_complete": current_user.onboarding_complete,
     }

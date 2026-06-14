@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
       <Topbar title="Analytics" />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: colors.void }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Business Intelligence</h1>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Analytics</h1>
           <div style={{ display: 'flex', gap: 6 }}>
             {[7, 30, 90].map(d => (
               <button key={d} onClick={() => setPeriod(d)} style={{ padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: period === d ? colors.blue : '#0a0a0a', border: period === d ? `0.5px solid ${colors.blue}` : '0.5px solid #1a1a1a', color: period === d ? '#fff' : '#555' }}>
@@ -84,23 +84,27 @@ export default function AnalyticsPage() {
           <div style={{ textAlign: 'center', padding: 60, color: '#444', fontSize: 13 }}>Loading analytics...</div>
         ) : (
           <>
-            {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px', borderTop: `2px solid ${colors.gold}` }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Total Revenue ({period}d)</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: colors.gold }}>{fmtKsh(totalRevenue)}</div>
+            {/* Summary Cards (matching dashboard style) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '18px 22px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Revenue ({period}d)</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 22, fontWeight: 500, color: colors.gold }}>{fmtKsh(totalRevenue)}</div>
+                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#555', marginTop: 4 }}>{revenueData.length} days</div>
               </div>
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px', borderTop: `2px solid ${colors.blue}` }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Transactions</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: colors.blue }}>{revenueData.reduce((s, d) => s + d.sessions, 0)}</div>
+              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '18px 22px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Transactions</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 22, fontWeight: 500, color: colors.blue }}>{revenueData.reduce((s, d) => s + d.sessions, 0)}</div>
+                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#555', marginTop: 4 }}>total</div>
               </div>
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px', borderTop: `2px solid ${colors.green}` }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Avg Daily</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: colors.green }}>{fmtKsh(revenueData.length ? totalRevenue / revenueData.length : 0)}</div>
+              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '18px 22px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Avg Daily</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 22, fontWeight: 500, color: colors.green }}>{fmtKsh(revenueData.length ? totalRevenue / revenueData.length : 0)}</div>
+                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#555', marginTop: 4 }}>per day</div>
               </div>
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px', borderTop: `2px solid ${colors.purple}` }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Top Package</div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: colors.purple }}>{topPackages[0]?.name || '—'}</div>
+              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '18px 22px' }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Top Package</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 16, fontWeight: 500, color: '#aaa' }}>{topPackages[0]?.name || '—'}</div>
+                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#555', marginTop: 4 }}>best seller</div>
               </div>
             </div>
 
@@ -160,20 +164,40 @@ export default function AnalyticsPage() {
 
               {/* Peak Hours Heatmap */}
               <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: 24 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 12 }}>Peak Hours (Session Density)</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 16 }}>Session Density by Hour</div>
                 <div style={{ overflowX: 'auto' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 1, minWidth: 540 }}>
-                    <div style={{ fontSize: 8, color: '#444', padding: '2px 4px' }} />
-                    {hourLabels.filter((_, i) => i % 3 === 0).map((h, i) => (
-                      <div key={i} style={{ fontSize: 7, color: '#333', textAlign: 'center', padding: '2px 0' }}>{h}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '36px repeat(12, 1fr)', gap: 2, minWidth: 480 }}>
+                    {/* header spacer */}
+                    <div />
+                    {/* hour labels every 2 hours */}
+                    {[0,2,4,6,8,10,12,14,16,18,20,22].map(h => (
+                      <div key={h} style={{ fontSize: 7, color: '#444', textAlign: 'center', padding: '2px 0', fontFamily: 'DM Mono, monospace' }}>
+                        {String(h).padStart(2, '0')}
+                      </div>
                     ))}
-                    {peakHours.map((cell, i) => (
-                      <div key={i} style={{
-                        width: '100%', aspectRatio: '1', borderRadius: 2,
-                        background: getHeatColor(cell.value),
-                        ...(i % 24 === 0 ? { gridColumn: '1 / -1', display: 'none' } : {}),
-                      }} title={`${dayLabels[cell.day]} ${hourLabels[cell.hour]}: ${cell.value} sessions`} />
+                    {/* rows: day label + 12 cells */}
+                    {dayLabels.map((day, di) => (
+                      <>
+                        <div key={`lbl-${di}`} style={{ fontSize: 8, color: '#555', padding: '4px 2px', fontFamily: 'DM Mono, monospace', display: 'flex', alignItems: 'center' }}>{day}</div>
+                        {[0,2,4,6,8,10,12,14,16,18,20,22].map(h => {
+                          const cell = peakHours.find(c => c.day === di && c.hour === h) || { value: 0 };
+                          return (
+                            <div key={`${di}-${h}`} style={{
+                              aspectRatio: '1', borderRadius: 2,
+                              background: getHeatColor(cell.value),
+                            }} title={`${day} ${String(h).padStart(2, '0')}:00 — ${cell.value} sessions`} />
+                          );
+                        })}
+                      </>
                     ))}
+                  </div>
+                  {/* legend */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, justifyContent: 'flex-end', fontSize: 8, color: '#555', fontFamily: 'DM Mono, monospace' }}>
+                    <span>Fewer</span>
+                    {['#0a0a0a','#0a1628','#1a3a6e','#2a5a9e','#3b82f6','#60a5fa'].map(c => (
+                      <div key={c} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
+                    ))}
+                    <span>More</span>
                   </div>
                 </div>
               </div>

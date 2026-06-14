@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import {
-  LayoutDashboard, LineChart, Activity, Wifi, Receipt,
+  LayoutDashboard, LineChart, Smartphone, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut
 } from 'lucide-react'
 
@@ -11,6 +11,7 @@ const nav = [
   { label: 'Overview', items: [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics' },
+    { href: '/dashboard/portal-preview', icon: Smartphone, label: 'Portal Preview' },
     { href: '/dashboard/network', icon: Activity, label: 'Network' },
   ]},
   { label: 'Billing', items: [
@@ -31,8 +32,8 @@ export default function Sidebar({ activeSessions = 0 }: { activeSessions?: numbe
 
   const isAdmin = pathname.startsWith('/admin')
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : 'IS'
-  const ispName = user?.isp_name || (user?.email?.split('@')[0] || 'My ISP')
+  const initials = user?.tenant_name ? user.tenant_name.slice(0, 2).toUpperCase() : user?.email?.slice(0, 2).toUpperCase() || 'IS'
+  const ispName = user?.tenant_name || (user?.email?.split('@')[0] || 'My ISP')
 
   return (
     <aside style={{
