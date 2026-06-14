@@ -136,22 +136,30 @@ export const api = {
   // ========================================================================
   // NETWORK & SYSTEM
   // ========================================================================
-  getNetworkStatus: () => request<any>('/health'),
-  getNetworkStats: () => request<any>('/api/network/stats'),
+   getNetworkStatus: (tenantId?: string) => {
+     if (!tenantId) return Promise.reject(new Error('tenantId required'))
+     return request<any>(`/api/${tenantId}/network-status`)
+   },
+   getNetworkStats: () => request<any>('/api/network/stats'),
+   getTenantNetworkEvents: (tenantId?: string, limit?: number) => {
+     if (!tenantId) return Promise.reject(new Error('tenantId required'))
+     const query = limit ? `?limit=${limit}` : ''
+     return request<any[]>(`/api/${tenantId}/network-events${query}`)
+   },
 
    // ========================================================================
    // MIKROTIK
    // ========================================================================
-   getMikrotikConfig: () => request<any>('/api/mikrotik/config'),
+   getMikrotikConfig: () => request<any>('/api/tenants/mikrotik'),
    saveMikrotikConfig: (data: any) =>
-     request('/api/mikrotik/config', { method: 'POST', body: JSON.stringify(data) }),
-   getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
+     request('/api/tenants/mikrotik', { method: 'POST', body: JSON.stringify(data) }),
+   getMikrotikUsers: () => request<any[]>('/api/tenants/mikrotik/users'),
    getMikrotikUser: (username: string) =>
-     request<any>(`/api/mikrotik/users/${username}`),
+     request<any>(`/api/tenants/mikrotik/users/${username}`),
    disconnectMikrotikUser: (username: string) =>
-     request(`/api/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
+     request(`/api/tenants/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
    testMikrotikConnection: () =>
-     request<{ status: boolean; message: string }>('/api/mikrotik/test'),
+     request<{ status: boolean; message: string }>('/api/tenants/mikrotik/test'),
 
     // ========================================================================
     // INVOICES
@@ -186,6 +194,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
   getPortalConfig: () => request<any>('/api/tenants/portal-config'),
+  checkPortalReady: (slug: string) =>
+    request<{ slug: string; portal_config: any }>(`/api/v1/portal/${slug}/config`),
 
   // ========================================================================
   // VOUCHERS

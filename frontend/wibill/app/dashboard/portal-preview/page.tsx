@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
-import { Smartphone, Copy, Check, ExternalLink, Package, Palette, QrCode } from 'lucide-react'
+import { Smartphone, Copy, Check, ExternalLink, Package, Palette, QrCode, Settings } from 'lucide-react'
 
 const C = {
   void: '#000000', base: '#0a0a0a', border: '#141414',
@@ -15,13 +15,13 @@ export default function PortalPreviewPage() {
   const { user, token } = useAuth()
   const [copied, setCopied] = useState(false)
   const [packages, setPackages] = useState<any[]>([])
+  const [portalReady, setPortalReady] = useState<boolean | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production.up.railway.app'
   const slug = user?.tenant_slug
   const portalUrl = slug ? `${backendUrl}/portal/${slug}` : null
 
-  // QR code URL using a public API — simple, no library needed
   const qrUrl = portalUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(portalUrl)}` : null
 
   useEffect(() => {
@@ -30,6 +30,16 @@ export default function PortalPreviewPage() {
       setPackages(Array.isArray(pkgs) ? pkgs : [])
     }).catch(() => {})
   }, [token, user?.tenant_id])
+
+  useEffect(() => {
+    if (!slug) return
+    setPortalReady(null)
+    api.checkPortalReady(slug).then(() => {
+      setPortalReady(true)
+    }).catch(() => {
+      setPortalReady(false)
+    })
+  }, [slug])
 
   const handleCopy = () => {
     if (!portalUrl) return
@@ -56,7 +66,6 @@ export default function PortalPreviewPage() {
       <Topbar title="Portal Preview" />
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: C.void, color: C.text }}>
 
-        {/* header */}
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Portal Preview</h1>
           <p style={{ margin: 0, fontSize: 11, color: C.dim }}>
@@ -77,7 +86,6 @@ export default function PortalPreviewPage() {
               boxShadow: '0 0 40px rgba(0,0,0,0.6)',
               position: 'relative',
             }}>
-              {/* notch */}
               <div style={{
                 position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
                 width: 100, height: 20, background: '#111',
@@ -88,16 +96,42 @@ export default function PortalPreviewPage() {
                 position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
                 width: 8, height: 8, borderRadius: '50%', background: '#222', zIndex: 3,
               }} />
-              <iframe
-                ref={iframeRef}
-                src={portalUrl || ''}
-                title="Portal Preview"
-                style={{
-                  width: '100%', height: 620, border: 'none',
-                  marginTop: 0, display: 'block',
-                }}
-                sandbox="allow-scripts allow-forms allow-same-origin"
-              />
+
+              {portalReady === null ? (
+                <div style={{ height: 620, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: 12 }}>
+                  Checking portal configuration...
+                </div>
+              ) : portalReady ? (
+                <iframe
+                  ref={iframeRef}
+                  src={portalUrl || ''}
+                  title="Portal Preview"
+                  style={{
+                    width: '100%', height: 620, border: 'none',
+                    marginTop: 0, display: 'block',
+                  }}
+                  sandbox="allow-scripts allow-forms allow-same-origin"
+                />
+              ) : (
+                <div style={{ height: 620, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+                  <Settings size={32} color={C.dim} style={{ marginBottom: 16 }} />
+                  <div style={{ color: '#888', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                    Portal Not Configured
+                  </div>
+                  <div style={{ color: '#555', fontSize: 11, maxWidth: 220, lineHeight: 1.5, marginBottom: 20 }}>
+                    Set up your portal theme, colors, and packages to see a live preview of what your customers will see.
+                  </div>
+                  <a href="/dashboard/settings" style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '10px 20px', borderRadius: 8,
+                    background: C.blue, color: '#fff', fontSize: 12,
+                    textDecoration: 'none', fontWeight: 600,
+                  }}>
+                    <Settings size={14} />
+                    Configure Portal
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -107,8 +141,14 @@ export default function PortalPreviewPage() {
             <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 14 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14 }}>Portal Status</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}` }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Live and accepting payments</span>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: portalReady ? C.green : C.dim,
+                  boxShadow: portalReady ? `0 0 6px ${C.green}` : 'none',
+                }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: portalReady ? C.green : '#666' }}>
+                  {portalReady ? 'Live and accepting payments' : portalReady === null ? 'Checking...' : 'Not configured'}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 10, color: C.dim }}>Portal URL:</span>
@@ -127,13 +167,18 @@ export default function PortalPreviewPage() {
                 </button>
                 <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.dim, fontSize: 11, cursor: 'pointer',
-                  textDecoration: 'none',
+                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: portalReady ? C.dim : '#444', fontSize: 11, cursor: portalReady ? 'pointer' : 'not-allowed',
+                  textDecoration: 'none', opacity: portalReady ? 1 : 0.5, pointerEvents: portalReady ? 'auto' : ('none' as const),
                 }}>
                   <ExternalLink size={13} />
                   Open Live
                 </a>
               </div>
+              {portalReady === false && (
+                <div style={{ marginTop: 12, fontSize: 10, color: '#555', lineHeight: 1.4 }}>
+                  Go to <a href="/dashboard/settings" style={{ color: C.blue, textDecoration: 'none' }}>Settings</a> to configure your portal first.
+                </div>
+              )}
             </div>
 
             {/* QR Code */}
@@ -147,6 +192,9 @@ export default function PortalPreviewPage() {
                   <img src={qrUrl} alt="Portal QR Code" style={{ width: 140, height: 140, borderRadius: 8, background: '#fff', padding: 8 }} />
                   <div style={{ fontSize: 9, color: C.dim, marginTop: 8, fontFamily: 'DM Mono, monospace' }}>
                     Print this and place at your hotspot
+                  </div>
+                  <div style={{ fontSize: 9, color: '#333', marginTop: 4, wordBreak: 'break-all', fontFamily: 'DM Mono, monospace' }}>
+                    {portalUrl}
                   </div>
                 </div>
               ) : (
