@@ -17,6 +17,11 @@ from app.services.session_service import create_session
 router = APIRouter(tags=["vouchers"])
 
 
+@router.get("/ping")
+async def ping():
+    return {"pong": True}
+
+
 class GenerateVoucherRequest(BaseModel):
     package_id: str | None = None
     quantity: int = 1
