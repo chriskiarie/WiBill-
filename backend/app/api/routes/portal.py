@@ -316,6 +316,53 @@ async def get_available_palettes():
     }
 
 
+@router.get("/seed-portal/{slug}")
+async def seed_portal_for_slug(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Initialize portal_config for a tenant by slug."""
+    result = await db.execute(select(Tenant).where(Tenant.slug == slug))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail=f"Tenant '{slug}' not found")
+
+    if tenant.portal_config:
+        return {"message": f"Portal already configured for '{slug}'", "slug": slug}
+
+    default_config = {
+        "template_id": "dashboard",
+        "version": "1.0",
+        "brand": {
+            "name": tenant.name,
+            "emoji": "\U0001f4e1",
+            "tagline": f"Fast, reliable internet by {tenant.name}",
+            "location": "Nairobi, Kenya",
+            "support_phone": "+254 700 123 456",
+            "support_number": "+254 700 123 456",
+        },
+        "design": {
+            "palette_index": 0,
+            "font_family": "Syne",
+            "card_radius": "16px",
+            "layout_size": "compact",
+        },
+        "network_awareness": {
+            "show_status_banner": True,
+            "custom_status_message": "\u2705 Network is online and stable",
+        },
+        "enabled_features": {
+            "mpesa_stk": True,
+            "card_payments": False,
+            "vouchers": False,
+            "sms_receipts": False,
+        },
+    }
+    tenant.portal_config = default_config
+    await db.commit()
+    return {"message": f"Portal configured for '{slug}'", "slug": slug}
+
+
 @router.get("/portal/{slug}/success/{session_id}", response_class=HTMLResponse)
 async def portal_success_page(
     slug: str,
