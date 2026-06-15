@@ -104,11 +104,18 @@ async def create_session_with_payment(
         phone = "254" + phone[1:]
     
     try:
-        # 4. Create session
+        # 4. Normalize MAC/IP — generate placeholders if empty (preview mode, no real hotspot)
+        mac = payload.mac_address.strip() if payload.mac_address else ""
+        ip = payload.ip_address.strip() if payload.ip_address else ""
+        if not mac:
+            mac = "00:00:00:00:00:00"
+        if not ip:
+            ip = "0.0.0.0"
+
         session = await create_session(
             tenant_id=tenant.id,
-            mac_address=payload.mac_address,
-            ip_address=payload.ip_address,
+            mac_address=mac,
+            ip_address=ip,
             package_id=package.id,
             expires_at=datetime.utcnow() + timedelta(hours=package.duration_hours),
             db=db
