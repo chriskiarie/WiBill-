@@ -43,6 +43,10 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Cannot connect to database")
     logger.info("✅ Database connection OK")
 
+    # Auto-run schema migrations for new columns/tables
+    from app.db_migrate import run_migrations
+    await run_migrations()
+
     # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
