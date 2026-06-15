@@ -44,75 +44,81 @@ async def generate_vouchers(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    tenant_id_raw = getattr(current_user, "tenant_id", None)
-    if not tenant_id_raw:
-        raise HTTPException(status_code=400, detail="No tenant on this account")
-    tenant_id = uuid.UUID(str(tenant_id_raw))
+    try:
+        tenant_id_raw = getattr(current_user, "tenant_id", None)
+        if not tenant_id_raw:
+            raise HTTPException(status_code=400, detail="No tenant on this account")
+        tenant_id = uuid.UUID(str(tenant_id_raw))
 
-    if payload.quantity < 1 or payload.quantity > 500:
-        raise HTTPException(status_code=400, detail="Quantity must be between 1 and 500")
+        if payload.quantity < 1 or payload.quantity > 500:
+            raise HTTPException(status_code=400, detail="Quantity must be between 1 and 500")
 
-    if not payload.package_id and not payload.duration_minutes:
-        raise HTTPException(status_code=400, detail="Provide either package_id or duration_minutes")
+        if not payload.package_id and not payload.duration_minutes:
+            raise HTTPException(status_code=400, detail="Provide either package_id or duration_minutes")
 
-    if payload.package_id and payload.duration_minutes:
-        raise HTTPException(status_code=400, detail="Provide either package_id (package-linked) or duration_minutes (time-based), not both")
+        if payload.package_id and payload.duration_minutes:
+            raise HTTPException(status_code=400, detail="Provide either package_id (package-linked) or duration_minutes (time-based), not both")
 
-    package_uuid = None
-    if payload.package_id:
-        try:
-            package_uuid = uuid.UUID(payload.package_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid package_id")
-        pkg = await db.execute(select(Package).where(Package.id == package_uuid, Package.tenant_id == tenant_id))
-        if not pkg.scalar_one_or_none():
-            raise HTTPException(status_code=404, detail="Package not found")
+        package_uuid = None
+        if payload.package_id:
+            try:
+                package_uuid = uuid.UUID(payload.package_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid package_id")
+            pkg = await db.execute(select(Package).where(Package.id == package_uuid, Package.tenant_id == tenant_id))
+            if not pkg.scalar_one_or_none():
+                raise HTTPException(status_code=404, detail="Package not found")
 
-    if payload.duration_minutes is not None and (payload.duration_minutes < 1 or payload.duration_minutes > 43200):
-        raise HTTPException(status_code=400, detail="Duration must be between 1 and 43200 minutes (30 days)")
+        if payload.duration_minutes is not None and (payload.duration_minutes < 1 or payload.duration_minutes > 43200):
+            raise HTTPException(status_code=400, detail="Duration must be between 1 and 43200 minutes (30 days)")
 
-    batch_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    expires_at = now + timedelta(days=payload.expires_in_days)
+        batch_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(days=payload.expires_in_days)
 
-    unique_codes = set()
-    attempts = 0
-    while len(unique_codes) < payload.quantity and attempts < payload.quantity * 5:
-        code = generate_code(payload.prefix)
-        attempts += 1
-        existing = await db.execute(select(Voucher).where(Voucher.tenant_id == tenant_id, Voucher.code == code))
-        if not existing.scalar_one_or_none():
-            unique_codes.add(code)
+        unique_codes = set()
+        attempts = 0
+        while len(unique_codes) < payload.quantity and attempts < payload.quantity * 5:
+            code = generate_code(payload.prefix)
+            attempts += 1
+            existing = await db.execute(select(Voucher).where(Voucher.tenant_id == tenant_id, Voucher.code == code))
+            if not existing.scalar_one_or_none():
+                unique_codes.add(code)
 
-    if len(unique_codes) < payload.quantity:
-        raise HTTPException(status_code=500, detail=f"Could not generate {payload.quantity} unique codes (generated {len(unique_codes)})")
+        if len(unique_codes) < payload.quantity:
+            raise HTTPException(status_code=500, detail=f"Could not generate {payload.quantity} unique codes (generated {len(unique_codes)})")
 
-    vouchers = []
-    for code in unique_codes:
-        voucher = Voucher(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            package_id=package_uuid,
-            code=code,
-            batch_id=batch_id,
-            status="unused",
-            duration_minutes=payload.duration_minutes,
-            created_at=now,
-            expires_at=expires_at,
-        )
-        db.add(voucher)
-        vouchers.append(voucher)
+        vouchers = []
+        for code in unique_codes:
+            voucher = Voucher(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                package_id=package_uuid,
+                code=code,
+                batch_id=batch_id,
+                status="unused",
+                duration_minutes=payload.duration_minutes,
+                created_at=now,
+                expires_at=expires_at,
+            )
+            db.add(voucher)
+            vouchers.append(voucher)
 
-    await db.commit()
+        await db.commit()
 
-    return {
-        "batch_id": batch_id,
-        "quantity": len(vouchers),
-        "codes": [v.code for v in vouchers],
-        "expires_at": expires_at.isoformat(),
-        "voucher_type": "time_based" if payload.duration_minutes else "package_linked",
-        "duration_minutes": payload.duration_minutes,
-    }
+        return {
+            "batch_id": batch_id,
+            "quantity": len(vouchers),
+            "codes": [v.code for v in vouchers],
+            "expires_at": expires_at.isoformat(),
+            "voucher_type": "time_based" if payload.duration_minutes else "package_linked",
+            "duration_minutes": payload.duration_minutes,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail=f"generate error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
 
 
 @router.get("")
