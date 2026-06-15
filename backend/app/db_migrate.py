@@ -42,26 +42,7 @@ MIGRATIONS = [
         END IF;
     END $$;
     """,
-    # 4. Create reward_tokens table
-    """
-    CREATE TABLE IF NOT EXISTS reward_tokens (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-        token_code VARCHAR(64) NOT NULL UNIQUE,
-        minutes INTEGER NOT NULL,
-        bound_phone VARCHAR(20),
-        bound_mac VARCHAR(17),
-        campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
-        session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
-        reason VARCHAR(100),
-        redeemed BOOLEAN NOT NULL DEFAULT false,
-        redeemed_at TIMESTAMP,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS ix_reward_tokens_tenant_id ON reward_tokens(tenant_id);
-    """,
-    # 5. Create campaigns table
+    # 4. Create campaigns table FIRST (reward_tokens FK references it)
     """
     CREATE TABLE IF NOT EXISTS campaigns (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -80,6 +61,25 @@ MIGRATIONS = [
     );
     CREATE INDEX IF NOT EXISTS ix_campaigns_tenant_id ON campaigns(tenant_id);
     """,
+    # 5. Create reward_tokens table (FK to campaigns now exists)
+    """
+    CREATE TABLE IF NOT EXISTS reward_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        token_code VARCHAR(64) NOT NULL UNIQUE,
+        minutes INTEGER NOT NULL,
+        bound_phone VARCHAR(20),
+        bound_mac VARCHAR(17),
+        campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
+        session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+        reason VARCHAR(100),
+        redeemed BOOLEAN NOT NULL DEFAULT false,
+        redeemed_at TIMESTAMP,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS ix_reward_tokens_tenant_id ON reward_tokens(tenant_id);
+    """,
 ]
 
 
@@ -91,5 +91,5 @@ async def run_migrations():
             try:
                 await conn.execute(text(sql))
             except Exception as e:
-                logger.warning(f"Migration {i+1} skipped (may already exist): {e}")
+                logger.warning(f"Migration {i+1} skipped: {e}")
     logger.info("Schema migrations complete")
