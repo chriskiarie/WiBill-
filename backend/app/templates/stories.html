@@ -683,6 +683,170 @@
                 transform: translateY(0);
             }
         }
+
+        /* ── Payment Modal ─────────────────────────────── */
+        .payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .payment-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.3s ease;
+        }
+
+        .payment-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .payment-modal-header h3 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .payment-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .payment-modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .payment-modal-body {
+            padding: 1.5rem;
+        }
+
+        .payment-modal-body p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .payment-modal-body p strong {
+            color: var(--text-primary);
+        }
+
+        .payment-input-group {
+            margin-top: 1rem;
+        }
+
+        .payment-input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .payment-input-group input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: calc(var(--radius) * 0.5);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .payment-input-group input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .payment-input-group input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .payment-error {
+            margin-top: 0.8rem;
+            padding: 0.7rem 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: calc(var(--radius) * 0.5);
+            color: #f87171;
+            font-size: 0.85rem;
+        }
+
+        .payment-status {
+            margin-top: 0.8rem;
+            padding: 0.7rem 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: calc(var(--radius) * 0.5);
+            color: #60a5fa;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .payment-submit-btn {
+            width: 100%;
+            margin-top: 1.2rem;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: calc(var(--radius) * 0.5);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .payment-submit-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .payment-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 360px) {
+            .payment-modal-content { max-width: 100%; }
+            .payment-modal-header { padding: 1rem 1.2rem; }
+            .payment-modal-header h3 { font-size: 1rem; }
+            .payment-modal-body { padding: 1.2rem; }
+            .payment-submit-btn { padding: 0.8rem; font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body>
@@ -845,7 +1009,7 @@
                 const mac = urlParams.get('mac') || '';
                 const ip = urlParams.get('ip') || '';
 
-                const response = await fetch('/portal/{{ brand.slug }}/sessions', {
+                const response = await fetch('/api/portal/{{ brand.slug }}/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -879,7 +1043,7 @@
 
             const poll = async () => {
                 try {
-                    const response = await fetch(`/portal/{{ brand.slug }}/sessions/${sessionId}`);
+                    const response = await fetch(`/api/portal/{{ brand.slug }}/sessions/${sessionId}`);
                     const data = await response.json();
 
                     if (data.status === 'active') {
@@ -950,115 +1114,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Stories Portal initialized');
         });
-
-        // Payment flow - open modal when package clicked
-        function openPaymentModal(packageId, packageName, packagePrice) {
-            document.getElementById('payment-modal').style.display = 'flex';
-            document.getElementById('payment-package-name').textContent = packageName;
-            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
-            document.getElementById('payment-package-id').value = packageId;
-            document.getElementById('payment-phone').value = '';
-            document.getElementById('payment-error').style.display = 'none';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').style.display = 'none';
-        }
-
-        async function initiatePayment() {
-            const packageId = document.getElementById('payment-package-id').value;
-            const phone = document.getElementById('payment-phone').value.trim();
-            const slug = "{{ brand.slug }}";
-
-            if (!phone) {
-                showError('Please enter your phone number');
-                return;
-            }
-
-            if (!/^(254|0)7\d{8}$/.test(phone)) {
-                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
-                return;
-            }
-
-            const submitBtn = document.getElementById('payment-submit');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
-
-            try {
-                // Get MAC and IP from URL params (set by MikroTik hotspot)
-                const urlParams = new URLSearchParams(window.location.search);
-                const mac = urlParams.get('mac') || '';
-                const ip = urlParams.get('ip') || '';
-
-                const response = await fetch('/portal/{{ brand.slug }}/sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        package_id: packageId,
-                        phone_number: phone,
-                        mac_address: mac,
-                        ip_address: ip
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to initiate payment');
-                }
-
-                // Payment initiated, start polling
-                pollPaymentStatus(data.session_id);
-
-            } catch (error) {
-                showError(error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Pay with M-Pesa';
-            }
-        }
-
-        function pollPaymentStatus(sessionId) {
-            const statusEl = document.getElementById('payment-status');
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'Waiting for payment...';
-
-            const poll = async () => {
-                try {
-                    const response = await fetch(`/portal/{{ brand.slug }}/sessions/${sessionId}`);
-                    const data = await response.json();
-
-                    if (data.status === 'active') {
-                        // Payment successful - redirect to success page
-                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
-                        return;
-                    } else if (data.status === 'failed' || data.status === 'expired') {
-                        showError('Payment failed or timed out. Please try again.');
-                        return;
-                    } else if (data.status === 'pending_payment') {
-                        // Still waiting, continue polling
-                        setTimeout(poll, 3000);
-                    }
-                } catch (error) {
-                    showError('Error checking payment status');
-                }
-            };
-
-            setTimeout(poll, 3000);
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('payment-error');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').style.display = 'none';
-        }
 
         // Listen for live updates from onboarding wizard
         window.addEventListener('message', function(event) {
