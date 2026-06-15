@@ -1,6 +1,7 @@
 import uuid
 import secrets
 import string
+from typing import Optional
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,11 +19,11 @@ router = APIRouter(tags=["vouchers"])
 
 
 class GenerateVoucherRequest(BaseModel):
-    package_id: str | None = None
+    package_id: Optional[str] = None
     quantity: int = 1
     prefix: str = ""
     expires_in_days: int = 365
-    duration_minutes: int | None = None
+    duration_minutes: Optional[int] = None
 
 
 class RedeemVoucherRequest(BaseModel):
