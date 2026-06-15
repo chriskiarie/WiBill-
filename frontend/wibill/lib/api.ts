@@ -94,8 +94,9 @@ export const api = {
   // PACKAGES
   // ========================================================================
   getPackages: (tenant_id?: string) => {
-    const query = tenant_id ? `?tenant_id=${tenant_id}` : ''
-    return request<any[]>(`/api/packages${query}`)
+    // Use authenticated endpoint if no tenant_id passed (logged-in admin)
+    if (!tenant_id) return request<any[]>('/api/packages/mine')
+    return request<any[]>(`/api/packages?tenant_id=${tenant_id}`)
   },
   getPackage: (id: string) => request<any>(`/api/packages/${id}`),
   createPackage: (data: any) =>

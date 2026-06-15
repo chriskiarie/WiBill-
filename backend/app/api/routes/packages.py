@@ -35,7 +35,8 @@ async def list_packages(
     tenant_id: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Public endpoint — portal uses this to list packages for a tenant."""
+    """Public endpoint — portal uses this to list packages for a tenant.
+    Dashboard also uses this, passing tenant_id as query param."""
     if not tenant_id:
         raise HTTPException(status_code=400, detail="tenant_id required")
     result = await db.execute(
@@ -54,6 +55,34 @@ async def list_packages(
             "max_devices": p.max_devices,
         }
         for p in packages
+    ]
+
+
+@router.get("/mine")
+async def list_mine(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Authenticated endpoint — returns all packages for the logged-in ISP admin's tenant."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    result = await db.execute(
+        select(Package)
+        .where(Package.tenant_id == current_user.tenant_id)
+        .order_by(Package.display_order)
+    )
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "price_ksh": float(p.price_ksh),
+            "duration_hours": p.duration_hours,
+            "duration_label": p.duration_label,
+            "max_devices": p.max_devices,
+            "display_order": p.display_order,
+            "is_active": p.is_active,
+        }
+        for p in result.scalars().all()
     ]
 
 

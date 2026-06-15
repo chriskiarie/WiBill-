@@ -5,9 +5,20 @@ import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Plus, Edit, Trash2, X } from 'lucide-react'
+import { Plus, Edit, Trash2, X, Package } from 'lucide-react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const C = {
+  void: '#030303',
+  base: '#0a0a0a',
+  border: '#141414',
+  border2: '#1a1a1a',
+  text: '#f0f0f0',
+  dim: '#666666',
+  mute: '#2a2a2a',
+  gold: '#E8B84B',
+  green: '#22c55e',
+  red: '#ef4444',
+}
 
 interface Package {
   id: string
@@ -80,14 +91,7 @@ export default function PackagesPage() {
 
   const openCreateModal = () => {
     setEditingPackage(null)
-    setFormData({
-      name: '',
-      duration_hours: 1,
-      duration_label: '1 hr',
-      price_ksh: 0,
-      max_devices: 1,
-      is_active: true,
-    })
+    setFormData({ name: '', duration_hours: 1, duration_label: '1 hr', price_ksh: 0, max_devices: 1, is_active: true })
     setShowModal(true)
   }
 
@@ -104,10 +108,7 @@ export default function PackagesPage() {
     setShowModal(true)
   }
 
-  const closeModal = () => {
-    setShowModal(false)
-    setEditingPackage(null)
-  }
+  const closeModal = () => { setShowModal(false); setEditingPackage(null) }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,7 +124,7 @@ export default function PackagesPage() {
         showToast('Package updated', { type: 'success' })
       } else {
         const newPkg = await api.createPackage(formData)
-        setPackages([...packages, newPkg])
+        setPackages([...packages, { ...newPkg, is_active: true }])
         showToast('Package created', { type: 'success' })
       }
       closeModal()
@@ -134,253 +135,148 @@ export default function PackagesPage() {
     }
   }
 
-  const handleChange = (field: keyof PackageForm, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
   return (
-    <>
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Packages" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: '#030303' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Packages</h1>
-          <button
-            onClick={openCreateModal}
-            style={{
-              padding: '8px 16px',
-              background: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: C.void }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Packages</h1>
+          <button onClick={openCreateModal} style={{ padding: '8px 14px', background: C.gold, color: C.void, border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700 }}>
             <Plus size={16} /> New Package
           </button>
         </div>
 
         {error && (
-          <div style={{ padding: 12, background: '#3a1a1a', border: '1px solid #5a2d2d', borderRadius: 6, color: '#ff6b6b', marginBottom: 16 }}>
+          <div style={{ padding: 12, background: '#1a0f0f', border: `1px solid ${C.red}33`, borderRadius: 6, color: C.red, marginBottom: 16, fontSize: 11 }}>
             {error}
-            <button onClick={fetchPackages} style={{ marginLeft: 8, color: '#ff8787', cursor: 'pointer' }}>
-              Retry
-            </button>
+            <button onClick={fetchPackages} style={{ marginLeft: 8, color: C.gold, cursor: 'pointer', background: 'none', border: 'none' }}>Retry</button>
           </div>
         )}
 
         {loading ? (
           <LoadingSpinner size="md" label="Loading packages..." />
         ) : packages.length === 0 ? (
-          <div style={{ color: '#444', fontSize: 14, padding: '40px', textAlign: 'center' }}>
-            No packages yet
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 12 }}>
+            <Package size={32} color={C.mute} />
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim }}>No packages yet</div>
+            <div style={{ fontSize: 11, color: C.mute, textAlign: 'center', maxWidth: 280 }}>Create your first internet package so users can buy access on the portal.</div>
+            <button onClick={openCreateModal} style={{ marginTop: 8, padding: '8px 14px', background: C.gold, color: C.void, border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Plus size={14} /> Create Package
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
             {packages.map(pkg => (
-              <div key={pkg.id} style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 16 }}>
+              <div key={pkg.id} style={{ background: C.base, border: `1px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 12 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{pkg.name}</div>
-                    <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                      {pkg.duration_hours}h · Ksh {pkg.price_ksh}
-                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>{pkg.name}</div>
+                    <div style={{ fontSize: 11, color: C.dim, marginTop: 4, fontFamily: "'DM Mono', monospace" }}>{pkg.duration_hours}h · Ksh {pkg.price_ksh.toLocaleString('en-KE')}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <Edit size={16} style={{ cursor: 'pointer', color: '#3b82f6' }} onClick={() => openEditModal(pkg)} />
-                    <Trash2 size={16} style={{ cursor: 'pointer', color: '#f87171' }} onClick={() => handleDelete(pkg.id)} />
+                    <Edit size={14} style={{ cursor: 'pointer', color: C.gold }} onClick={() => openEditModal(pkg)} />
+                    <Trash2 size={14} style={{ cursor: 'pointer', color: C.red }} onClick={() => handleDelete(pkg.id)} />
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: '#444' }}>
-                  Status: {pkg.is_active ? '✓ Active' : '✗ Inactive'}
+                <div style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>
+                  <span style={{ color: pkg.is_active ? C.green : C.red }}>
+                    {pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                  {pkg.duration_label && <span style={{ color: C.dim }}>·</span>}
+                  {pkg.duration_label && <span style={{ color: C.dim }}>{pkg.duration_label}</span>}
+                  {pkg.max_devices && <span style={{ color: C.dim }}>·</span>}
+                  {pkg.max_devices && <span style={{ color: C.dim }}>{pkg.max_devices} device{pkg.max_devices > 1 ? 's' : ''}</span>}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-    </div>
 
-    {/* Create/Edit Package Modal */}
-    {showModal && (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}>
-        <div style={{
-          background: '#0a0a0a',
-          border: '0.5px solid #141414',
-          borderRadius: 11,
-          padding: '24px',
-          maxWidth: 480,
-          width: '90%',
-          maxHeight: '90vh',
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
-              {editingPackage ? 'Edit Package' : 'New Package'}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: C.base, border: `1px solid ${C.border}`, borderRadius: 11, padding: 24, maxWidth: 480, width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>
+                {editingPackage ? 'Edit Package' : 'New Package'}
+              </div>
+              <button onClick={closeModal} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}><X size={20} /></button>
             </div>
-            <button
-              onClick={closeModal}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: 20,
-                color: '#666',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={20} />
-            </button>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
+                  Package Name *
+                </label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Daily Unlimited"
+                  style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `1px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                  required />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
+                    Duration (hours) *
+                  </label>
+                  <input type="number" min="1" value={formData.duration_hours}
+                    onChange={(e) => setFormData(p => ({ ...p, duration_hours: parseInt(e.target.value) || 1 }))}
+                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `1px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                    required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
+                    Duration Label *
+                  </label>
+                  <input type="text" value={formData.duration_label}
+                    onChange={(e) => setFormData(p => ({ ...p, duration_label: e.target.value }))}
+                    placeholder="e.g. 24 hrs"
+                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `1px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                    required />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
+                    Price (KSH) *
+                  </label>
+                  <input type="number" min="1" step="1" value={formData.price_ksh}
+                    onChange={(e) => setFormData(p => ({ ...p, price_ksh: parseInt(e.target.value) || 0 }))}
+                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `1px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                    required />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
+                    Max Devices
+                  </label>
+                  <input type="number" min="1" value={formData.max_devices}
+                    onChange={(e) => setFormData(p => ({ ...p, max_devices: parseInt(e.target.value) || 1 }))}
+                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `1px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <input type="checkbox" checked={formData.is_active}
+                  onChange={(e) => setFormData(p => ({ ...p, is_active: e.target.checked }))}
+                  style={{ width: 16, height: 16, accentColor: C.gold }} />
+                <label style={{ fontSize: 11, color: C.text }}>Active</label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={closeModal} disabled={submitting}
+                  style={{ padding: '10px 16px', background: C.mute, border: 'none', borderRadius: 6, color: C.dim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  style={{ padding: '10px 16px', background: submitting ? C.mute : C.gold, border: 'none', borderRadius: 6, color: C.void, fontSize: 11, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                  {submitting ? 'Saving\u2026' : (editingPackage ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 11, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
-                Package Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="e.g. Daily Unlimited"
-                style={{
-                  width: '100%', padding: '10px 12px', background: '#080808',
-                  border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
-                  fontSize: 13, boxSizing: 'border-box', outline: 'none'
-                }}
-                required
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
-                  Duration (hours) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.duration_hours}
-                  onChange={(e) => handleChange('duration_hours', parseInt(e.target.value) || 1)}
-                  style={{
-                    width: '100%', padding: '10px 12px', background: '#080808',
-                    border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
-                    fontSize: 13, boxSizing: 'border-box', outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
-                  Duration Label *
-                </label>
-                <input
-                  type="text"
-                  value={formData.duration_label}
-                  onChange={(e) => handleChange('duration_label', e.target.value)}
-                  placeholder="e.g. 24 hrs"
-                  style={{
-                    width: '100%', padding: '10px 12px', background: '#080808',
-                    border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
-                    fontSize: 13, boxSizing: 'border-box', outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
-                  Price (KSH) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={formData.price_ksh}
-                  onChange={(e) => handleChange('price_ksh', parseInt(e.target.value) || 0)}
-                  style={{
-                    width: '100%', padding: '10px 12px', background: '#080808',
-                    border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
-                    fontSize: 13, boxSizing: 'border-box', outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
-                  Max Devices
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.max_devices}
-                  onChange={(e) => handleChange('max_devices', parseInt(e.target.value) || 1)}
-                  style={{
-                    width: '100%', padding: '10px 12px', background: '#080808',
-                    border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
-                    fontSize: 13, boxSizing: 'border-box', outline: 'none'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#ccc' }}>
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => handleChange('is_active', e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: '#3b82f6' }}
-                />
-                Active
-              </label>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={submitting}
-                style={{
-                  padding: '10px 16px', background: '#1a1a1a', border: '0.5px solid #2a2a2a',
-                  borderRadius: 6, color: '#9ca3af', fontSize: 11, fontWeight: 700, cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  padding: '10px 16px', background: submitting ? '#444' : '#3b82f6', border: 'none',
-                  borderRadius: 6, color: '#030303', fontSize: 11, fontWeight: 700,
-                  cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1
-                }}
-              >
-                {submitting ? 'Saving…' : (editingPackage ? 'Update' : 'Create')}
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
-    )}
-    </>
+      )}
+    </div>
   )
 }
