@@ -464,16 +464,9 @@ export default function IspDashboard() {
               <div style={{ textAlign: 'center', padding: '16px' }}>
                 <Wifi size={18} color={C.mute} style={{ marginBottom: 6 }} />
                 <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, fontWeight: 600 }}>No one connected</div>
-                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2, marginBottom: 10 }}>
-                  Share your link to get your first customer
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2 }}>
+                  Sessions will appear here when customers connect
                 </div>
-                <a href="/dashboard/portal-preview" style={{
-                  display: 'inline-block', padding: '6px 14px', borderRadius: 8,
-                  fontSize: 10, fontWeight: 700, color: C.gold,
-                  border: '0.5px solid rgba(232,184,75,0.2)', textDecoration: 'none',
-                }}>
-                  Share link →
-                </a>
               </div>
             ) : (
               <div>
@@ -529,16 +522,9 @@ export default function IspDashboard() {
               <div style={{ textAlign: 'center', padding: '16px' }}>
                 <DollarSign size={18} color={C.mute} style={{ marginBottom: 6 }} />
                 <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, fontWeight: 600 }}>No payments yet</div>
-                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2, marginBottom: 10 }}>
-                  Share your link to get your first customer
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2 }}>
+                  Payments will appear here when customers connect
                 </div>
-                <a href="/dashboard/portal-preview" style={{
-                  display: 'inline-block', padding: '6px 14px', borderRadius: 8,
-                  fontSize: 10, fontWeight: 700, color: C.gold,
-                  border: '0.5px solid rgba(232,184,75,0.2)', textDecoration: 'none',
-                }}>
-                  Share link →
-                </a>
               </div>
             ) : (
               <div>
