@@ -22,7 +22,7 @@ class RewardToken(Base):
     redeemed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     redeemed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     tenant = relationship("Tenant")
     session = relationship("Session")

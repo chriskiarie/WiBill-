@@ -77,7 +77,7 @@ async def generate_compensation_token(
             break
         code = generate_token_code()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     token = RewardToken(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -195,7 +195,7 @@ async def redeem_token(
     if not token:
         raise HTTPException(status_code=404, detail="Token not found")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     if token.redeemed:
         raise HTTPException(status_code=400, detail="Token already redeemed")
     if token.expires_at < now:

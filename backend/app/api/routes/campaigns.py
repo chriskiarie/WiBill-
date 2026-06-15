@@ -55,7 +55,7 @@ async def create_campaign(
         expiry_hours=payload.expiry_hours,
         target_filter=payload.target_filter,
         status="draft",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.utcnow(),
     )
     db.add(campaign)
     await db.commit()
@@ -186,7 +186,7 @@ async def update_campaign_status(
 
     campaign.status = payload.status
     if payload.status == "launched" and not campaign.launched_at:
-        campaign.launched_at = datetime.now(timezone.utc)
+        campaign.launched_at = datetime.utcnow()
 
     await db.commit()
     return {"message": f"Campaign status updated to {payload.status}", "status": campaign.status}
@@ -223,7 +223,7 @@ async def launch_campaign(
         chars = string.ascii_uppercase + string.digits
         return ''.join(secrets.choice(chars) for _ in range(length))
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     expires_at = now + timedelta(hours=campaign.expiry_hours)
 
     codes = set()

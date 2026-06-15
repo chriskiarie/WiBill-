@@ -73,7 +73,7 @@ async def generate_vouchers(
             raise HTTPException(status_code=400, detail="Duration must be between 1 and 43200 minutes (30 days)")
 
         batch_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         expires_at = now + timedelta(days=payload.expires_in_days)
 
         unique_codes = set()
@@ -116,9 +116,6 @@ async def generate_vouchers(
         }
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        raise HTTPException(status_code=500, detail=f"generate error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
 
 
 @router.get("")
@@ -202,7 +199,7 @@ async def check_voucher_status(
 
     voucher, package = row
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     if voucher.is_suspended:
         return {"valid": False, "status": "suspended", "message": "Voucher has been suspended by the ISP"}
     if voucher.status == "used":
@@ -373,7 +370,7 @@ async def redeem_voucher_portal(
 
     voucher, package = row
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     if voucher.is_suspended:
         raise HTTPException(status_code=400, detail="Voucher has been suspended")
     if voucher.status == "used":

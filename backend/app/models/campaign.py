@@ -21,7 +21,7 @@ class Campaign(Base):
     target_filter: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     redeemed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     launched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     tenant = relationship("Tenant", back_populates="campaigns")
