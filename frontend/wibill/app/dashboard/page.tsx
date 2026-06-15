@@ -13,6 +13,12 @@ const C = {
   gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
 };
 
+// Spacing scale: 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48
+// All card internal padding: 16px, hero card: 20px
+// Grid gaps between cards: 12px
+// Section bottom margins: 20px
+// Typography: headers Space Grotesk, numeric DM Mono, labels/body Inter
+
 function ksh(n: number) {
   return `Ksh ${(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
@@ -300,15 +306,15 @@ export default function IspDashboard() {
         <div style={{
           background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
           border: '0.5px solid rgba(232,184,75,0.12)',
-          borderRadius: 14, padding: '24px 28px',
-          marginBottom: 16,
+          borderRadius: 11, padding: 20,
+          marginBottom: 20,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontSize: 11, fontWeight: 700, color: C.dim,
-                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
               }}>
                 Today's Revenue
               </div>
@@ -320,13 +326,13 @@ export default function IspDashboard() {
                 {ksh(today.gross_ksh)}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: C.dim }}>
+                <span style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim }}>
                   Net: <span style={{ color: C.green, fontFamily: 'DM Mono, monospace' }}>{ksh(today.isp_earnings_ksh)}</span>
                 </span>
-                <span style={{ fontSize: 11, color: C.dim }}>
+                <span style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim }}>
                   Fee: <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{ksh(today.platform_fee_ksh)}</span>
                 </span>
-                <span style={{ fontSize: 11, color: C.dim }}>
+                <span style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim }}>
                   {today.count} transaction{today.count !== 1 ? 's' : ''}
                 </span>
                 {vsYesterday && (
@@ -342,58 +348,48 @@ export default function IspDashboard() {
               </div>
             </div>
             <div style={{
-              width: 56, height: 56, borderRadius: 14,
+              width: 40, height: 40, borderRadius: 10,
               background: 'rgba(232,184,75,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <TrendingUp size={24} color={C.gold} />
+              <TrendingUp size={18} color={C.gold} />
             </div>
           </div>
-          <svg width="100%" height="36" style={{ marginTop: 16 }} viewBox="0 0 600 36" preserveAspectRatio="none">
-            <path d="M0 32 L600 32" stroke={C.gold} strokeWidth="1.5" fill="none" opacity="0.4" />
-            <path d="M0 36 L0 32 L600 32 L600 36 Z" fill="url(#goldGrad)" opacity="0.06" />
-            <defs>
-              <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C.gold} />
-                <stop offset="100%" stopColor={C.gold} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
         </div>
 
-        {/* ═══ CASH FLOW THIS WEEK ═══ */}
+        {/* ═══ CASH FLOW THIS WEEK (slim bars) ═══ */}
         <div style={{
           background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
-          padding: '18px 22px', marginBottom: 16,
+          padding: 16, marginBottom: 20,
         }}>
           <div style={{
-            fontFamily: '"Space Grotesk", sans-serif',
-            fontSize: 9, fontWeight: 700, color: C.mute,
-            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14,
+            fontFamily: 'Inter, sans-serif',
+            fontSize: 11, fontWeight: 700, color: C.dim,
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
           }}>
             Cash Flow This Week
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 64 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 40 }}>
             {weeklyDays.map((day, i) => {
               const val = weekly[i] || 0;
               const pct = (val / maxWeekly) * 100;
               const isToday = i === weekStart;
               return (
-                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <div style={{
-                    width: '100%', height: `${Math.max(pct, 4)}%`,
+                    width: '100%', height: `${Math.max(pct, 6)}%`,
                     background: isToday ? C.gold : C.mute,
-                    borderRadius: '3px 3px 0 0',
-                    minHeight: 4,
-                    opacity: isToday ? 1 : 0.5,
+                    borderRadius: '2px 2px 0 0',
+                    minHeight: 6,
+                    opacity: isToday ? 1 : 0.4,
                     transition: 'height 0.3s ease',
                     display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                   }}>
                     {val > 0 && (
                       <span style={{
-                        fontSize: 7, fontFamily: 'DM Mono, monospace',
+                        fontSize: 6, fontFamily: 'DM Mono, monospace',
                         color: isToday ? C.void : C.dim,
-                        fontWeight: 700, marginBottom: 2,
+                        fontWeight: 700, marginBottom: 1,
                       }}>
                         {ksh(val)}
                       </span>
@@ -422,12 +418,12 @@ export default function IspDashboard() {
           ].map((c, i) => (
             <div key={i} style={{
               background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
-              padding: '14px 16px', position: 'relative', overflow: 'hidden',
+              padding: 16, position: 'relative', overflow: 'hidden',
             }}>
               <div style={{
-                fontSize: 9, fontWeight: 700, color: C.mute,
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: 11, fontWeight: 700, color: C.dim,
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8,
+                fontFamily: 'Inter, sans-serif',
               }}>
                 {c.label}
               </div>
@@ -437,7 +433,7 @@ export default function IspDashboard() {
               }}>
                 {c.value}
               </div>
-              <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
+              <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 4 }}>
                 {c.sub}
               </div>
             </div>
@@ -445,13 +441,13 @@ export default function IspDashboard() {
         </div>
 
         {/* ═══ LIVE SESSIONS + RECENT PAYMENTS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{
-                fontSize: 9, fontWeight: 700, color: C.mute,
-                textTransform: 'uppercase', letterSpacing: '0.1em',
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: 11, fontWeight: 700, color: C.dim,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                fontFamily: 'Inter, sans-serif',
               }}>
                 Live Sessions
               </span>
@@ -465,14 +461,14 @@ export default function IspDashboard() {
               </span>
             </div>
             {sessions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 16px' }}>
-                <Wifi size={20} color={C.mute} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No one connected</div>
-                <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
+              <div style={{ textAlign: 'center', padding: '16px' }}>
+                <Wifi size={18} color={C.mute} style={{ marginBottom: 6 }} />
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, fontWeight: 600 }}>No one connected</div>
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2, marginBottom: 10 }}>
                   Share your link to get your first customer
                 </div>
                 <a href="/dashboard/portal-preview" style={{
-                  display: 'inline-block', marginTop: 12, padding: '6px 14px', borderRadius: 8,
+                  display: 'inline-block', padding: '6px 14px', borderRadius: 8,
                   fontSize: 10, fontWeight: 700, color: C.gold,
                   border: '0.5px solid rgba(232,184,75,0.2)', textDecoration: 'none',
                 }}>
@@ -491,14 +487,14 @@ export default function IspDashboard() {
                   return (
                     <div key={s.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
+                      padding: '6px 0', borderBottom: '0.5px solid #0d0d0d',
                     }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: remaining > 0 ? C.green : C.red, flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
                           {maskPhone(s.phone_number || s.mac_address || '—')}
                         </div>
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 1 }}>
                           {s.package_name || 'Unknown'} · {timeLeft}
                         </div>
                       </div>
@@ -518,24 +514,31 @@ export default function IspDashboard() {
             )}
           </div>
 
-          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{
-                fontSize: 9, fontWeight: 700, color: C.mute,
-                textTransform: 'uppercase', letterSpacing: '0.1em',
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: 11, fontWeight: 700, color: C.dim,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                fontFamily: 'Inter, sans-serif',
               }}>
                 Recent Payments
               </span>
               <Receipt size={13} color={C.dim} />
             </div>
             {txns.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 16px' }}>
-                <DollarSign size={20} color={C.mute} style={{ marginBottom: 8 }} />
-                <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No payments yet</div>
-                <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
-                  Your first payment will appear here
+              <div style={{ textAlign: 'center', padding: '16px' }}>
+                <DollarSign size={18} color={C.mute} style={{ marginBottom: 6 }} />
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, fontWeight: 600 }}>No payments yet</div>
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2, marginBottom: 10 }}>
+                  Share your link to get your first customer
                 </div>
+                <a href="/dashboard/portal-preview" style={{
+                  display: 'inline-block', padding: '6px 14px', borderRadius: 8,
+                  fontSize: 10, fontWeight: 700, color: C.gold,
+                  border: '0.5px solid rgba(232,184,75,0.2)', textDecoration: 'none',
+                }}>
+                  Share link →
+                </a>
               </div>
             ) : (
               <div>
@@ -546,13 +549,13 @@ export default function IspDashboard() {
                   return (
                     <div key={t.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
+                      padding: '6px 0', borderBottom: '0.5px solid #0d0d0d',
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
                           {maskPhone(t.phone_number || '—')}
                         </div>
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 1 }}>
                           {t.package_name || t.mpesa_receipt || t.id?.slice(0, 8) || '—'}
                           {t.created_at ? ` · ${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                         </div>
@@ -577,11 +580,11 @@ export default function IspDashboard() {
         </div>
 
         {/* ═══ QUICK ACTIONS ═══ */}
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 20 }}>
           <div style={{
-            fontSize: 9, fontWeight: 700, color: C.mute,
-            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10,
-            fontFamily: '"Space Grotesk", sans-serif',
+            fontSize: 11, fontWeight: 700, color: C.dim,
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10,
+            fontFamily: 'Inter, sans-serif',
           }}>
             Quick Actions
           </div>

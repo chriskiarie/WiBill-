@@ -5,26 +5,40 @@
 @tailwind utilities;
 
 :root {
+  /* ── Backgrounds ── */
   --bg: #030303;
   --surface: #090909;
   --surface2: #0d0d0d;
   --surface3: #111111;
+
+  /* ── Borders ── */
   --border: #161616;
   --border2: #1e1e1e;
   --border3: #252525;
+
+  /* ── Text ── */
   --text: #f0f0f0;
   --text2: #888;
   --text3: #444;
-  --blue: #3b82f6;
-  --blue-dim: #1a3a6e;
-  --blue-bg: #060f1f;
-  --green: #22c55e;
-  --amber: #f59e0b;
-  --red: #f87171;
-  --purple: #a78bfa;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'DM Mono', monospace;
-  --font-serif: 'Instrument Serif', serif;
+
+  /* ── Accent ── */
+  --gold: #E8B84B;     /* single accent: progress, brand, CTAs, value */
+  --green: #22c55e;    /* money in, success, online */
+  --red: #ef4444;      /* critical only — not for "not configured yet" */
+
+  /* ── Deprecated (do not use in new code) ── */
+  /* --blue, --amber, --purple removed — use gold/green/red/gray only */
+
+  /* ── Typography ── */
+  --font-display: 'Space Grotesk', sans-serif;  /* page/section headers only */
+  --font-mono: 'DM Mono', monospace;            /* all numeric/data values */
+  --font-body: 'Inter', sans-serif;             /* labels, body text, supporting copy */
+
+  /* ── Spacing scale (all cards/paddings/gaps) ── */
+  /* 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48        */
+  /* Card internal padding: 16px (hero: 20px)    */
+  /* Grid gap between cards: 12px                */
+  /* Section bottom margin: 20px                 */
 }
 
 * { box-sizing: border-box; }
