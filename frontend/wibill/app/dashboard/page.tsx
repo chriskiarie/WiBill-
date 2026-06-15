@@ -1,14 +1,14 @@
 ﻿'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api, maskPhone } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Topbar from '@/components/Topbar';
 import { useToast } from '@/context/ToastContext';
-import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, Users, Clock } from 'lucide-react';
+import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, X, Settings } from 'lucide-react';
 
 const C = {
-  void: '#000000', base: '#0a0a0a', border: '#141414',
+  void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
   text: '#f0f0f0', dim: '#666666', mute: '#2a2a2a',
   gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
 };
@@ -21,6 +21,8 @@ function fmt(n: number) {
   return (n || 0).toLocaleString();
 }
 
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 const steps = [
   { key: 'mikrotik', label: 'Connect your MikroTik router', desc: 'Link your router so WiBill can manage sessions', href: '/dashboard/mikrotik', icon: Router },
   { key: 'mpesa', label: 'Set up M-Pesa payments', desc: 'Configure your Till or Paybill to accept payments', href: '/dashboard/mpesa', icon: CreditCard },
@@ -32,6 +34,7 @@ const steps = [
 export default function IspDashboard() {
   const { token } = useAuth();
   const { showToast } = useToast();
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const [dash, setDash] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -39,11 +42,12 @@ export default function IspDashboard() {
   const [invoice, setInvoice] = useState<any>(null);
   const [yesterday, setYesterday] = useState<number>(0);
   const [failedToday, setFailedToday] = useState<number>(0);
+  const [weekly, setWeekly] = useState<number[]>([]);
   const [configs, setConfigs] = useState({ mpesa: false, mikrotik: false, packages: 0 });
   const [loading, setLoading] = useState(true);
   const [kicking, setKicking] = useState<Set<string>>(new Set());
   const [time, setTime] = useState(new Date());
-  const [hasTraffic, setHasTraffic] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -53,11 +57,11 @@ export default function IspDashboard() {
   const load = useCallback(async () => {
     if (!token) return;
     try {
-      const [dd, ss, tt, trend, inv, mpesaCfg, mkCfg, pkgs] = await Promise.all([
+      const [dd, ss, tt, trend7, inv, mpesaCfg, mkCfg, pkgs] = await Promise.all([
         api.getTenantDashboard(),
         api.getSessions({ status: 'active' }),
         api.getTransactions(0, 10),
-        api.getRevenueTrend(2).catch(() => null),
+        api.getRevenueTrend(7).catch(() => null),
         api.getInvoiceStatus().catch(() => null),
         api.getMpesaConfig().catch(() => null),
         api.getMikrotikConfig().catch(() => null),
@@ -69,16 +73,17 @@ export default function IspDashboard() {
       setTxns(Array.isArray(tt) ? tt : []);
       setInvoice(inv);
 
-      const ddCount = dd?.today?.count || 0;
-      const mmCount = dd?.month?.count || 0;
-      const ssCount = Array.isArray(ss) ? ss.length : 0;
-      const hasAnyTraffic = ddCount > 0 || mmCount > 0 || ssCount > 0;
-      setHasTraffic(hasAnyTraffic);
-
-      if (trend?.trend && trend.trend.length >= 2) {
-        setYesterday(trend.trend[trend.trend.length - 2]?.isp_earnings_ksh || 0);
+      if (trend7?.trend && trend7.trend.length >= 2) {
+        setYesterday(trend7.trend[trend7.trend.length - 2]?.isp_earnings_ksh || 0);
       } else {
         setYesterday(0);
+      }
+
+      if (trend7?.trend) {
+        const vals = trend7.trend.slice(-7).map((d: any) => d.isp_earnings_ksh || 0);
+        setWeekly(vals);
+      } else {
+        setWeekly([]);
       }
 
       const failed = Array.isArray(tt) ? tt.filter((t: any) => (t.status || '').toLowerCase() === 'failed').length : 0;
@@ -91,9 +96,7 @@ export default function IspDashboard() {
       });
     } catch (e: any) {
       showToast(e.message || 'Failed to load dashboard', { type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [token, showToast]);
 
   useEffect(() => {
@@ -101,6 +104,18 @@ export default function IspDashboard() {
     const poll = setInterval(load, 30000);
     return () => clearInterval(poll);
   }, [load]);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowSetup(false); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  useEffect(() => {
+    if (showSetup) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [showSetup]);
 
   const handleKick = async (id: string) => {
     setKicking(prev => new Set(prev).add(id));
@@ -134,6 +149,7 @@ export default function IspDashboard() {
 
   const doneCount = Object.values(stepStatus).filter(Boolean).length;
   const totalSteps = steps.length;
+  const allDone = doneCount === totalSteps;
   const barPercent = (doneCount / totalSteps) * 100;
   const nextStep = steps.find(s => !stepStatus[s.key as keyof typeof stepStatus]);
 
@@ -144,8 +160,18 @@ export default function IspDashboard() {
     ? ((today.isp_earnings_ksh - yesterday) / yesterday * 100).toFixed(1)
     : null;
 
+  const todayIdx = new Date().getDay();
+  const weekStart = todayIdx === 0 ? 6 : todayIdx - 1;
+  const weeklyDays = DAYS;
+
+  const maxWeekly = Math.max(...weekly, 1);
+
   const timeOfDay = time.getHours();
   const greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 18 ? 'Good afternoon' : 'Good evening';
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === overlayRef.current) setShowSetup(false);
+  };
 
   if (loading && !dash) {
     return (
@@ -164,6 +190,7 @@ export default function IspDashboard() {
       background: C.void, color: C.text, minHeight: '100vh',
       fontFamily: 'Inter, -apple-system, sans-serif',
       display: 'flex', flexDirection: 'column', flex: 1,
+      position: 'relative',
     }}>
       <Topbar title="Dashboard" />
 
@@ -172,7 +199,6 @@ export default function IspDashboard() {
         maxWidth: 1240, margin: '0 auto', width: '100%',
       }}>
 
-        {/* ── INVOICE BANNER (overdue only — actual critical) ── */}
         {invStatus === 'overdue' && invoice && (
           <div style={{
             background: 'linear-gradient(135deg, #3d0a0a, #4a1010)',
@@ -196,13 +222,11 @@ export default function IspDashboard() {
               padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
               background: 'rgba(239,68,68,0.15)', color: C.red,
               textDecoration: 'none', letterSpacing: '0.05em',
-            }}>
-              Pay Now →
-            </a>
+            }}>Pay Now →</a>
           </div>
         )}
 
-        {/* ── STATUS PILL (not a banner — lives quietly) ── */}
+        {/* ── STATUS PILL + SETUP BUTTON ── */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 28,
@@ -245,406 +269,314 @@ export default function IspDashboard() {
                 fontSize: 10, fontFamily: 'DM Mono, monospace',
                 fontWeight: 600, color: C.green,
               }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
-                Connected
-                {nw.latency_ms ? ` · ${nw.latency_ms}ms` : ''}
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, display: 'inline-block' }} />
+                Connected{nw.latency_ms ? ` · ${nw.latency_ms}ms` : ''}
+              </div>
+            )}
+
+            {!allDone && (
+              <button onClick={() => setShowSetup(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 14px 5px 12px', borderRadius: 20,
+                background: 'rgba(232,184,75,0.1)', border: '0.5px solid rgba(232,184,75,0.2)',
+                fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700,
+                color: C.gold, cursor: 'pointer',
+              }}>
+                <Settings size={11} />
+                Complete Setup
+                <span style={{
+                  padding: '1px 5px', borderRadius: 6,
+                  background: C.gold, color: C.void, fontSize: 8,
+                  fontFamily: 'DM Mono, monospace', fontWeight: 800,
+                }}>
+                  {doneCount}/{totalSteps}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ═══ TODAY'S REVENUE (hero) ═══ */}
+        <div style={{
+          background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
+          border: '0.5px solid rgba(232,184,75,0.12)',
+          borderRadius: 14, padding: '24px 28px',
+          marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: 11, fontWeight: 700, color: C.dim,
+                textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
+              }}>
+                Today's Revenue
+              </div>
+              <div style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: 40, fontWeight: 500, color: C.text,
+                letterSpacing: '-0.04em', lineHeight: 1,
+              }}>
+                {ksh(today.gross_ksh)}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, color: C.dim }}>
+                  Net: <span style={{ color: C.green, fontFamily: 'DM Mono, monospace' }}>{ksh(today.isp_earnings_ksh)}</span>
+                </span>
+                <span style={{ fontSize: 11, color: C.dim }}>
+                  Fee: <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{ksh(today.platform_fee_ksh)}</span>
+                </span>
+                <span style={{ fontSize: 11, color: C.dim }}>
+                  {today.count} transaction{today.count !== 1 ? 's' : ''}
+                </span>
+                {vsYesterday && (
+                  <span style={{
+                    fontSize: 10, fontFamily: 'DM Mono, monospace',
+                    color: Number(vsYesterday) >= 0 ? C.green : C.red,
+                    padding: '2px 8px', borderRadius: 4,
+                    background: Number(vsYesterday) >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  }}>
+                    {Number(vsYesterday) >= 0 ? '+' : ''}{vsYesterday}% vs yesterday
+                  </span>
+                )}
+              </div>
+            </div>
+            <div style={{
+              width: 56, height: 56, borderRadius: 14,
+              background: 'rgba(232,184,75,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <TrendingUp size={24} color={C.gold} />
+            </div>
+          </div>
+          <svg width="100%" height="36" style={{ marginTop: 16 }} viewBox="0 0 600 36" preserveAspectRatio="none">
+            <path d="M0 32 L600 32" stroke={C.gold} strokeWidth="1.5" fill="none" opacity="0.4" />
+            <path d="M0 36 L0 32 L600 32 L600 36 Z" fill="url(#goldGrad)" opacity="0.06" />
+            <defs>
+              <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={C.gold} />
+                <stop offset="100%" stopColor={C.gold} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* ═══ CASH FLOW THIS WEEK ═══ */}
+        <div style={{
+          background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
+          padding: '18px 22px', marginBottom: 16,
+        }}>
+          <div style={{
+            fontFamily: '"Space Grotesk", sans-serif',
+            fontSize: 9, fontWeight: 700, color: C.mute,
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14,
+          }}>
+            Cash Flow This Week
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 64 }}>
+            {weeklyDays.map((day, i) => {
+              const val = weekly[i] || 0;
+              const pct = (val / maxWeekly) * 100;
+              const isToday = i === weekStart;
+              return (
+                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{
+                    width: '100%', height: `${Math.max(pct, 4)}%`,
+                    background: isToday ? C.gold : C.mute,
+                    borderRadius: '3px 3px 0 0',
+                    minHeight: 4,
+                    opacity: isToday ? 1 : 0.5,
+                    transition: 'height 0.3s ease',
+                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                  }}>
+                    {val > 0 && (
+                      <span style={{
+                        fontSize: 7, fontFamily: 'DM Mono, monospace',
+                        color: isToday ? C.void : C.dim,
+                        fontWeight: 700, marginBottom: 2,
+                      }}>
+                        {ksh(val)}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: 8, fontFamily: 'DM Mono, monospace',
+                    color: isToday ? C.gold : C.mute,
+                    fontWeight: isToday ? 700 : 500,
+                  }}>
+                    {day}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ═══ SUPPORTING CARDS ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          {[
+            { label: 'Yesterday', value: ksh(yesterday), sub: 'Net earnings', color: C.dim },
+            { label: 'This Month', value: ksh(month.isp_earnings_ksh), sub: `${month.count} transactions`, color: C.gold },
+            { label: 'Active Sessions', value: fmt(activeCount), sub: sessions.length > 0 ? `${sessions.length} online now` : 'No active sessions', color: C.green },
+            { label: 'Failed Today', value: fmt(failedToday), sub: failedToday > 0 ? `${failedToday} payment${failedToday > 1 ? 's' : ''} failed` : 'All payments successful', color: failedToday > 0 ? C.red : C.dim },
+          ].map((c, i) => (
+            <div key={i} style={{
+              background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
+              padding: '14px 16px', position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: C.mute,
+                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}>
+                {c.label}
+              </div>
+              <div style={{
+                fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500,
+                color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1,
+              }}>
+                {c.value}
+              </div>
+              <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
+                {c.sub}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ LIVE SESSIONS + RECENT PAYMENTS ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{
+                fontSize: 9, fontWeight: 700, color: C.mute,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}>
+                Live Sessions
+              </span>
+              <span style={{
+                padding: '2px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700,
+                background: sessions.length > 0 ? 'rgba(34,197,94,0.1)' : '#0d0d0d',
+                color: sessions.length > 0 ? C.green : '#333',
+                fontFamily: 'DM Mono, monospace',
+              }}>
+                {sessions.length} online
+              </span>
+            </div>
+            {sessions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 16px' }}>
+                <Wifi size={20} color={C.mute} style={{ marginBottom: 8 }} />
+                <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No one connected</div>
+                <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
+                  Share your link to get your first customer
+                </div>
+                <a href="/dashboard/portal-preview" style={{
+                  display: 'inline-block', marginTop: 12, padding: '6px 14px', borderRadius: 8,
+                  fontSize: 10, fontWeight: 700, color: C.gold,
+                  border: '0.5px solid rgba(232,184,75,0.2)', textDecoration: 'none',
+                }}>
+                  Share link →
+                </a>
+              </div>
+            ) : (
+              <div>
+                {sessions.slice(0, 8).map((s: any) => {
+                  const remaining = s.expires_at ? Math.max(0, Math.floor((new Date(s.expires_at).getTime() - Date.now()) / 1000)) : 0;
+                  const hrs = Math.floor(remaining / 3600);
+                  const mins = Math.floor((remaining % 3600) / 60);
+                  const secs = remaining % 60;
+                  const timeLeft = remaining > 0 ? `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : 'Expired';
+                  const isKicking = kicking.has(s.id);
+                  return (
+                    <div key={s.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
+                    }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: remaining > 0 ? C.green : C.red, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
+                          {maskPhone(s.phone_number || s.mac_address || '—')}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
+                          {s.package_name || 'Unknown'} · {timeLeft}
+                        </div>
+                      </div>
+                      <button onClick={() => handleKick(s.id)} disabled={isKicking} style={{
+                        padding: '4px 10px', borderRadius: 6, fontSize: 9, fontWeight: 600,
+                        background: isKicking ? '#0d0d0d' : 'rgba(239,68,68,0.06)',
+                        color: isKicking ? '#333' : C.red,
+                        border: isKicking ? '0.5px solid #1a1a1a' : '0.5px solid rgba(239,68,68,0.12)',
+                        cursor: isKicking ? 'not-allowed' : 'pointer', fontFamily: 'DM Mono, monospace',
+                      }}>
+                        {isKicking ? '...' : 'Kick'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{
+                fontSize: 9, fontWeight: 700, color: C.mute,
+                textTransform: 'uppercase', letterSpacing: '0.1em',
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}>
+                Recent Payments
+              </span>
+              <Receipt size={13} color={C.dim} />
+            </div>
+            {txns.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 16px' }}>
+                <DollarSign size={20} color={C.mute} style={{ marginBottom: 8 }} />
+                <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No payments yet</div>
+                <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
+                  Your first payment will appear here
+                </div>
+              </div>
+            ) : (
+              <div>
+                {txns.slice(0, 8).map((t: any) => {
+                  const st = (t.status || '').toLowerCase();
+                  const success = st === 'success' || st === 'completed';
+                  const failed = st === 'failed';
+                  return (
+                    <div key={t.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
+                          {maskPhone(t.phone_number || '—')}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
+                          {t.package_name || t.mpesa_receipt || t.id?.slice(0, 8) || '—'}
+                          {t.created_at ? ` · ${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.text, fontWeight: 500 }}>
+                        {ksh(t.amount_ksh || t.amount || 0)}
+                      </div>
+                      <div style={{
+                        padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700,
+                        textTransform: 'uppercase',
+                        background: success ? 'rgba(34,197,94,0.1)' : failed ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)',
+                        color: success ? C.green : failed ? C.red : C.gold,
+                      }}>
+                        {success ? 'Paid' : failed ? 'Failed' : 'Pending'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        {/* ════════════════════════════════════════════ */}
-        {/* MODE 1: SETUP CHECKLIST (hero for new tenants) */}
-        {/* ════════════════════════════════════════════ */}
-        {!hasTraffic && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
-              border: '0.5px solid rgba(232,184,75,0.15)',
-              borderRadius: 14, padding: '32px 32px 28px',
-            }}>
-              <div style={{
-                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-                marginBottom: 24,
-              }}>
-                <div>
-                  <div style={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontSize: 20, fontWeight: 700, color: C.text,
-                    letterSpacing: '-0.02em',
-                  }}>
-                    Set up your ISP in 5 steps
-                  </div>
-                  <div style={{ fontSize: 12, color: C.dim, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>
-                    Complete these steps to start accepting payments and managing sessions.
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{
-                    fontSize: 24, fontFamily: 'DM Mono, monospace', fontWeight: 500,
-                    color: doneCount === totalSteps ? C.green : C.gold,
-                    lineHeight: 1,
-                  }}>
-                    {doneCount}<span style={{ color: C.mute }}>/{totalSteps}</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>steps done</div>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div style={{
-                height: 3, background: C.mute, borderRadius: 2,
-                marginBottom: 24, overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%', width: `${barPercent}%`,
-                  background: C.gold, borderRadius: 2,
-                  transition: 'width 0.4s ease',
-                }} />
-              </div>
-
-              {/* Steps */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {steps.map((s, i) => {
-                  const done = stepStatus[s.key as keyof typeof stepStatus];
-                  const isCurrent = !done && s.key === nextStep?.key;
-                  return (
-                    <div key={s.key} style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '12px 16px', borderRadius: 10,
-                      background: isCurrent ? 'rgba(232,184,75,0.04)' : 'transparent',
-                      border: isCurrent ? '0.5px solid rgba(232,184,75,0.15)' : '0.5px solid transparent',
-                    }}>
-                      <div style={{
-                        width: 28, height: 28, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: done ? C.gold : isCurrent ? 'rgba(232,184,75,0.1)' : C.mute,
-                        flexShrink: 0,
-                      }}>
-                        {done ? (
-                          <Check size={14} color={C.void} />
-                        ) : isCurrent ? (
-                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.gold }} />
-                        ) : (
-                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1a1a1a' }} />
-                        )}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: 13, fontWeight: 600, color: done ? C.dim : C.text,
-                          textDecoration: done ? 'line-through' : 'none',
-                        }}>
-                          {s.label}
-                        </div>
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
-                          {s.desc}
-                        </div>
-                      </div>
-
-                      {!done && (
-                        <a href={s.href} style={{
-                          padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                          background: isCurrent ? C.gold : 'rgba(232,184,75,0.06)',
-                          color: isCurrent ? C.void : C.gold,
-                          textDecoration: 'none', whiteSpace: 'nowrap',
-                          border: isCurrent ? 'none' : '0.5px solid rgba(232,184,75,0.15)',
-                        }}>
-                          {isCurrent ? 'Set up' : 'Configure'}
-                        </a>
-                      )}
-
-                      {done && (
-                        <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                          Done
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {doneCount === totalSteps && (
-                <div style={{
-                  marginTop: 20, textAlign: 'center', padding: '16px', borderRadius: 10,
-                  background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.1)',
-                }}>
-                  <div style={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontSize: 15, fontWeight: 700, color: C.gold,
-                  }}>
-                    All set — your first customer is waiting
-                  </div>
-                  <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>
-                    Share your portal link to start accepting payments
-                  </div>
-                  <a href="/dashboard/portal-preview" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    marginTop: 12, padding: '8px 18px', borderRadius: 8,
-                    background: C.gold, color: C.void, fontSize: 12, fontWeight: 700,
-                    textDecoration: 'none',
-                  }}>
-                    <Link size={13} /> Share your link
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════ */}
-        {/* MODE 2: FINANCE DASHBOARD (has traffic)     */}
-        {/* ════════════════════════════════════════════ */}
-        {hasTraffic && (
-          <>
-            {/* Revenue hero card */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
-              border: '0.5px solid rgba(232,184,75,0.12)',
-              borderRadius: 14, padding: '24px 28px',
-              marginBottom: 16,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontSize: 11, fontWeight: 700, color: C.dim,
-                    textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
-                  }}>
-                    Today's Revenue
-                  </div>
-                  <div style={{
-                    fontFamily: 'DM Mono, monospace',
-                    fontSize: 40, fontWeight: 500, color: C.text,
-                    letterSpacing: '-0.04em', lineHeight: 1,
-                  }}>
-                    {ksh(today.gross_ksh)}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
-                    <span style={{ fontSize: 11, color: C.dim }}>
-                      Net: <span style={{ color: C.green, fontFamily: 'DM Mono, monospace' }}>{ksh(today.isp_earnings_ksh)}</span>
-                    </span>
-                    <span style={{ fontSize: 11, color: C.dim }}>
-                      Fee: <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{ksh(today.platform_fee_ksh)}</span>
-                    </span>
-                    <span style={{ fontSize: 11, color: C.dim }}>
-                      {today.count} transaction{today.count !== 1 ? 's' : ''}
-                    </span>
-                    {vsYesterday && (
-                      <span style={{
-                        fontSize: 10, fontFamily: 'DM Mono, monospace',
-                        color: Number(vsYesterday) >= 0 ? C.green : C.red,
-                        padding: '2px 8px', borderRadius: 4,
-                        background: Number(vsYesterday) >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-                      }}>
-                        {Number(vsYesterday) >= 0 ? '+' : ''}{vsYesterday}% vs yesterday
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 14,
-                  background: 'rgba(232,184,75,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <TrendingUp size={24} color={C.gold} />
-                </div>
-              </div>
-
-              {/* Flat sparkline SVG */}
-              <svg width="100%" height="36" style={{ marginTop: 16 }} viewBox="0 0 600 36" preserveAspectRatio="none">
-                <path
-                  d="M0 32 L600 32"
-                  stroke={C.gold} strokeWidth="1.5" fill="none" opacity="0.4"
-                />
-                <path
-                  d="M0 36 L0 32 L600 32 L600 36 Z"
-                  fill="url(#goldGrad)" opacity="0.06"
-                />
-                <defs>
-                  <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={C.gold} />
-                    <stop offset="100%" stopColor={C.gold} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
-            {/* Supporting metric cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-              {[
-                { label: 'Yesterday', value: ksh(yesterday), sub: 'Net earnings', color: C.dim },
-                { label: 'This Month', value: ksh(month.isp_earnings_ksh), sub: `${month.count} transactions`, color: C.gold },
-                { label: 'Active Sessions', value: fmt(activeCount), sub: sessions.length > 0 ? `${sessions.length} online now` : 'No active sessions', color: C.green },
-                { label: 'Failed Today', value: fmt(failedToday), sub: failedToday > 0 ? `${failedToday} payment${failedToday > 1 ? 's' : ''} failed` : 'All payments successful', color: failedToday > 0 ? C.red : C.dim },
-              ].map((c, i) => (
-                <div key={i} style={{
-                  background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
-                  padding: '14px 16px', position: 'relative', overflow: 'hidden',
-                }}>
-                  <div style={{
-                    fontSize: 9, fontWeight: 700, color: C.mute,
-                    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-                    fontFamily: '"Space Grotesk", sans-serif',
-                  }}>
-                    {c.label}
-                  </div>
-                  <div style={{
-                    fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500,
-                    color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1,
-                  }}>
-                    {c.value}
-                  </div>
-                  <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
-                    {c.sub}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Live Sessions + Recent Payments */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-              {/* Live Sessions */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, color: C.mute,
-                    textTransform: 'uppercase', letterSpacing: '0.1em',
-                    fontFamily: '"Space Grotesk", sans-serif',
-                  }}>
-                    Live Sessions
-                  </span>
-                  <span style={{
-                    padding: '2px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700,
-                    background: sessions.length > 0 ? 'rgba(34,197,94,0.1)' : '#0d0d0d',
-                    color: sessions.length > 0 ? C.green : '#333',
-                    fontFamily: 'DM Mono, monospace',
-                  }}>
-                    {sessions.length} online
-                  </span>
-                </div>
-                {sessions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px 16px' }}>
-                    <Wifi size={20} color={C.mute} style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No one connected yet</div>
-                    <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
-                      Share your portal link to get your first customer
-                    </div>
-                    <a href="/dashboard/portal-preview" style={{
-                      display: 'inline-block', marginTop: 12, padding: '6px 14px', borderRadius: 8,
-                      fontSize: 10, fontWeight: 700, color: C.gold,
-                      border: '0.5px solid rgba(232,184,75,0.2)',
-                      textDecoration: 'none',
-                    }}>
-                      Share link →
-                    </a>
-                  </div>
-                ) : (
-                  <div>
-                    {sessions.slice(0, 8).map((s: any) => {
-                      const remaining = s.expires_at ? Math.max(0, Math.floor((new Date(s.expires_at).getTime() - Date.now()) / 1000)) : 0;
-                      const hrs = Math.floor(remaining / 3600);
-                      const mins = Math.floor((remaining % 3600) / 60);
-                      const secs = remaining % 60;
-                      const timeLeft = remaining > 0 ? `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : 'Expired';
-                      const isKicking = kicking.has(s.id);
-                      return (
-                        <div key={s.id} style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
-                        }}>
-                          <div style={{
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: remaining > 0 ? C.green : C.red,
-                            flexShrink: 0,
-                          }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
-                              {maskPhone(s.phone_number || s.mac_address || '—')}
-                            </div>
-                            <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
-                              {s.package_name || 'Unknown'} · {timeLeft}
-                            </div>
-                          </div>
-                          <button onClick={() => handleKick(s.id)} disabled={isKicking} style={{
-                            padding: '4px 10px', borderRadius: 6, fontSize: 9, fontWeight: 600,
-                            background: isKicking ? '#0d0d0d' : 'rgba(239,68,68,0.06)',
-                            color: isKicking ? '#333' : C.red,
-                            border: isKicking ? '0.5px solid #1a1a1a' : '0.5px solid rgba(239,68,68,0.12)',
-                            cursor: isKicking ? 'not-allowed' : 'pointer', fontFamily: 'DM Mono, monospace',
-                          }}>
-                            {isKicking ? '...' : 'Kick'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Payments */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, color: C.mute,
-                    textTransform: 'uppercase', letterSpacing: '0.1em',
-                    fontFamily: '"Space Grotesk", sans-serif',
-                  }}>
-                    Recent Payments
-                  </span>
-                  <Receipt size={13} color={C.dim} />
-                </div>
-                {txns.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px 16px' }}>
-                    <DollarSign size={20} color={C.mute} style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No payments yet</div>
-                    <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
-                      Your first payment will appear here
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    {txns.slice(0, 8).map((t: any) => {
-                      const st = (t.status || '').toLowerCase();
-                      const success = st === 'success' || st === 'completed';
-                      const failed = st === 'failed';
-                      const pending = !success && !failed;
-                      return (
-                        <div key={t.id} style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '8px 0', borderBottom: '0.5px solid #0d0d0d',
-                        }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
-                              {maskPhone(t.phone_number || '—')}
-                            </div>
-                            <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
-                              {t.package_name || t.mpesa_receipt || t.id?.slice(0, 8) || '—'}
-                              {t.created_at ? ` · ${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
-                            </div>
-                          </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.text, fontWeight: 500 }}>
-                            {ksh(t.amount_ksh || t.amount || 0)}
-                          </div>
-                          <div style={{
-                            padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700,
-                            textTransform: 'uppercase',
-                            background: success ? 'rgba(34,197,94,0.1)' : failed ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)',
-                            color: success ? C.green : failed ? C.red : C.gold,
-                          }}>
-                            {success ? 'Paid' : failed ? 'Failed' : 'Pending'}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ═══ QUICK ACTIONS (context-aware, never buried) ═══ */}
+        {/* ═══ QUICK ACTIONS ═══ */}
         <div style={{ marginBottom: 32 }}>
           <div style={{
             fontSize: 9, fontWeight: 700, color: C.mute,
@@ -660,49 +592,170 @@ export default function IspDashboard() {
               background: C.base, border: `0.5px solid ${C.border}`,
               color: C.dim, textDecoration: 'none',
             }}>
-              <Link size={13} color={C.dim} /> Share Link
-              <ChevronRight size={11} color={C.mute} />
+              <Link size={13} color={C.dim} /> Share Link <ChevronRight size={11} color={C.mute} />
             </a>
             {!configs.mikrotik && (
               <a href="/dashboard/mikrotik" style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)',
-                border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
                 color: C.gold, textDecoration: 'none',
               }}>
-                <Router size={13} /> Connect MikroTik
-                <ChevronRight size={11} color={C.gold} />
+                <Router size={13} /> Connect MikroTik <ChevronRight size={11} color={C.gold} />
               </a>
             )}
             {!configs.mpesa && (
               <a href="/dashboard/mpesa" style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)',
-                border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
                 color: C.gold, textDecoration: 'none',
               }}>
-                <CreditCard size={13} /> Set up M-Pesa
-                <ChevronRight size={11} color={C.gold} />
+                <CreditCard size={13} /> Set up M-Pesa <ChevronRight size={11} color={C.gold} />
               </a>
             )}
             {configs.packages === 0 && (
               <a href="/dashboard/packages" style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)',
-                border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
                 color: C.gold, textDecoration: 'none',
               }}>
-                <Package size={13} /> Add Packages
-                <ChevronRight size={11} color={C.gold} />
+                <Package size={13} /> Add Packages <ChevronRight size={11} color={C.gold} />
               </a>
             )}
           </div>
         </div>
-
       </div>
+
+      {/* ════════════════════════════════════════════ */}
+      {/* GLASS OVERLAY — Complete Setup              */}
+      {/* ════════════════════════════════════════════ */}
+      {showSetup && (
+        <div ref={overlayRef} onClick={handleOverlayClick} style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          padding: 24,
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 560,
+            background: 'rgba(10,10,10,0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '0.5px solid rgba(232,184,75,0.15)',
+            borderRadius: 16,
+            padding: '32px 28px 28px',
+            boxShadow: '0 0 60px rgba(232,184,75,0.04), 0 0 0 1px rgba(232,184,75,0.03) inset',
+            position: 'relative',
+          }}>
+            <button onClick={() => setShowSetup(false)} style={{
+              position: 'absolute', top: 14, right: 14,
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.04)',
+              border: '0.5px solid rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: C.dim,
+            }}>
+              <X size={14} />
+            </button>
+
+            <div style={{
+              fontFamily: '"Space Grotesk", sans-serif',
+              fontSize: 18, fontWeight: 700, color: C.text,
+              marginBottom: 4,
+            }}>
+              Complete Setup
+            </div>
+            <div style={{ fontSize: 12, color: C.dim, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+              {doneCount} of {totalSteps} steps done — finish these to start earning
+            </div>
+
+            <div style={{
+              height: 3, background: C.mute, borderRadius: 2,
+              marginBottom: 20, overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%', width: `${barPercent}%`,
+                background: C.gold, borderRadius: 2,
+                transition: 'width 0.4s ease',
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {steps.map((s) => {
+                const done = stepStatus[s.key as keyof typeof stepStatus];
+                const isCurrent = !done && s.key === nextStep?.key;
+                return (
+                  <div key={s.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '12px 16px', borderRadius: 10,
+                    background: isCurrent ? 'rgba(232,184,75,0.04)' : 'transparent',
+                    border: isCurrent ? '0.5px solid rgba(232,184,75,0.15)' : '0.5px solid transparent',
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: done ? C.gold : isCurrent ? 'rgba(232,184,75,0.1)' : C.mute,
+                      flexShrink: 0,
+                    }}>
+                      {done ? <Check size={14} color={C.void} /> : isCurrent ? (
+                        <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.gold }} />
+                      ) : (
+                        <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1a1a1a' }} />
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: done ? C.dim : C.text, textDecoration: done ? 'line-through' : 'none' }}>
+                        {s.label}
+                      </div>
+                      <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>{s.desc}</div>
+                    </div>
+
+                    {!done && (
+                      <a href={s.href} onClick={() => setShowSetup(false)} style={{
+                        padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                        background: isCurrent ? C.gold : 'rgba(232,184,75,0.06)',
+                        color: isCurrent ? C.void : C.gold,
+                        textDecoration: 'none', whiteSpace: 'nowrap',
+                        border: isCurrent ? 'none' : '0.5px solid rgba(232,184,75,0.15)',
+                      }}>
+                        {isCurrent ? 'Set up' : 'Configure'}
+                      </a>
+                    )}
+                    {done && <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>Done</div>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {allDone && (
+              <div style={{
+                marginTop: 20, textAlign: 'center', padding: '16px', borderRadius: 10,
+                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.1)',
+              }}>
+                <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 15, fontWeight: 700, color: C.gold }}>
+                  All set — your first customer is waiting
+                </div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>
+                  Share your portal link to start accepting payments
+                </div>
+                <a href="/dashboard/portal-preview" onClick={() => setShowSetup(false)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  marginTop: 12, padding: '8px 18px', borderRadius: 8,
+                  background: C.gold, color: C.void, fontSize: 12, fontWeight: 700,
+                  textDecoration: 'none',
+                }}>
+                  <Link size={13} /> Share your link
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
