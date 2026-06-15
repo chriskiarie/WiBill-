@@ -118,10 +118,6 @@ export default function SessionsPage() {
 
           {loading && sessions.length === 0 ? (
             <LoadingSpinner size="md" label="Loading sessions..." />
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#444', fontSize: 13 }}>
-              {search ? 'No matching sessions' : `No ${tab === 'active' ? 'active' : ''} sessions`}
-            </div>
           ) : (
             <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.5fr', borderBottom: '0.5px solid #101010', background: '#0a0a0a' }}>
@@ -129,7 +125,14 @@ export default function SessionsPage() {
                   <div key={i} style={{ padding: '10px 14px', fontSize: 9, fontWeight: 700, color: '#2a2a2a', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
                 ))}
               </div>
-              {filtered.map((s, i) => {
+              {filtered.length === 0 ? (
+                <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '32px 16px', margin: 12 }}>
+                  <div style={{ color: '#333', fontSize: 12 }}>{search ? 'No matching sessions' : `No ${tab === 'active' ? 'active' : ''} sessions yet`}</div>
+                  <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 4 }}>
+                    {tab === 'active' ? 'Active sessions appear here when users connect to your WiFi' : 'Completed sessions will show in this list'}
+                  </div>
+                </div>
+              ) : filtered.map((s, i) => {
                 const mac = s.mac || s.mac_address || '—'
                 return (
                   <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.5fr', borderBottom: i < filtered.length - 1 ? '0.5px solid #0a0a0a' : 'none', alignItems: 'center' }}>

@@ -53,13 +53,16 @@ export default function NetworkPage() {
     }
   }
 
+  const notMonitoring = !status && !loading
   const statusLabel = status?.status === 'UP' || status?.status === 'up'
     ? { text: 'Online', color: C.green, pulse: true }
     : status?.status === 'DEGRADED' || status?.status === 'degraded'
     ? { text: 'Degraded', color: C.amber, pulse: true }
     : status?.status === 'DOWN' || status?.status === 'down'
     ? { text: 'Offline', color: C.red, pulse: true }
-    : { text: 'Unknown', color: C.dim, pulse: false }
+    : status
+    ? { text: 'Unknown', color: C.dim, pulse: false }
+    : { text: 'Not Monitoring Yet', color: C.amber, pulse: false }
 
   const uptimePercent = events.length > 0
     ? Math.round((events.filter((e: any) => e.status === 'UP' || e.status === 'up').length / events.length) * 100)
@@ -140,9 +143,13 @@ export default function NetworkPage() {
                     }} />
                     <span style={{ fontSize: 16, fontWeight: 700, color: statusLabel.color }}>{statusLabel.text}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                    Router IP: {routerIp} &middot; Last ping: {lastChecked}
-                  </div>
+                  {notMonitoring ? (
+                    <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>Configure your router in MikroTik settings to begin monitoring</div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                      Router IP: {routerIp} &middot; Last ping: {lastChecked}
+                    </div>
+                  )}
                   {status?.outage_minutes && (
                     <div style={{ fontSize: 10, color: C.red, marginTop: 4 }}>
                       Outage duration: {status.outage_minutes} minutes
@@ -155,13 +162,13 @@ export default function NetworkPage() {
             {/* ───── METRIC CARDS ───── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }}>
               {[
-                { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', sub: 'current', icon: Activity, color: C.blue },
-                { label: 'Active Users', value: String(activeUsers), sub: 'hotspot sessions', icon: Users, color: C.green },
-                { label: 'Uptime (30d)', value: uptimePercent !== null ? `${uptimePercent}%` : '—', sub: 'based on recent pings', icon: Zap, color: uptimePercent !== null && uptimePercent > 90 ? C.green : C.amber },
+                { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', sub: 'current', icon: Activity },
+                { label: 'Active Users', value: String(activeUsers), sub: 'hotspot sessions', icon: Users },
+                { label: 'Uptime (30d)', value: uptimePercent !== null ? `${uptimePercent}%` : '—', sub: 'based on recent pings', icon: Zap },
               ].map((c, i) => (
                 <div key={i} style={{ background: C.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 9, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <c.icon size={16} color={c.color} />
+                    <c.icon size={16} color={C.blue} />
                   </div>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{c.label}</div>
@@ -190,8 +197,25 @@ export default function NetworkPage() {
                   ))}
                 </div>
               ) : (
-                <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '16px 20px' }}>
-                  <div style={{ color: '#333', fontSize: 12 }}>Uptime data will appear once the network checker begins recording pings</div>
+                <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {Array.from({ length: 7 }, (_, i) => {
+                      const d = new Date()
+                      d.setDate(d.getDate() - (6 - i))
+                      return { label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+                    }).map((day, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 9, color: '#333', minWidth: 75, fontFamily: 'DM Mono, monospace' }}>{day.label}</span>
+                        <div style={{ flex: 1, height: 14, background: '#0a0a0a', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${60 + Math.random() * 35}%`, height: '100%', background: '#111', borderRadius: 3 }} />
+                        </div>
+                        <span style={{ fontSize: 9, color: '#1a1a1a', minWidth: 35, textAlign: 'right', fontFamily: 'DM Mono, monospace' }}>—%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ textAlign: 'center', marginTop: 10 }}>
+                    <span style={{ fontSize: 10, color: '#333' }}>Uptime data will appear once the network checker records pings</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -289,7 +313,7 @@ export default function NetworkPage() {
                     <div style={{ color: '#333', fontSize: 10, marginBottom: 14 }}>Connect your MikroTik router to start monitoring</div>
                     <a href="/dashboard/mikrotik" style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-                      background: C.blue, color: '#fff', fontSize: 11, textDecoration: 'none',
+                      background: '#0a0a0a', border: '0.5px solid #1a1a1a', color: '#aaa', fontSize: 11, textDecoration: 'none',
                     }}>
                       <Router size={13} />
                       Configure Now
