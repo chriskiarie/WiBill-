@@ -914,7 +914,7 @@
                 const mac = urlParams.get('mac') || '';
                 const ip = urlParams.get('ip') || '';
 
-                const response = await fetch('/portal/{{ brand.slug }}/sessions', {
+                const response = await fetch('/api/portal/{{ brand.slug }}/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -948,7 +948,7 @@
 
             const poll = async () => {
                 try {
-                    const response = await fetch(`/portal/{{ brand.slug }}/sessions/${sessionId}`);
+                    const response = await fetch(`/api/portal/{{ brand.slug }}/sessions/${sessionId}`);
                     const data = await response.json();
 
                     if (data.status === 'active') {

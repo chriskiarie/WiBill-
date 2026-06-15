@@ -267,6 +267,16 @@ async def process_callback(callback_body: dict, db: AsyncSession) -> bool:
             txn.status = "failed"
             txn.error_reason = result_desc
 
+            # Mark the related session as failed too
+            if txn.payment_type == "session" and txn.reference_id:
+                session_result = await db.execute(
+                    select(Session).where(Session.id == txn.reference_id)
+                )
+                session = session_result.scalar_one_or_none()
+                if session:
+                    session.status = "failed"
+                    logger.info(f"Session {session.id} marked failed after payment failure")
+
         await db.commit()
         logger.info(f"Callback processed: {checkout_request_id} --- {txn.status}")
         return True
@@ -289,13 +299,23 @@ async def _handle_invoice_paid(txn: MpesaTransaction, db: AsyncSession):
 
 
 async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
-    """Activate session after successful payment."""
+    """Activate session after successful payment and update the Transaction record."""
     result = await db.execute(select(Session).where(Session.id == txn.reference_id))
     session = result.scalar_one_or_none()
     if session:
         session.status = "active"
-        session.payment_confirmed = True
         logger.info(f"Session {session.id} activated after payment")
+
+        # Also update the ISP dashboard Transaction record with receipt info
+        from app.models.transaction import Transaction
+        txn_result = await db.execute(
+            select(Transaction).where(Transaction.session_id == session.id)
+        )
+        dashboard_txn = txn_result.scalar_one_or_none()
+        if dashboard_txn:
+            dashboard_txn.status = "success"
+            dashboard_txn.mpesa_receipt = txn.mpesa_receipt_number
+            dashboard_txn.confirmed_at = datetime.utcnow()
 
 
 def _parse_mpesa_date(date_int) -> datetime | None:

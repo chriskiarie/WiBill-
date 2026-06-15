@@ -14,6 +14,7 @@ from sqlalchemy import select, update
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from uuid import UUID, uuid4
+from decimal import Decimal
 import secrets
 import re
 
@@ -23,19 +24,9 @@ from app.models.package import Package
 from app.models.session import Session as DBSession
 from app.models.transaction import Transaction
 from app.services.session_service import create_session, expire_session
+from app.services.mpesa_service import initiate_session_payment
 
-# Phase 3 services - Daraja (M-Pesa) and MikroTik
-try:
-    from app.services.daraja_service import initiate_stk_push
-except ImportError:
-    async def initiate_stk_push(*args, **kwargs):
-        return {"success": True, "message": "Mock: Daraja service stub"}
-
-try:
-    from app.services.mikrotik_service import create_mikrotik_user
-except ImportError:
-    async def create_mikrotik_user(*args, **kwargs):
-        return {"success": True, "message": "Mock: MikroTik service stub", "user_id": "mock_user"}
+from app.services.mikrotik_service import create_mikrotik_user
 
 router = APIRouter(prefix="/portal", tags=["portal-sessions"])
 
@@ -51,6 +42,7 @@ class CreateSessionRequest(BaseModel):
 class SessionResponse(BaseModel):
     """Session response with payment details"""
     session_id: str
+    checkout_request_id: str | None = None
     status: str
     amount_ksh: float
     expires_in_seconds: int
@@ -112,7 +104,7 @@ async def create_session_with_payment(
         phone = "254" + phone[1:]
     
     try:
-        # 4. Create session - Use duration_hours (not duration_minutes)
+        # 4. Create session
         session = await create_session(
             tenant_id=tenant.id,
             mac_address=payload.mac_address,
@@ -122,44 +114,48 @@ async def create_session_with_payment(
             db=db
         )
         
-        # 5. Create transaction (pending status)
+        # 5. Create transaction record (pending status)
         transaction = Transaction(
             id=uuid4(),
             tenant_id=tenant.id,
             session_id=session.id,
             amount_ksh=float(package.price_ksh),
-            platform_fee_ksh=float(package.price_ksh) * 0.1,  # 10% platform fee
-            isp_earnings_ksh=float(package.price_ksh) * 0.9,  # 90% to ISP
+            platform_fee_ksh=float(package.price_ksh) * 0.1,
+            isp_earnings_ksh=float(package.price_ksh) * 0.9,
             phone_number=phone,
             status="pending"
         )
         db.add(transaction)
-        await db.commit()
         
-        # 6. Initiate STK push
-        stk_result = await initiate_stk_push(
+        # 6. Initiate STK push via mpesa_service
+        mpesa_txn = await initiate_session_payment(
             tenant_id=tenant.id,
+            session_id=session.id,
             phone_number=phone,
-            amount=int(package.price_ksh),
-            session_id=str(session.id),
-            package_name=package.name,
+            amount=Decimal(str(package.price_ksh)),
             db=db
         )
         
-        if not stk_result.get("success"):
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to initiate payment: {stk_result.get('message', 'Unknown error')}"
-            )
+        if mpesa_txn.status != "processing":
+            detail = mpesa_txn.error_reason or "Failed to initiate M-Pesa payment"
+            raise HTTPException(status_code=400, detail=detail)
+        
+        # 7. Store checkout_request_id and phone on session for callback matching
+        session.checkout_request_id = mpesa_txn.checkout_request_id
+        session.phone_number = phone
+        await db.commit()
         
         return SessionResponse(
             session_id=str(session.id),
+            checkout_request_id=mpesa_txn.checkout_request_id,
             status="pending_payment",
             amount_ksh=float(package.price_ksh),
-            expires_in_seconds=90,  # STK push timeout
+            expires_in_seconds=90,
             message=f"Enter M-Pesa PIN to pay KSH {package.price_ksh} for {package.name}"
         )
     
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -232,6 +228,8 @@ async def get_session_status(
             "internet_available_until": session.expires_at.isoformat(),
             "reconnect_code": session.reconnect_code,
             "package_name": package.name if package else "Unknown",
+            "phone_number": session.phone_number,
+            "amount_ksh": float(package.price_ksh) if package else 0,
             "remaining_minutes": max(0, int((session.expires_at - now).total_seconds() / 60))
         }
     
@@ -241,6 +239,13 @@ async def get_session_status(
             "status": "expired",
             "message": "Session has expired. Please purchase again.",
             "expired_at": session.expires_at.isoformat()
+        }
+    
+    elif session.status == "failed":
+        return {
+            "session_id": str(session.id),
+            "status": "failed",
+            "message": "Payment failed. Please try again."
         }
     
     else:
@@ -370,15 +375,37 @@ async def list_isp_sessions(
     query = query.order_by(desc(Session.created_at)).offset(skip).limit(limit)
     result = await db.execute(query)
     sessions = result.scalars().all()
+    from app.models.package import Package
+    # Build package lookup map
+    pkg_ids = [s.package_id for s in sessions if s.package_id]
+    pkg_map = {}
+    if pkg_ids:
+        pkg_result = await db.execute(
+            select(Package).where(Package.id.in_(pkg_ids))
+        )
+        for pkg in pkg_result.scalars().all():
+            pkg_map[str(pkg.id)] = pkg
+
+    def _pkg_name(pid):
+        p = pkg_map.get(str(pid))
+        return p.name if p else None
+
+    def _pkg_amount(pid):
+        p = pkg_map.get(str(pid))
+        return float(p.price_ksh) if p else None
+
     return [
         {
             "id": str(s.id),
             "mac_address": s.mac_address,
             "ip_address": s.ip_address,
+            "phone_number": s.phone_number,
             "status": s.status.value if hasattr(s.status, "value") else s.status,
             "created_at": s.created_at.isoformat(),
             "expires_at": s.expires_at.isoformat() if s.expires_at else None,
             "package_id": str(s.package_id) if s.package_id else None,
+            "package_name": _pkg_name(s.package_id),
+            "amount_ksh": _pkg_amount(s.package_id),
         }
         for s in sessions
     ]

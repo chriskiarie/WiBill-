@@ -11,7 +11,16 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.models.tenant import Tenant
 from app.models.package import Package
+from app.models.session import Session as DBSession
+from app.models.transaction import Transaction
 from app.services.portal_renderer import PortalRenderer
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+# Jinja2 environment for templates that use {% extends %}
+_portal_env = Environment(
+    loader=FileSystemLoader("app/templates"),
+    autoescape=select_autoescape(["html", "xml"]),
+)
 
 router = APIRouter()
 
@@ -223,8 +232,9 @@ async def get_live_portal(
     if not packages_data:
         packages_data = DEMO_PACKAGES
     
-    # Prepare context from tenant's portal_config
+    # Prepare context from tenant's portal_config; inject slug for JS URLs
     brand = tenant.portal_config.get('brand', {})
+    brand['slug'] = tenant.slug  # Needed by template JS for API URLs
     network = tenant.portal_config.get('network_awareness', {})
     design = tenant.portal_config.get('design', {})
     
@@ -304,3 +314,73 @@ async def get_available_palettes():
             for idx, p in enumerate(PALETTES)
         ]
     }
+
+
+@router.get("/portal/{slug}/success/{session_id}", response_class=HTMLResponse)
+async def portal_success_page(
+    slug: str,
+    session_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Render the payment success page after M-Pesa confirmation.
+
+    Shows receipt with package name, amount paid, phone, and a live
+    countdown timer until session expiry.
+    """
+    # Validate session_id
+    try:
+        session_uuid = UUID(session_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid session_id")
+
+    # Look up session
+    result = await db.execute(
+        select(DBSession).where(DBSession.id == session_uuid)
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Verify slug matches
+    tenant_result = await db.execute(
+        select(Tenant).where(Tenant.id == session.tenant_id)
+    )
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant or tenant.slug != slug:
+        raise HTTPException(status_code=404, detail="ISP not found")
+
+    # Get package details
+    pkg_result = await db.execute(
+        select(Package).where(Package.id == session.package_id)
+    )
+    package = pkg_result.scalar_one_or_none()
+
+    # Get transaction for amount paid
+    txn_result = await db.execute(
+        select(Transaction).where(Transaction.session_id == session.id)
+    )
+    txn = txn_result.scalar_one_or_none()
+
+    context = {
+        "package": {
+            "name": package.name if package else "Unknown",
+            "duration_hours": package.duration_hours if package else 0,
+            "price_ksh": float(package.price_ksh) if package else 0,
+        },
+        "session": {
+            "phone_number": session.phone_number or "Unknown",
+            "amount_paid": float(txn.amount_ksh) if txn else 0,
+        },
+        "expires_at": session.expires_at.isoformat(),
+        "slug": slug,
+    }
+
+    try:
+        template = _portal_env.get_template("portal_success.html")
+        return template.render(context)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Template error: {str(e)}"
+        )
