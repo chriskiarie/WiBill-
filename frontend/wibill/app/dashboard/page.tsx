@@ -1,20 +1,33 @@
 ﻿'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { api, maskPhone, formatKsh } from '@/lib/api';
+import { api, maskPhone } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Topbar from '@/components/Topbar';
 import { useToast } from '@/context/ToastContext';
-import { Wifi, DollarSign, Clock, AlertTriangle, XCircle, Package, Router, CreditCard, Link as LinkIcon, Printer, ChevronRight } from 'lucide-react';
+import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, Users, Clock } from 'lucide-react';
 
 const C = {
   void: '#000000', base: '#0a0a0a', border: '#141414',
   text: '#f0f0f0', dim: '#666666', mute: '#2a2a2a',
-  gold: '#E8B84B', green: '#22c55e', red: '#ef4444', amber: '#f59e0b', blue: '#3b82f6',
+  gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
 };
 
-function fmtKsh(n: number) { return `Ksh ${(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
-function fmt(n: number) { return (n || 0).toLocaleString(); }
+function ksh(n: number) {
+  return `Ksh ${(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function fmt(n: number) {
+  return (n || 0).toLocaleString();
+}
+
+const steps = [
+  { key: 'mikrotik', label: 'Connect your MikroTik router', desc: 'Link your router so WiBill can manage sessions', href: '/dashboard/mikrotik', icon: Router },
+  { key: 'mpesa', label: 'Set up M-Pesa payments', desc: 'Configure your Till or Paybill to accept payments', href: '/dashboard/mpesa', icon: CreditCard },
+  { key: 'packages', label: 'Create internet packages', desc: 'Define speeds, data limits, and pricing', href: '/dashboard/packages', icon: Package },
+  { key: 'portal', label: 'Customize your portal', desc: 'Set your brand name, colors, and template', href: '/dashboard/settings', icon: Smartphone },
+  { key: 'share', label: 'Share your portal link', desc: 'Start accepting customers', href: '/dashboard/portal-preview', icon: Link },
+];
 
 export default function IspDashboard() {
   const { token } = useAuth();
@@ -30,8 +43,12 @@ export default function IspDashboard() {
   const [loading, setLoading] = useState(true);
   const [kicking, setKicking] = useState<Set<string>>(new Set());
   const [time, setTime] = useState(new Date());
+  const [hasTraffic, setHasTraffic] = useState(false);
 
-  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -52,19 +69,19 @@ export default function IspDashboard() {
       setTxns(Array.isArray(tt) ? tt : []);
       setInvoice(inv);
 
+      const ddCount = dd?.today?.count || 0;
+      const mmCount = dd?.month?.count || 0;
+      const ssCount = Array.isArray(ss) ? ss.length : 0;
+      const hasAnyTraffic = ddCount > 0 || mmCount > 0 || ssCount > 0;
+      setHasTraffic(hasAnyTraffic);
+
       if (trend?.trend && trend.trend.length >= 2) {
-        const yesterdayData = trend.trend[trend.trend.length - 2];
-        setYesterday(yesterdayData?.isp_earnings_ksh || 0);
-      } else if (trend?.trend && trend.trend.length === 1) {
-        setYesterday(0);
+        setYesterday(trend.trend[trend.trend.length - 2]?.isp_earnings_ksh || 0);
       } else {
         setYesterday(0);
       }
 
-      const failed = Array.isArray(tt) ? tt.filter((t: any) => {
-        const st = (t.status || '').toLowerCase();
-        return st === 'failed';
-      }).length : 0;
+      const failed = Array.isArray(tt) ? tt.filter((t: any) => (t.status || '').toLowerCase() === 'failed').length : 0;
       setFailedToday(failed);
 
       setConfigs({
@@ -74,7 +91,9 @@ export default function IspDashboard() {
       });
     } catch (e: any) {
       showToast(e.message || 'Failed to load dashboard', { type: 'error' });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }, [token, showToast]);
 
   useEffect(() => {
@@ -97,81 +116,75 @@ export default function IspDashboard() {
   };
 
   const nw = dash?.network || {};
-  const isUp = (nw.status || 'unknown') === 'up';
   const nwStatus = nw.status || 'unknown';
+  const isNetworkUp = nwStatus === 'up';
 
   const today = dash?.today || { gross_ksh: 0, platform_fee_ksh: 0, isp_earnings_ksh: 0, count: 0 };
   const month = dash?.month || { gross_ksh: 0, platform_fee_ksh: 0, isp_earnings_ksh: 0, count: 0 };
   const activeCount = dash?.active_sessions ?? sessions.length;
-  const nwLatency = nw.latency_ms;
-  const nwOutage = nw.outage_minutes;
-  const nwChecked = nw.checked_at;
-
   const invStatus = invoice?.status || 'none';
 
-  const needsAttention = !configs.mpesa || !configs.mikrotik || configs.packages === 0 || nwStatus !== 'up';
-  const canTakePayments = configs.mpesa && configs.mikrotik && configs.packages > 0;
+  const stepStatus = {
+    mikrotik: configs.mikrotik,
+    mpesa: configs.mpesa,
+    packages: configs.packages > 0,
+    portal: true,
+    share: true,
+  };
 
-  let statusColor = C.green;
-  let statusIcon = <Wifi size={16} color={C.green} />;
-  let statusLabel = 'All systems operational';
-  let statusDetail = 'Portal live, ready to accept payments';
+  const doneCount = Object.values(stepStatus).filter(Boolean).length;
+  const totalSteps = steps.length;
+  const barPercent = (doneCount / totalSteps) * 100;
+  const nextStep = steps.find(s => !stepStatus[s.key as keyof typeof stepStatus]);
 
-  if (!canTakePayments) {
-    statusColor = C.amber;
-    statusIcon = <AlertTriangle size={16} color={C.amber} />;
-    const missing: string[] = [];
-    if (!configs.mpesa) missing.push('M-Pesa');
-    if (!configs.mikrotik) missing.push('MikroTik');
-    if (configs.packages === 0) missing.push('packages');
-    statusLabel = `${missing.join(', ')} not configured`;
-    statusDetail = 'Payments will not process until setup is complete';
-  }
-
-  if (nwStatus !== 'up') {
-    statusColor = nwStatus === 'unknown' ? C.amber : C.red;
-    statusIcon = nwStatus === 'unknown' ? <AlertTriangle size={16} color={C.amber} /> : <XCircle size={16} color={C.red} />;
-    statusLabel = `Network ${nwStatus === 'unknown' ? 'status unknown' : 'offline'}`;
-    statusDetail = nwOutage ? `Down for ${nwOutage}m` : 'No recent connectivity check';
-  }
-
-  const cards = [
-    { label: "Yesterday's Earnings", value: fmtKsh(yesterday), sub: 'Net after fee', color: C.blue },
-    { label: 'Today', value: fmtKsh(today.isp_earnings_ksh), sub: `Net · ${today.count} txns`, color: C.gold },
-    { label: 'This Month', value: fmtKsh(month.isp_earnings_ksh), sub: `${month.count} txns · Fee: ${fmtKsh(month.platform_fee_ksh)}`, color: C.green },
-    { label: 'Active Sessions', value: fmt(activeCount), sub: sessions.length > 0 ? `${sessions.length} online now` : 'No one connected', color: C.blue },
-    { label: 'Failed Today', value: fmt(failedToday), sub: failedToday > 0 ? 'Needs attention' : 'All payments successful', color: failedToday > 0 ? C.red : C.dim },
-  ];
-
-  const quickActions = [
-    { label: 'Share Portal Link', icon: LinkIcon, href: '/dashboard/portal-preview', always: true },
-    { label: 'Print QR Code', icon: Printer, href: '/dashboard/portal-preview', always: true },
-  ];
-  if (!configs.mikrotik) quickActions.push({ label: 'Configure MikroTik', icon: Router, href: '/dashboard/mikrotik', always: false });
-  if (!configs.mpesa) quickActions.push({ label: 'Set up M-Pesa', icon: CreditCard, href: '/dashboard/mpesa', always: false });
-  if (configs.packages === 0) quickActions.push({ label: 'Add Packages', icon: Package, href: '/dashboard/packages', always: false });
-
-  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   const dateStr = time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-  return (
-    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title="Dashboard" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+  const vsYesterday = yesterday > 0 && today.isp_earnings_ksh > 0
+    ? ((today.isp_earnings_ksh - yesterday) / yesterday * 100).toFixed(1)
+    : null;
 
-        {/* ── INVOICE BANNER ── */}
+  const timeOfDay = time.getHours();
+  const greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 18 ? 'Good afternoon' : 'Good evening';
+
+  if (loading && !dash) {
+    return (
+      <div style={{ background: C.void, color: C.dim, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Topbar title="Dashboard" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexDirection: 'column' }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.gold, animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+          <div style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.dim }}>Loading your dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: C.void, color: C.text, minHeight: '100vh',
+      fontFamily: 'Inter, -apple-system, sans-serif',
+      display: 'flex', flexDirection: 'column', flex: 1,
+    }}>
+      <Topbar title="Dashboard" />
+
+      <div style={{
+        flex: 1, overflowY: 'auto', padding: '28px 32px',
+        maxWidth: 1240, margin: '0 auto', width: '100%',
+      }}>
+
+        {/* ── INVOICE BANNER (overdue only — actual critical) ── */}
         {invStatus === 'overdue' && invoice && (
           <div style={{
             background: 'linear-gradient(135deg, #3d0a0a, #4a1010)',
             border: '0.5px solid #7f1d1d', borderRadius: 11,
-            padding: '14px 20px', marginBottom: 16,
+            padding: '14px 20px', marginBottom: 24,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <XCircle size={18} color={C.red} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
-                  Account overdue — {invoice.amount_due ? fmtKsh(invoice.amount_due) : ''} due
+                  Account overdue — {invoice.amount_due ? ksh(invoice.amount_due) : ''} due
                 </div>
                 <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#fca5a5', marginTop: 2 }}>
                   {invoice.days_overdue || invoice.days_left || '?'} days overdue
@@ -189,110 +202,321 @@ export default function IspDashboard() {
           </div>
         )}
 
-        {invStatus === 'due' && invoice && (
-          <div style={{
-            background: 'linear-gradient(135deg, #3d2d0a, #4a3810)',
-            border: '0.5px solid #7f6d1d', borderRadius: 11,
-            padding: '14px 20px', marginBottom: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <AlertTriangle size={18} color={C.amber} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.amber }}>
-                  Invoice due in {invoice.days_left || '?'} days
-                </div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#fcd34d', marginTop: 2 }}>
-                  {invoice.amount_due ? fmtKsh(invoice.amount_due) : ''} — pay before {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '?'}
-                </div>
-              </div>
-            </div>
-            <a href="/dashboard/billing" style={{
-              padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-              background: 'rgba(245,158,11,0.15)', color: C.amber,
-              textDecoration: 'none', letterSpacing: '0.05em',
-            }}>
-              Pay Now →
-            </a>
-          </div>
-        )}
-
-        {/* ── STATUS BAR (single source of truth) ── */}
+        {/* ── STATUS PILL (not a banner — lives quietly) ── */}
         <div style={{
-          background: statusColor === C.green ? 'linear-gradient(135deg, #052e16, #0d3a1a)' :
-                       statusColor === C.amber ? 'linear-gradient(135deg, #2d250a, #3d3010)' :
-                       'linear-gradient(135deg, #3d0a0a, #4a1010)',
-          border: `0.5px solid ${statusColor === C.green ? '#166534' : statusColor === C.amber ? '#7f6d1d' : '#7f1d1d'}`,
-          borderRadius: 11, padding: '16px 22px', marginBottom: 20,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 28,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {statusIcon}
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: statusColor }}>
-                {statusLabel}
-              </div>
-              <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: statusColor === C.green ? '#4ade80' : statusColor === C.amber ? '#fcd34d' : '#fca5a5', marginTop: 2 }}>
-                {statusDetail}
-                {nwStatus === 'up' && nwLatency ? ` · ${nwLatency}ms latency` : ''}
-                {nwChecked ? ` · Checked ${new Date(nwChecked).toLocaleTimeString()}` : ''}
-              </div>
+          <div>
+            <div style={{
+              fontFamily: '"Space Grotesk", sans-serif',
+              fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.02em',
+            }}>
+              {greeting}
+            </div>
+            <div style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 2 }}>
+              {dateStr} · {timeStr}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#444', textAlign: 'right' }}>
-              <div>{dateStr}</div>
-              <div style={{ color: statusColor }}>{timeStr}</div>
-            </div>
-            <div style={{
-              padding: '4px 12px', borderRadius: 20, fontSize: 9, fontWeight: 700,
-              background: `${statusColor}22`, color: statusColor, letterSpacing: '0.1em',
-            }}>
-              {statusColor === C.green ? '✓ OPERATIONAL' : statusColor === C.amber ? '○ ATTENTION' : '✗ ISSUE'}
-            </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {!isNetworkUp && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 12px', borderRadius: 20,
+                background: configs.mikrotik ? 'rgba(239,68,68,0.08)' : '#0a0a0a',
+                border: `0.5px solid ${configs.mikrotik ? 'rgba(239,68,68,0.2)' : C.border}`,
+                fontSize: 10, fontFamily: 'DM Mono, monospace',
+                fontWeight: 600, color: configs.mikrotik ? C.red : C.dim,
+              }}>
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: configs.mikrotik ? C.red : C.dim, display: 'inline-block',
+                }} />
+                {configs.mikrotik ? 'Router unreachable' : 'Router not connected'}
+              </div>
+            )}
+            {isNetworkUp && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 12px', borderRadius: 20,
+                background: 'rgba(34,197,94,0.06)',
+                border: '0.5px solid rgba(34,197,94,0.2)',
+                fontSize: 10, fontFamily: 'DM Mono, monospace',
+                fontWeight: 600, color: C.green,
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: C.green, display: 'inline-block', boxShadow: '0 0 6px #22c55e' }} />
+                Connected
+                {nw.latency_ms ? ` · ${nw.latency_ms}ms` : ''}
+              </div>
+            )}
           </div>
         </div>
 
-        {loading && !dash ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#444', fontSize: 13 }}>Loading dashboard...</div>
-        ) : (
+        {/* ════════════════════════════════════════════ */}
+        {/* MODE 1: SETUP CHECKLIST (hero for new tenants) */}
+        {/* ════════════════════════════════════════════ */}
+        {!hasTraffic && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
+              border: '0.5px solid rgba(232,184,75,0.15)',
+              borderRadius: 14, padding: '32px 32px 28px',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                marginBottom: 24,
+              }}>
+                <div>
+                  <div style={{
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontSize: 20, fontWeight: 700, color: C.text,
+                    letterSpacing: '-0.02em',
+                  }}>
+                    Set up your ISP in 5 steps
+                  </div>
+                  <div style={{ fontSize: 12, color: C.dim, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>
+                    Complete these steps to start accepting payments and managing sessions.
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{
+                    fontSize: 24, fontFamily: 'DM Mono, monospace', fontWeight: 500,
+                    color: doneCount === totalSteps ? C.green : C.gold,
+                    lineHeight: 1,
+                  }}>
+                    {doneCount}<span style={{ color: C.mute }}>/{totalSteps}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>steps done</div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{
+                height: 3, background: C.mute, borderRadius: 2,
+                marginBottom: 24, overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', width: `${barPercent}%`,
+                  background: C.gold, borderRadius: 2,
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+
+              {/* Steps */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {steps.map((s, i) => {
+                  const done = stepStatus[s.key as keyof typeof stepStatus];
+                  const isCurrent = !done && s.key === nextStep?.key;
+                  return (
+                    <div key={s.key} style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '12px 16px', borderRadius: 10,
+                      background: isCurrent ? 'rgba(232,184,75,0.04)' : 'transparent',
+                      border: isCurrent ? '0.5px solid rgba(232,184,75,0.15)' : '0.5px solid transparent',
+                    }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: done ? C.gold : isCurrent ? 'rgba(232,184,75,0.1)' : C.mute,
+                        flexShrink: 0,
+                      }}>
+                        {done ? (
+                          <Check size={14} color={C.void} />
+                        ) : isCurrent ? (
+                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.gold }} />
+                        ) : (
+                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1a1a1a' }} />
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 13, fontWeight: 600, color: done ? C.dim : C.text,
+                          textDecoration: done ? 'line-through' : 'none',
+                        }}>
+                          {s.label}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 1 }}>
+                          {s.desc}
+                        </div>
+                      </div>
+
+                      {!done && (
+                        <a href={s.href} style={{
+                          padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                          background: isCurrent ? C.gold : 'rgba(232,184,75,0.06)',
+                          color: isCurrent ? C.void : C.gold,
+                          textDecoration: 'none', whiteSpace: 'nowrap',
+                          border: isCurrent ? 'none' : '0.5px solid rgba(232,184,75,0.15)',
+                        }}>
+                          {isCurrent ? 'Set up' : 'Configure'}
+                        </a>
+                      )}
+
+                      {done && (
+                        <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                          Done
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {doneCount === totalSteps && (
+                <div style={{
+                  marginTop: 20, textAlign: 'center', padding: '16px', borderRadius: 10,
+                  background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.1)',
+                }}>
+                  <div style={{
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontSize: 15, fontWeight: 700, color: C.gold,
+                  }}>
+                    All set — your first customer is waiting
+                  </div>
+                  <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>
+                    Share your portal link to start accepting payments
+                  </div>
+                  <a href="/dashboard/portal-preview" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    marginTop: 12, padding: '8px 18px', borderRadius: 8,
+                    background: C.gold, color: C.void, fontSize: 12, fontWeight: 700,
+                    textDecoration: 'none',
+                  }}>
+                    <Link size={13} /> Share your link
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════ */}
+        {/* MODE 2: FINANCE DASHBOARD (has traffic)     */}
+        {/* ════════════════════════════════════════════ */}
+        {hasTraffic && (
           <>
-            {/* ═══ FIVE METRIC CARDS ═══ */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
-              {cards.map((c, i) => (
+            {/* Revenue hero card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
+              border: '0.5px solid rgba(232,184,75,0.12)',
+              borderRadius: 14, padding: '24px 28px',
+              marginBottom: 16,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontSize: 11, fontWeight: 700, color: C.dim,
+                    textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
+                  }}>
+                    Today's Revenue
+                  </div>
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: 40, fontWeight: 500, color: C.text,
+                    letterSpacing: '-0.04em', lineHeight: 1,
+                  }}>
+                    {ksh(today.gross_ksh)}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
+                    <span style={{ fontSize: 11, color: C.dim }}>
+                      Net: <span style={{ color: C.green, fontFamily: 'DM Mono, monospace' }}>{ksh(today.isp_earnings_ksh)}</span>
+                    </span>
+                    <span style={{ fontSize: 11, color: C.dim }}>
+                      Fee: <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{ksh(today.platform_fee_ksh)}</span>
+                    </span>
+                    <span style={{ fontSize: 11, color: C.dim }}>
+                      {today.count} transaction{today.count !== 1 ? 's' : ''}
+                    </span>
+                    {vsYesterday && (
+                      <span style={{
+                        fontSize: 10, fontFamily: 'DM Mono, monospace',
+                        color: Number(vsYesterday) >= 0 ? C.green : C.red,
+                        padding: '2px 8px', borderRadius: 4,
+                        background: Number(vsYesterday) >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                      }}>
+                        {Number(vsYesterday) >= 0 ? '+' : ''}{vsYesterday}% vs yesterday
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{
+                  width: 56, height: 56, borderRadius: 14,
+                  background: 'rgba(232,184,75,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <TrendingUp size={24} color={C.gold} />
+                </div>
+              </div>
+
+              {/* Flat sparkline SVG */}
+              <svg width="100%" height="36" style={{ marginTop: 16 }} viewBox="0 0 600 36" preserveAspectRatio="none">
+                <path
+                  d="M0 32 L600 32"
+                  stroke={C.gold} strokeWidth="1.5" fill="none" opacity="0.4"
+                />
+                <path
+                  d="M0 36 L0 32 L600 32 L600 36 Z"
+                  fill="url(#goldGrad)" opacity="0.06"
+                />
+                <defs>
+                  <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={C.gold} />
+                    <stop offset="100%" stopColor={C.gold} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            {/* Supporting metric cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+              {[
+                { label: 'Yesterday', value: ksh(yesterday), sub: 'Net earnings', color: C.dim },
+                { label: 'This Month', value: ksh(month.isp_earnings_ksh), sub: `${month.count} transactions`, color: C.gold },
+                { label: 'Active Sessions', value: fmt(activeCount), sub: sessions.length > 0 ? `${sessions.length} online now` : 'No active sessions', color: C.green },
+                { label: 'Failed Today', value: fmt(failedToday), sub: failedToday > 0 ? `${failedToday} payment${failedToday > 1 ? 's' : ''} failed` : 'All payments successful', color: failedToday > 0 ? C.red : C.dim },
+              ].map((c, i) => (
                 <div key={i} style={{
                   background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
                   padding: '14px 16px', position: 'relative', overflow: 'hidden',
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                  <div style={{
+                    fontSize: 9, fontWeight: 700, color: C.mute,
+                    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+                    fontFamily: '"Space Grotesk", sans-serif',
+                  }}>
                     {c.label}
                   </div>
-                  <div style={{ fontSize: 26, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                  <div style={{
+                    fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500,
+                    color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1,
+                  }}>
                     {c.value}
                   </div>
-                  <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
+                  <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 4 }}>
                     {c.sub}
                   </div>
-                  <div style={{
-                    position: 'absolute', top: 0, right: 0, width: 60, height: 60,
-                    background: `radial-gradient(circle, ${c.color}08 0%, transparent 70%)`,
-                    borderRadius: '50%', transform: 'translate(20px, -20px)',
-                  }} />
                 </div>
               ))}
             </div>
 
-            {/* ═══ LIVE SESSIONS + RECENT PAYMENTS ═══ */}
+            {/* Live Sessions + Recent Payments */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
               {/* Live Sessions */}
               <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, color: C.mute,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    fontFamily: '"Space Grotesk", sans-serif',
+                  }}>
                     Live Sessions
                   </span>
                   <span style={{
                     padding: '2px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700,
-                    background: sessions.length > 0 ? 'rgba(34,197,94,0.15)' : '#0d0d0d',
+                    background: sessions.length > 0 ? 'rgba(34,197,94,0.1)' : '#0d0d0d',
                     color: sessions.length > 0 ? C.green : '#333',
                     fontFamily: 'DM Mono, monospace',
                   }}>
@@ -300,18 +524,19 @@ export default function IspDashboard() {
                   </span>
                 </div>
                 {sessions.length === 0 ? (
-                  <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '24px 16px' }}>
-                    <Wifi size={22} color="#1a1a1a" style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 12, color: '#333', fontWeight: 600 }}>No one connected yet</div>
-                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 4 }}>
-                      Share your portal link to get started
+                  <div style={{ textAlign: 'center', padding: '20px 16px' }}>
+                    <Wifi size={20} color={C.mute} style={{ marginBottom: 8 }} />
+                    <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No one connected yet</div>
+                    <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
+                      Share your portal link to get your first customer
                     </div>
                     <a href="/dashboard/portal-preview" style={{
                       display: 'inline-block', marginTop: 12, padding: '6px 14px', borderRadius: 8,
-                      fontSize: 10, fontWeight: 700, color: C.blue, border: `0.5px solid ${C.blue}33`,
+                      fontSize: 10, fontWeight: 700, color: C.gold,
+                      border: '0.5px solid rgba(232,184,75,0.2)',
                       textDecoration: 'none',
                     }}>
-                      View Portal Preview →
+                      Share link →
                     </a>
                   </div>
                 ) : (
@@ -331,7 +556,6 @@ export default function IspDashboard() {
                           <div style={{
                             width: 6, height: 6, borderRadius: '50%',
                             background: remaining > 0 ? C.green : C.red,
-                            boxShadow: remaining > 0 ? `0 0 6px ${C.green}` : 'none',
                             flexShrink: 0,
                           }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -344,8 +568,9 @@ export default function IspDashboard() {
                           </div>
                           <button onClick={() => handleKick(s.id)} disabled={isKicking} style={{
                             padding: '4px 10px', borderRadius: 6, fontSize: 9, fontWeight: 600,
-                            background: isKicking ? '#0d0d0d' : 'rgba(239,68,68,0.1)',
-                            color: isKicking ? '#333' : C.red, border: `0.5px solid ${isKicking ? '#1a1a1a' : 'rgba(239,68,68,0.2)'}`,
+                            background: isKicking ? '#0d0d0d' : 'rgba(239,68,68,0.06)',
+                            color: isKicking ? '#333' : C.red,
+                            border: isKicking ? '0.5px solid #1a1a1a' : '0.5px solid rgba(239,68,68,0.12)',
                             cursor: isKicking ? 'not-allowed' : 'pointer', fontFamily: 'DM Mono, monospace',
                           }}>
                             {isKicking ? '...' : 'Kick'}
@@ -360,39 +585,30 @@ export default function IspDashboard() {
               {/* Recent Payments */}
               <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, color: C.mute,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    fontFamily: '"Space Grotesk", sans-serif',
+                  }}>
                     Recent Payments
                   </span>
-                  <DollarSign size={14} color={C.gold} />
+                  <Receipt size={13} color={C.dim} />
                 </div>
                 {txns.length === 0 ? (
-                  <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '24px 16px' }}>
-                    <DollarSign size={22} color="#1a1a1a" style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 12, color: '#333', fontWeight: 600 }}>No payments yet</div>
-                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 4 }}>
-                      Your portal is ready to accept payments
+                  <div style={{ textAlign: 'center', padding: '20px 16px' }}>
+                    <DollarSign size={20} color={C.mute} style={{ marginBottom: 8 }} />
+                    <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>No payments yet</div>
+                    <div style={{ fontSize: 10, color: C.mute, marginTop: 4 }}>
+                      Your first payment will appear here
                     </div>
-                    <a href="/dashboard/portal-preview" style={{
-                      display: 'inline-block', marginTop: 12, padding: '6px 14px', borderRadius: 8,
-                      fontSize: 10, fontWeight: 700, color: C.blue, border: `0.5px solid ${C.blue}33`,
-                      textDecoration: 'none',
-                    }}>
-                      View Portal Preview →
-                    </a>
                   </div>
                 ) : (
                   <div>
                     {txns.slice(0, 8).map((t: any) => {
                       const st = (t.status || '').toLowerCase();
-                      const bg = st === 'success' || st === 'completed' ? 'rgba(34,197,94,0.1)'
-                        : st === 'failed' ? 'rgba(239,68,68,0.1)'
-                        : 'rgba(245,158,11,0.1)';
-                      const fg = st === 'success' || st === 'completed' ? C.green
-                        : st === 'failed' ? C.red
-                        : C.amber;
-                      const label = st === 'success' || st === 'completed' ? 'Paid'
-                        : st === 'failed' ? 'Failed'
-                        : 'Pending';
+                      const success = st === 'success' || st === 'completed';
+                      const failed = st === 'failed';
+                      const pending = !success && !failed;
                       return (
                         <div key={t.id} style={{
                           display: 'flex', alignItems: 'center', gap: 10,
@@ -407,14 +623,16 @@ export default function IspDashboard() {
                               {t.created_at ? ` · ${new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                             </div>
                           </div>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.gold, fontWeight: 500 }}>
-                            {fmtKsh(t.amount_ksh || t.amount || 0)}
+                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.text, fontWeight: 500 }}>
+                            {ksh(t.amount_ksh || t.amount || 0)}
                           </div>
                           <div style={{
                             padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700,
-                            textTransform: 'uppercase', background: bg, color: fg,
+                            textTransform: 'uppercase',
+                            background: success ? 'rgba(34,197,94,0.1)' : failed ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)',
+                            color: success ? C.green : failed ? C.red : C.gold,
                           }}>
-                            {label}
+                            {success ? 'Paid' : failed ? 'Failed' : 'Pending'}
                           </div>
                         </div>
                       );
@@ -423,33 +641,67 @@ export default function IspDashboard() {
                 )}
               </div>
             </div>
-
-            {/* ═══ QUICK ACTIONS ═══ */}
-            {quickActions.length > 0 && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-                  Quick Actions
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {quickActions.map((a, i) => (
-                    <a key={i} href={a.href} style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                      background: a.always ? C.base : 'rgba(59,130,246,0.06)',
-                      border: `0.5px solid ${a.always ? C.border : 'rgba(59,130,246,0.15)'}`,
-                      color: a.always ? C.dim : C.blue,
-                      textDecoration: 'none', transition: 'all 0.15s',
-                    }}>
-                      <a.icon size={14} color={a.always ? C.dim : C.blue} />
-                      <span>{a.label}</span>
-                      <ChevronRight size={12} color={a.always ? '#1a1a1a' : `${C.blue}55`} />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
+
+        {/* ═══ QUICK ACTIONS (context-aware, never buried) ═══ */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{
+            fontSize: 9, fontWeight: 700, color: C.mute,
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10,
+            fontFamily: '"Space Grotesk", sans-serif',
+          }}>
+            Quick Actions
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <a href="/dashboard/portal-preview" style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+              background: C.base, border: `0.5px solid ${C.border}`,
+              color: C.dim, textDecoration: 'none',
+            }}>
+              <Link size={13} color={C.dim} /> Share Link
+              <ChevronRight size={11} color={C.mute} />
+            </a>
+            {!configs.mikrotik && (
+              <a href="/dashboard/mikrotik" style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: 'rgba(232,184,75,0.04)',
+                border: '0.5px solid rgba(232,184,75,0.12)',
+                color: C.gold, textDecoration: 'none',
+              }}>
+                <Router size={13} /> Connect MikroTik
+                <ChevronRight size={11} color={C.gold} />
+              </a>
+            )}
+            {!configs.mpesa && (
+              <a href="/dashboard/mpesa" style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: 'rgba(232,184,75,0.04)',
+                border: '0.5px solid rgba(232,184,75,0.12)',
+                color: C.gold, textDecoration: 'none',
+              }}>
+                <CreditCard size={13} /> Set up M-Pesa
+                <ChevronRight size={11} color={C.gold} />
+              </a>
+            )}
+            {configs.packages === 0 && (
+              <a href="/dashboard/packages" style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: 'rgba(232,184,75,0.04)',
+                border: '0.5px solid rgba(232,184,75,0.12)',
+                color: C.gold, textDecoration: 'none',
+              }}>
+                <Package size={13} /> Add Packages
+                <ChevronRight size={11} color={C.gold} />
+              </a>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

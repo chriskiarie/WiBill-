@@ -65,7 +65,6 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
         {/* Brand */}
         <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            {/* XwB logo mark */}
             <div style={{
               width: 36, height: 36,
               background: 'linear-gradient(135deg, #fac800, #f59e0b)',
@@ -74,10 +73,10 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
               fontSize: 16, fontWeight: 900, color: '#0a0800',
               boxShadow: '0 0 20px rgba(250,200,0,0.3)',
               letterSpacing: '-0.05em',
-            }}>X</div>
+            }}>W</div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: '#fff', lineHeight: 1 }}>
-                Xw<span style={{ color: '#fac800' }}>B</span>
+                Wi<span style={{ color: '#fac800' }}>Bill</span>
               </div>
               <div style={{ fontSize: 9, color: 'rgba(250,200,0,0.5)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 2 }}>Batcave</div>
             </div>

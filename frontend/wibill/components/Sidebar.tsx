@@ -62,12 +62,13 @@ export default function Sidebar({ activeSessions = 0 }: { activeSessions?: numbe
           </span>
 
           <span style={{
-            fontFamily: 'Instrument Serif, serif',
-            fontStyle: 'italic',
-            fontSize: 14,
-            color: isAdmin ? '#fac800' : '#2a2a2a'
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontSize: 13,
+            fontWeight: 700,
+            color: isAdmin ? '#fac800' : '#E8B84B',
+            letterSpacing: '0.05em',
           }}>
-            XwB
+            ISP
           </span>
         </div>
 

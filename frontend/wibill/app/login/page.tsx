@@ -144,7 +144,7 @@ function LoginContent() {
             WiBill
           </div>
           <div style={{ fontFamily: 'Instrument Serif, serif', fontStyle: 'italic', fontSize: 14, color: '#2a2a2a', marginTop: 2 }}>
-            XwB — ISP Management Portal
+            ISP Management Portal
           </div>
         </div>
 

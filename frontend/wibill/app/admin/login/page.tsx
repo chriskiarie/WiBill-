@@ -118,7 +118,7 @@ export default function BatcaveLoginPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
           {[
-            { label: 'Email', value: email, set: setEmail, type: 'email', placeholder: 'admin@xwbill.co.ke' },
+            { label: 'Email', value: email, set: setEmail, type: 'email', placeholder: 'admin@example.com' },
             { label: 'Password', value: password, set: setPassword, type: 'password', placeholder: '••••••••••' },
           ].map(f => (
             <div key={f.label}>
