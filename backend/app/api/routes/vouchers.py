@@ -17,11 +17,6 @@ from app.services.session_service import create_session
 router = APIRouter(tags=["vouchers"])
 
 
-@router.get("/ping")
-async def ping():
-    return {"pong": True}
-
-
 class GenerateVoucherRequest(BaseModel):
     package_id: str | None = None
     quantity: int = 1
@@ -62,9 +57,8 @@ async def generate_vouchers(
     if payload.package_id and payload.duration_minutes:
         raise HTTPException(status_code=400, detail="Provide either package_id (package-linked) or duration_minutes (time-based), not both")
 
-    try:
-        package_uuid = None
-        if payload.package_id:
+    package_uuid = None
+    if payload.package_id:
         try:
             package_uuid = uuid.UUID(payload.package_id)
         except ValueError:
@@ -118,8 +112,6 @@ async def generate_vouchers(
         "voucher_type": "time_based" if payload.duration_minutes else "package_linked",
         "duration_minutes": payload.duration_minutes,
     }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Voucher generate error: {type(e).__name__}: {e}")
 
 
 @router.get("")
@@ -138,55 +130,51 @@ async def list_vouchers(
         raise HTTPException(status_code=400, detail="No tenant on this account")
     tenant_id = uuid.UUID(str(tenant_id_raw))
 
-    try:
-        query = select(Voucher).where(Voucher.tenant_id == tenant_id)
+    query = select(Voucher).where(Voucher.tenant_id == tenant_id)
 
-        if status:
-            query = query.where(Voucher.status == status)
-        if batch_id:
-            query = query.where(Voucher.batch_id == batch_id)
-        if search:
-            query = query.where(Voucher.code.ilike(f"%{search}%"))
-        if include_suspended is not None:
-            query = query.where(Voucher.is_suspended == include_suspended)
+    if status:
+        query = query.where(Voucher.status == status)
+    if batch_id:
+        query = query.where(Voucher.batch_id == batch_id)
+    if search:
+        query = query.where(Voucher.code.ilike(f"%{search}%"))
+    if include_suspended is not None:
+        query = query.where(Voucher.is_suspended == include_suspended)
 
-        query = query.order_by(Voucher.created_at.desc()).offset(skip).limit(limit)
-        result = await db.execute(query)
-        vouchers = result.scalars().all()
+    query = query.order_by(Voucher.created_at.desc()).offset(skip).limit(limit)
+    result = await db.execute(query)
+    vouchers = result.scalars().all()
 
-        total = await db.execute(select(func.count(Voucher.id)).where(Voucher.tenant_id == tenant_id))
-        total_count = total.scalar()
+    total = await db.execute(select(func.count(Voucher.id)).where(Voucher.tenant_id == tenant_id))
+    total_count = total.scalar()
 
-        counts_result = await db.execute(
-            select(Voucher.status, func.count(Voucher.id))
-            .where(Voucher.tenant_id == tenant_id)
-            .group_by(Voucher.status)
-        )
-        counts = {row[0]: row[1] for row in counts_result.all()}
+    counts_result = await db.execute(
+        select(Voucher.status, func.count(Voucher.id))
+        .where(Voucher.tenant_id == tenant_id)
+        .group_by(Voucher.status)
+    )
+    counts = {row[0]: row[1] for row in counts_result.all()}
 
-        return {
-            "total": total_count,
-            "counts": {"unused": counts.get("unused", 0), "used": counts.get("used", 0), "expired": counts.get("expired", 0)},
-            "vouchers": [
-                {
-                    "id": str(v.id),
-                    "code": v.code,
-                    "batch_id": v.batch_id,
-                    "status": v.status,
-                    "is_suspended": v.is_suspended,
-                    "package_id": str(v.package_id) if v.package_id else None,
-                    "duration_minutes": v.duration_minutes,
-                    "created_at": v.created_at.isoformat(),
-                    "expires_at": v.expires_at.isoformat() if v.expires_at else None,
-                    "used_at": v.used_at.isoformat() if v.used_at else None,
-                    "mac_address": v.mac_address,
-                }
-                for v in vouchers
-            ],
-        }
-    except Exception as e:
-        import traceback
-        raise HTTPException(status_code=500, detail=f"Voucher list error: {type(e).__name__}: {e}")
+    return {
+        "total": total_count,
+        "counts": {"unused": counts.get("unused", 0), "used": counts.get("used", 0), "expired": counts.get("expired", 0)},
+        "vouchers": [
+            {
+                "id": str(v.id),
+                "code": v.code,
+                "batch_id": v.batch_id,
+                "status": v.status,
+                "is_suspended": v.is_suspended,
+                "package_id": str(v.package_id) if v.package_id else None,
+                "duration_minutes": v.duration_minutes,
+                "created_at": v.created_at.isoformat(),
+                "expires_at": v.expires_at.isoformat() if v.expires_at else None,
+                "used_at": v.used_at.isoformat() if v.used_at else None,
+                "mac_address": v.mac_address,
+            }
+            for v in vouchers
+        ],
+    }
 
 
 @router.get("/{code}/status")
