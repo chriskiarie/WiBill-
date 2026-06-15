@@ -119,7 +119,6 @@ async def list_vouchers(
     status: str = None,
     batch_id: str = None,
     search: str = None,
-    include_suspended: bool = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     current_user=Depends(get_current_user),
@@ -138,8 +137,6 @@ async def list_vouchers(
         query = query.where(Voucher.batch_id == batch_id)
     if search:
         query = query.where(Voucher.code.ilike(f"%{search}%"))
-    if include_suspended is not None:
-        query = query.where(Voucher.is_suspended == include_suspended)
 
     query = query.order_by(Voucher.created_at.desc()).offset(skip).limit(limit)
     result = await db.execute(query)
