@@ -18,7 +18,7 @@ async def create_session(
     tenant_id: str,
     mac_address: str,
     ip_address: str,
-    package_id: str,
+    package_id: str | None,
     expires_at: datetime,
     db: AsyncSession
 ) -> DBSession:
@@ -300,7 +300,7 @@ async def expire_old_sessions(
 
 def _is_valid_mac(mac: str) -> bool:
     """Validate MAC address format"""
-    # Accept: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF
+    # Accept: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF, or placeholder 00:00:00:00:00:00
     pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
     return bool(re.match(pattern, mac))
 

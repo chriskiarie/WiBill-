@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from app.models.invoice import Invoice
     from app.models.voucher import Voucher
     from app.models.loyalty_account import LoyaltyAccount
+    from app.models.reward_token import RewardToken
+    from app.models.campaign import Campaign
 
 
 class Tenant(Base):
@@ -53,6 +55,8 @@ class Tenant(Base):
     invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="tenant", cascade="all, delete-orphan")
     vouchers: Mapped[list["Voucher"]] = relationship("Voucher", back_populates="tenant", cascade="all, delete-orphan")
     loyalty_accounts: Mapped[list["LoyaltyAccount"]] = relationship("LoyaltyAccount", back_populates="tenant", cascade="all, delete-orphan")
+    reward_tokens: Mapped[list["RewardToken"]] = relationship("RewardToken", back_populates="tenant", cascade="all, delete-orphan")
+    campaigns: Mapped[list["Campaign"]] = relationship("Campaign", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Tenant {self.slug}>"

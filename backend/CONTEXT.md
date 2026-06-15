@@ -451,7 +451,7 @@ APP_PORT=8000
 
 ## Current Build Status
 
-**Session:** Day 1 — Foundation complete
+**Session:** Day 1 — Foundation complete (later extended with voucher/reward/campaign system)
 
 **Completed:**
 - Full project structure created
@@ -460,7 +460,7 @@ APP_PORT=8000
 - config.py — settings load from .env ✓
 - database.py — async Postgres connection ✓
 - crypto_service.py — Fernet encrypt/decrypt ✓
-- All 9 SQLAlchemy models defined ✓
+- All SQLAlchemy models defined (incl. Voucher, RewardToken, Campaign, LoyaltyAccount, LoyaltyTransaction) ✓
 - Alembic initial migration — all tables in DB ✓
 - security.py — JWT + bcrypt ✓
 
@@ -471,7 +471,7 @@ APP_PORT=8000
 - mikrotik_service.py
 - daraja_service.py
 - session_service.py
-- All API routes
+- All API routes (incl. voucher suspend/resume/batch, reward token compensation, campaign CRUD + launch)
 - Captive portal HTML
 - APScheduler jobs
 - Seed script

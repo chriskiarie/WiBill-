@@ -113,7 +113,7 @@ app.add_middleware(
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
-from app.api.routes import vouchers, loyalty
+from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
 
 # Portal preview router removed - using new portal renderer
 
@@ -140,6 +140,8 @@ app.include_router(admin_routes.router, prefix="/api", tags=["admin"])
 app.include_router(crud_reads.router, prefix="/api", tags=["crud-reads"])
 app.include_router(vouchers.router, prefix="/api/vouchers", tags=["vouchers"])
 app.include_router(loyalty.router, prefix="/api/loyalty", tags=["loyalty"])
+app.include_router(reward_tokens.router, prefix="/api/reward-tokens", tags=["reward-tokens"])
+app.include_router(campaigns.router, prefix="/api/campaigns", tags=["campaigns"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

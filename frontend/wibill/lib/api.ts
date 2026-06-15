@@ -210,10 +210,49 @@ export const api = {
     const qs = q.toString()
     return request<any>(`/api/vouchers${qs ? '?' + qs : ''}`)
   },
-  generateVouchers: (data: { package_id: string; quantity: number; prefix?: string; expires_in_days?: number }) =>
+  generateVouchers: (data: { package_id?: string; quantity: number; prefix?: string; expires_in_days?: number; duration_minutes?: number }) =>
     request<any>('/api/vouchers/generate', { method: 'POST', body: JSON.stringify(data) }),
   checkVoucherStatus: (code: string) => request<any>(`/api/vouchers/${code}/status`),
   voidVoucher: (id: string) => request(`/api/vouchers/${id}`, { method: 'DELETE' }),
+  suspendVoucher: (id: string) => request<any>(`/api/vouchers/${id}/suspend`, { method: 'POST' }),
+  unsuspendVoucher: (id: string) => request<any>(`/api/vouchers/${id}/unsuspend`, { method: 'POST' }),
+  suspendVoucherBatch: (batchId: string) => request<any>(`/api/vouchers/batch/${batchId}/suspend`, { method: 'POST' }),
+  unsuspendVoucherBatch: (batchId: string) => request<any>(`/api/vouchers/batch/${batchId}/unsuspend`, { method: 'POST' }),
+
+  // ========================================================================
+  // REWARD TOKENS (Premium Tier)
+  // ========================================================================
+  generateCompensationToken: (data: { session_id: string; minutes: number; reason?: string; bound_phone?: string; bound_mac?: string }) =>
+    request<any>('/api/reward-tokens/generate-compensation', { method: 'POST', body: JSON.stringify(data) }),
+  getRewardTokens: (params?: { redeemed?: boolean; search?: string; skip?: number; limit?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.redeemed !== undefined) q.append('redeemed', params.redeemed.toString())
+    if (params?.search) q.append('search', params.search)
+    if (params?.skip !== undefined) q.append('skip', params.skip.toString())
+    if (params?.limit !== undefined) q.append('limit', params.limit.toString())
+    const qs = q.toString()
+    return request<any>(`/api/reward-tokens${qs ? '?' + qs : ''}`)
+  },
+  getRewardToken: (id: string) => request<any>(`/api/reward-tokens/${id}`),
+
+  // ========================================================================
+  // CAMPAIGNS (Premium Tier)
+  // ========================================================================
+  createCampaign: (data: { name: string; campaign_type: string; reward_minutes: number; quantity: number; expiry_hours?: number; target_filter?: string }) =>
+    request<any>('/api/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+  getCampaigns: (params?: { status?: string; skip?: number; limit?: number }) => {
+    const q = new URLSearchParams()
+    if (params?.status) q.append('status', params.status)
+    if (params?.skip !== undefined) q.append('skip', params.skip.toString())
+    if (params?.limit !== undefined) q.append('limit', params.limit.toString())
+    const qs = q.toString()
+    return request<any>(`/api/campaigns${qs ? '?' + qs : ''}`)
+  },
+  getCampaign: (id: string) => request<any>(`/api/campaigns/${id}`),
+  updateCampaignStatus: (id: string, status: string) =>
+    request<any>(`/api/campaigns/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  launchCampaign: (id: string) =>
+    request<any>(`/api/campaigns/${id}/launch`, { method: 'POST' }),
 
   // ========================================================================
   // LOYALTY
