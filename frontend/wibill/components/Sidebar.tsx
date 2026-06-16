@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Smartphone, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, ChevronLeft, ChevronRight, DollarSign, Users,
+  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -22,6 +22,7 @@ const nav = [
     { href: '/dashboard/sessions', icon: Wifi, label: 'Sessions' },
     { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
     { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
+    { href: '/dashboard/campaigns', icon: Megaphone, label: 'Campaigns' },
     { href: '/dashboard/loyalty', icon: Star, label: 'Loyalty' },
   ]},
   { label: 'Config', items: [
