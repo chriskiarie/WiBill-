@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 import uuid
 import secrets
+import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -20,18 +22,30 @@ from app.models.isp_invite import ISPInvite, InviteStatus
 from app.models.audit_log import AuditLog
 from app.api.routes.auth import get_current_user, require_platform_admin
 
+log = logging.getLogger("honestbill.admin")
+
 
 async def log_action(db, actor: AdminUser, action: str, target_type: str | None = None, target_id: str | None = None, details: dict | None = None):
-    db.add(AuditLog(
-        id=uuid.uuid4(),
-        actor_id=actor.id,
-        actor_email=actor.email,
-        action=action,
-        target_type=target_type,
-        target_id=target_id,
-        details=details,
-        created_at=datetime.utcnow()
-    ))
+    """Log admin action using a separate connection so failures never corrupt the main transaction."""
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text as sa_text
+        async with engine.begin() as conn:
+            await conn.execute(sa_text(
+                "INSERT INTO audit_logs (id, actor_id, actor_email, action, target_type, target_id, details, created_at) "
+                "VALUES (:id, :actor_id, :actor_email, :action, :target_type, :target_id, :details, :created_at)"
+            ), {
+                "id": uuid.uuid4(),
+                "actor_id": str(actor.id),
+                "actor_email": actor.email,
+                "action": action,
+                "target_type": target_type,
+                "target_id": target_id,
+                "details": json.dumps(details) if details else None,
+                "created_at": datetime.utcnow(),
+            })
+    except Exception as e:
+        log.warning(f"audit_log skipped ({action}): {e}")
 
 # ── INLINE SCHEMAS (Fixes No module named 'app.schemas') ─────────────────────
 class ISPInviteResponse(BaseModel):
@@ -103,7 +117,8 @@ async def generate_invite(
     invite_link = f"https://wi-bill.vercel.app/join?ref={token}"
 
     await log_action(db, current_user, 'generate_invite', 'isp_invite', str(invite.id), {'isp_name': request.isp_name})
-    
+    await db.commit()
+
     return ISPInviteResponse(
         id=str(invite.id),
         token=invite.token,
@@ -266,5 +281,5 @@ async def approve_tenant(
     await log_action(db, current_user, 'approve_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
     await db.refresh(tenant)
-    
-    return TenantResponse(id=tenant.id, status="active")
+
+    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
