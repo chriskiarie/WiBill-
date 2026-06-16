@@ -36,6 +36,16 @@ const nav = [
 const W = 228
 const W_COLLAPSED = 60
 
+const C = {
+  bg: '#050505',
+  border: '#131313',
+  gold: '#E8B84B',
+  text: '#EDEBE6',
+  dim: '#6B6964',
+  green: '#6FCF73',
+  cardBg: '#111110',
+}
+
 export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: number }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -48,7 +58,6 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const isAdmin = pathname.startsWith('/admin')
   const w = collapsed ? W_COLLAPSED : W
 
-  const initials = user?.tenant_name ? user.tenant_name.slice(0, 2).toUpperCase() : user?.email?.slice(0, 2).toUpperCase() || 'IS'
   const ispName = user?.tenant_name || (user?.email?.split('@')[0] || 'My ISP')
 
   const activeHref = nav.flatMap(s => s.items).find(i => {
@@ -87,125 +96,67 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   return (
     <aside style={{
       width: w, minWidth: w, overflow: 'hidden',
-      background: isAdmin ? '#030308' : '#050505',
-      borderRight: isAdmin ? '1px solid rgba(250,200,0,0.12)' : '0.5px solid #131313',
+      background: isAdmin ? '#030308' : C.bg,
+      borderRight: isAdmin ? '1px solid rgba(250,200,0,0.12)' : `0.5px solid ${C.border}`,
       display: 'flex', flexDirection: 'column', height: '100vh',
       position: 'sticky', top: 0,
       transition: 'width 0.3s cubic-bezier(0.19, 1, 0.22, 1)',
     }}>
-      {/* ── HEADER ── */}
+      {/* ── BRAND ROW (64px) ── */}
       <div style={{
-        padding: collapsed ? '16px 0' : '22px 20px 18px',
+        height: 64, minHeight: 64,
+        padding: collapsed ? '0' : '0 16px',
+        display: 'flex', alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'space-between',
         borderBottom: '0.5px solid #0f0f0f',
-        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
-        flexDirection: collapsed ? 'column' : 'row',
-        gap: collapsed ? 8 : 0,
       }}>
         {!collapsed && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: C.gold, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0,
+            }}>
               <span style={{
-                fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800,
-                letterSpacing: '-0.5px', color: isAdmin ? '#fac800' : '#fff',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 15, fontWeight: 700, color: '#3D2A06',
               }}>
-                WiBill
-              </span>
-              <span style={{
-                fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 700,
-                color: isAdmin ? '#fac800' : '#E8B84B', letterSpacing: '0.05em',
-              }}>
-                ISP
+                W
               </span>
             </div>
-            <div style={{ fontSize: 9, color: isAdmin ? '#fac800' : '#222', letterSpacing: '0.6px', fontWeight: 700, marginTop: 3 }}>
-              {isAdmin ? 'BATCAVE COMMAND SYSTEM' : 'ISP MANAGEMENT PORTAL'}
-            </div>
-          </>
+            <span style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 16, fontWeight: 600, color: C.text,
+            }}>
+              WiBill
+            </span>
+          </div>
         )}
         {collapsed && (
-          <span style={{
-            fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 800,
-            color: isAdmin ? '#fac800' : '#E8B84B', lineHeight: 1,
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: C.gold, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0,
           }}>
-            W
-          </span>
+            <span style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 15, fontWeight: 700, color: '#3D2A06',
+            }}>
+              W
+            </span>
+          </div>
         )}
 
         <button
           onClick={() => setCollapsed(!collapsed)}
           style={{
-            marginTop: collapsed ? 6 : 0,
             width: 22, height: 22, borderRadius: 6,
-            background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)',
+            background: 'transparent', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: '#333',
-            transition: 'all 0.2s',
+            cursor: 'pointer', color: C.dim,
           }}>
-          {collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
-      </div>
-
-      {/* ── USER / LIVE CONTEXT ── */}
-      <div style={{
-        padding: collapsed ? '10px 0' : '12px 16px',
-        borderBottom: '0.5px solid #0d0d0d',
-        display: 'flex',
-        flexDirection: collapsed ? 'column' : 'row',
-        alignItems: collapsed ? 'center' : 'center',
-        gap: collapsed ? 6 : 10,
-      }}>
-        <div style={{
-          width: collapsed ? 28 : 34,
-          height: collapsed ? 28 : 34,
-          borderRadius: 9,
-          background: isAdmin ? 'rgba(250,200,0,0.08)' : '#06132a',
-          border: isAdmin ? '1px solid rgba(250,200,0,0.2)' : '0.5px solid #1a3a6e',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'DM Mono, monospace', fontSize: collapsed ? 9 : 12,
-          fontWeight: 500, color: isAdmin ? '#fac800' : '#3b82f6',
-          flexShrink: 0,
-        }}>
-          {initials}
-        </div>
-
-        {!collapsed && (
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {ispName}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAdmin ? '#fac800' : '#22c55e', display: 'inline-block' }} />
-              <span style={{ fontSize: 9, color: isAdmin ? '#fac800' : '#22c55e', fontFamily: 'DM Mono, monospace', fontWeight: 500 }}>
-                {isAdmin ? 'BATCAVE ACTIVE' : 'LIVE'}
-              </span>
-            </div>
-
-            {liveData.loaded && (
-              <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 3,
-                  padding: '2px 6px', borderRadius: 4,
-                  background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.08)',
-                }}>
-                  <DollarSign size={8} color="#E8B84B" />
-                  <span style={{ fontSize: 8, fontFamily: 'DM Mono, monospace', color: '#E8B84B', fontWeight: 600 }}>
-                    {liveData.revenue.toLocaleString()}
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 3,
-                  padding: '2px 6px', borderRadius: 4,
-                  background: 'rgba(34,197,94,0.06)', border: '0.5px solid rgba(34,197,94,0.08)',
-                }}>
-                  <Users size={8} color="#22c55e" />
-                  <span style={{ fontSize: 8, fontFamily: 'DM Mono, monospace', color: '#22c55e', fontWeight: 600 }}>
-                    {liveData.sessions}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── NAV ── */}
@@ -217,7 +168,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           <div style={{
             position: 'absolute', left: 0, width: 2,
             top: indicatorTop, height: 32,
-            background: isAdmin ? '#fac800' : '#E8B84B',
+            background: isAdmin ? '#fac800' : C.gold,
             borderRadius: '0 3px 3px 0',
             transition: 'top 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s',
             opacity: 0.7,
@@ -231,7 +182,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
               <div style={{
                 fontSize: 9, color: '#1e1e1e', textTransform: 'uppercase',
                 letterSpacing: '1.2px', padding: '0 10px', marginBottom: 6, fontWeight: 700,
-                fontFamily: '"Space Grotesk", sans-serif',
+                fontFamily: "'Space Grotesk', sans-serif",
               }}>
                 {section.label}
               </div>
@@ -255,7 +206,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       width: 36, height: 36, borderRadius: 8,
                       background: active ? 'rgba(232,184,75,0.08)' : 'transparent',
-                      color: active ? '#E8B84B' : '#252525',
+                      color: active ? C.gold : '#252525',
                       transition: 'all 0.15s',
                     }}>
                       <item.icon size={16} />
@@ -280,20 +231,20 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '7px 10px', borderRadius: 8, marginBottom: 1,
                     background: active ? 'rgba(232,184,75,0.06)' : 'transparent',
-                    color: active ? '#E8B84B' : '#2e2e2e',
+                    color: active ? C.gold : '#2e2e2e',
                     fontWeight: active ? 700 : 400, fontSize: 12,
                     cursor: 'pointer', position: 'relative',
                     transition: 'all 0.15s',
                   }}>
-                    <item.icon size={14} color={active ? '#E8B84B' : '#252525'} />
+                    <item.icon size={14} color={active ? C.gold : '#252525'} />
                     <span>{item.label}</span>
 
                     {item.label === 'Sessions' && liveData.sessions > 0 && (
                       <span style={{
                         marginLeft: 'auto',
-                        background: 'rgba(232,184,75,0.08)', color: '#E8B84B',
+                        background: 'rgba(232,184,75,0.08)', color: C.gold,
                         fontSize: 9, padding: '2px 7px', borderRadius: 10,
-                        fontFamily: 'DM Mono, monospace',
+                        fontFamily: "'DM Mono', monospace",
                       }}>
                         {liveData.sessions}
                       </span>
@@ -305,6 +256,42 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           </div>
         ))}
       </nav>
+
+      {/* ── TENANT STATUS CARD ── */}
+      {!collapsed && liveData.loaded && (
+        <div style={{
+          margin: '0 8px 4px', padding: '10px 12px',
+          background: C.cardBg, borderRadius: 8,
+          borderTop: '0.5px solid #1E1E1B',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 12,
+              fontWeight: 500, color: C.text, overflow: 'hidden',
+              textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+            }}>
+              {ispName}
+            </span>
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontFamily: 'Inter, sans-serif', fontSize: 11,
+              color: C.green, marginLeft: 8, flexShrink: 0,
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: C.green, display: 'inline-block',
+              }} />
+              LIVE
+            </span>
+          </div>
+          <div style={{
+            fontFamily: "'DM Mono', monospace", fontSize: 11,
+            color: C.dim, marginTop: 4,
+          }}>
+            ${liveData.revenue.toLocaleString()} · K:{liveData.sessions}
+          </div>
+        </div>
+      )}
 
       {/* ── FOOTER ── */}
       <div style={{ padding: collapsed ? '8px 0' : '10px 10px', borderTop: '0.5px solid #0d0d0d' }}>

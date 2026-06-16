@@ -95,7 +95,7 @@ export default function SessionsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title={tab === 'active' ? `Live Sessions (${activeCount})` : 'Session History'} />
+      <Topbar title="Sessions" subsection={tab === 'active' ? `Active (${activeCount})` : 'History'} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: '#030303', display: 'flex', gap: 16 }}>
         {/* Main content */}
         <div style={{ flex: 1, minWidth: 0 }}>

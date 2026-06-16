@@ -98,7 +98,7 @@ export default function NetworkPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title="Network Status" />
+      <Topbar title="Network" subsection="Status" />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void, color: C.text }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Network Status</h1>
