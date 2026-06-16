@@ -291,16 +291,17 @@ export default function CampaignsPage() {
                 </div>
                 <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Audience *</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  {audienceOptions.map(a => {
-                    const active = form.audience === a.value
+                  {audienceOptions.map(opt => {
+                    const active = form.audience === opt.value
+                    const Icon = opt.icon
                     return (
-                      <button key={a.value} type="button" onClick={() => setForm(p => ({ ...p, audience: a.value }))}
+                      <button key={opt.value} type="button" onClick={() => setForm(p => ({ ...p, audience: opt.value }))}
                         style={{ padding: '10px 12px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'left', background: active ? C.gold : '#080808', border: `0.5px solid ${active ? C.gold : C.border2}`, color: active ? '#000' : C.dim }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                          <a.icon size={13} />
-                          <span>{a.label}</span>
+                          <Icon size={13} />
+                          <span>{opt.label}</span>
                         </div>
-                        {a.desc && <div style={{ fontSize: 8, fontWeight: 400, opacity: 0.6 }}>{a.desc}</div>}
+                        {opt.desc && <div style={{ fontSize: 8, fontWeight: 400, opacity: 0.6 }}>{opt.desc}</div>}
                       </button>
                     )
                   })}
