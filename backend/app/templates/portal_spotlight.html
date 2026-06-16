@@ -505,6 +505,60 @@
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* ── Activation Overlay ── */
+        .activation-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--bg-primary);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 20px; animation: fadeIn 0.3s ease;
+        }
+
+        .activation-overlay.show { display: flex; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .activation-wifi {
+            width: 64px; height: 64px;
+            position: relative; animation: wifiPulse 1.5s ease-in-out infinite;
+        }
+
+        .activation-wifi svg { width: 100%; height: 100%; }
+
+        @keyframes wifiPulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.15); opacity: 1; }
+        }
+
+        .activation-title {
+            font-family: var(--font-display);
+            font-size: 1.4rem; font-weight: 700;
+            color: var(--text-primary); letter-spacing: -0.01em;
+        }
+
+        .activation-sub {
+            font-size: 0.9rem; color: var(--text-secondary);
+        }
+
+        .activation-bar {
+            width: 160px; height: 3px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 99px; overflow: hidden; margin-top: 8px;
+        }
+
+        .activation-bar-fill {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 99px; animation: barFill 2.5s ease forwards;
+        }
+
+        @keyframes barFill {
+            0% { width: 0%; }
+            40% { width: 45%; }
+            80% { width: 80%; }
+            100% { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -580,6 +634,21 @@
         {% endif %}
     </div>
 
+    <!-- Activation Overlay -->
+    <div id="activation-overlay" class="activation-overlay">
+        <div class="activation-wifi">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <circle cx="12" cy="20" r="1"/>
+            </svg>
+        </div>
+        <div class="activation-title">Activating to WiFi</div>
+        <div class="activation-sub">Connecting your device to the network</div>
+        <div class="activation-bar"><div class="activation-bar-fill"></div></div>
+    </div>
+
     <!-- Payment Modal -->
     <div id="payment-modal" class="payment-modal" style="display: none;">
         <div class="payment-modal-content">
@@ -650,9 +719,8 @@
                 try { data = JSON.parse(text); } catch { data = { detail: text || 'Server error' }; }
 
                 if (response.ok) {
-                    setVoucherGlow('glow-green');
-                    showVoucherMessage(data.message || 'Voucher redeemed!', 'success');
-                    setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 1500);
+                    document.getElementById('activation-overlay').classList.add('show');
+                    setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 2500);
                     return;
                 }
 
