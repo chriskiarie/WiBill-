@@ -14,8 +14,11 @@ from app.models.mpesa_config import MpesaConfig, MpesaConfigStatus
 from app.models.mpesa_transaction import MpesaTransaction, MpesaTransactionStatus, MpesaTransactionType
 from app.models.invoice import Invoice, InvoiceStatus
 from app.models.session import Session
+from app.models.mikrotik_config import MikrotikConfig
+from app.models.package import Package
 from app.services.daraja_service import initiate_stk_push, query_stk_status
-from app.services.crypto_service import encrypt
+from app.services.crypto_service import encrypt, decrypt
+from app.services.mikrotik_service import create_hotspot_user
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -299,23 +302,74 @@ async def _handle_invoice_paid(txn: MpesaTransaction, db: AsyncSession):
 
 
 async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
-    """Activate session after successful payment and update the Transaction record."""
+    """Activate session after successful payment and provision MikroTik user."""
     result = await db.execute(select(Session).where(Session.id == txn.reference_id))
     session = result.scalar_one_or_none()
-    if session:
-        session.status = "active"
-        logger.info(f"Session {session.id} activated after payment")
+    if not session:
+        return
 
-        # Also update the ISP dashboard Transaction record with receipt info
-        from app.models.transaction import Transaction
-        txn_result = await db.execute(
-            select(Transaction).where(Transaction.session_id == session.id)
+    session.status = "active"
+    logger.info(f"Session {session.id} activated after payment")
+
+    # Update the ISP dashboard Transaction record with receipt info
+    from app.models.transaction import Transaction
+    txn_result = await db.execute(
+        select(Transaction).where(Transaction.session_id == session.id)
+    )
+    dashboard_txn = txn_result.scalar_one_or_none()
+    if dashboard_txn:
+        dashboard_txn.status = "success"
+        dashboard_txn.mpesa_receipt = txn.mpesa_receipt_number
+        dashboard_txn.confirmed_at = datetime.utcnow()
+
+    # Provision MikroTik user if router is configured
+    try:
+        mk_result = await db.execute(
+            select(MikrotikConfig).where(MikrotikConfig.tenant_id == session.tenant_id)
         )
-        dashboard_txn = txn_result.scalar_one_or_none()
-        if dashboard_txn:
-            dashboard_txn.status = "success"
-            dashboard_txn.mpesa_receipt = txn.mpesa_receipt_number
-            dashboard_txn.confirmed_at = datetime.utcnow()
+        mk_cfg = mk_result.scalar_one_or_none()
+
+        if mk_cfg:
+            api_password = decrypt(mk_cfg.api_password_enc)
+            duration_m = 0
+            speed_kbps = None
+
+            if session.package_id:
+                pkg_result = await db.execute(
+                    select(Package).where(Package.id == session.package_id)
+                )
+                pkg = pkg_result.scalar_one_or_none()
+                if pkg:
+                    duration_m = int(pkg.duration_hours * 60) if pkg.duration_hours else 60
+                    speed_kbps = getattr(pkg, 'speed_limit_kbps', None)
+
+            if duration_m <= 0:
+                from datetime import timedelta
+                remaining = session.expires_at - session.created_at
+                duration_m = max(1, int(remaining.total_seconds() / 60))
+
+            mk_result = await create_hotspot_user(
+                host=mk_cfg.router_ip,
+                port=mk_cfg.api_port,
+                username=mk_cfg.api_username,
+                password=api_password,
+                mac_address=session.mac_address,
+                duration_minutes=duration_m,
+                session_id=str(session.id),
+                profile_name=mk_cfg.hotspot_profile_name or "WiBill_Profile",
+                speed_limit_kbps=speed_kbps,
+            )
+
+            if mk_result.get("success"):
+                session.mikrotik_user_id = mk_result.get("user_id")
+                logger.info(f"MikroTik provisioned for session {session.id}: {mk_result['user_id']}")
+            else:
+                logger.warning(f"MikroTik provisioning failed for session {session.id}: {mk_result['message']}")
+        else:
+            logger.info(f"No MikroTik config for tenant {session.tenant_id}, skipping provisioning")
+
+    except Exception as e:
+        logger.error(f"MikroTik provisioning error for session {session.id}: {e}")
 
 
 def _parse_mpesa_date(date_int) -> datetime | None:

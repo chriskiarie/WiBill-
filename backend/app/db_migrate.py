@@ -139,6 +139,43 @@ MIGRATIONS = [
     ("notifications index", """
         CREATE INDEX IF NOT EXISTS ix_notifications_target_tenant_id ON notifications(target_tenant_id)
     """),
+    # ── MikroTik Phase 2 columns ────────────────────────────────────────────
+    ("mikrotik_configs.hotspot_profile_name", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS hotspot_profile_name VARCHAR(255) NOT NULL DEFAULT 'WiBill_Profile'
+    """),
+    ("mikrotik_configs.status", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'DISCONNECTED'
+    """),
+    ("mikrotik_configs.last_connected_at", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS last_connected_at TIMESTAMP WITH TIME ZONE
+    """),
+    ("mikrotik_configs.last_error_message", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS last_error_message TEXT
+    """),
+    ("mikrotik_configs.notes", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS notes TEXT
+    """),
+    ("mikrotik_active_users table", """
+        CREATE TABLE IF NOT EXISTS mikrotik_active_users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            router_id UUID NOT NULL REFERENCES mikrotik_configs(id) ON DELETE CASCADE,
+            session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE UNIQUE,
+            mac_address VARCHAR(17) NOT NULL,
+            username_on_router VARCHAR(255),
+            duration_minutes INTEGER NOT NULL,
+            speed_limit_kbps INTEGER,
+            bandwidth_limit_gb NUMERIC(10,2),
+            activated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+            deactivated_at TIMESTAMP WITH TIME ZONE,
+            status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("mikrotik_active_users index", """
+        CREATE INDEX IF NOT EXISTS ix_mikrotik_active_users_mac_address ON mikrotik_active_users(mac_address)
+    """),
 ]
 
 

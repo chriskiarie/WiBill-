@@ -114,7 +114,7 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices
+from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices, mikrotik
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
@@ -150,6 +150,7 @@ app.include_router(campaigns.router, prefix="/api/campaigns", tags=["campaigns"]
 app.include_router(admin_feature_flags.router, prefix="/api", tags=["admin-feature-flags"])
 app.include_router(admin_audit_log.router, prefix="/api", tags=["admin-audit-log"])
 app.include_router(admin_comms.router, prefix="/api", tags=["admin-comms"])
+app.include_router(mikrotik.router, prefix="/api", tags=["mikrotik"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

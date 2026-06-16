@@ -6,6 +6,7 @@ from app.models.transaction import Transaction, TransactionStatus
 from app.models.network_event import NetworkEvent, NetworkStatus
 from app.models.mpesa_config import MpesaConfig, DarajaEnvironment, MpesaConfigStatus
 from app.models.mikrotik_config import MikrotikConfig
+from app.models.mikrotik_active_user import MikrotikActiveUser
 from app.models.mpesa_callback import MpesaCallback
 from app.models.isp_invite import ISPInvite, InviteStatus
 from app.models.mpesa_transaction import MpesaTransaction, MpesaTransactionType, MpesaTransactionStatus
@@ -33,6 +34,7 @@ __all__ = [
     "DarajaEnvironment",
     "MpesaConfigStatus",
     "MikrotikConfig",
+    "MikrotikActiveUser",
     "MpesaCallback",
     "ISPInvite",
     "InviteStatus",

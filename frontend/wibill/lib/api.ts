@@ -156,16 +156,26 @@ export const api = {
    // ========================================================================
    // MIKROTIK
    // ========================================================================
-   getMikrotikConfig: () => request<any>('/api/tenants/mikrotik'),
+   getMikrotikConfig: () => request<any>('/api/mikrotik/config'),
    saveMikrotikConfig: (data: any) =>
-     request('/api/tenants/mikrotik', { method: 'POST', body: JSON.stringify(data) }),
-   getMikrotikUsers: () => request<any[]>('/api/tenants/mikrotik/users'),
-   getMikrotikUser: (username: string) =>
-     request<any>(`/api/tenants/mikrotik/users/${username}`),
-   disconnectMikrotikUser: (username: string) =>
-     request(`/api/tenants/mikrotik/users/${username}/disconnect`, { method: 'POST' }),
+     request('/api/mikrotik/config', { method: 'POST', body: JSON.stringify(data) }),
+   updateMikrotikConfig: (data: any) =>
+     request('/api/mikrotik/config', { method: 'PATCH', body: JSON.stringify(data) }),
    testMikrotikConnection: () =>
-     request<{ status: boolean; message: string }>('/api/tenants/mikrotik/test'),
+     request<{ ok: boolean; message: string; info?: any }>('/api/mikrotik/test'),
+   testMikrotikRaw: (data: any) =>
+     request<{ ok: boolean; message: string; info?: any }>('/api/mikrotik/test-raw', { method: 'POST', body: JSON.stringify(data) }),
+   getMikrotikHealth: () =>
+     request<any>('/api/mikrotik/health'),
+   getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
+   getMikrotikUser: (mac: string) =>
+     request<any>(`/api/mikrotik/users/${encodeURIComponent(mac)}`),
+   disconnectMikrotikUser: (mac: string) =>
+     request(`/api/mikrotik/users/${encodeURIComponent(mac)}/disconnect`, { method: 'POST' }),
+   getMikrotikExplore: () =>
+     request<any>('/api/mikrotik/explore'),
+   getMikrotikInitScript: () =>
+     request<any>('/api/mikrotik/init-script'),
 
     // ========================================================================
     // INVOICES

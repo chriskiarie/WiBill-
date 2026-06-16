@@ -1,12 +1,17 @@
 ﻿"""
 app/jobs/session_expiry.py
+Finds expired sessions, removes hotspot users from MikroTik, marks sessions expired.
+Runs every 60s via APScheduler.
 """
 import logging
 from sqlalchemy import select, and_
 from datetime import datetime, timezone
 from app.core.database import AsyncSessionLocal
 from app.models.session import Session, SessionStatus
+from app.models.mikrotik_config import MikrotikConfig
+from app.models.mikrotik_active_user import MikrotikActiveUser
 from app.services.mikrotik_service import remove_hotspot_user_by_session
+from app.services.crypto_service import decrypt
 
 logger = logging.getLogger("honestbill.expiry")
 
@@ -17,7 +22,6 @@ async def expire_sessions():
         async with AsyncSessionLocal() as db:
             now = datetime.utcnow()
 
-            # Compare against string value since column is VARCHAR
             result = await db.execute(
                 select(Session).where(
                     and_(
@@ -35,13 +39,28 @@ async def expire_sessions():
 
             for session in sessions:
                 try:
-                    removed = await remove_hotspot_user_by_session(
-                        session.tenant_id, str(session.id), db
+                    # Fetch router config for this tenant
+                    mk_result = await db.execute(
+                        select(MikrotikConfig).where(
+                            MikrotikConfig.tenant_id == session.tenant_id
+                        )
                     )
-                    if removed:
-                        logger.info(f"Removed MAC={session.mac_address} from MikroTik")
+                    mk_cfg = mk_result.scalar_one_or_none()
 
-                    # Write string value, not enum object
+                    if mk_cfg:
+                        api_password = decrypt(mk_cfg.api_password_enc)
+                        removed = await remove_hotspot_user_by_session(
+                            host=mk_cfg.router_ip,
+                            port=mk_cfg.api_port,
+                            username=mk_cfg.api_username,
+                            password=api_password,
+                            session_id=str(session.id),
+                        )
+                        if removed.get("success"):
+                            logger.info(f"Removed session {session.id} from MikroTik")
+                        else:
+                            logger.warning(f"MikroTik removal failed for session {session.id}: {removed.get('message')}")
+
                     session.status = SessionStatus.EXPIRED.value
                     logger.info(f"Session {session.id} marked EXPIRED")
 

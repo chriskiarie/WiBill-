@@ -1,11 +1,24 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Router, CheckCircle, XCircle, Activity, Users, Wifi, HardDrive } from 'lucide-react'
+import { Router, CheckCircle, XCircle, Activity, Users, Wifi, HardDrive, Terminal, Download, RefreshCw, Server, Cpu, Clock, Zap } from 'lucide-react'
+
+const C = {
+  void: '#000000',
+  base: '#0a0a0a',
+  border: '#141414',
+  border2: '#1a1a1a',
+  text: '#f0f0f0',
+  dim: '#666666',
+  mute: '#2a2a2a',
+  gold: '#E8B84B',
+  green: '#22c55e',
+  red: '#ef4444',
+}
 
 export default function MikrotikPage() {
   const { token } = useAuth()
@@ -17,9 +30,23 @@ export default function MikrotikPage() {
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [testResult, setTestResult] = useState<any>(null)
-  const [form, setForm] = useState({ router_ip: '', api_port: '8728', api_username: '', api_password: '', hotspot_server: 'hotspot1' })
+  const [health, setHealth] = useState<any>(null)
+  const [activeUsers, setActiveUsers] = useState<any[]>([])
+  const [initScript, setInitScript] = useState<any>(null)
+  const [showScript, setShowScript] = useState(false)
+  const [tab, setTab] = useState<'config' | 'users' | 'script'>('config')
+  const [form, setForm] = useState({
+    router_ip: '',
+    api_port: '8728',
+    api_username: '',
+    api_password: '',
+    hotspot_server: 'hotspot1',
+    hotspot_profile_name: 'WiBill_Profile',
+    nas_ip_address: '',
+    notes: '',
+  })
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     if (!token) return
     setLoading(true)
     try {
@@ -31,9 +58,63 @@ export default function MikrotikPage() {
         api_username: data.api_username || '',
         api_password: '',
         hotspot_server: data.hotspot_server || 'hotspot1',
+        hotspot_profile_name: data.hotspot_profile_name || 'WiBill_Profile',
+        nas_ip_address: data.nas_ip_address || '',
+        notes: data.notes || '',
       })
-      setShowForm(false)
+      fetchHealth()
     } catch { setConfig(null); setShowForm(true) } finally { setLoading(false) }
+  }, [token])
+
+  const fetchHealth = async () => {
+    try {
+      const h = await api.getMikrotikHealth()
+      setHealth(h)
+    } catch { setHealth(null) }
+  }
+
+  const fetchActiveUsers = async () => {
+    try {
+      const u = await api.getMikrotikUsers()
+      setActiveUsers(u || [])
+    } catch { setActiveUsers([]) }
+  }
+
+  useEffect(() => { fetchConfig() }, [fetchConfig])
+
+  useEffect(() => {
+    if (!config) return
+    fetchHealth()
+    fetchActiveUsers()
+    const interval = setInterval(() => {
+      fetchHealth()
+      fetchActiveUsers()
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [config])
+
+  const handleTestRaw = async () => {
+    if (!form.router_ip || !form.api_username) {
+      showToast('Router IP and username required', { type: 'error' })
+      return
+    }
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const result = await api.testMikrotikRaw({
+        router_ip: form.router_ip,
+        api_port: parseInt(form.api_port) || 8728,
+        api_username: form.api_username,
+        api_password: form.api_password || 'test',
+        hotspot_server: form.hotspot_server,
+        hotspot_profile_name: form.hotspot_profile_name,
+      })
+      setTestResult(result)
+      showToast(`Connected: ${result.message}`, { type: 'success' })
+    } catch (e: any) {
+      setTestResult({ ok: false, message: e.message || 'Connection failed' })
+      showToast(e.message || 'Connection failed', { type: 'error' })
+    } finally { setTesting(false) }
   }
 
   const handleTest = async () => {
@@ -42,168 +123,410 @@ export default function MikrotikPage() {
     try {
       const result = await api.testMikrotikConnection()
       setTestResult(result)
-      if (result.status) {
-        showToast('Router connected!', { type: 'success' })
-      } else {
-        showToast(result.message || 'Connection failed', { type: 'error' })
-      }
+      showToast(`Router: ${result.message}`, { type: 'success' })
+      fetchHealth()
     } catch (e: any) {
-      setTestResult({ status: false, message: e.message })
-      showToast(e.message || 'Test failed', { type: 'error' })
+      setTestResult({ ok: false, message: e.message || 'Connection failed' })
+      showToast(e.message || 'Connection failed', { type: 'error' })
     } finally { setTesting(false) }
   }
 
-  useEffect(() => { fetchConfig() }, [token])
-
   const handleSave = async () => {
-    if (!form.router_ip || !form.api_username) { showToast('Router IP and username required', { type: 'error' }); return }
+    if (!form.router_ip || !form.api_username) {
+      showToast('Router IP and username required', { type: 'error' })
+      return
+    }
     setSaving(true)
     try {
-      await api.saveMikrotikConfig({
-        router_ip: form.router_ip,
-        api_port: parseInt(form.api_port) || 8728,
-        api_username: form.api_username,
-        api_password: form.api_password || undefined,
-        hotspot_server: form.hotspot_server,
-      })
-      showToast('MikroTik config saved', { type: 'success' })
+      if (config) {
+        await api.updateMikrotikConfig({
+          router_ip: form.router_ip,
+          api_port: parseInt(form.api_port) || 8728,
+          api_username: form.api_username,
+          api_password: form.api_password || undefined,
+          hotspot_server: form.hotspot_server,
+          hotspot_profile_name: form.hotspot_profile_name,
+          nas_ip_address: form.nas_ip_address || undefined,
+          notes: form.notes || undefined,
+        })
+      } else {
+        await api.saveMikrotikConfig({
+          router_ip: form.router_ip,
+          api_port: parseInt(form.api_port) || 8728,
+          api_username: form.api_username,
+          api_password: form.api_password,
+          hotspot_server: form.hotspot_server,
+          hotspot_profile_name: form.hotspot_profile_name,
+          nas_ip_address: form.nas_ip_address || undefined,
+          notes: form.notes || undefined,
+        })
+      }
+      showToast('Configuration saved', { type: 'success' })
+      setShowForm(false)
       fetchConfig()
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setSaving(false) }
   }
 
-  const StatusBadge = ({ ok, label, labelOk, labelFail }: { ok: boolean; label: string; labelOk?: string; labelFail?: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: ok ? '#030d06' : '#0d0303', border: `0.5px solid ${ok ? '#0a2214' : '#220a0a'}`, borderRadius: 8 }}>
-      {ok ? <CheckCircle size={16} color="#22c55e" /> : <XCircle size={16} color="#f87171" />}
-      <div>
-        <div style={{ fontSize: 11, color: '#888' }}>{label}</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: ok ? '#22c55e' : '#f87171' }}>{ok ? (labelOk || 'Connected') : (labelFail || 'Disconnected')}</div>
-      </div>
+  const handleInitScript = async () => {
+    try {
+      const data = await api.getMikrotikInitScript()
+      setInitScript(data)
+      setShowScript(true)
+    } catch (e: any) {
+      showToast(e.message || 'Failed to generate script', { type: 'error' })
+    }
+  }
+
+  const copyScript = () => {
+    if (!initScript) return
+    navigator.clipboard.writeText(initScript.script)
+    showToast('Script copied to clipboard', { type: 'success' })
+  }
+
+  const downloadScript = () => {
+    if (!initScript) return
+    const blob = new Blob([initScript.script], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = initScript.filename || 'wibill_init.rsc'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const f = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  const Input = ({ label, value, onChange, placeholder, type, mono }: {
+    label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean
+  }) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>{label}</label>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'}
+        style={{
+          width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7,
+          color: '#e0e0e0', fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
+          boxSizing: 'border-box', outline: 'none',
+        }} />
     </div>
   )
+
+  const Card = ({ children, style }: any) => (
+    <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, ...style }}>
+      {children}
+    </div>
+  )
+
+  const StatCard = ({ icon, label, value, color }: { icon: any; label: string; value: string; color?: string }) => (
+    <div style={{ background: '#0a0a0a', borderRadius: 8, padding: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        {icon}
+        <span style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>{label}</span>
+      </div>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: color || C.text }}>{value || '—'}</div>
+    </div>
+  )
+
+  const statusColor = (s: string) => s === 'CONNECTED' ? C.green : s === 'ERROR' ? C.red : C.dim
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="MikroTik" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: '#030303' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Router Configuration</h1>
-            <div style={{ fontSize: 11, color: '#444', marginTop: 4 }}>MikroTik RouterOS hotspot integration</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>MikroTik</h1>
+              {config && (
+                <span style={{
+                  padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 700, fontFamily: 'DM Mono, monospace',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  background: config.status === 'CONNECTED' ? '#030d06' : config.status === 'ERROR' ? '#0d0303' : '#0a0a0a',
+                  color: statusColor(config.status), border: `0.5px solid ${statusColor(config.status)}22`,
+                }}>
+                  {config.status || 'DISCONNECTED'}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>RouterOS hotspot integration</div>
           </div>
-          {config && !showForm && (
-            <button onClick={() => setShowForm(true)} style={{ padding: '8px 16px', background: '#141414', border: '0.5px solid #2a2a2a', borderRadius: 7, color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-              Edit Config
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {config && (
+              <>
+                <button onClick={fetchHealth} style={{ padding: '8px 14px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <RefreshCw size={13} /> Refresh
+                </button>
+                <button onClick={() => setShowForm(true)} style={{ padding: '8px 14px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                  Edit Config
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {loading ? (
           <LoadingSpinner size="md" label="Loading router config..." />
         ) : (
-          <div style={{ maxWidth: 600 }}>
-            {/* Saved Config Display */}
+          <div style={{ maxWidth: 720 }}>
             {config && !showForm && (
               <>
-                <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 20, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                    <Router size={20} color="#3b82f6" />
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#888' }}>ROUTER CONFIG</div>
-                  </div>
-
-                  <div style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
-                    <StatusBadge ok={true} label="Connection" labelOk={`${config.router_ip}:${config.api_port}`} />
-                    <StatusBadge ok={!!config.router_ip} label="Status" />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div style={{ background: '#0a0a0a', borderRadius: 8, padding: 14 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <Users size={14} color="#22c55e" />
-                        <span style={{ fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>Active Users</span>
-                      </div>
-                      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: '#22c55e' }}>—</div>
-                    </div>
-                    <div style={{ background: '#0a0a0a', borderRadius: 8, padding: 14 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <HardDrive size={14} color="#f59e0b" />
-                        <span style={{ fontSize: 9, color: '#444', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>Hotspot</span>
-                      </div>
-                      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: '#f59e0b' }}>{config.hotspot_server || 'hotspot1'}</div>
-                    </div>
-                  </div>
+                {/* Tab Navigation */}
+                <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                  {[
+                    { id: 'config', label: 'Dashboard' },
+                    { id: 'users', label: `Active Users (${activeUsers.length})` },
+                    { id: 'script', label: 'Init Script' },
+                  ].map(t => (
+                    <button key={t.id} onClick={() => setTab(t.id as any)}
+                      style={{
+                        padding: '8px 16px', background: tab === t.id ? '#141414' : 'transparent',
+                        border: `0.5px solid ${tab === t.id ? C.border2 : 'transparent'}`, borderRadius: 7,
+                        color: tab === t.id ? C.text : C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      }}>
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
 
-                <button onClick={handleTest} disabled={testing} style={{ width: '100%', padding: 12, background: '#3b82f6', border: 'none', borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.7 : 1, marginBottom: 8 }}>
-                  {testing ? 'Testing Connection...' : 'Test Router Connection'}
-                </button>
+                {/* Dashboard Tab */}
+                {tab === 'config' && (
+                  <>
+                    {/* Health Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+                      <StatCard icon={<Server size={14} color={C.gold} />} label="Router" value={health?.stats?.identity || config.router_ip} />
+                      <StatCard icon={<Cpu size={14} color="#3b82f6" />} label="CPU Load" value={health?.stats?.cpu_load != null ? `${health.stats.cpu_load}%` : '—'} color={health?.stats?.cpu_load > 80 ? C.red : C.text} />
+                      <StatCard icon={<Activity size={14} color={C.green} />} label="Memory" value={health?.stats?.memory_usage_pct != null ? `${health.stats.memory_usage_pct}%` : '—'} />
+                      <StatCard icon={<Users size={14} color={C.gold} />} label="Active Users" value={health?.stats?.active_users_count != null ? String(health.stats.active_users_count) : '—'} color={C.gold} />
+                    </div>
 
-                {testResult && (
-                  <div style={{ padding: 12, background: testResult.status ? '#030d06' : '#0d0303', border: `0.5px solid ${testResult.status ? '#0a2214' : '#220a0a'}`, borderRadius: 7, fontSize: 11, color: testResult.status ? '#22c55e' : '#f87171' }}>
-                    {testResult.message || (testResult.status ? 'Router connected successfully' : 'Connection failed')}
-                  </div>
+                    {/* Connection Status */}
+                    <Card style={{ marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                        {health?.connected ? <CheckCircle size={18} color={C.green} /> : <XCircle size={18} color={C.red} />}
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                            {health?.connected ? 'Router Connected' : 'Router Unreachable'}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.dim }}>
+                            {health?.stats?.version ? `v${health.stats.version} · ${health.stats.board_name}` : config.router_ip}:{config.api_port}
+                          </div>
+                        </div>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                          {health?.stats?.uptime && (
+                            <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                              <Clock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                              Uptime: {health.stats.uptime}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Server</div>
+                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_server || 'hotspot1'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Profile</div>
+                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_profile_name || 'WiBill_Profile'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Username</div>
+                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.api_username}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>NAS/IP</div>
+                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.nas_ip_address || config.router_ip}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Actions */}
+                    <Card>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={handleTest} disabled={testing}
+                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Zap size={14} /> {testing ? 'Testing...' : 'Test Connection'}
+                        </button>
+                        <button onClick={handleInitScript}
+                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Terminal size={14} /> Init Script
+                        </button>
+                      </div>
+                    </Card>
+                  </>
+                )}
+
+                {/* Active Users Tab */}
+                {tab === 'users' && (
+                  <Card>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Active Users ({activeUsers.length})
+                      </div>
+                      <button onClick={fetchActiveUsers} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}>
+                        <RefreshCw size={13} />
+                      </button>
+                    </div>
+                    {activeUsers.length === 0 ? (
+                      <div style={{ padding: '30px 0', textAlign: 'center', color: C.dim, fontSize: 11 }}>
+                        <Wifi size={24} color={C.mute} style={{ marginBottom: 8 }} />
+                        <div>No active users on router</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {activeUsers.map((u: any, i: number) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#0a0a0a', borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                            <div>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: C.text, fontFamily: 'DM Mono, monospace' }}>{u.mac_address || u.user}</div>
+                              <div style={{ fontSize: 10, color: C.dim }}>{u.address} · {u.uptime}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: 10, color: C.green, fontFamily: 'DM Mono, monospace' }}>{u.session_time_left || '—'}</div>
+                              <div style={{ fontSize: 9, color: C.dim }}>{(u.bytes_in / 1024 / 1024).toFixed(1)}MB / {(u.bytes_out / 1024 / 1024).toFixed(1)}MB</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Card>
+                )}
+
+                {/* Init Script Tab */}
+                {tab === 'script' && (
+                  <Card>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Init Script</div>
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Run this on your MikroTik to configure hotspot</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {initScript && (
+                          <>
+                            <button onClick={copyScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Copy</button>
+                            <button onClick={downloadScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Download size={12} /> Download
+                            </button>
+                          </>
+                        )}
+                        <button onClick={handleInitScript} style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+
+                    {initScript?.instructions && (
+                      <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 14, fontSize: 10, color: '#5a9fd4', lineHeight: 1.8 }}>
+                        {initScript.instructions.map((inst: string, i: number) => (
+                          <div key={i}>{inst}</div>
+                        ))}
+                      </div>
+                    )}
+
+                    {initScript && (
+                      <pre style={{
+                        background: '#050505', border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                        fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
+                        overflowX: 'auto', whiteSpace: 'pre', maxHeight: 400, overflowY: 'auto',
+                      }}>
+                        {initScript.script}
+                      </pre>
+                    )}
+
+                    {!initScript && (
+                      <div style={{ padding: '30px 0', textAlign: 'center', color: C.dim, fontSize: 11 }}>
+                        <Terminal size={24} color={C.mute} style={{ marginBottom: 8 }} />
+                        <div>Click Generate to create the initialization script</div>
+                      </div>
+                    )}
+                  </Card>
                 )}
               </>
             )}
 
             {/* Setup / Edit Form */}
-            {showForm && (
-              <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 20 }}>
-                  {config ? 'UPDATE ROUTER CONFIG' : 'FIRST-TIME SETUP'}
+            {(showForm || !config) && (
+              <Card>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {config ? 'Update Router Config' : 'Connect Your MikroTik'}
                 </div>
 
-                <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 20, fontSize: 11, color: '#5a9fd4', lineHeight: 1.6 }}>
-                  Create an API user on your MikroTik with minimal permissions. Allow port {form.api_port || '8728'} from your HonestBill server IP only.
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Router IP Address *</label>
-                  <input value={form.router_ip} onChange={e => setForm(p => ({ ...p, router_ip: e.target.value }))} placeholder="192.168.88.1"
-                    style={{ width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0', fontSize: 12, boxSizing: 'border-box', outline: 'none', fontFamily: 'DM Mono, monospace' }} />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                  <div>
-                    <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Port</label>
-                    <input value={form.api_port} onChange={e => setForm(p => ({ ...p, api_port: e.target.value }))} placeholder="8728"
-                      style={{ width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0', fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                {!config && (
+                  <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}33`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
+                    Enter your MikroTik router details below. You must have API access enabled on the router.<br />
+                    <strong>Need help?</strong> Use the Init Script tab after saving to generate a setup script.
                   </div>
-                  <div>
-                    <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Hotspot Server</label>
-                    <input value={form.hotspot_server} onChange={e => setForm(p => ({ ...p, hotspot_server: e.target.value }))} placeholder="hotspot1"
-                      style={{ width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0', fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Input label="Router IP / Hostname *" value={form.router_ip} onChange={f('router_ip')} placeholder="192.168.88.1" mono />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Input label="API Port" value={form.api_port} onChange={f('api_port')} placeholder="8728" mono />
+                    <Input label="Hotspot Interface" value={form.hotspot_server} onChange={f('hotspot_server')} placeholder="ether5" mono />
                   </div>
+                  <Input label="API Username *" value={form.api_username} onChange={f('api_username')} placeholder="wibill_api" mono />
+                  <Input label="API Password" value={form.api_password} onChange={f('api_password')} placeholder={config ? 'Leave blank to keep' : ''} type="password" />
+                  <Input label="Hotspot Profile" value={form.hotspot_profile_name} onChange={f('hotspot_profile_name')} placeholder="WiBill_Profile" />
+                  <Input label="NAS IP (optional)" value={form.nas_ip_address} onChange={f('nas_ip_address')} placeholder={config?.router_ip || 'Same as router IP'} />
                 </div>
+                <Input label="Notes (optional)" value={form.notes} onChange={f('notes')} placeholder="Location, contact info, etc." />
 
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Username *</label>
-                  <input value={form.api_username} onChange={e => setForm(p => ({ ...p, api_username: e.target.value }))} placeholder="api_user"
-                    style={{ width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0', fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Password</label>
-                  <input type="password" value={form.api_password} onChange={e => setForm(p => ({ ...p, api_password: e.target.value }))} placeholder={config ? 'Leave blank to keep existing' : ''}
-                    style={{ width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0', fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
-                </div>
+                {testResult && (
+                  <div style={{
+                    padding: 12, marginBottom: 12, borderRadius: 7, fontSize: 11, lineHeight: 1.5,
+                    background: testResult.ok ? '#030d06' : '#0d0303',
+                    border: `0.5px solid ${testResult.ok ? '#0a2214' : '#220a0a'}`,
+                    color: testResult.ok ? C.green : C.red,
+                  }}>
+                    {testResult.ok ? (
+                      <>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>✅ {testResult.message}</div>
+                        {testResult.info && (
+                          <div style={{ fontSize: 10, color: C.dim }}>
+                            Router: {testResult.info.identity} · {testResult.info.board_name} · v{testResult.info.version} · Uptime: {testResult.info.uptime}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div>❌ {testResult.message}</div>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '12px', background: saving ? '#444' : '#3b82f6', border: 'none', borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
-                    {saving ? 'Saving...' : 'Save Configuration'}
+                  <button onClick={handleTestRaw} disabled={testing}
+                    style={{
+                      padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7,
+                      color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1,
+                    }}>
+                    {testing ? 'Testing...' : 'Test Connection'}
+                  </button>
+                  <button onClick={handleSave} disabled={saving}
+                    style={{
+                      flex: 1, padding: '12px', background: saving ? C.dim : C.gold, border: 'none', borderRadius: 7,
+                      color: saving ? '#666' : '#030303', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1,
+                    }}>
+                    {saving ? 'Saving...' : config ? 'Update Configuration' : 'Save Configuration'}
                   </button>
                   {config && (
-                    <button onClick={() => setShowForm(false)} style={{ padding: '12px 16px', background: '#1a1a1a', border: '0.5px solid #2a2a2a', borderRadius: 7, color: '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => { setShowForm(false); setTestResult(null) }}
+                      style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      Cancel
+                    </button>
                   )}
                 </div>
-              </div>
+              </Card>
             )}
 
             {!config && !showForm && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#444' }}>
-                <Router size={40} color="#1a1a1a" style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 14, marginBottom: 8 }}>No Router Configured</div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>Connect your MikroTik to start managing hotspot users automatically</div>
-                <button onClick={() => setShowForm(true)} style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Add Router</button>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: C.dim }}>
+                <Router size={40} color={C.mute} style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 14, marginBottom: 8, color: C.text }}>No Router Configured</div>
+                <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Connect your MikroTik to provision hotspots and manage users automatically</div>
+                <button onClick={() => setShowForm(true)}
+                  style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  Add Router
+                </button>
               </div>
             )}
           </div>
