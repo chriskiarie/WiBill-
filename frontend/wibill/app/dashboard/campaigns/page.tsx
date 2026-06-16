@@ -24,12 +24,12 @@ const statusColors: Record<string, string> = {
 
 const audienceOptions: { value: string; label: string; desc?: string; icon: LucideIcon }[] = [
   { value: 'all', label: 'All customers', icon: Users },
-  { value: 'active_7d', label: 'Active in last 7 days', desc: 'Purchased recently' },
-  { value: 'inactive_5d', label: 'Inactive for 5+ days', desc: 'Might be slipping' },
-  { value: 'inactive_10d', label: 'Inactive for 10+ days', desc: 'Needs re-engagement' },
-  { value: 'top_spenders', label: 'Top spenders', desc: 'Highest lifetime spend' },
-  { value: 'new_30d', label: 'New customers (30 days)', desc: 'Joined recently' },
-  { value: 'custom', label: 'Custom list', desc: 'Paste phone numbers' },
+  { value: 'active_7d', label: 'Active in last 7 days', desc: 'Purchased recently', icon: TrendingUp },
+  { value: 'inactive_5d', label: 'Inactive for 5+ days', desc: 'Might be slipping', icon: Clock },
+  { value: 'inactive_10d', label: 'Inactive for 10+ days', desc: 'Needs re-engagement', icon: Clock },
+  { value: 'top_spenders', label: 'Top spenders', desc: 'Highest lifetime spend', icon: TrendingUp },
+  { value: 'new_30d', label: 'New customers (30 days)', desc: 'Joined recently', icon: Users },
+  { value: 'custom', label: 'Custom list', desc: 'Paste phone numbers', icon: MessageSquare },
 ]
 
 export default function CampaignsPage() {
