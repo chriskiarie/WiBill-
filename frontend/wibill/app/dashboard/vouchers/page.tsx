@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, Download, X, Search, Clock, Star, Ticket } from 'lucide-react'
+import { Plus, Download, X, Search } from 'lucide-react'
 
 const C = {
   void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -31,7 +31,7 @@ export default function VouchersPage() {
   const [generating, setGenerating] = useState(false)
   const [genMode, setGenMode] = useState<'package' | 'time'>('package')
   const [genForm, setGenForm] = useState({ package_id: '', duration_minutes: '', quantity: 50, prefix: '', expires_in_days: 365 })
-  const [showPremium, setShowPremium] = useState(false)
+
 
   const fmt = (n: number) => n?.toLocaleString() ?? '0'
 
@@ -148,33 +148,7 @@ export default function VouchersPage() {
           ))}
         </div>
 
-        {/* Premium Features Banner */}
-        <div style={{ marginBottom: 16 }}>
-          <button onClick={() => setShowPremium(v => !v)} style={{ width: '100%', padding: '12px 16px', background: '#0d0d00', border: `0.5px solid ${C.gold}40`, borderRadius: 9, color: C.gold, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Star size={14} /> Premium Features — Compensation Tokens & Campaigns</span>
-            <span>{showPremium ? '▲' : '▼'}</span>
-          </button>
-          {showPremium && (
-            <div style={{ marginTop: 8, padding: 16, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, display: 'flex', gap: 12 }}>
-              <div style={{ flex: 1, padding: 14, background: '#080808', borderRadius: 7, border: `0.5px solid ${C.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Clock size={14} color={C.gold} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Compensation Tokens</span>
-                </div>
-                <div style={{ fontSize: 10, color: C.dim, marginBottom: 8 }}>Issue time-based tokens to compensate for outages. Redeemable in the captive portal.</div>
-                <a href="/dashboard/sessions" style={{ color: C.gold, fontSize: 10, fontWeight: 700, textDecoration: 'none' }}>Go to Sessions →</a>
-              </div>
-              <div style={{ flex: 1, padding: 14, background: '#080808', borderRadius: 7, border: `0.5px solid ${C.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Ticket size={14} color={C.gold} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Campaigns</span>
-                </div>
-                <div style={{ fontSize: 10, color: C.dim, marginBottom: 8 }}>Win-back & loyalty campaigns. Generate bulk reward tokens for engagement.</div>
-                <a href="/dashboard/campaigns" style={{ color: C.gold, fontSize: 10, fontWeight: 700, textDecoration: 'none' }}>Go to Campaigns →</a>
-              </div>
-            </div>
-          )}
-        </div>
+
 
         {/* Loading */}
         {loading && <div style={{ textAlign: 'center', padding: 40, color: C.dim, fontSize: 13, fontFamily: 'Inter, sans-serif' }}>Loading...</div>}

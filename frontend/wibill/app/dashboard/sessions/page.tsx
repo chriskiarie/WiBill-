@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Search, X, Clock, Wifi, ChevronRight } from 'lucide-react'
+import { Search, X, Clock, Wifi, ChevronRight, Gift } from 'lucide-react'
 
 interface Session {
   id: string; mac?: string; mac_address?: string; ip_address?: string
@@ -41,6 +41,10 @@ export default function SessionsPage() {
   const [selectedMac, setSelectedMac] = useState<string | null>(null)
   const [macDetail, setMacDetail] = useState<any>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [compensateSession, setCompensateSession] = useState<any>(null)
+  const [compMinutes, setCompMinutes] = useState(15)
+  const [compReason, setCompReason] = useState('')
+  const [compSubmitting, setCompSubmitting] = useState(false)
 
   const fetchSessions = useCallback(async () => {
     if (!token) return
@@ -120,8 +124,8 @@ export default function SessionsPage() {
             <LoadingSpinner size="md" label="Loading sessions..." />
           ) : (
             <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.5fr', borderBottom: '0.5px solid #101010', background: '#0a0a0a' }}>
-                {['MAC', 'IP', 'Phone', 'Package', tab === 'active' ? 'Remaining' : 'Duration', ''].map((h, i) => (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', borderBottom: '0.5px solid #101010', background: '#0a0a0a' }}>
+                {['MAC', 'IP', 'Phone', 'Package', tab === 'active' ? 'Remaining' : 'Duration', '', ''].map((h, i) => (
                   <div key={i} style={{ padding: '10px 14px', fontSize: 9, fontWeight: 700, color: '#2a2a2a', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
                 ))}
               </div>
@@ -135,7 +139,7 @@ export default function SessionsPage() {
               ) : filtered.map((s, i) => {
                 const mac = s.mac || s.mac_address || '—'
                 return (
-                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.5fr', borderBottom: i < filtered.length - 1 ? '0.5px solid #0a0a0a' : 'none', alignItems: 'center' }}>
+                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', borderBottom: i < filtered.length - 1 ? '0.5px solid #0a0a0a' : 'none', alignItems: 'center' }}>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#3b82f6', cursor: 'pointer', fontWeight: 500 }} onClick={() => viewMacDetail(mac)}>
                       {mac}
                     </div>
@@ -145,12 +149,17 @@ export default function SessionsPage() {
                     <div style={{ padding: '10px 14px' }}>
                       {s.status === 'active' ? <Countdown expires_at={s.expires_at} /> : <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#555' }}>{s.status}</span>}
                     </div>
-                    <div style={{ padding: '6px 10px' }}>
+                    <div style={{ padding: '6px 4px' }}>
                       {tab === 'active' && (
-                        <button onClick={() => handleKick(s.id)} style={{ padding: '4px 10px', background: '#3a1a1a', border: '0.5px solid #5a2d2d', borderRadius: 4, color: '#f87171', fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
+                        <button onClick={() => handleKick(s.id)} style={{ padding: '4px 8px', background: '#3a1a1a', border: '0.5px solid #5a2d2d', borderRadius: 4, color: '#f87171', fontSize: 8, fontWeight: 700, cursor: 'pointer' }}>
                           Kick
                         </button>
                       )}
+                    </div>
+                    <div style={{ padding: '6px 4px' }}>
+                      <button onClick={() => { setCompensateSession(s); setCompMinutes(15); setCompReason('') }} style={{ padding: '4px 8px', background: '#061a0d', border: '0.5px solid #0d3320', borderRadius: 4, color: '#22c55e', fontSize: 8, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Gift size={10} /> Comp
+                      </button>
                     </div>
                   </div>
                 )
@@ -212,6 +221,57 @@ export default function SessionsPage() {
           </div>
         )}
       </div>
+
+      {/* Compensate Modal */}
+      {compensateSession && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setCompensateSession(null)}>
+          <div style={{ background: '#0a0a0a', border: '0.5px solid #141414', borderRadius: 11, padding: 24, maxWidth: 400, width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#f0f0f0', fontFamily: "'Space Grotesk', sans-serif" }}>Compensate Customer</div>
+              <button onClick={() => setCompensateSession(null)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: '#666', fontFamily: "'DM Mono', monospace", marginBottom: 4 }}>
+                Session: {(compensateSession.mac || compensateSession.mac_address || '').slice(0, 17)}
+              </div>
+              <div style={{ fontSize: 10, color: '#666', fontFamily: "'DM Mono', monospace" }}>
+                Phone: {(compensateSession.phone || compensateSession.phone_number || '—')}
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Free Minutes *</label>
+              <input type="number" min={5} max={1440} value={compMinutes} onChange={e => setCompMinutes(parseInt(e.target.value) || 15)}
+                style={{ width: '100%', padding: '10px 12px', background: '#080808', border: '0.5px solid #1a1a1a', borderRadius: 7, color: '#e0e0e0', fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Reason</label>
+              <input type="text" value={compReason} onChange={e => setCompReason(e.target.value)} placeholder="e.g. Early disconnection"
+                style={{ width: '100%', padding: '10px 12px', background: '#080808', border: '0.5px solid #1a1a1a', borderRadius: 7, color: '#e0e0e0', fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={async () => {
+                if (compMinutes < 5) { showToast('Minimum 5 minutes', { type: 'error' }); return }
+                setCompSubmitting(true)
+                try {
+                  await api.generateCompensationToken({
+                    session_id: compensateSession.id,
+                    minutes: compMinutes,
+                    reason: compReason || undefined,
+                    bound_phone: compensateSession.phone || compensateSession.phone_number || undefined,
+                    bound_mac: compensateSession.mac || compensateSession.mac_address || undefined,
+                  })
+                  showToast(`Compensation token created: ${compMinutes} minutes`, { type: 'success' })
+                  setCompensateSession(null)
+                } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setCompSubmitting(false) }
+              }} disabled={compSubmitting}
+                style={{ flex: 1, padding: '10px', background: compSubmitting ? '#2a2a2a' : '#E8B84B', border: 'none', borderRadius: 7, color: '#030303', fontSize: 11, fontWeight: 700, cursor: compSubmitting ? 'not-allowed' : 'pointer' }}>
+                {compSubmitting ? 'Creating...' : 'Send Compensation'}
+              </button>
+              <button onClick={() => setCompensateSession(null)} style={{ padding: '10px 16px', background: '#0a0a0a', border: '0.5px solid #1a1a1a', borderRadius: 7, color: '#666', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
