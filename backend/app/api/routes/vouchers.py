@@ -201,12 +201,15 @@ async def check_voucher_status(
 
     voucher, package = row
 
+    def _naive(dt):
+        return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
+
     now = datetime.utcnow()
     if voucher.is_suspended:
         return {"valid": False, "status": "suspended", "message": "Voucher has been suspended by the ISP"}
     if voucher.status == "used":
         return {"valid": False, "status": "used", "message": "Voucher already used", "used_at": voucher.used_at.isoformat() if voucher.used_at else None}
-    if voucher.expires_at and voucher.expires_at < now:
+    if voucher.expires_at and _naive(voucher.expires_at) < now:
         return {"valid": False, "status": "expired", "message": "Voucher has expired"}
     if voucher.status == "expired":
         return {"valid": False, "status": "expired", "message": "Voucher has expired"}
@@ -373,12 +376,15 @@ async def redeem_voucher_portal(
 
         voucher, package = row
 
+        def _naive(dt):
+            return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
+
         now = datetime.utcnow()
         if voucher.is_suspended:
             raise HTTPException(status_code=400, detail="Voucher has been suspended")
         if voucher.status == "used":
             raise HTTPException(status_code=400, detail="Voucher already used")
-        if voucher.expires_at and voucher.expires_at < now:
+        if voucher.expires_at and _naive(voucher.expires_at) < now:
             raise HTTPException(status_code=400, detail="Voucher has expired")
         if voucher.status == "expired":
             raise HTTPException(status_code=400, detail="Voucher has expired")

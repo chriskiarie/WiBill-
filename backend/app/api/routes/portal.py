@@ -203,7 +203,9 @@ async def get_live_portal(
             return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Not Found</h1><p>This token code is invalid. Please check your link.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=404)
         if rtoken.redeemed:
             return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Already Used</h1><p>This token was already redeemed on {rtoken.redeemed_at.strftime('%Y-%m-%d %H:%M') if rtoken.redeemed_at else 'an earlier date'}.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)
-        if rtoken.expires_at and rtoken.expires_at < datetime.utcnow():
+        def _naive(dt):
+            return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
+        if rtoken.expires_at and _naive(rtoken.expires_at) < datetime.utcnow():
             return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Expired</h1><p>This token expired on {rtoken.expires_at.strftime('%Y-%m-%d %H:%M')}. Tokens have a limited validity window.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)
         if rtoken.tenant_id != tenant.id:
             return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Invalid Token</h1><p>This token is not valid for this ISP.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)

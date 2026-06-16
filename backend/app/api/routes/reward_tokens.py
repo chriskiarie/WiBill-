@@ -194,10 +194,12 @@ async def redeem_token(
     if not token:
         raise HTTPException(status_code=404, detail="Token not found")
 
+    def _naive(dt):
+        return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
     now = datetime.utcnow()
     if token.redeemed:
         raise HTTPException(status_code=400, detail="Token already redeemed")
-    if token.expires_at < now:
+    if token.expires_at and _naive(token.expires_at) < now:
         raise HTTPException(status_code=400, detail="Token has expired")
 
     token.redeemed = True
