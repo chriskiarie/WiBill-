@@ -47,17 +47,17 @@ async def create_session(
     if not _is_valid_ip(ip_address):
         raise ValueError(f"Invalid IP address format: {ip_address}")
     
-    # Check for existing active session with same MAC
-    existing = await db.execute(
-        select(DBSession).where(
-            DBSession.mac_address == mac_address,
-            DBSession.tenant_id == tenant_id,
-            DBSession.status.in_(["pending_payment", "active"])
+    # Check for existing active session with same MAC (skip for placeholder MAC)
+    if mac_address != "00:00:00:00:00:00":
+        existing = await db.execute(
+            select(DBSession).where(
+                DBSession.mac_address == mac_address,
+                DBSession.tenant_id == tenant_id,
+                DBSession.status.in_(["pending_payment", "active"])
+            )
         )
-    )
-    
-    if existing.scalar_one_or_none():
-        raise ValueError(f"Device {mac_address} already has an active session")
+        if existing.scalar_one_or_none():
+            raise ValueError(f"Device {mac_address} already has an active session")
     
     # Generate unique reconnect code
     reconnect_code = _generate_reconnect_code()
