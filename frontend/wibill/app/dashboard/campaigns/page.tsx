@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
+import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, Copy, Check, type LucideIcon } from 'lucide-react'
 
 const C = {
   void: '#030303', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -44,6 +44,11 @@ export default function CampaignsPage() {
   const [launching, setLaunching] = useState<string | null>(null)
   const [viewingTokens, setViewingTokens] = useState<any[] | null>(null)
   const [showTokenModal, setShowTokenModal] = useState(false)
+  const [copiedToken, setCopiedToken] = useState<string | null>(null)
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try { await navigator.clipboard.writeText(text); setCopiedToken(id); setTimeout(() => setCopiedToken(null), 2000) } catch { /* ignore */ }
+  }
 
   const [form, setForm] = useState({
     name: '',
@@ -106,11 +111,7 @@ export default function CampaignsPage() {
   const viewTokens = async (id: string) => {
     try {
       const d = await api.getCampaign(id)
-      if (d.token_count > 0) {
-        const tokens = await api.getRewardTokens({ skip: 0, limit: 500 })
-        const filtered = (tokens.tokens || []).filter((t: any) => t.campaign_id === id)
-        setViewingTokens(filtered)
-      } else setViewingTokens([])
+      setViewingTokens(d.tokens || [])
       setShowTokenModal(true)
     } catch { showToast('Failed to load tokens', { type: 'error' }) }
   }
@@ -393,7 +394,7 @@ export default function CampaignsPage() {
       {/* Token View Modal */}
       {showTokenModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowTokenModal(false)}>
-          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 24, maxWidth: 600, width: '90%', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 24, maxWidth: 700, width: '90%', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Campaign Tokens</div>
               <button onClick={() => setShowTokenModal(false)} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}><X size={20} /></button>
@@ -402,17 +403,30 @@ export default function CampaignsPage() {
               <div style={{ textAlign: 'center', padding: 30, color: C.dim, fontSize: 11 }}>No tokens generated yet. Launch the campaign to generate tokens.</div>
             ) : (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr', borderBottom: `0.5px solid ${C.border}`, padding: '8px 12px', fontSize: 9, color: C.dim, fontWeight: 700, textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>
-                  <span>Code</span><span>Minutes</span><span>Status</span><span>Expires</span>
+                <div style={{ padding: '10px 12px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 12, fontSize: 9, color: C.gold, fontFamily: "'DM Mono', monospace", lineHeight: 1.8 }}>
+                  Redemption URL format:<br />
+                  <strong style={{ color: C.text }}>https://wibill-production.up.railway.app/portal/YOUR_ISP_SLUG?token=CODE</strong>
                 </div>
-                {viewingTokens.map(t => (
-                  <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr', padding: '8px 12px', borderBottom: `0.5px solid ${C.border}`, fontSize: 10, fontFamily: "'DM Mono', monospace", color: C.text }}>
-                    <span>{t.token_code}</span>
-                    <span>{t.minutes}</span>
-                    <span style={{ color: t.redeemed ? C.green : C.dim }}>{t.redeemed ? 'Redeemed' : 'Active'}</span>
-                    <span style={{ color: C.mute }}>{new Date(t.expires_at).toLocaleDateString()}</span>
-                  </div>
-                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.4fr 0.4fr 0.4fr 0.3fr', borderBottom: `0.5px solid ${C.border}`, padding: '8px 12px', fontSize: 9, color: C.dim, fontWeight: 700, textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>
+                  <span>Code</span><span>Minutes</span><span>Status</span><span>Expires</span><span></span>
+                </div>
+                {viewingTokens.map(t => {
+                  const redemptionUrl = `https://wibill-production.up.railway.app/portal/YOUR_ISP_SLUG?token=${t.token_code}`
+                  return (
+                    <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.4fr 0.4fr 0.4fr 0.3fr', padding: '8px 12px', borderBottom: `0.5px solid ${C.border}`, fontSize: 10, fontFamily: "'DM Mono', monospace", color: C.text, alignItems: 'center' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {t.token_code}
+                        <button onClick={() => copyToClipboard(redemptionUrl, t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copiedToken === t.id ? C.green : C.dim, padding: 0, display: 'inline-flex' }}>
+                          {copiedToken === t.id ? <Check size={12} /> : <Copy size={12} />}
+                        </button>
+                      </span>
+                      <span>{t.minutes}</span>
+                      <span style={{ color: t.redeemed ? C.green : C.dim }}>{t.redeemed ? 'Redeemed' : 'Active'}</span>
+                      <span style={{ color: C.mute }}>{new Date(t.expires_at).toLocaleDateString()}</span>
+                      <span></span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

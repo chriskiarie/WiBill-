@@ -130,6 +130,35 @@ async def update_package(
     return {"message": "Package updated"}
 
 
+class BulkStatusUpdate(BaseModel):
+    package_ids: list[str]
+    is_active: bool
+
+
+@router.post("/bulk-status")
+async def bulk_update_status(
+    data: BulkStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    if not data.package_ids:
+        raise HTTPException(status_code=400, detail="No package IDs provided")
+    uuids = []
+    for pid in data.package_ids:
+        try:
+            uuids.append(uuid.UUID(pid))
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid package ID: {pid}")
+    result = await db.execute(
+        select(Package).where(Package.id.in_(uuids), Package.tenant_id == current_user.tenant_id)
+    )
+    pkgs = result.scalars().all()
+    for pkg in pkgs:
+        pkg.is_active = data.is_active
+    await db.commit()
+    return {"message": f"{len(pkgs)} packages updated", "updated": len(pkgs)}
+
+
 @router.delete("/{package_id}")
 async def delete_package(
     package_id: str,

@@ -17,6 +17,42 @@ MIGRATIONS = [
     ("vouchers.package_id nullable", """
         ALTER TABLE vouchers ALTER COLUMN package_id DROP NOT NULL
     """),
+    ("vouchers.status", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'unused'
+    """),
+    ("vouchers.note", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS note TEXT
+    """),
+    ("vouchers.duration_hours", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS duration_hours INTEGER NOT NULL DEFAULT 0
+    """),
+    ("vouchers.price_ksh", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS price_ksh NUMERIC(10,2) NOT NULL DEFAULT 0.0
+    """),
+    ("vouchers.is_used", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("vouchers.is_active", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true
+    """),
+    ("vouchers.used_at", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS used_at TIMESTAMP
+    """),
+    ("vouchers.mac_address", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS mac_address VARCHAR(17)
+    """),
+    ("vouchers.redeemed_by", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS redeemed_by VARCHAR(50)
+    """),
+    ("vouchers.redeemed_by_mac", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS redeemed_by_mac VARCHAR(17)
+    """),
+    ("vouchers.redeemed_by_phone", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS redeemed_by_phone VARCHAR(20)
+    """),
+    ("vouchers.session_id", """
+        ALTER TABLE vouchers ADD COLUMN IF NOT EXISTS session_id UUID REFERENCES sessions(id) ON DELETE SET NULL
+    """),
     ("campaigns table", """
         CREATE TABLE IF NOT EXISTS campaigns (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -57,12 +57,14 @@ export default function PackagesPage() {
     is_active: true,
   })
   const [submitting, setSubmitting] = useState(false)
+  const [toggling, setToggling] = useState<string | null>(null)
+  const [bulkUpdating, setBulkUpdating] = useState(false)
 
   const fetchPackages = async () => {
     if (!token) return
     setLoading(true)
     try {
-      const data = await api.getPackages(user?.tenant_id)
+      const data = await api.getPackages()
       setPackages(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {
@@ -110,6 +112,30 @@ export default function PackagesPage() {
 
   const closeModal = () => { setShowModal(false); setEditingPackage(null) }
 
+  const toggleActive = async (pkg: Package) => {
+    setToggling(pkg.id)
+    try {
+      await api.updatePackage(pkg.id, { is_active: !pkg.is_active })
+      setPackages(packages.map(p => p.id === pkg.id ? { ...p, is_active: !p.is_active } : p))
+      showToast(`${pkg.name} ${pkg.is_active ? 'deactivated' : 'activated'}`, { type: 'success' })
+    } catch (err) {
+      showToast('Failed to toggle', { type: 'error', message: (err as Error).message })
+    } finally { setToggling(null) }
+  }
+
+  const bulkToggle = async (activate: boolean) => {
+    const ids = packages.map(p => p.id)
+    if (!confirm(`${activate ? 'Activate' : 'Deactivate'} all ${ids.length} packages?`)) return
+    setBulkUpdating(true)
+    try {
+      await api.bulkUpdatePackages(ids, activate)
+      setPackages(packages.map(p => ({ ...p, is_active: activate })))
+      showToast(`All packages ${activate ? 'activated' : 'deactivated'}`, { type: 'success' })
+    } catch (err) {
+      showToast('Bulk update failed', { type: 'error', message: (err as Error).message })
+    } finally { setBulkUpdating(false) }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name.trim() || formData.price_ksh <= 0) {
@@ -141,9 +167,21 @@ export default function PackagesPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: C.void }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Packages</h1>
-          <button onClick={openCreateModal} style={{ padding: '8px 14px', background: C.gold, color: C.void, border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700 }}>
-            <Plus size={16} /> New Package
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {packages.length > 0 && (
+              <>
+                <button onClick={() => bulkToggle(true)} disabled={bulkUpdating} style={{ padding: '6px 10px', background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 5, color: C.green, fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Mono', monospace" }}>
+                  Activate All
+                </button>
+                <button onClick={() => bulkToggle(false)} disabled={bulkUpdating} style={{ padding: '6px 10px', background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 5, color: C.dim, fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Mono', monospace" }}>
+                  Deactivate All
+                </button>
+              </>
+            )}
+            <button onClick={openCreateModal} style={{ padding: '8px 14px', background: C.gold, color: C.void, border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700 }}>
+              <Plus size={16} /> New Package
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -178,10 +216,11 @@ export default function PackagesPage() {
                     <Trash2 size={14} style={{ cursor: 'pointer', color: C.red }} onClick={() => handleDelete(pkg.id)} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: "'DM Mono', monospace" }}>
-                  <span style={{ color: pkg.is_active ? C.green : C.red }}>
-                    {pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
-                  </span>
+                <div style={{ display: 'flex', gap: 8, fontSize: 10, fontFamily: "'DM Mono', monospace", alignItems: 'center' }}>
+                  <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
+                    style={{ padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', border: 'none', background: pkg.is_active ? `${C.green}20` : `${C.red}20`, color: pkg.is_active ? C.green : C.red, fontFamily: "'DM Mono', monospace" }}>
+                    {toggling === pkg.id ? '...' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </button>
                   {pkg.duration_label && <span style={{ color: C.dim }}>·</span>}
                   {pkg.duration_label && <span style={{ color: C.dim }}>{pkg.duration_label}</span>}
                   {pkg.max_devices && <span style={{ color: C.dim }}>·</span>}

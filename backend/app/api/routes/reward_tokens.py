@@ -64,8 +64,6 @@ async def generate_compensation_token(
     session = session_result.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    if not session.transaction_id:
-        raise HTTPException(status_code=400, detail="Session has no transaction (must be a paid session)")
 
     if payload.minutes < 5 or payload.minutes > 1440:
         raise HTTPException(status_code=400, detail="Compensation minutes must be between 5 and 1440")
@@ -137,6 +135,7 @@ async def list_reward_tokens(
                 "id": str(t.id),
                 "token_code": t.token_code,
                 "minutes": t.minutes,
+                "campaign_id": str(t.campaign_id) if t.campaign_id else None,
                 "redeemed": t.redeemed,
                 "redeemed_at": t.redeemed_at.isoformat() if t.redeemed_at else None,
                 "session_id": str(t.session_id) if t.session_id else None,

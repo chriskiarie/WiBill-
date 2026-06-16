@@ -108,6 +108,11 @@ export const api = {
     }),
   deletePackage: (id: string) =>
     request(`/api/packages/${id}`, { method: 'DELETE' }),
+  bulkUpdatePackages: (package_ids: string[], is_active: boolean) =>
+    request('/api/packages/bulk-status', {
+      method: 'POST',
+      body: JSON.stringify({ package_ids, is_active }),
+    }),
 
   // ========================================================================
   // TRANSACTIONS

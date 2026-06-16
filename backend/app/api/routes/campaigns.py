@@ -137,9 +137,10 @@ async def get_campaign(
         raise HTTPException(status_code=404, detail="Campaign not found")
 
     tokens_result = await db.execute(
-        select(func.count(RewardToken.id)).where(RewardToken.campaign_id == c_id)
+        select(RewardToken).where(RewardToken.campaign_id == c_id).order_by(RewardToken.created_at.desc()).limit(200)
     )
-    token_count = tokens_result.scalar()
+    tokens = tokens_result.scalars().all()
+    token_count = len(tokens)
 
     return {
         "id": str(campaign.id),
@@ -153,6 +154,18 @@ async def get_campaign(
         "sent_count": campaign.sent_count,
         "redeemed_count": campaign.redeemed_count,
         "token_count": token_count,
+        "tokens": [
+            {
+                "id": str(t.id),
+                "token_code": t.token_code,
+                "minutes": t.minutes,
+                "redeemed": t.redeemed,
+                "redeemed_at": t.redeemed_at.isoformat() if t.redeemed_at else None,
+                "expires_at": t.expires_at.isoformat(),
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in tokens
+        ],
         "created_at": campaign.created_at.isoformat(),
         "launched_at": campaign.launched_at.isoformat() if campaign.launched_at else None,
     }
