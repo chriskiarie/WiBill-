@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Search, ToggleLeft, ToggleRight, RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -29,15 +29,17 @@ function authHeaders() { return { Authorization: `Bearer ${getToken()}`, 'Conten
 export default function FeatureFlagsPage() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [toggling, setToggling] = useState<Record<string, boolean>>({});
 
   async function load() {
+    setRefreshing(true);
     try {
       const r = await fetch(`${API}/api/admin/feature-flags`, { headers: authHeaders() });
       if (r.ok) setData(await r.json());
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setRefreshing(false); }
   }
 
   useEffect(() => { load(); }, []);
@@ -74,6 +76,13 @@ export default function FeatureFlagsPage() {
             </div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Per-ISP feature toggles · Monetization control</div>
           </div>
+          <button onClick={load} disabled={refreshing} title="Refresh" style={{
+            width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.muted,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={14} />
+          </button>
         </header>
 
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2, maxWidth: 360 }}>
@@ -81,7 +90,36 @@ export default function FeatureFlagsPage() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter ISPs..." style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: C.text, fontSize: 13, fontFamily: 'inherit' }} />
         </div>
 
-        {loading ? (
+        {loading && data.length === 0 ? (
+          <div>
+            <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 18, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: `200px repeat(${FEATURES.length}, 1fr)`, gap: 0 }}>
+                <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: '0.1s' }} />
+                </div>
+                {FEATURES.map((f, i) => (
+                  <div key={f} style={{ padding: '14px 10px', textAlign: 'center', borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.borderSoft}` }}>
+                    <div style={{ width: '80%', height: 10, margin: '0 auto', background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.1 + i * 0.05}s` }} />
+                  </div>
+                ))}
+                {[1, 2, 3, 4, 5].map(r => (
+                  <>
+                    <div key={`row-${r}-name`} style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${C.borderSoft}`, background: r % 2 === 0 ? C.panel2 : 'transparent' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.dim, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + r * 0.04}s` }} />
+                      <div style={{ flex: 1, height: 13, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + r * 0.04}s` }} />
+                    </div>
+                    {FEATURES.map((f, i) => (
+                      <div key={`row-${r}-${f}`} style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${C.borderSoft}`, borderLeft: `1px solid ${C.borderSoft}`, background: r % 2 === 0 ? C.panel2 : 'transparent' }}>
+                        <div style={{ width: 22, height: 22, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + r * 0.04 + i * 0.03}s` }} />
+                      </div>
+                    ))}
+                  </>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : loading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '40px 0' }}>
             <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
             Loading feature flags...

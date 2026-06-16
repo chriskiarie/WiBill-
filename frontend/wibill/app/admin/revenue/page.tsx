@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -17,19 +18,23 @@ interface Transaction {
 export default function AdminRevenue() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     const token = localStorage.getItem('wb_token');
     if (!token) return;
-
-    fetch(`${API}/api/mpesa/admin/transactions?limit=2000`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => setTxns(Array.isArray(d) ? d : []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    setRefreshing(true);
+    try {
+      const r = await fetch(`${API}/api/mpesa/admin/transactions?limit=2000`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const d = await r.json();
+      setTxns(Array.isArray(d) ? d : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); setRefreshing(false); }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   // Calculate metrics
   const totalGMV = txns.reduce((s, t) => s + (t.amount_ksh || 0), 0);
@@ -95,16 +100,79 @@ export default function AdminRevenue() {
     blue: '#3b82f6',
   };
 
+  const sk = (w: string, h: number, d = 0) => ({
+    width: w, height: h, background: colors.textMuted, borderRadius: 6,
+    animation: 'skel-pulse 2s ease-in-out infinite',
+    animationDelay: `${d}s`,
+  });
+
+  if (loading && txns.length === 0) {
+    return (
+      <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
+        <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+        <div style={sk('280px', 36, 0)} />
+        <div style={{ ...sk('320px', 13, 0.1), marginTop: 8, marginBottom: 40 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+          {[0.1, 0.2, 0.3, 0.4].map(d => (
+            <div key={d} style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24 }}>
+              <div style={sk('60%', 10, d)} />
+              <div style={{ ...sk('50%', 28, d + 0.05), marginTop: 12, marginBottom: 8 }} />
+              <div style={sk('40%', 11, d + 0.1)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
+          <div style={sk('160px', 14, 0.15)} />
+          <div style={{ ...sk('200px', 11, 0.2), marginTop: 4, marginBottom: 20 }} />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(i => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                <div style={{ width: '100%', height: `${30 + (i * 4) % 50}%`, background: colors.textMuted, borderRadius: 3, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + i * 0.04}s` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {[0.3, 0.5].map((d, col) => (
+            <div key={col} style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24 }}>
+              <div style={sk('140px', 14, d)} />
+              {[1, 2, 3, 4].map(r => (
+                <div key={r} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', marginTop: 8, background: colors.raised, border: `0.5px solid ${colors.border}`, borderRadius: 8 }}>
+                  <div>
+                    <div style={sk('80px', 10, d + r * 0.04)} />
+                    <div style={{ ...sk('60px', 10, d + r * 0.07), marginTop: 2 }} />
+                  </div>
+                  <div style={sk('50px', 18, d + r * 0.06)} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
       {/* HEADER */}
       <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
-          Revenue Dashboard
-        </h1>
-        <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-          Real-time cash flow tracking and platform performance
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
+              Revenue Dashboard
+            </h1>
+            <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
+              Real-time cash flow tracking and platform performance
+            </p>
+          </div>
+          <button onClick={load} disabled={refreshing} title="Refresh" style={{
+            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `0.5px solid ${colors.border}`, background: colors.base, cursor: refreshing ? 'not-allowed' : 'pointer', color: colors.textSecondary,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={13} />
+          </button>
+        </div>
       </div>
 
       {/* PRIMARY KPIs - THE BIG NUMBERS */}
@@ -154,11 +222,7 @@ export default function AdminRevenue() {
           </p>
         </div>
 
-        {loading ? (
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
-            Loading chart...
-          </div>
-        ) : chartData.length === 0 ? (
+        {chartData.length === 0 ? (
           <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
             No transaction data
           </div>

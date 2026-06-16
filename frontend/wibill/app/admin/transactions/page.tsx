@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const POLL_MS = 8000;
@@ -54,6 +55,7 @@ const timeAgo = (dateStr: string) => {
 export default function AdminTransactions() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -66,6 +68,7 @@ export default function AdminTransactions() {
   const fetchTxns = useCallback(async () => {
     const token = localStorage.getItem('wb_token');
     if (!token) return;
+    setRefreshing(true);
     try {
       const res = await fetch(`${API}/api/mpesa/admin/transactions?limit=500`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -90,6 +93,7 @@ export default function AdminTransactions() {
       console.error(e);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -149,10 +153,65 @@ export default function AdminTransactions() {
       return true;
     });
 
-  if (loading) {
+  const skel = (w: string, h: number, d = 0, r = 6) => ({
+    width: w, height: h, background: C.mute, borderRadius: r,
+    animation: 'skel-pulse 2s ease-in-out infinite',
+    animationDelay: `${d}s`,
+  });
+
+  if (loading && txns.length === 0) {
     return (
-      <div style={{ background: C.void, color: C.dim, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>
-        Loading transactions...
+      <div style={{ background: C.void, color: C.text, minHeight: '100vh', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
+        <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+          <div>
+            <div style={skel('240px', 36, 0)} />
+            <div style={{ ...skel('300px', 13, 0.1), marginTop: 8 }} />
+          </div>
+          <div style={skel('120px', 32, 0.15, 20)} />
+        </div>
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 16, padding: 28, marginBottom: 24 }}>
+          <div style={skel('100px', 10, 0.1)} />
+          <div style={{ ...skel('200px', 48, 0.15), marginTop: 8, marginBottom: 8 }} />
+          <div style={skel('140px', 12, 0.2)} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+          {[0.1, 0.2, 0.3, 0.4].map(d => (
+            <div key={d} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={skel('60%', 10, d)} />
+              <div style={{ ...skel('40%', 28, d + 0.05), marginTop: 8, marginBottom: 4 }} />
+              <div style={skel('50%', 11, d + 0.1)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+          {[0.2, 0.4].map((d, col) => (
+            <div key={col} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={skel('120px', 14, d)} />
+              {[1, 2, 3].map(r => (
+                <div key={r} style={{ marginTop: r === 1 ? 16 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #0d0d0d' }}>
+                    <div style={skel('100px', 12, d + r * 0.05)} />
+                    <div style={skel('60px', 12, d + r * 0.08)} />
+                  </div>
+                  <div style={{ ...skel('140px', 6, d + r * 0.1, 4), marginTop: 6 }} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={skel('160px', 14, 0.3, 6)} />
+          <div style={{ ...skel('260px', 12, 0.35, 6), marginTop: 16, marginBottom: 16 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 8, padding: '12px 0', borderBottom: `0.5px solid ${C.border}` }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} style={skel('100%', 10, 0.3 + i * 0.03)} />)}
+          </div>
+          {[1, 2, 3, 4, 5].map(r => (
+            <div key={r} style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 8, padding: '10px 0', borderBottom: `0.5px solid ${C.border}` }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} style={skel('100%', 10, 0.3 + r * 0.04 + i * 0.02)} />)}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -170,12 +229,21 @@ export default function AdminTransactions() {
               Real-time payment monitoring and M-Pesa settlement tracking
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 20, padding: '6px 14px 6px 10px' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 8px ${C.green}`, animation: 'pulse 2s ease-in-out infinite' }} />
-            <span style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.green, fontWeight: 600 }}>LIVE</span>
-            <span style={{ fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace' }}>
-              every {POLL_MS / 1000}s
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={fetchTxns} disabled={refreshing} title="Refresh transactions" style={{
+              width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `0.5px solid ${C.border}`, background: C.base, cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+            }}>
+              <RefreshCw size={13} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 20, padding: '6px 14px 6px 10px' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 8px ${C.green}`, animation: 'pulse 2s ease-in-out infinite' }} />
+              <span style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.green, fontWeight: 600 }}>LIVE</span>
+              <span style={{ fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace' }}>
+                every {POLL_MS / 1000}s
+              </span>
+            </div>
           </div>
         </div>
       </div>

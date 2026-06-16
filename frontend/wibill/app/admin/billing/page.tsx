@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -33,13 +34,15 @@ const C = {
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editRate, setEditRate] = useState<number>(0);
   const [saving, setSaving] = useState(false);
 
-  const fetchPartners = async () => {
+  const fetchPartners = useCallback(async () => {
     const token = localStorage.getItem('wb_token');
     if (!token) return;
+    setRefreshing(true);
     try {
       const res = await fetch(`${API}/api/admin/partners/revenue`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -50,10 +53,11 @@ export default function PartnersPage() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchPartners(); }, []);
+  useEffect(() => { fetchPartners(); }, [fetchPartners]);
 
   const totalPartners = partners.length;
   const premiumPartners = partners.filter(p => p.commission_rate < 10).length;
@@ -95,10 +99,38 @@ export default function PartnersPage() {
 
   const cancelEdit = () => setEditingId(null);
 
-  if (loading) {
+  const skel = (w: string, h: number, d = 0) => ({
+    width: w, height: h, background: C.mute, borderRadius: 6,
+    animation: 'skel-pulse 2s ease-in-out infinite',
+    animationDelay: `${d}s`,
+  });
+
+  if (loading && partners.length === 0) {
     return (
-      <div style={{ background: C.void, color: C.dim, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>
-        Loading partners...
+      <div style={{ background: C.void, color: C.text, minHeight: '100vh', padding: '32px 36px', maxWidth: '1600px', margin: '0 auto' }}>
+        <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+        <div style={skel('240px', 36, 0)} />
+        <div style={{ ...skel('300px', 13, 0.1), marginTop: 8, marginBottom: 32 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
+          {[0.1, 0.2, 0.3, 0.4].map(d => (
+            <div key={d} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={skel('60%', 10, d)} />
+              <div style={{ ...skel('50%', 28, d + 0.05), marginTop: 8, marginBottom: 4 }} />
+              <div style={skel('50%', 11, d + 0.1)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+          <div style={skel('160px', 14, 0.2)} />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1.5fr 1.5fr 1fr 80px', gap: 8, padding: '12px 0', borderBottom: `0.5px solid ${C.border}` }}>
+            {[1, 2, 3, 4, 5, 6, 7].map(i => <div key={i} style={skel('100%', 10, 0.2 + i * 0.03)} />)}
+          </div>
+          {[1, 2, 3, 4, 5].map(r => (
+            <div key={r} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1.5fr 1.5fr 1fr 80px', gap: 8, padding: '14px 0', borderBottom: `0.5px solid ${C.border}` }}>
+              {[1, 2, 3, 4, 5, 6, 7].map(i => <div key={i} style={skel('100%', 13, 0.2 + r * 0.04 + i * 0.02)} />)}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -107,12 +139,23 @@ export default function PartnersPage() {
     <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1600px', margin: '0 auto' }}>
       {/* HEADER */}
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>
-          Partner Network
-        </h1>
-        <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>
-          Every ISP on the platform — their terms, their revenue, your earnings
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>
+              Partner Network
+            </h1>
+            <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>
+              Every ISP on the platform — their terms, their revenue, your earnings
+            </p>
+          </div>
+          <button onClick={fetchPartners} disabled={refreshing} title="Refresh" style={{
+            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `0.5px solid ${C.border}`, background: C.base, cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={13} />
+          </button>
+        </div>
       </div>
 
       {/* STAT CARDS */}

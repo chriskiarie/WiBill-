@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Search, Clock, User, Activity } from 'lucide-react';
+import { Loader2, Search, Clock, User, Activity, RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -23,18 +23,19 @@ function formatTime(iso: string) {
 export default function AuditLogPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const r = await fetch(`${API}/api/admin/audit-logs?limit=100`, { headers: authHeaders() });
-        if (r.ok) setLogs(await r.json());
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    }
-    load();
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    try {
+      const r = await fetch(`${API}/api/admin/audit-logs?limit=100`, { headers: authHeaders() });
+      if (r.ok) setLogs(await r.json());
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); setRefreshing(false); }
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = search.trim()
     ? logs.filter(l =>
@@ -54,6 +55,13 @@ export default function AuditLogPage() {
             </div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Every admin action recorded · Immutable trail</div>
           </div>
+          <button onClick={load} disabled={refreshing} title="Refresh" style={{
+            width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.muted,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={14} />
+          </button>
         </header>
 
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2, maxWidth: 360 }}>
@@ -61,7 +69,29 @@ export default function AuditLogPage() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter by actor, action, or target..." style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: C.text, fontSize: 13, fontFamily: 'inherit' }} />
         </div>
 
-        {loading ? (
+        {loading && logs.length === 0 ? (
+          <div>
+            <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 18, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '180px 200px 140px 1fr', gap: 0 }}>
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, borderLeft: i > 0 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                    <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${i * 0.05}s` }} />
+                  </div>
+                ))}
+              </div>
+              {[1, 2, 3, 4, 5, 6].map(r => (
+                <div key={r} style={{ display: 'grid', gridTemplateColumns: '180px 200px 140px 1fr', gap: 0, background: r % 2 === 0 ? C.panel2 : 'transparent', borderBottom: r < 6 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                  {[0.1, 0.15, 0.2, 0.25].map((d, i) => (
+                    <div key={i} style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 6, borderLeft: i > 0 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                      <div style={{ flex: 1, height: 11, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + r * 0.03}s` }} />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : loading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '40px 0' }}><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />Loading audit log...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: C.muted, fontSize: 13 }}>No audit entries yet. Actions will appear here as you manage the platform.</div>

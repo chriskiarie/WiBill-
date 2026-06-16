@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
 
@@ -39,6 +39,7 @@ function statusTone(status?: string) {
 export default function AdminDashboard() {
   const [time, setTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({ revenue_today: 0, revenue_month: 0, active_sessions: 0, total_isps: 0 });
   const [trend, setTrend] = useState<{ date: string; amount: number }[]>([]);
@@ -52,59 +53,55 @@ export default function AdminDashboard() {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      try {
-        const token = localStorage.getItem('wb_token');
-        if (!token) { setError('Login required.'); setLoading(false); return; }
-        const h = { Authorization: `Bearer ${token}` };
-        const f = async (url: string) => { const r = await fetch(url, { headers: h }); try { return await r.json(); } catch { return null; } };
+  const load = useCallback(async () => {
+    const token = localStorage.getItem('wb_token');
+    if (!token) { setError('Login required.'); setLoading(false); setRefreshing(false); return; }
+    setRefreshing(true);
+    try {
+      const h = { Authorization: `Bearer ${token}` };
+      const f = async (url: string) => { const r = await fetch(url, { headers: h }); try { return await r.json(); } catch { return null; } };
 
-        const [dash, txnData, sessionData, ispData] = await Promise.all([
-          f(`${API}/api/tenants/dashboard`),
-          f(`${API}/api/mpesa/admin/transactions?limit=50`),
-          f(`${API}/api/sessions?limit=100`),
-          f(`${API}/api/admin/tenants`),
-        ]);
+      const [dash, txnData, sessionData, ispData] = await Promise.all([
+        f(`${API}/api/tenants/dashboard`),
+        f(`${API}/api/mpesa/admin/transactions?limit=50`),
+        f(`${API}/api/sessions?limit=100`),
+        f(`${API}/api/admin/tenants`),
+      ]);
 
-        if (!mounted) return;
+      const now = new Date();
+      const txnsList = Array.isArray(txnData?.value) ? txnData.value : Array.isArray(txnData) ? txnData : [];
+      const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : Array.isArray(sessionData) ? sessionData : [];
+      const ispList = Array.isArray(ispData?.value) ? ispData.value : Array.isArray(ispData) ? ispData : [];
 
-        const txnsList = Array.isArray(txnData?.value) ? txnData.value : Array.isArray(txnData) ? txnData : [];
-        const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : Array.isArray(sessionData) ? sessionData : [];
-        const ispList = Array.isArray(ispData?.value) ? ispData.value : Array.isArray(ispData) ? ispData : [];
+      setStats({
+        revenue_today: Number(dash?.revenue_today || 0),
+        revenue_month: Number(dash?.revenue_month || 0),
+        active_sessions: sessionsList.filter((s: any) => s.status === 'active').length,
+        total_isps: ispList.length,
+      });
 
-        setStats({
-          revenue_today: Number(dash?.revenue_today || 0),
-          revenue_month: Number(dash?.revenue_month || 0),
-          active_sessions: sessionsList.filter((s: any) => s.status === 'active').length,
-          total_isps: ispList.length,
-        });
+      setTxns(txnsList.slice(0, 5));
+      setIsps(ispList);
+      setSyncedAt(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
 
-        setTxns(txnsList.slice(0, 5));
-        setIsps(ispList);
-        setSyncedAt(time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-
-        const byDay = new Map<string, number>();
-        const now = new Date();
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(); d.setDate(now.getDate() - i);
-          byDay.set(dateKey(d), 0);
-        }
-        txnsList.forEach((txn: any) => {
-          const created = txn.created_at ? new Date(txn.created_at) : null;
-          if (!created || Number.isNaN(created.getTime())) return;
-          const key = dateKey(created);
-          if (!byDay.has(key)) return;
-          byDay.set(key, (byDay.get(key) || 0) + Number(txn.amount_ksh || 0));
-        });
-        setTrend([...byDay.entries()].map(([key, amount]) => ({ date: formatDayAbbr(new Date(`${key}T00:00:00`)), amount })));
-        setError('');
-      } catch { setError('Dashboard stream unavailable.'); } finally { if (mounted) setLoading(false); }
-    }
-    load();
-    return () => { mounted = false; };
+      const byDay = new Map<string, number>();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(now.getDate() - i);
+        byDay.set(dateKey(d), 0);
+      }
+      txnsList.forEach((txn: any) => {
+        const created = txn.created_at ? new Date(txn.created_at) : null;
+        if (!created || Number.isNaN(created.getTime())) return;
+        const key = dateKey(created);
+        if (!byDay.has(key)) return;
+        byDay.set(key, (byDay.get(key) || 0) + Number(txn.amount_ksh || 0));
+      });
+      setTrend([...byDay.entries()].map(([key, amount]) => ({ date: formatDayAbbr(new Date(`${key}T00:00:00`)), amount })));
+      setError('');
+    } catch { setError('Dashboard stream unavailable.'); } finally { setLoading(false); setRefreshing(false); }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const trendMax = useMemo(() => Math.max(...trend.map(p => p.amount), 1), [trend]);
   const activeCount = isps.filter(i => i.is_active).length;
@@ -130,6 +127,71 @@ export default function AdminDashboard() {
 
   const toneColor: Record<string, string> = { good: C.green, warn: C.gold, bad: C.red, neutral: C.faint };
 
+  const skel = (w: string, h: number, d = 0, r = 6) => ({
+    width: w, height: h, background: C.faint, borderRadius: r,
+    animation: 'skel-pulse 2s ease-in-out infinite',
+    animationDelay: `${d}s`,
+  });
+
+  if (loading && !stats.revenue_today && !txns.length) {
+    return (
+      <div style={{ padding: '28px 32px', maxWidth: 1440, minHeight: '100%' }}>
+        <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div>
+            <div style={skel('200px', 28, 0)} />
+            <div style={{ ...skel('140px', 13, 0.1), marginTop: 4 }} />
+          </div>
+          <div style={skel('100px', 13, 0.15)} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          {[0.1, 0.2, 0.3, 0.4].map(d => (
+            <div key={d} style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+              <div style={skel('60%', 11, d)} />
+              <div style={{ ...skel('50%', 32, d + 0.05), marginTop: 8, marginBottom: 4 }} />
+              <div style={skel('70%', 12, d + 0.1)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+            <div style={skel('140px', 11, 0.1)} />
+            <div style={{ ...skel('200px', 12, 0.15), marginTop: 2, marginBottom: 16 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, alignItems: 'end', height: 180 }}>
+              {[30, 50, 20, 60, 40, 70, 35].map((h, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                  <div style={{ width: '100%', maxWidth: 32, height: `${h}%`, minHeight: 6, background: C.faint, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.1 + i * 0.08}s` }} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+            <div style={skel('100px', 11, 0.2)} />
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? `0.5px solid ${C.line}` : 'none' }}>
+                <div style={skel('100px', 13, 0.2 + i * 0.05)} />
+                <div style={skel('60px', 11, 0.2 + i * 0.08)} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {[[0.3, 0.4], [0.5, 0.6]].map((ds, col) => (
+            <div key={col} style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+              <div style={skel('130px', 11, ds[0])} />
+              {[1, 2, 3, 4].map(row => (
+                <div key={row} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: row < 4 ? `0.5px solid ${C.line}` : 'none' }}>
+                  <div style={skel('120px', 11, ds[0] + row * 0.05)} />
+                  <div style={skel('50px', 12, ds[1] + row * 0.05)} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1440, minHeight: '100%' }}>
       {/* Page title section */}
@@ -140,7 +202,7 @@ export default function AdminDashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.faint }}>Last synced {syncedAt}</span>
-          <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.faint, padding: 0, display: 'flex' }}>
+          <button onClick={load} disabled={refreshing} style={{ background: 'none', border: 'none', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.faint, padding: 0, display: 'flex', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
             <RefreshCw size={12} />
           </button>
         </div>

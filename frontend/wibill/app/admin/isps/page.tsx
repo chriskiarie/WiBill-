@@ -16,6 +16,7 @@ import {
   ShieldX,
   Building2,
   X,
+  RefreshCw,
 } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -119,6 +120,7 @@ export default function AdminISPNetwork() {
   // Invite state
   const [invites, setInvites]           = useState<Invite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
   const [generating, setGenerating]     = useState(false);
   const [newISPName, setNewISPName]     = useState('');
   const [generatedLink, setGeneratedLink] = useState<Invite | null>(null);
@@ -173,6 +175,14 @@ export default function AdminISPNetwork() {
     } finally {
       setLoadingISPs(false);
     }
+  }
+
+  async function refreshAll() {
+    setRefreshing(true);
+    setLoadingInvites(true);
+    setLoadingISPs(true);
+    await Promise.all([loadInvites(), loadISPs()]);
+    setRefreshing(false);
   }
 
   useEffect(() => { loadInvites(); loadISPs(); }, []);
@@ -307,17 +317,60 @@ export default function AdminISPNetwork() {
             </div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Onboarding · Approvals · Invite management</div>
           </div>
-          <button
-            onClick={() => setShowInvitePanel(true)}
-            style={{ height: 36, padding: '0 16px', borderRadius: 10, border: `1px solid rgba(232,184,75,0.3)`, background: 'rgba(232,184,75,0.08)', color: C.gold, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,184,75,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,184,75,0.08)'}
-          >
-            <Link2 size={14} />
-            Generate Invite
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={refreshAll} disabled={refreshing} title="Refresh" style={{
+              width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.muted,
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+            }}>
+              <RefreshCw size={14} />
+            </button>
+            <button
+              onClick={() => setShowInvitePanel(true)}
+              style={{ height: 36, padding: '0 16px', borderRadius: 10, border: `1px solid rgba(232,184,75,0.3)`, background: 'rgba(232,184,75,0.08)', color: C.gold, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,184,75,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,184,75,0.08)'}
+            >
+              <Link2 size={14} />
+              Generate Invite
+            </button>
+          </div>
         </header>
 
+        {(loadingInvites && loadingISPs && invites.length === 0 && isps.length === 0) ? (
+          <div>
+            <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, marginBottom: 18 }}>
+              {[0.1, 0.2, 0.3, 0.4].map(d => (
+                <div key={d} style={{ background: C.panel2, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18 }}>
+                  <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d}s` }} />
+                  <div style={{ width: '40%', height: 28, background: C.dim, borderRadius: 4, marginTop: 14, marginBottom: 8, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.05}s` }} />
+                  <div style={{ width: '50%', height: 12, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.1}s` }} />
+                </div>
+              ))}
+            </div>
+            {[1, 2, 3].map(p => (
+              <div key={p} style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: '2px solid #333', borderRadius: 18, overflow: 'hidden', marginBottom: 18 }}>
+                <div style={{ padding: '18px 20px 8px' }}>
+                  <div style={{ width: '180px', height: 15, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.1 + p * 0.1}s` }} />
+                  <div style={{ width: '260px', height: 12, background: C.dim, borderRadius: 4, marginTop: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.15 + p * 0.1}s` }} />
+                </div>
+                <div style={{ padding: 20 }}>
+                  {[1, 2, 3].map(r => (
+                    <div key={r} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: r < 3 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.dim, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ width: '40%', height: 13, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
+                        <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, marginTop: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.25 + p * 0.1 + r * 0.05}s` }} />
+                      </div>
+                      <div style={{ width: 60, height: 20, background: C.dim, borderRadius: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.3 + p * 0.1 + r * 0.05}s` }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <main style={{ display: 'grid', gap: 18 }}>
 
           {/* ── Stat cards ── */}
@@ -479,6 +532,7 @@ export default function AdminISPNetwork() {
           </Panel>
 
         </main>
+        )}
 
         {/* ── Generate Invite slide-in panel ── */}
         {showInvitePanel && (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Send, Building2, Globe, CheckCircle2, AlertTriangle, Clock, MessageSquare } from 'lucide-react';
+import { Loader2, Send, Building2, Globe, CheckCircle2, AlertTriangle, Clock, MessageSquare, RefreshCw } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -31,24 +31,25 @@ export default function CommsPage() {
   const [selectedIsp, setSelectedIsp] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [r1, r2] = await Promise.all([
-          fetch(`${API}/api/admin/tenants`, { headers: authHeaders() }),
-          fetch(`${API}/api/admin/comms/history`, { headers: authHeaders() }),
-        ]);
-        if (r1.ok) {
-          const data = await r1.json();
-          setIsps(Array.isArray(data) ? data : []);
-        }
-        if (r2.ok) setHistory(await r2.json());
-      } catch (e) { console.error(e); }
-      finally { setLoadingHistory(false); }
-    }
-    load();
-  }, []);
+  const load = async () => {
+    setRefreshing(true);
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch(`${API}/api/admin/tenants`, { headers: authHeaders() }),
+        fetch(`${API}/api/admin/comms/history`, { headers: authHeaders() }),
+      ]);
+      if (r1.ok) {
+        const data = await r1.json();
+        setIsps(Array.isArray(data) ? data : []);
+      }
+      if (r2.ok) setHistory(await r2.json());
+    } catch (e) { console.error(e); }
+    finally { setLoadingHistory(false); setRefreshing(false); }
+  };
+
+  useEffect(() => { load(); }, []);
 
   async function send() {
     if (!title.trim() || !message.trim()) return;
@@ -87,6 +88,13 @@ export default function CommsPage() {
             </div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Platform communications · Broadcasts & direct messages</div>
           </div>
+          <button onClick={load} disabled={refreshing} title="Refresh" style={{
+            width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.muted,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={14} />
+          </button>
         </header>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
@@ -130,7 +138,21 @@ export default function CommsPage() {
           {/* History */}
           <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>History</div>
-            {loadingHistory ? (
+            {loadingHistory && history.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+                {[1, 2, 3].map(r => (
+                  <div key={r} style={{ padding: '14px 0', borderBottom: `1px solid ${C.borderSoft}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <div style={{ width: 12, height: 12, background: C.dim, borderRadius: '50%', animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${r * 0.1}s` }} />
+                      <div style={{ width: '40%', height: 13, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${r * 0.1}s` }} />
+                    </div>
+                    <div style={{ width: '80%', height: 10, background: C.dim, borderRadius: 4, marginTop: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${r * 0.12}s` }} />
+                    <div style={{ width: '50%', height: 10, background: C.dim, borderRadius: 4, marginTop: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${r * 0.14}s` }} />
+                  </div>
+                ))}
+              </div>
+            ) : loadingHistory ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.muted, padding: 20 }}>
                 <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading...
               </div>
