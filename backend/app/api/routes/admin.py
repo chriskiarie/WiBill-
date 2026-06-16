@@ -88,6 +88,7 @@ class TenantListResponse(BaseModel):
     slug: str
     name: str
     is_active: bool
+    is_locked: bool
     commission_rate: float
     balance_ksh: float
     created_at: str
@@ -150,6 +151,7 @@ async def list_tenants(
             slug=t.slug,
             name=t.name,
             is_active=t.is_active,
+            is_locked=t.is_locked,
             commission_rate=float(t.commission_rate),
             balance_ksh=float(t.balance_ksh),
             created_at=t.created_at.isoformat() if t.created_at else ""

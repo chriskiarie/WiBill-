@@ -39,6 +39,7 @@ interface ISP {
   slug: string;
   email: string;
   is_active: boolean;
+  is_locked: boolean;
   commission_rate: number;
   created_at: string;
 }
@@ -286,7 +287,7 @@ export default function AdminISPNetwork() {
   }, [invites, searchTerm]);
 
   const activeISPs   = isps.filter(i => i.is_active);
-  const pendingISPs  = isps.filter(i => !i.is_active);
+  const pendingISPs  = isps.filter(i => !i.is_active && !i.is_locked);
   const pendingCount = invites.filter(i => (i.status || '').toLowerCase() === 'pending').length;
   const usedCount    = invites.filter(i => (i.status || '').toLowerCase() === 'used').length;
 
