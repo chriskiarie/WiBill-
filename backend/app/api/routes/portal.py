@@ -171,21 +171,65 @@ async def preview_portal(template_id: str, request: Request):
 @router.get("/portal/{slug}", response_class=HTMLResponse)
 async def get_live_portal(
     slug: str,
+    token: str = Query(None),
+    mac: str = Query(""),
+    request: Request = None,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Serve live portal with tenant's actual config mapped to actual Jinja templates
+    Supports ?token=CODE for reward token redemption.
     
     Flow:
     1. Find tenant by slug
-    2. Load portal_config (brand, design, network settings)
-    3. Fetch active packages
-    4. Render template with Jinja2
+    2. If token param present, attempt token redemption
+    3. Load portal_config (brand, design, network settings)
+    4. Fetch active packages
+    5. Render template with Jinja2
     """
     
     # Find tenant
     result = await db.execute(select(Tenant).where(Tenant.slug == slug))
     tenant = result.scalar_one_or_none()
+
+    # Handle reward token redemption
+    if token:
+        from app.models.reward_token import RewardToken
+        from app.services.session_service import create_session
+        from datetime import datetime, timedelta
+        tr = await db.execute(select(RewardToken).where(RewardToken.token_code == token))
+        rtoken = tr.scalar_one_or_none()
+        if not rtoken:
+            return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Not Found</h1><p>This token code is invalid. Please check your link.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=404)
+        if rtoken.redeemed:
+            return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Already Used</h1><p>This token was already redeemed on {rtoken.redeemed_at.strftime('%Y-%m-%d %H:%M') if rtoken.redeemed_at else 'an earlier date'}.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)
+        if rtoken.expires_at and rtoken.expires_at < datetime.utcnow():
+            return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Token Expired</h1><p>This token expired on {rtoken.expires_at.strftime('%Y-%m-%d %H:%M')}. Tokens have a limited validity window.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)
+        if rtoken.tenant_id != tenant.id:
+            return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0"><h1 style="color:#ef4444">Invalid Token</h1><p>This token is not valid for this ISP.</p><a href="/portal/{slug}" style="color:#E8B84B">Back to portal</a></body></html>""", status_code=400)
+
+        # Redeem: create session
+        session = await create_session(
+            tenant_id=rtoken.tenant_id,
+            mac_address=mac or rtoken.bound_mac or "00:00:00:00:00:00",
+            ip_address=request.client.host if request else "0.0.0.0",
+            package_id=None,
+            expires_at=datetime.utcnow() + timedelta(minutes=rtoken.minutes),
+            db=db,
+        )
+        rtoken.redeemed = True
+        rtoken.redeemed_at = datetime.utcnow()
+        rtoken.session_id = session.id
+        rtoken.bound_mac = mac or rtoken.bound_mac
+        await db.commit()
+
+        return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0;text-align:center">
+            <div style="font-size:48px;margin-bottom:16px">&#10004;&#65039;</div>
+            <h1 style="color:#22c55e;margin-bottom:8px">Token Redeemed!</h1>
+            <p style="color:#f0f0f0;font-size:16px">You have <strong>{rtoken.minutes} minutes</strong> of free internet access.</p>
+            <p style="color:#666;font-size:12px">Your session is active. Enjoy browsing.</p>
+            <p style="color:#666;font-size:10px;margin-top:24px">Session: {str(session.id)[:8]}...</p>
+        </body></html>""")
     
     if not tenant:
         raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
