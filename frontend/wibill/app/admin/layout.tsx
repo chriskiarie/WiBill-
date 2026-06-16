@@ -6,387 +6,197 @@ import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const NAV_ITEMS = [
-  { href: '/admin', label: 'Dashboard', icon: 'ti-layout-dashboard', exact: true },
-  { href: '/admin/isps', label: 'ISP Network', icon: 'ti-network' },
-  { href: '/admin/revenue', label: 'Revenue', icon: 'ti-chart-bar' },
-  { href: '/admin/transactions', label: 'Transactions', icon: 'ti-receipt' },
-  { href: '/admin/invites', label: 'Invites', icon: 'ti-link' },
-  { href: '/admin/system', label: 'Settings', icon: 'ti-settings' },
+const NAV = [
+  { href: '/admin', label: 'Dashboard', exact: true },
+  { href: '/admin/isps', label: 'ISP Network' },
+  { href: '/admin/revenue', label: 'Revenue' },
+  { href: '/admin/transactions', label: 'Transactions' },
+  { href: '/admin/invites', label: 'Invites' },
+  { href: '/admin/system', label: 'Settings' },
 ];
+
+const pageNames: Record<string, string> = {
+  '/admin': 'Dashboard',
+  '/admin/isps': 'ISP Network',
+  '/admin/revenue': 'Revenue',
+  '/admin/transactions': 'Transactions',
+  '/admin/invites': 'Invites',
+  '/admin/system': 'Settings',
+};
 
 export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [clock, setClock] = useState('');
+
+  const isLoginPage = path === '/admin/login';
 
   useEffect(() => {
-    // Check if this is a login page - don't guard it
-    if (path === '/admin/login') {
-      setLoading(false);
-      return;
-    }
-
-    // ===== AUTH GUARD =====
-    // 1. Check localStorage for JWT token
+    if (isLoginPage) { setLoading(false); return; }
     const token = localStorage.getItem('wb_token');
-    
-    if (!token) {
-      // No token → redirect to login
-      router.replace('/admin/login');
-      return;
-    }
-
-    // 2. Verify with backend (optional - for validation)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    fetch(`${API}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
-      .then(r => {
-        clearTimeout(timeoutId);
-        if (!r.ok) throw new Error('Unauthorized');
-        return r.json();
+    if (!token) { router.replace('/admin/login'); return; }
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 5000);
+    fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal })
+      .then(r => { clearTimeout(tid); if (!r.ok) throw new Error(); return r.json(); })
+      .then(d => {
+        if (d.role !== 'platform_admin') { localStorage.removeItem('wb_token'); router.replace('/admin/login'); return; }
+        setUser(d); setLoading(false);
       })
-      .then(data => {
-        // Check if user is platform admin
-        if (data.role !== 'platform_admin') {
-          localStorage.removeItem('wb_token');
-          router.replace('/admin/login');
-          return;
-        }
-        setUser(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        clearTimeout(timeoutId);
-        // If backend unreachable, DO NOT grant access - redirect to login
-        // Never grant platform_admin access based on token alone without backend verification
-        localStorage.removeItem('wb_token');
-        router.replace('/admin/login');
-      });
+      .catch(() => { clearTimeout(tid); localStorage.removeItem('wb_token'); router.replace('/admin/login'); });
+    return () => clearTimeout(tid);
+  }, [path, router, isLoginPage]);
 
-    return () => clearTimeout(timeoutId);
-  }, [path, router]);
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const day = days[d.getDay()];
+      const date = d.getDate();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const mon = months[d.getMonth()];
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      setClock(`${day} ${date} ${mon} · ${h}:${m}`);
+    };
+    tick(); const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
 
-  // Loading state
-  if (loading && path !== '/admin/login') {
+  if (loading && !isLoginPage) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <div style={{
-          textAlign: 'center',
-          color: '#e8e8e8',
-        }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            border: '2px solid rgba(139, 92, 246, 0.3)',
-            borderTop: '2px solid #8b5cf6',
-            margin: '0 auto 24px',
-            animation: 'spin 1s linear infinite',
-          }} />
-          <div style={{ fontSize: 14, color: 'rgba(232, 232, 232, 0.6)' }}>Entering Batcave...</div>
+      <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.3)', borderTop: '2px solid #E8B84B', margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontSize: 13, color: '#6B6964', fontFamily: 'Inter, sans-serif' }}>Loading Batcave</div>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // Login page - no sidebar
-  if (path === '/admin/login') {
-    return children;
-  }
+  if (isLoginPage) return <>{children}</>;
+  if (!user && !loading) return null;
 
-  // Not authenticated and not loading - will redirect (don't render)
-  if (!user && !loading) {
-    return null;
-  }
+  const currentPageName = Object.entries(pageNames).find(([href]) => href === path ? true : path.startsWith(href) && href !== '/admin')?.[1] || pageNames[path] || 'Dashboard';
+  // Derive page name more carefully
+  const pageName = (() => {
+    if (path === '/admin') return 'Dashboard';
+    for (const [href, name] of Object.entries(pageNames)) {
+      if (href !== '/admin' && path.startsWith(href)) return name;
+    }
+    return 'Dashboard';
+  })();
 
-  // Authenticated - show sidebar + content
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%)',
-      color: '#e8e8e8',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    }}>
-      {/* Sidebar */}
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#000', color: '#EDEBE6' }}>
+      {/* ── SIDEBAR ── */}
       <aside style={{
-        width: sidebarOpen ? 260 : 80,
-        background: 'linear-gradient(180deg, rgba(10, 10, 20, 0.95) 0%, rgba(20, 20, 35, 0.8) 100%)',
-        backdropFilter: 'blur(10px)',
-        borderRight: '1px solid rgba(139, 92, 246, 0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        transition: 'width 0.3s ease',
-        zIndex: 1000,
+        width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
+        background: '#000', borderRight: '0.5px solid #2A2A27',
+        display: 'flex', flexDirection: 'column',
       }}>
-        {/* Logo */}
+        {/* Brand row — 64px */}
         <div style={{
-          padding: '24px',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          justifyContent: sidebarOpen ? 'flex-start' : 'center',
+          height: 64, minHeight: 64, padding: '0 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          borderBottom: '0.5px solid #1A1A18',
         }}>
           <div style={{
-            width: 40,
-            height: 40,
-            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            fontWeight: 900,
-            color: '#0f0f1e',
-            boxShadow: '0 0 20px rgba(251, 191, 36, 0.4)',
-            flexShrink: 0,
+            width: 28, height: 28, borderRadius: 7,
+            background: '#E8B84B', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0,
           }}>
-            ⚡
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
           </div>
-          {sidebarOpen && (
-            <div>
-              <div style={{
-                fontSize: 16,
-                fontWeight: 800,
-                letterSpacing: '-0.5px',
-                background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                BATCAVE
-              </div>
-              <div style={{
-                fontSize: 10,
-                color: 'rgba(251, 191, 36, 0.5)',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-              }}>
-                Command
-              </div>
-            </div>
-          )}
+          <div>
+            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 15, fontWeight: 700, color: '#E8B84B', lineHeight: 1.1 }}>BATCAVE</div>
+            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 400, color: '#6B6964', letterSpacing: '0.15em' }}>COMMAND</div>
+          </div>
         </div>
 
-        {/* Navigation */}
-        <nav style={{
-          flex: 1,
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          overflowY: 'auto',
-        }}>
-          {sidebarOpen && (
-            <div style={{
-              fontSize: 11,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '1.5px',
-              color: 'rgba(232, 232, 232, 0.2)',
-              padding: '0 12px',
-              marginBottom: 8,
-            }}>
-              Operations
-            </div>
-          )}
-          {NAV_ITEMS.map(item => {
-            const active = item.exact ? path === item.href : path.startsWith(item.href);
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
+            color: '#3A3A37', letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '0 8px', marginBottom: 6,
+          }}>
+            OPERATIONS
+          </div>
+          {NAV.map(n => {
+            const active = n.exact ? path === n.href : path.startsWith(n.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px',
-                  borderRadius: 10,
-                  background: active
-                    ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.1))'
-                    : 'transparent',
-                  border: `1px solid ${
-                    active ? 'rgba(251, 191, 36, 0.3)' : 'rgba(251, 191, 36, 0.1)'
-                  }`,
-                  color: active ? '#fcd34d' : 'rgba(232, 232, 232, 0.5)',
-                  textDecoration: 'none',
-                  fontSize: 14,
-                  fontWeight: active ? 600 : 400,
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => {
-                  if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'rgba(251, 191, 36, 0.08)';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(251, 191, 36, 0.2)';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) {
-                    (e.currentTarget as HTMLElement).style.background = 'transparent';
-                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(251, 191, 36, 0.1)';
-                  }
-                }}
+              <Link key={n.href} href={n.href} style={{
+                display: 'flex', alignItems: 'center', height: 38,
+                padding: '0 10px', borderRadius: 6,
+                textDecoration: 'none', position: 'relative',
+                fontFamily: 'Inter, sans-serif', fontSize: 13,
+                color: active ? '#E8B84B' : '#8C8A84',
+                background: active ? 'rgba(232,184,75,0.10)' : 'transparent',
+                transition: 'background 0.12s',
+              }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#111110'; e.currentTarget.style.color = '#EDEBE6'; }}}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8C8A84'; }}}
               >
-                <i className={`ti ${item.icon}`} style={{
-                  fontSize: 18,
-                  opacity: active ? 1 : 0.6,
-                  flexShrink: 0,
-                }} aria-hidden="true" />
-                {sidebarOpen && item.label}
-                {active && (
-                  <div style={{
-                    marginLeft: 'auto',
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: '#fbbf24',
-                    boxShadow: '0 0 8px rgba(251, 191, 36, 0.6)',
-                  }} />
-                )}
+                {active && <div style={{
+                  position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+                  width: 4, height: 16, borderRadius: '0 3px 3px 0', background: '#E8B84B',
+                }} />}
+                {n.label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div style={{
-          padding: '16px',
-          borderTop: '1px solid rgba(251, 191, 36, 0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '0 12px',
-          }}>
-            <div style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: '#10b981',
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)',
-            }} />
-            {sidebarOpen && (
-              <span style={{
-                fontSize: 11,
-                color: 'rgba(232, 232, 232, 0.4)',
-              }}>
-                System operational
-              </span>
-            )}
+        {/* Bottom */}
+        <div style={{ borderTop: '0.5px solid #2A2A27', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73' }} />
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>System operational</span>
           </div>
-          {sidebarOpen && (
-            <button
-              onClick={() => {
-                localStorage.removeItem('wb_token');
-                router.push('/admin/login');
-              }}
-              style={{
-                background: 'rgba(251, 191, 36, 0.1)',
-                border: '1px solid rgba(251, 191, 36, 0.2)',
-                borderRadius: 8,
-                padding: '8px 12px',
-                color: 'rgba(252, 211, 77, 0.7)',
-                fontSize: 12,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontWeight: 500,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(251, 191, 36, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.3)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(251, 191, 36, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.2)';
-              }}
-            >
-              ⤴ Exit
-            </button>
-          )}
+          <button onClick={() => { localStorage.removeItem('wb_token'); router.push('/admin/login'); }}
+            style={{
+              height: 32, borderRadius: 6, border: '0.5px solid #2A2A27', background: '#111110',
+              color: '#8C8A84', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+            }}>
+            ↩ Exit to ISP
+          </button>
         </div>
-
-        {/* Toggle button */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          style={{
-            position: 'absolute',
-            right: -12,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: 'rgba(251, 191, 36, 0.2)',
-            border: '1px solid rgba(251, 191, 36, 0.3)',
-            color: '#fbbf24',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(251, 191, 36, 0.3)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(251, 191, 36, 0.2)';
-          }}
-        >
-          {sidebarOpen ? '◀' : '▶'}
-        </button>
       </aside>
 
-      {/* Main Content */}
-      <main style={{
-        flex: 1,
-        overflowY: 'auto',
-        background: 'linear-gradient(180deg, #0f0f1e 0%, #1a1a2e 100%)',
-      }}>
-        {children}
-      </main>
+      {/* ── MAIN ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Topbar — 48px */}
+        <header style={{
+          height: 48, minHeight: 48, background: '#000',
+          borderBottom: '0.5px solid #1A1A18',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px',
+        }}>
+          {/* Breadcrumb */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>BATCAVE</span>
+            <span style={{ color: '#3A3A37', fontSize: 12 }}>›</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 500, color: '#EDEBE6' }}>{pageName}</span>
+          </div>
 
-      <style>{`
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-          background: rgba(251, 191, 36, 0.05);
-        }
-        ::-webkit-scrollbar-thumb {
-          background: rgba(251, 191, 36, 0.2);
-          border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(251, 191, 36, 0.3);
-        }
-      `}</style>
+          {/* Right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: '#3A3A37' }}>v0.1.0</span>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: '#6B6964' }}>{clock}</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>● ALL SYSTEMS GO</span>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main style={{ flex: 1, overflowY: 'auto', background: '#000' }}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
