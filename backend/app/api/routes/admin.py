@@ -22,6 +22,11 @@ from app.models.isp_invite import ISPInvite, InviteStatus
 from app.models.audit_log import AuditLog
 from app.api.routes.auth import get_current_user, require_platform_admin
 
+
+class CommissionUpdate(BaseModel):
+    commission_rate: float
+
+
 log = logging.getLogger("honestbill.admin")
 
 
@@ -292,3 +297,81 @@ async def approve_tenant(
     await db.refresh(tenant)
 
     return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
+
+
+@router.get("/admin/partners/revenue")
+async def partner_revenue(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Per-ISP revenue breakdown with commission info for the Partners page."""
+    from app.models.transaction import Transaction
+    from sqlalchemy import func
+
+    stmt = (
+        select(
+            Tenant.id,
+            Tenant.name,
+            Tenant.slug,
+            Tenant.is_active,
+            Tenant.is_locked,
+            Tenant.commission_rate,
+            func.coalesce(func.sum(Transaction.amount_ksh), 0).label("total_revenue"),
+            func.coalesce(func.sum(Transaction.platform_fee_ksh), 0).label("platform_earnings"),
+            func.coalesce(func.sum(Transaction.isp_earnings_ksh), 0).label("isp_earnings"),
+            func.count(Transaction.id).label("transaction_count"),
+        )
+        .outerjoin(
+            Transaction,
+            (Transaction.tenant_id == Tenant.id) & (Transaction.status == "success"),
+        )
+        .group_by(Tenant.id)
+        .order_by(func.coalesce(func.sum(Transaction.platform_fee_ksh), 0).desc())
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "id": str(r.id),
+            "name": r.name,
+            "slug": r.slug,
+            "is_active": r.is_active,
+            "is_locked": r.is_locked,
+            "commission_rate": float(r.commission_rate),
+            "total_revenue": float(r.total_revenue),
+            "platform_earnings": float(r.platform_earnings),
+            "isp_earnings": float(r.isp_earnings),
+            "transaction_count": r.transaction_count,
+        }
+        for r in rows
+    ]
+
+
+@router.patch("/admin/tenants/{tenant_id}/commission")
+async def update_tenant_commission(
+    tenant_id: str,
+    body: CommissionUpdate,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an ISP's commission rate (platform_admin only)."""
+    if body.commission_rate < 0 or body.commission_rate > 100:
+        raise HTTPException(status_code=400, detail="commission_rate must be between 0 and 100")
+
+    rate = body.commission_rate
+
+    stmt = select(Tenant).where(Tenant.id == uuid.UUID(tenant_id))
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    tenant.commission_rate = rate
+    db.add(tenant)
+    await log_action(db, current_user, 'update_commission', 'tenant', tenant_id, {'name': tenant.name, 'new_rate': rate})
+    await db.commit()
+    await db.refresh(tenant)
+
+    return {"id": str(tenant.id), "commission_rate": float(tenant.commission_rate)}
