@@ -17,7 +17,21 @@ from app.core.database import get_db
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.isp_invite import ISPInvite, InviteStatus
+from app.models.audit_log import AuditLog
 from app.api.routes.auth import get_current_user, require_platform_admin
+
+
+async def log_action(db, actor: AdminUser, action: str, target_type: str | None = None, target_id: str | None = None, details: dict | None = None):
+    db.add(AuditLog(
+        id=uuid.uuid4(),
+        actor_id=actor.id,
+        actor_email=actor.email,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details=details,
+        created_at=datetime.utcnow()
+    ))
 
 # ── INLINE SCHEMAS (Fixes No module named 'app.schemas') ─────────────────────
 class ISPInviteResponse(BaseModel):
@@ -87,6 +101,8 @@ async def generate_invite(
     await db.refresh(invite)
     
     invite_link = f"https://wi-bill.vercel.app/join?ref={token}"
+
+    await log_action(db, current_user, 'generate_invite', 'isp_invite', str(invite.id), {'isp_name': request.isp_name})
     
     return ISPInviteResponse(
         id=str(invite.id),
@@ -141,6 +157,7 @@ async def reject_tenant(
     from sqlalchemy import delete as sa_delete
     await db.execute(sa_delete(AU).where(AU.tenant_id == tenant.id))
     
+    await log_action(db, current_user, 'reject_tenant', 'tenant', tenant_id, {'name': tenant.name})
     # Delete the tenant
     await db.delete(tenant)
     await db.commit()
@@ -164,6 +181,7 @@ async def suspend_tenant(
     
     tenant.is_active = False
     db.add(tenant)
+    await log_action(db, current_user, 'suspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
     await db.refresh(tenant)
     
@@ -186,6 +204,7 @@ async def unsuspend_tenant(
     
     tenant.is_active = True
     db.add(tenant)
+    await log_action(db, current_user, 'unsuspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
     await db.refresh(tenant)
     
@@ -244,6 +263,7 @@ async def approve_tenant(
         tenant.pending_approval = False
 
     db.add(tenant)
+    await log_action(db, current_user, 'approve_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
     await db.refresh(tenant)
     

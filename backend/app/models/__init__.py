@@ -14,6 +14,9 @@ from app.models.voucher import Voucher
 from app.models.loyalty_account import LoyaltyAccount, LoyaltyTransaction
 from app.models.reward_token import RewardToken
 from app.models.campaign import Campaign
+from app.models.feature_flag import FeatureFlag, FEATURES
+from app.models.audit_log import AuditLog
+from app.models.notification import Notification
 
 __all__ = [
     "Tenant",
@@ -45,4 +48,8 @@ __all__ = [
     "LoyaltyTransaction",
     "RewardToken",
     "Campaign",
+    "FeatureFlag",
+    "FEATURES",
+    "AuditLog",
+    "Notification",
 ]

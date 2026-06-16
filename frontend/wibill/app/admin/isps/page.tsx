@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Circle,
   ClipboardCopy,
   Loader2,
   Link2,
@@ -16,6 +15,7 @@ import {
   ShieldCheck,
   ShieldX,
   Building2,
+  X,
 } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -66,7 +66,7 @@ const C = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function toneColor(t: Tone) {
-  return t === 'good' ? C.green : t === 'warn' ? C.amber : t === 'bad' ? C.red : C.blue;
+  return t === 'good' ? C.green : t === 'warn' ? C.amber : t === 'bad' ? C.red : '#EDEBE6';
 }
 function toneBg(t: Tone)     { return `${toneColor(t)}14`; }
 function toneBorder(t: Tone) { return `${toneColor(t)}33`; }
@@ -123,6 +123,7 @@ export default function AdminISPNetwork() {
   const [generatedLink, setGeneratedLink] = useState<Invite | null>(null);
   const [copied, setCopied]             = useState(false);
   const [statusMsg, setStatusMsg]       = useState('');
+  const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [searchTerm, setSearchTerm]     = useState('');
 
   // ISP state
@@ -305,43 +306,26 @@ export default function AdminISPNetwork() {
             </div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Onboarding · Approvals · Invite management</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: C.muted, fontSize: 12 }}>
-            <Circle size={8} fill={C.green} color={C.green} />
-            <span style={{ letterSpacing: '0.14em', textTransform: 'uppercase' }}>Live</span>
-          </div>
+          <button
+            onClick={() => setShowInvitePanel(true)}
+            style={{ height: 36, padding: '0 16px', borderRadius: 10, border: `1px solid rgba(232,184,75,0.3)`, background: 'rgba(232,184,75,0.08)', color: C.gold, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,184,75,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,184,75,0.08)'}
+          >
+            <Link2 size={14} />
+            Generate Invite
+          </button>
         </header>
 
         <main style={{ display: 'grid', gap: 18 }}>
 
-          {/* ── Hero banner ── */}
-          <section style={{ background: 'linear-gradient(180deg, #0b0b0b 0%, #080808 100%)', border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 22, padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-end', marginBottom: 20 }}>
-              <div>
-                <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '-0.04em', textTransform: 'uppercase' }}>
-                  ISP Network
-                </div>
-                <div style={{ marginTop: 10, color: C.muted, maxWidth: 620, lineHeight: 1.6 }}>
-                  Generate onboarding links, approve partners, and manage the full ISP lifecycle from one control room.
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 14, background: C.panel2, border: `1px solid ${C.border}`, flexShrink: 0 }}>
-                <Server size={14} color={C.gold} />
-                <div>
-                  <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.muted }}>Network state</div>
-                  <div style={{ marginTop: 4, fontFamily: '"DM Mono", monospace', fontSize: 13 }}>
-                    {loadingISPs ? '…' : `${activeISPs.length} active / ${isps.length} total`}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
-              <StatCard label="Total ISPs"     value={loadingISPs    ? '…' : `${isps.length}`}    sub="all registered partners"             tone="neutral" />
-              <StatCard label="Active"         value={loadingISPs    ? '…' : `${activeISPs.length}`}  sub="live on the platform"            tone="good"    />
-              <StatCard label="Pending approval" value={loadingISPs  ? '…' : `${pendingISPs.length}`} sub="awaiting your review"            tone="warn"    />
-              <StatCard label="Invites sent"   value={loadingInvites ? '…' : `${invites.length}`} sub={`${usedCount} used · ${pendingCount} pending`} tone="neutral" />
-            </div>
-          </section>
+          {/* ── Stat cards ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+            <StatCard label="Total ISPs"     value={loadingISPs    ? '…' : `${isps.length}`}    sub="all registered partners"             tone="neutral" />
+            <StatCard label="Active"         value={loadingISPs    ? '…' : `${activeISPs.length}`}  sub="live on the platform"            tone="good"    />
+            <StatCard label="Pending approval" value={loadingISPs  ? '…' : `${pendingISPs.length}`} sub="awaiting your review"            tone="warn"    />
+            <StatCard label="Invites sent"   value={loadingInvites ? '…' : `${invites.length}`} sub={`${usedCount} used · ${pendingCount} pending`} tone="neutral" />
+          </div>
 
           {/* ── Pending approvals (only shown when there are pending ISPs) ── */}
           {(loadingISPs || pendingISPs.length > 0) && (
@@ -441,146 +425,132 @@ export default function AdminISPNetwork() {
           )}
         </Panel>
 
-          {/* ── Generate + Invite intelligence ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(340px, 0.9fr)', gap: 18 }}>
+          {/* ── Invite History ── */}
+          <Panel title="Invite History" subtitle="All ISP onboarding tokens issued by the platform." accent={C.gold}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2 }}>
+                <Search size={14} color={C.dim} />
+                <input
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Filter by ISP name, status, or ID"
+                  style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: C.text, fontSize: 13, fontFamily: 'Inter, system-ui, sans-serif' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gap: 0 }}>
+                {loadingInvites ? (
+                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.borderSoft}`, borderRadius: 12, color: C.muted, gap: 8 }}>
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    <div style={{ fontSize: 12 }}>Loading invites...</div>
+                  </div>
+                ) : visibleInvites.length === 0 ? (
+                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.borderSoft}`, borderRadius: 12, color: C.muted, gap: 8 }}>
+                    <Users size={18} color={C.dim} />
+                    <div style={{ fontSize: 12 }}>No invite records yet.</div>
+                  </div>
+                ) : (
+                  visibleInvites.slice(0, 10).map((invite, i) => {
+                    const status = (invite.status || '').toLowerCase();
+                    const tone: Tone = status === 'used' ? 'good' : status === 'expired' ? 'bad' : 'warn';
+                    const link = inviteUrl(invite);
+                    return (
+                      <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'center', padding: '12px 14px', borderBottom: i < Math.min(visibleInvites.length, 10) - 1 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                        <div>
+                          <div style={{ fontSize: 13, color: C.text }}>{invite.isp_name || 'Unnamed ISP'}</div>
+                          <div style={{ marginTop: 3, fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
+                            {link || shortId(invite.id, 16)}
+                          </div>
+                        </div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 72, padding: '4px 10px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace' }}>
+                          {invite.status || 'pending'}
+                        </div>
+                        {link && (
+                          <button onClick={() => copyToClipboard(link)} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+                            <ClipboardCopy size={13} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </Panel>
 
-            {/* Generate invite */}
-            <Panel title="Generate Invite" subtitle="Create a new ISP onboarding link in one move." accent={C.gold}>
-              <div style={{ display: 'grid', gap: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 12 }}>
+        </main>
+
+        {/* ── Generate Invite slide-in panel ── */}
+        {showInvitePanel && (
+          <>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999 }} onClick={() => setShowInvitePanel(false)} />
+            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 440, background: C.panel, borderLeft: `1px solid ${C.border}`, zIndex: 1000, padding: 28, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Generate Invite</div>
+                <button onClick={() => setShowInvitePanel(false)} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.muted }}>ISP Name</label>
                   <input
                     type="text"
-                    placeholder="ISP name (e.g. Zuku Nairobi)"
+                    placeholder="e.g. Zuku Nairobi"
                     value={newISPName}
                     onChange={e => setNewISPName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') generateInvite(); }}
                     disabled={generating}
-                    style={{ height: 48, padding: '0 14px', borderRadius: 14, border: `1px solid ${C.border}`, background: C.panel2, color: C.text, outline: 'none', fontSize: 14, opacity: generating ? 0.6 : 1, cursor: generating ? 'not-allowed' : 'text', fontFamily: 'Inter, system-ui, sans-serif' }}
+                    style={{ height: 48, padding: '0 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2, color: C.text, outline: 'none', fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif' }}
                   />
-                  <button
-                    onClick={generateInvite}
-                    disabled={generating || !newISPName.trim()}
-                    style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: C.gold, color: '#000', fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: generating || !newISPName.trim() ? 'not-allowed' : 'pointer', opacity: generating || !newISPName.trim() ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                  >
-                    {generating ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Link2 size={16} />}
-                    {generating ? 'Creating…' : 'Generate'}
-                  </button>
                 </div>
 
-                {/* Protocol note */}
-                <div style={{ display: 'grid', gap: 12, padding: 16, borderRadius: 16, border: `1px solid ${C.border}`, background: C.panel2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Sparkles size={14} color={C.gold} />
-                    <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted }}>Invite protocol</div>
-                  </div>
-                  <div style={{ color: C.muted, lineHeight: 1.6, fontSize: 13 }}>
-                    Enter an ISP name. The system issues a tokenised onboarding URL with a 7-day expiry. Share it with the ISP — they register, you approve.
-                  </div>
+                <button
+                  onClick={generateInvite}
+                  disabled={generating || !newISPName.trim()}
+                  style={{ height: 48, borderRadius: 12, border: 'none', background: C.gold, color: '#000', fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 800, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: generating || !newISPName.trim() ? 'not-allowed' : 'pointer', opacity: generating || !newISPName.trim() ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  {generating ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Link2 size={16} />}
+                  {generating ? 'Generating…' : 'Generate Invite Link'}
+                </button>
+
+                <div style={{ padding: 14, borderRadius: 12, border: `1px solid ${C.borderSoft}`, background: C.panel2, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <Sparkles size={14} color={C.gold} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>The system issues a tokenised onboarding URL with a 7-day expiry. Share it with the ISP — they register, you approve.</div>
                 </div>
 
-                {/* Status message */}
                 {statusMsg && (
-                  <div style={{ padding: '12px 14px', borderRadius: 14, border: `1px solid ${isError(statusMsg) ? toneBorder('bad') : toneBorder('good')}`, background: isError(statusMsg) ? toneBg('bad') : toneBg('good'), color: isError(statusMsg) ? C.red : C.green, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 12, border: `1px solid ${isError(statusMsg) ? toneBorder('bad') : toneBorder('good')}`, background: isError(statusMsg) ? toneBg('bad') : toneBg('good'), color: isError(statusMsg) ? C.red : C.green, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                     {isError(statusMsg) ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
-                    <span style={{ fontSize: 12 }}>{statusMsg}</span>
+                    {statusMsg}
                   </div>
                 )}
 
-                {/* Generated link display */}
                 {generatedLink && (
-                  <div style={{ display: 'grid', gap: 12, padding: 16, borderRadius: 16, border: `1px solid ${toneBorder('good')}`, background: C.panel2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.green }}>Invite created</div>
-                      <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.dim }}>
-                        {generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : 'Expiry unknown'}
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 12, border: `1px solid ${toneBorder('good')}`, background: C.panel2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.green }}>Invite created</span>
+                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.dim }}>{generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : ''}</span>
                     </div>
-                    <div style={{ padding: 14, borderRadius: 14, border: `1px solid ${C.border}`, background: C.bg, wordBreak: 'break-all', fontFamily: '"DM Mono", monospace', fontSize: 12, lineHeight: 1.6, color: C.text }}>
+                    <div style={{ padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, wordBreak: 'break-all', fontFamily: '"DM Mono", monospace', fontSize: 11, lineHeight: 1.6, color: C.text }}>
                       {inviteUrl(generatedLink)}
                     </div>
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => copyToClipboard(inviteUrl(generatedLink))}
-                        style={{ height: 42, padding: '0 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, color: C.text, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700 }}
-                      >
-                        <ClipboardCopy size={15} />
-                        {copied ? 'Copied!' : 'Copy link'}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => copyToClipboard(inviteUrl(generatedLink))} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
+                        <ClipboardCopy size={14} />
+                        {copied ? 'Copied!' : 'Copy Link'}
                       </button>
-                      <div style={{ height: 42, padding: '0 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: toneBg('good'), color: C.green, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                        <Clock3 size={14} />
+                      <div style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: toneBg('good'), color: C.green, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: '"DM Mono", monospace' }}>
+                        <Clock3 size={13} />
                         {generatedLink.status || 'pending'}
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-            </Panel>
-
-            {/* Invite intelligence */}
-            <Panel title="Invite Intelligence" subtitle="Live view of the onboarding queue." accent={C.blue}>
-              <div style={{ display: 'grid', gap: 12 }}>
-                {/* Search */}
-                <div style={{ padding: 16, borderRadius: 16, border: `1px solid ${C.border}`, background: C.panel2 }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: C.muted }}>Search</div>
-                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Search size={15} color={C.dim} />
-                    <input
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      placeholder="Filter by ISP name, status, or ID"
-                      style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: C.text, fontSize: 13 }}
-                    />
-                  </div>
-                </div>
-
-                {/* Invite list */}
-                <div style={{ display: 'grid', gap: 0 }}>
-                  {loadingInvites ? (
-                    <div style={{ minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.border}`, borderRadius: 16, background: C.panel2, color: C.muted, gap: 10 }}>
-                      <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                      <div>Loading invites...</div>
-                    </div>
-                  ) : visibleInvites.length === 0 ? (
-                    <div style={{ minHeight: 220, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.border}`, borderRadius: 16, background: C.panel2, color: C.muted, gap: 10, textAlign: 'center', padding: 20 }}>
-                      <Users size={20} color={C.dim} />
-                      <div>No invite records match this view.</div>
-                    </div>
-                  ) : (
-                    visibleInvites.slice(0, 8).map((invite, i) => {
-                      const status = (invite.status || '').toLowerCase();
-                      const tone: Tone = status === 'used' ? 'good' : status === 'expired' ? 'bad' : 'warn';
-                      const link = inviteUrl(invite);
-                      return (
-                        <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', padding: '13px 0', borderBottom: `1px solid ${C.borderSoft}` }}>
-                          <div>
-                            <div style={{ fontSize: 13, color: C.text }}>{invite.isp_name || 'Unnamed ISP'}</div>
-                            <div style={{ marginTop: 4, fontSize: 10, color: C.muted, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-                              {link ? link : shortId(invite.id, 16)}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 72, padding: '4px 10px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace' }}>
-                              {invite.status || 'pending'}
-                            </div>
-                            {link && (
-                              <button
-                                onClick={() => copyToClipboard(link)}
-                                style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: '"DM Mono", monospace' }}
-                              >
-                                <ClipboardCopy size={11} /> copy
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </Panel>
-          </div>
-
-        </main>
+            </div>
+          </>
+        )}
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

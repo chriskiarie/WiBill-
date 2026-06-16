@@ -96,6 +96,49 @@ MIGRATIONS = [
     ("sessions.package_id nullable", """
         ALTER TABLE sessions ALTER COLUMN package_id DROP NOT NULL
     """),
+    ("feature_flags table", """
+        CREATE TABLE IF NOT EXISTS feature_flags (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            feature_key VARCHAR(50) NOT NULL,
+            is_enabled BOOLEAN NOT NULL DEFAULT false,
+            updated_at TIMESTAMP NOT NULL DEFAULT now(),
+            CONSTRAINT uq_tenant_feature UNIQUE (tenant_id, feature_key)
+        )
+    """),
+    ("feature_flags index", """
+        CREATE INDEX IF NOT EXISTS ix_feature_flags_tenant_id ON feature_flags(tenant_id)
+    """),
+    ("audit_logs table", """
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            actor_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+            actor_email VARCHAR(255) NOT NULL,
+            action VARCHAR(100) NOT NULL,
+            target_type VARCHAR(50),
+            target_id VARCHAR(100),
+            details JSONB,
+            created_at TIMESTAMP NOT NULL DEFAULT now()
+        )
+    """),
+    ("audit_logs index", """
+        CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs(created_at DESC)
+    """),
+    ("notifications table", """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            type VARCHAR(20) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            message TEXT NOT NULL,
+            sender_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+            target_tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+            created_at TIMESTAMP NOT NULL DEFAULT now(),
+            read_at TIMESTAMP
+        )
+    """),
+    ("notifications index", """
+        CREATE INDEX IF NOT EXISTS ix_notifications_target_tenant_id ON notifications(target_tenant_id)
+    """),
 ]
 
 

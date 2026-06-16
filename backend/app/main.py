@@ -118,6 +118,7 @@ from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, tra
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
+from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms
 
 # Portal preview router removed - using new portal renderer
 
@@ -146,6 +147,9 @@ app.include_router(vouchers.router, prefix="/api/vouchers", tags=["vouchers"])
 app.include_router(loyalty.router, prefix="/api/loyalty", tags=["loyalty"])
 app.include_router(reward_tokens.router, prefix="/api/reward-tokens", tags=["reward-tokens"])
 app.include_router(campaigns.router, prefix="/api/campaigns", tags=["campaigns"])
+app.include_router(admin_feature_flags.router, prefix="/api", tags=["admin-feature-flags"])
+app.include_router(admin_audit_log.router, prefix="/api", tags=["admin-audit-log"])
+app.include_router(admin_comms.router, prefix="/api", tags=["admin-comms"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

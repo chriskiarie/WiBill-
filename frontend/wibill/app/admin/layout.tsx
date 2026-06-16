@@ -6,23 +6,57 @@ import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const NAV = [
+const NAV_OPERATIONS = [
   { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/isps', label: 'ISP Network' },
-  { href: '/admin/revenue', label: 'Revenue' },
+  { href: '/admin/billing', label: 'Billing' },
   { href: '/admin/transactions', label: 'Transactions' },
-  { href: '/admin/invites', label: 'Invites' },
+];
+
+const NAV_PLATFORM = [
+  { href: '/admin/feature-flags', label: 'Feature Flags' },
+  { href: '/admin/comms', label: 'Comms' },
+  { href: '/admin/audit-log', label: 'Audit Log' },
+];
+
+const NAV_SYSTEM = [
   { href: '/admin/system', label: 'Settings' },
 ];
 
 const pageNames: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/isps': 'ISP Network',
-  '/admin/revenue': 'Revenue',
+  '/admin/billing': 'Billing',
   '/admin/transactions': 'Transactions',
-  '/admin/invites': 'Invites',
+  '/admin/feature-flags': 'Feature Flags',
+  '/admin/comms': 'Comms',
+  '/admin/audit-log': 'Audit Log',
   '/admin/system': 'Settings',
 };
+
+function renderNavItem(n: { href: string; label: string; exact?: boolean }, path: string) {
+  const active = n.exact ? path === n.href : path.startsWith(n.href);
+  return (
+    <Link key={n.href} href={n.href} style={{
+      display: 'flex', alignItems: 'center', height: 38,
+      padding: '0 10px', borderRadius: 6,
+      textDecoration: 'none', position: 'relative',
+      fontFamily: 'Inter, sans-serif', fontSize: 13,
+      color: active ? '#E8B84B' : '#8C8A84',
+      background: active ? 'rgba(232,184,75,0.10)' : 'transparent',
+      transition: 'background 0.12s',
+    }}
+      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#111110'; e.currentTarget.style.color = '#EDEBE6'; }}}
+      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8C8A84'; }}}
+    >
+      {active && <div style={{
+        position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+        width: 4, height: 16, borderRadius: '0 3px 3px 0', background: '#E8B84B',
+      }} />}
+      {n.label}
+    </Link>
+  );
+}
 
 export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -118,37 +152,27 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <nav style={{ flex: 1, padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
           <div style={{
             fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
             color: '#3A3A37', letterSpacing: '0.12em', textTransform: 'uppercase',
-            padding: '0 8px', marginBottom: 6,
-          }}>
-            OPERATIONS
-          </div>
-          {NAV.map(n => {
-            const active = n.exact ? path === n.href : path.startsWith(n.href);
-            return (
-              <Link key={n.href} href={n.href} style={{
-                display: 'flex', alignItems: 'center', height: 38,
-                padding: '0 10px', borderRadius: 6,
-                textDecoration: 'none', position: 'relative',
-                fontFamily: 'Inter, sans-serif', fontSize: 13,
-                color: active ? '#E8B84B' : '#8C8A84',
-                background: active ? 'rgba(232,184,75,0.10)' : 'transparent',
-                transition: 'background 0.12s',
-              }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#111110'; e.currentTarget.style.color = '#EDEBE6'; }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8C8A84'; }}}
-              >
-                {active && <div style={{
-                  position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                  width: 4, height: 16, borderRadius: '0 3px 3px 0', background: '#E8B84B',
-                }} />}
-                {n.label}
-              </Link>
-            );
-          })}
+            padding: '0 8px', marginBottom: 4,
+          }}>OPERATIONS</div>
+          {NAV_OPERATIONS.map(n => renderNavItem(n, path))}
+          <div style={{ height: 1, background: '#1A1A18', margin: '10px 8px' }} />
+          <div style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
+            color: '#3A3A37', letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '0 8px', marginBottom: 4,
+          }}>PLATFORM</div>
+          {NAV_PLATFORM.map(n => renderNavItem(n, path))}
+          <div style={{ height: 1, background: '#1A1A18', margin: '10px 8px' }} />
+          <div style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700,
+            color: '#3A3A37', letterSpacing: '0.12em', textTransform: 'uppercase',
+            padding: '0 8px', marginBottom: 4,
+          }}>SYSTEM</div>
+          {NAV_SYSTEM.map(n => renderNavItem(n, path))}
         </nav>
 
         {/* Bottom */}
