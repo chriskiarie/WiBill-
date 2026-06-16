@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const POLL_MS = 8000;
 
 interface Transaction {
   id: string;
@@ -16,15 +17,14 @@ interface Transaction {
   tenant_id?: string;
 }
 
-// COLOR PALETTE - DEFINED FIRST
-const colors = {
+const C = {
   void: '#000000',
   base: '#0a0a0a',
   raised: '#0d0d0d',
   border: '#141414',
-  textPrimary: '#f0f0f0',
-  textSecondary: '#666666',
-  textMuted: '#2a2a2a',
+  text: '#f0f0f0',
+  dim: '#666666',
+  mute: '#2a2a2a',
   gold: '#E8B84B',
   green: '#22c55e',
   red: '#ef4444',
@@ -32,27 +32,96 @@ const colors = {
   blue: '#3b82f6',
 };
 
+const fmt = (n: number) => {
+  if (n >= 1_000_000) return `KES ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `KES ${(n / 1_000).toFixed(0)}k`;
+  return `KES ${n.toFixed(0)}`;
+};
+
+const timeAgo = (dateStr: string) => {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const sec = Math.floor((now - then) / 1000);
+  if (sec < 10) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return new Date(dateStr).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' });
+};
+
 export default function AdminTransactions() {
   const [txns, setTxns] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [liveSince, setLiveSince] = useState(Date.now());
+  const [todayCount, setTodayCount] = useState(0);
+  const [todayVolume, setTodayVolume] = useState(0);
+  const prevTotalRef = useRef(0);
+  const [animatingTotal, setAnimatingTotal] = useState(0);
 
-  useEffect(() => {
+  const fetchTxns = useCallback(async () => {
     const token = localStorage.getItem('wb_token');
     if (!token) return;
-
-    fetch(`${API}/api/mpesa/admin/transactions?limit=500`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(d => setTxns(Array.isArray(d) ? d : []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetch(`${API}/api/mpesa/admin/transactions?limit=500`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const list: Transaction[] = Array.isArray(data) ? data : [];
+      setTxns(prev => {
+        if (prev.length > 0) {
+          const existingIds = new Set(prev.map(t => t.id));
+          const arrived: string[] = [];
+          for (const t of list) {
+            if (!existingIds.has(t.id)) arrived.push(t.id);
+          }
+          if (arrived.length > 0) {
+            setNewIds(new Set(arrived));
+            setTimeout(() => setNewIds(new Set()), 3000);
+          }
+        }
+        return list;
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Calculate metrics
+  useEffect(() => { fetchTxns(); const iv = setInterval(fetchTxns, POLL_MS); return () => clearInterval(iv); }, [fetchTxns]);
+
+  // Animate total volume
   const totalVolume = txns.reduce((s, t) => s + (t.amount_ksh || 0), 0);
+  useEffect(() => {
+    const start = prevTotalRef.current;
+    const end = totalVolume;
+    if (start === end) return;
+    const dur = 600;
+    const t0 = performance.now();
+    const tick = () => {
+      const pct = Math.min((performance.now() - t0) / dur, 1);
+      const eased = 1 - Math.pow(1 - pct, 3);
+      setAnimatingTotal(start + (end - start) * eased);
+      if (pct < 1) requestAnimationFrame(tick);
+    };
+    prevTotalRef.current = end;
+    requestAnimationFrame(tick);
+  }, [totalVolume]);
+
+  // Today's stats
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTxns = txns.filter(t => t.created_at && new Date(t.created_at) >= today);
+    setTodayCount(todayTxns.length);
+    setTodayVolume(todayTxns.reduce((s, t) => s + (t.amount_ksh || 0), 0));
+  }, [txns]);
+
   const txnCount = txns.length;
   const completedCount = txns.filter(t => !t.status || t.status === 'completed').length;
   const pendingCount = txns.filter(t => t.status === 'pending').length;
@@ -60,22 +129,17 @@ export default function AdminTransactions() {
   const successRate = txnCount > 0 ? ((completedCount / txnCount) * 100).toFixed(1) : '0';
   const avgTxnSize = txnCount > 0 ? totalVolume / txnCount : 0;
 
-  // Status breakdown - NOW colors is defined
   const statusBreakdown = [
-    { label: 'Completed', count: completedCount, color: colors.green, percent: txnCount > 0 ? (completedCount / txnCount) * 100 : 0 },
-    { label: 'Pending', count: pendingCount, color: colors.amber, percent: txnCount > 0 ? (pendingCount / txnCount) * 100 : 0 },
-    { label: 'Failed', count: failedCount, color: colors.red, percent: txnCount > 0 ? (failedCount / txnCount) * 100 : 0 },
+    { label: 'Completed', count: completedCount, color: C.green, percent: txnCount > 0 ? (completedCount / txnCount) * 100 : 0 },
+    { label: 'Pending', count: pendingCount, color: C.amber, percent: txnCount > 0 ? (pendingCount / txnCount) * 100 : 0 },
+    { label: 'Failed', count: failedCount, color: C.red, percent: txnCount > 0 ? (failedCount / txnCount) * 100 : 0 },
   ];
 
-  // Filter transactions
   const filtered = txns
     .filter(t => {
-      if (search) {
-        const q = search.toLowerCase();
-        return (t.phone_number?.toLowerCase().includes(q) || 
-                t.mpesa_receipt?.toLowerCase().includes(q));
-      }
-      return true;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return t.phone_number?.toLowerCase().includes(q) || t.mpesa_receipt?.toLowerCase().includes(q);
     })
     .filter(t => {
       if (statusFilter === 'all') return true;
@@ -85,220 +149,173 @@ export default function AdminTransactions() {
       return true;
     });
 
-  // Top paying phones (anonymized)
-  const phoneVolume: Record<string, number> = {};
-  txns.forEach(t => {
-    if (t.phone_number) {
-      const key = t.phone_number.slice(-4);
-      phoneVolume[key] = (phoneVolume[key] || 0) + (t.amount_ksh || 0);
-    }
-  });
-  const topPhones = Object.entries(phoneVolume)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `KES ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `KES ${(amount / 1000).toFixed(0)}k`;
-    return `KES ${amount.toFixed(0)}`;
-  };
+  if (loading) {
+    return (
+      <div style={{ background: C.void, color: C.dim, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>
+        Loading transactions...
+      </div>
+    );
+  }
 
   return (
-    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
+    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
       {/* HEADER */}
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
-          Transactions
-        </h1>
-        <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-          Real-time payment monitoring and M-Pesa settlement tracking
-        </p>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>
+              Transactions
+            </h1>
+            <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>
+              Real-time payment monitoring and M-Pesa settlement tracking
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 20, padding: '6px 14px 6px 10px' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 8px ${C.green}`, animation: 'pulse 2s ease-in-out infinite' }} />
+            <span style={{ fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.green, fontWeight: 600 }}>LIVE</span>
+            <span style={{ fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace' }}>
+              every {POLL_MS / 1000}s
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* PRIMARY KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+      {/* HERO: TODAY'S VOLUME */}
+      <div style={{
+        background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 16, padding: 28, marginBottom: 24,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: C.gold }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: 8 }}>
+              Today's Volume
+            </div>
+            <div style={{ fontSize: 48, fontWeight: 500, color: C.gold, fontFamily: '"DM Mono", monospace', lineHeight: 1 }}>
+              {fmt(todayVolume)}
+            </div>
+            <div style={{ fontSize: 12, color: C.dim, marginTop: 8, fontFamily: '"DM Mono", monospace' }}>
+              {todayCount} transactions today
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: 8 }}>
+              All-Time Volume
+            </div>
+            <div style={{ fontSize: 40, fontWeight: 500, color: C.text, fontFamily: '"DM Mono", monospace', lineHeight: 1 }}>
+              {fmt(animatingTotal)}
+            </div>
+            <div style={{ fontSize: 12, color: C.dim, marginTop: 8, fontFamily: '"DM Mono", monospace' }}>
+              {txnCount} total transactions
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* STAT CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Total Volume', value: formatCurrency(totalVolume), color: colors.blue, icon: '💳', change: '+24.8%' },
-          { label: 'Transactions', value: txnCount.toLocaleString(), color: colors.blue, icon: '↔', change: '+18.3%' },
-          { label: 'Success Rate', value: successRate + '%', color: colors.green, icon: '✓', change: 'Stable' },
-          { label: 'Avg Size', value: formatCurrency(avgTxnSize), color: colors.gold, icon: '📊', change: 'Per txn' },
-        ].map((metric, i) => (
+          { label: 'Transactions', value: txnCount.toLocaleString(), sub: 'all time', accent: C.text },
+          { label: 'Success Rate', value: `${successRate}%`, sub: `${completedCount} completed`, accent: C.green },
+          { label: 'Pending', value: pendingCount.toString(), sub: 'awaiting confirmation', accent: C.amber },
+          { label: 'Avg Size', value: fmt(avgTxnSize), sub: 'per transaction', accent: C.gold },
+        ].map((card, i) => (
           <div key={i} style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '24px',
-            position: 'relative',
-            overflow: 'hidden',
+            background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20, position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: metric.color }} />
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
-                {metric.label}
-              </div>
-              <span style={{ fontSize: 18 }}>{metric.icon}</span>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: card.accent }} />
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: 8 }}>
+              {card.label}
             </div>
-
-            <div style={{ fontSize: 24, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace', marginBottom: '8px' }}>
-              {metric.value}
+            <div style={{ fontSize: 28, fontWeight: 500, color: card.accent, fontFamily: '"DM Mono", monospace', marginBottom: 4 }}>
+              {card.value}
             </div>
-
-            <div style={{ fontSize: 11, color: metric.color, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
-              {metric.change}
+            <div style={{ fontSize: 11, color: C.dim, fontFamily: '"DM Mono", monospace' }}>
+              {card.sub}
             </div>
           </div>
         ))}
       </div>
 
-      {/* STATUS BREAKDOWN + TOP PHONES GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+      {/* STATUS + TOP PHONES + LIVE FEED */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
         {/* STATUS BREAKDOWN */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
             Payment Status
           </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {statusBreakdown.map((status, i) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {statusBreakdown.map((s, i) => (
               <div key={i}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '6px',
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>
-                    {status.label}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: status.color, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {status.count} ({status.percent.toFixed(1)}%)
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.dim }}>{s.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: s.color, fontFamily: '"DM Mono", monospace' }}>
+                    {s.count} ({s.percent.toFixed(1)}%)
                   </div>
                 </div>
-
-                <div style={{
-                  height: '8px',
-                  background: colors.raised,
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                  border: `0.5px solid ${colors.border}`,
-                }}>
-                  <div style={{
-                    height: '100%',
-                    background: status.color,
-                    width: `${status.percent}%`,
-                    transition: 'width 0.3s ease',
-                  }} />
+                <div style={{ height: 8, background: C.raised, borderRadius: 4, overflow: 'hidden', border: `0.5px solid ${C.border}` }}>
+                  <div style={{ height: '100%', background: s.color, width: `${s.percent}%`, transition: 'width 0.3s ease' }} />
                 </div>
               </div>
             ))}
           </div>
-
-          {/* STATUS FILTER BUTTONS */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
-            {(['all', 'completed', 'pending', 'failed'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setStatusFilter(filter)}
-                style={{
-                  padding: '8px 12px',
-                  background: statusFilter === filter ? colors.border : colors.raised,
-                  border: `0.5px solid ${statusFilter === filter ? colors.gold : colors.border}`,
-                  borderRadius: '6px',
-                  color: statusFilter === filter ? colors.gold : colors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={(e) => {
-                  if (statusFilter !== filter) {
-                    (e.currentTarget as HTMLElement).style.background = colors.border;
-                    (e.currentTarget as HTMLElement).style.borderColor = colors.gold;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (statusFilter !== filter) {
-                    (e.currentTarget as HTMLElement).style.background = colors.raised;
-                    (e.currentTarget as HTMLElement).style.borderColor = colors.border;
-                  }
-                }}
-              >
-                {filter === 'all' ? 'All' : filter === 'completed' ? '✓ OK' : filter === 'pending' ? '⏳ Pending' : '✕ Failed'}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 16 }}>
+            {(['all', 'completed', 'pending', 'failed'] as const).map(f => (
+              <button key={f} onClick={() => setStatusFilter(f)} style={{
+                padding: '8px 12px', borderRadius: 6, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer',
+                background: statusFilter === f ? C.border : C.raised,
+                border: `0.5px solid ${statusFilter === f ? C.gold : C.border}`,
+                color: statusFilter === f ? C.gold : C.dim,
+                fontFamily: 'inherit', transition: 'all 0.2s',
+              }}>
+                {f === 'all' ? 'All' : f === 'completed' ? 'Completed' : f === 'pending' ? 'Pending' : 'Failed'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* TOP PAYING NUMBERS */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-            Top Paying Numbers
+        {/* LIVE FEED */}
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20, position: 'relative' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+            Recent Activity
           </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {topPhones.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>
-                No transaction data
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+            {txns.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: C.mute, fontSize: 12 }}>
+                No transactions yet
               </div>
             ) : (
-              topPhones.map(([phone, amount], idx) => {
-                const colors_array = [colors.gold, colors.green, colors.blue, colors.amber, colors.red];
+              txns.slice(0, 15).map((t, i) => {
+                const isNew = newIds.has(t.id);
+                const st = !t.status || t.status === 'completed' ? 'completed' : t.status === 'pending' ? 'pending' : 'failed';
+                const sc = st === 'completed' ? C.green : st === 'pending' ? C.amber : C.red;
                 return (
-                  <div key={phone} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px',
-                    background: colors.raised,
-                    border: `0.5px solid ${colors.border}`,
-                    borderRadius: '8px',
+                  <div key={t.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 8,
+                    background: isNew ? `${C.gold}10` : i % 2 === 0 ? C.raised : 'transparent',
+                    border: `0.5px solid ${isNew ? `${C.gold}30` : 'transparent'}`,
+                    transition: 'all 0.3s',
+                    animation: isNew ? 'slideIn 0.3s ease-out' : 'none',
                   }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: colors_array[idx],
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 900,
-                      color: colors.void,
-                    }}>
-                      #{idx + 1}
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: colors.textPrimary, marginBottom: '2px', fontFamily: '"JetBrains Mono", monospace' }}>
-                        *****{phone}
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: sc, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: '"DM Mono", monospace' }}>
+                          {fmt(t.amount_ksh || 0)}
+                        </span>
+                        <span style={{ fontSize: 10, color: sc, fontFamily: '"DM Mono", monospace', fontWeight: 700 }}>
+                          {st === 'completed' ? '✓' : st === 'pending' ? '⏳' : '✕'}
+                        </span>
                       </div>
-                      <div style={{
-                        height: '4px',
-                        background: colors.border,
-                        borderRadius: '2px',
-                        overflow: 'hidden',
-                      }}>
-                        <div style={{
-                          height: '100%',
-                          background: colors_array[idx],
-                          width: `${Math.min((amount / topPhones[0][1]) * 100, 100)}%`,
-                        }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                        <span style={{ fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace' }}>
+                          {t.phone_number ? `***${t.phone_number.slice(-4)}` : '—'}
+                        </span>
+                        <span style={{ fontSize: 10, color: C.mute, fontFamily: '"DM Mono", monospace' }}>
+                          {t.created_at ? timeAgo(t.created_at) : '—'}
+                        </span>
                       </div>
-                    </div>
-
-                    <div style={{
-                      fontSize: 12,
-                      fontWeight: 900,
-                      color: colors_array[idx],
-                      fontFamily: '"JetBrains Mono", monospace',
-                      textAlign: 'right',
-                      minWidth: '80px',
-                    }}>
-                      {formatCurrency(amount)}
                     </div>
                   </div>
                 );
@@ -308,132 +325,66 @@ export default function AdminTransactions() {
         </div>
       </div>
 
-      {/* SEARCH & FILTER */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', marginBottom: '16px' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <input
-            type="text"
-            placeholder="Search by phone number or M-Pesa receipt..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              background: colors.raised,
-              border: `0.5px solid ${colors.border}`,
-              borderRadius: '8px',
-              padding: '10px 14px',
-              fontSize: 12,
-              color: colors.textPrimary,
-              outline: 'none',
-              boxSizing: 'border-box',
-              fontFamily: '"JetBrains Mono", monospace',
-            }}
-          />
-        </div>
-
-        <div style={{ fontSize: 11, color: colors.textMuted, fontFamily: '"JetBrains Mono", monospace' }}>
+      {/* SEARCH */}
+      <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
+        <input type="text" placeholder="Search by phone number or M-Pesa receipt..." value={search} onChange={e => setSearch(e.target.value)} style={{
+          width: '100%', background: C.raised, border: `0.5px solid ${C.border}`, borderRadius: 8,
+          padding: '10px 14px', fontSize: 12, color: C.text, outline: 'none', boxSizing: 'border-box',
+          fontFamily: '"DM Mono", monospace',
+        }} />
+        <div style={{ fontSize: 11, color: C.mute, fontFamily: '"DM Mono", monospace', marginTop: 8 }}>
           Showing {filtered.length} of {txns.length} transactions
         </div>
       </div>
 
       {/* TRANSACTIONS TABLE */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+      <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
           Transaction History
         </h2>
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
-            Loading transactions...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: C.mute, fontSize: 12 }}>
             No transactions found
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: 12,
-              fontFamily: '"JetBrains Mono", monospace',
-            }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: '"DM Mono", monospace' }}>
               <thead>
-                <tr style={{ borderBottom: `0.5px solid ${colors.border}` }}>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    ID
-                  </th>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Phone
-                  </th>
-                  <th style={{ textAlign: 'right', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Amount
-                  </th>
-                  <th style={{ textAlign: 'right', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Fee
-                  </th>
-                  <th style={{ textAlign: 'right', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    ISP Earning
-                  </th>
-                  <th style={{ textAlign: 'center', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Status
-                  </th>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Receipt
-                  </th>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: colors.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-                    Date
-                  </th>
+                <tr style={{ borderBottom: `0.5px solid ${C.border}` }}>
+                  <th style={{ textAlign: 'left', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>ID</th>
+                  <th style={{ textAlign: 'left', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Phone</th>
+                  <th style={{ textAlign: 'right', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Amount</th>
+                  <th style={{ textAlign: 'right', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Fee</th>
+                  <th style={{ textAlign: 'right', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>ISP</th>
+                  <th style={{ textAlign: 'center', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Status</th>
+                  <th style={{ textAlign: 'left', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Receipt</th>
+                  <th style={{ textAlign: 'left', padding: '12px 0', color: C.mute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.slice(0, 100).map((txn, idx) => {
-                  const status = !txn.status || txn.status === 'completed' ? 'completed' : txn.status === 'pending' ? 'pending' : 'failed';
-                  const statusColors: Record<string, { bg: string; text: string }> = {
-                    completed: { bg: `${colors.green}15`, text: colors.green },
-                    pending: { bg: `${colors.amber}15`, text: colors.amber },
-                    failed: { bg: `${colors.red}15`, text: colors.red },
-                  };
-
+                  const isNew = newIds.has(txn.id);
+                  const st = !txn.status || txn.status === 'completed' ? 'completed' : txn.status === 'pending' ? 'pending' : 'failed';
+                  const sc = st === 'completed' ? C.green : st === 'pending' ? C.amber : C.red;
                   return (
                     <tr key={txn.id} style={{
-                      borderBottom: `0.5px solid ${colors.border}`,
-                      background: idx % 2 === 0 ? colors.raised : 'transparent',
+                      borderBottom: `0.5px solid ${C.border}`,
+                      background: isNew ? `${C.gold}08` : idx % 2 === 0 ? C.raised : 'transparent',
+                      animation: isNew ? 'slideIn 0.3s ease-out' : 'none',
                     }}>
-                      <td style={{ padding: '12px 0', color: colors.textSecondary }}>
-                        {txn.id.slice(0, 8)}...
-                      </td>
-                      <td style={{ padding: '12px 0', color: colors.textPrimary }}>
-                        {txn.phone_number || '—'}
-                      </td>
-                      <td style={{ padding: '12px 0', color: colors.blue, textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(txn.amount_ksh || 0)}
-                      </td>
-                      <td style={{ padding: '12px 0', color: colors.gold, textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(txn.platform_fee_ksh || 0)}
-                      </td>
-                      <td style={{ padding: '12px 0', color: colors.green, textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(txn.isp_earnings_ksh || 0)}
-                      </td>
+                      <td style={{ padding: '12px 0', color: C.dim }}>{txn.id.slice(0, 8)}...</td>
+                      <td style={{ padding: '12px 0', color: C.text }}>{txn.phone_number || '—'}</td>
+                      <td style={{ padding: '12px 0', color: C.gold, textAlign: 'right', fontWeight: 600 }}>{fmt(txn.amount_ksh || 0)}</td>
+                      <td style={{ padding: '12px 0', color: C.dim, textAlign: 'right' }}>{fmt(txn.platform_fee_ksh || 0)}</td>
+                      <td style={{ padding: '12px 0', color: C.green, textAlign: 'right', fontWeight: 600 }}>{fmt(txn.isp_earnings_ksh || 0)}</td>
                       <td style={{ padding: '12px 0', textAlign: 'center' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          background: statusColors[status].bg,
-                          color: statusColors[status].text,
-                          border: `0.5px solid ${statusColors[status].text}40`,
-                        }}>
-                          {status === 'completed' ? '✓' : status === 'pending' ? '⏳' : '✕'}
+                        <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: `${sc}15`, color: sc, border: `0.5px solid ${sc}40` }}>
+                          {st === 'completed' ? '✓' : st === 'pending' ? '⏳' : '✕'}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 0', color: colors.textSecondary, fontSize: 11 }}>
-                        {txn.mpesa_receipt ? `${txn.mpesa_receipt.slice(0, 8)}...` : '—'}
-                      </td>
-                      <td style={{ padding: '12px 0', color: colors.textSecondary, fontSize: 11 }}>
+                      <td style={{ padding: '12px 0', color: C.dim, fontSize: 11 }}>{txn.mpesa_receipt ? `${txn.mpesa_receipt.slice(0, 8)}...` : '—'}</td>
+                      <td style={{ padding: '12px 0', color: C.dim, fontSize: 11 }}>
                         {txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-KE') : '—'}
                       </td>
                     </tr>
@@ -441,22 +392,19 @@ export default function AdminTransactions() {
                 })}
               </tbody>
             </table>
-
             {filtered.length > 100 && (
-              <div style={{
-                padding: '16px',
-                textAlign: 'center',
-                color: colors.textMuted,
-                fontSize: 11,
-                borderTop: `0.5px solid ${colors.border}`,
-                marginTop: '16px',
-              }}>
+              <div style={{ padding: 16, textAlign: 'center', color: C.mute, fontSize: 11, borderTop: `0.5px solid ${C.border}`, marginTop: 16 }}>
                 Showing 100 of {filtered.length} transactions
               </div>
             )}
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }
