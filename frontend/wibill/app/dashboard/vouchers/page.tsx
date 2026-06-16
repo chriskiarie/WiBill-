@@ -27,10 +27,18 @@ export default function VouchersPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showGenerate, setShowGenerate] = useState(false)
-  const [packages, setPackages] = useState<any[]>([])
   const [generating, setGenerating] = useState(false)
-  const [genMode, setGenMode] = useState<'package' | 'time'>('package')
-  const [genForm, setGenForm] = useState({ package_id: '', duration_minutes: '', quantity: 50, prefix: '', expires_in_days: 365 })
+  const [genForm, setGenForm] = useState({ duration_minutes: 60, quantity: 50, prefix: '', expires_in_days: 365 })
+
+  const PRESET_DURATIONS = [
+    { label: '30 min', minutes: 30 },
+    { label: '1 hour', minutes: 60 },
+    { label: '6 hours', minutes: 360 },
+    { label: '24 hours', minutes: 1440 },
+    { label: '7 days', minutes: 10080 },
+    { label: 'Custom', minutes: 0 },
+  ]
+  const [selectedPreset, setSelectedPreset] = useState<number>(60)
 
 
   const fmt = (n: number) => n?.toLocaleString() ?? '0'
@@ -44,24 +52,15 @@ export default function VouchersPage() {
     } catch { /* ignore */ } finally { setLoading(false) }
   }
 
-  const fetchPackages = async () => {
-    try {
-      if (user?.tenant_id) setPackages(await api.getPackages(user.tenant_id))
-    } catch { /* ignore */ }
-  }
-
   useEffect(() => { fetchVouchers() }, [token, statusFilter])
-  useEffect(() => { fetchPackages() }, [token, user])
 
   const handleGenerate = async () => {
-    if (genMode === 'package' && !genForm.package_id) { showToast('Select a package', { type: 'error' }); return }
-    if (genMode === 'time' && (!genForm.duration_minutes || parseInt(genForm.duration_minutes) < 1)) { showToast('Enter duration in minutes', { type: 'error' }); return }
+    const minutes = selectedPreset === 0 ? parseInt(genForm.duration_minutes as any) : selectedPreset
+    if (!minutes || minutes < 1) { showToast('Select a duration', { type: 'error' }); return }
     if (genForm.quantity < 1) { showToast('Quantity must be at least 1', { type: 'error' }); return }
     setGenerating(true)
     try {
-      const body: any = { quantity: genForm.quantity, prefix: genForm.prefix, expires_in_days: genForm.expires_in_days }
-      if (genMode === 'package') body.package_id = genForm.package_id
-      else body.duration_minutes = parseInt(genForm.duration_minutes)
+      const body: any = { quantity: genForm.quantity, prefix: genForm.prefix, expires_in_days: genForm.expires_in_days, duration_minutes: minutes }
       const result = await api.generateVouchers(body)
       showToast(`Generated ${result.quantity} vouchers (batch: ${result.batch_id.slice(0, 8)}...)`, { type: 'success' })
       setShowGenerate(false)
@@ -163,7 +162,8 @@ export default function VouchersPage() {
             </div>
             {data.vouchers.map((v: any, i: number) => {
               const statusColor = v.status === 'unused' ? C.green : v.status === 'used' ? C.dim : C.red
-              const typeLabel = v.duration_minutes ? `${v.duration_minutes}m` : 'Package'
+              const d = v.duration_minutes || 60
+              const typeLabel = d >= 1440 ? `${(d / 1440).toFixed(0)}d` : d >= 60 ? `${(d / 60).toFixed(0)}h` : `${d}m`
               return (
                 <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', borderBottom: i < data.vouchers.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
                   <div style={{ padding: '12px 16px', fontFamily: 'DM Mono, monospace', fontSize: 12, fontWeight: 600, color: C.text }}>{v.code}</div>
@@ -218,28 +218,28 @@ export default function VouchersPage() {
               <button onClick={() => setShowGenerate(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: C.dim, cursor: 'pointer' }}><X size={20} /></button>
             </div>
 
-            {/* Mode Toggle */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <button onClick={() => setGenMode('package')} style={{ flex: 1, padding: '10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: genMode === 'package' ? C.gold : '#080808', border: `0.5px solid ${genMode === 'package' ? C.gold : C.border2}`, color: genMode === 'package' ? '#000' : C.dim }}>
-                Package-linked
-              </button>
-              <button onClick={() => setGenMode('time')} style={{ flex: 1, padding: '10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: genMode === 'time' ? C.gold : '#080808', border: `0.5px solid ${genMode === 'time' ? C.gold : C.border2}`, color: genMode === 'time' ? '#000' : C.dim }}>
-                Time-based
-              </button>
+            {/* Duration Presets */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Duration *</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {PRESET_DURATIONS.map(p => (
+                  <button key={p.minutes} onClick={() => { setSelectedPreset(p.minutes); if (p.minutes > 0) setGenForm(f => ({ ...f, duration_minutes: p.minutes })) }}
+                    style={{
+                      padding: '8px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      background: selectedPreset === p.minutes ? C.gold : '#080808',
+                      border: `0.5px solid ${selectedPreset === p.minutes ? C.gold : C.border2}`,
+                      color: selectedPreset === p.minutes ? '#000' : C.dim,
+                    }}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {genMode === 'package' ? (
+            {selectedPreset === 0 && (
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Package *</label>
-                <select value={genForm.package_id} onChange={e => setGenForm(p => ({ ...p, package_id: e.target.value }))} style={inputSx}>
-                  <option value="">Select a package...</option>
-                  {packages.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} — Ksh {p.price_ksh} ({p.duration_hours}h)</option>)}
-                </select>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Duration (minutes) *</label>
-                <input type="number" min={1} max={43200} value={genForm.duration_minutes} onChange={e => setGenForm(p => ({ ...p, duration_minutes: e.target.value }))} placeholder="e.g. 60 for 1 hour" style={inputSx} />
+                <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Custom Duration (minutes)</label>
+                <input type="number" min={1} max={43200} value={genForm.duration_minutes} onChange={e => setGenForm(p => ({ ...p, duration_minutes: parseInt(e.target.value) || 0 }))} placeholder="Enter minutes" style={inputSx} />
               </div>
             )}
 
@@ -260,9 +260,7 @@ export default function VouchersPage() {
             </div>
 
             <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 16, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
-              {genMode === 'time'
-                ? `${genForm.quantity} time-based codes (${genForm.duration_minutes || '?'} min each). No package needed — works as standalone access codes.`
-                : `${genForm.quantity} codes for the selected package. Each code is 8 characters (uppercase + digits).`}
+              {genForm.quantity} time-based codes ({selectedPreset || genForm.duration_minutes || '?'} min each). No package needed — works as standalone access codes.
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>

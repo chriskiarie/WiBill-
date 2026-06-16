@@ -176,6 +176,10 @@ MIGRATIONS = [
     ("mikrotik_active_users index", """
         CREATE INDEX IF NOT EXISTS ix_mikrotik_active_users_mac_address ON mikrotik_active_users(mac_address)
     """),
+    # ── Voucher code length fix ──────────────────────────────────────────────
+    ("vouchers.code length to 30", """
+        ALTER TABLE vouchers ALTER COLUMN code TYPE VARCHAR(30)
+    """),
 ]
 
 

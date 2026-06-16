@@ -19,11 +19,10 @@ router = APIRouter(tags=["vouchers"])
 
 
 class GenerateVoucherRequest(BaseModel):
-    package_id: Optional[str] = None
     quantity: int = 1
     prefix: str = ""
     expires_in_days: int = 365
-    duration_minutes: Optional[int] = None
+    duration_minutes: int
 
 
 class RedeemVoucherRequest(BaseModel):
@@ -32,10 +31,12 @@ class RedeemVoucherRequest(BaseModel):
     ip_address: str = ""
 
 
-def generate_code(prefix: str = "", length: int = 8) -> str:
+def generate_code(prefix: str = "") -> str:
     chars = string.ascii_uppercase + string.digits
-    code = ''.join(secrets.choice(chars) for _ in range(length))
-    return f"{prefix}{code}"
+    max_total = 30
+    max_random = max(4, max_total - len(prefix))
+    random_part = ''.join(secrets.choice(chars) for _ in range(min(max_random, 8)))
+    return f"{prefix}{random_part}"[:max_total]
 
 
 @router.post("/generate")
@@ -53,23 +54,7 @@ async def generate_vouchers(
         if payload.quantity < 1 or payload.quantity > 500:
             raise HTTPException(status_code=400, detail="Quantity must be between 1 and 500")
 
-        if not payload.package_id and not payload.duration_minutes:
-            raise HTTPException(status_code=400, detail="Provide either package_id or duration_minutes")
-
-        if payload.package_id and payload.duration_minutes:
-            raise HTTPException(status_code=400, detail="Provide either package_id (package-linked) or duration_minutes (time-based), not both")
-
-        package_uuid = None
-        if payload.package_id:
-            try:
-                package_uuid = uuid.UUID(payload.package_id)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid package_id")
-            pkg = await db.execute(select(Package).where(Package.id == package_uuid, Package.tenant_id == tenant_id))
-            if not pkg.scalar_one_or_none():
-                raise HTTPException(status_code=404, detail="Package not found")
-
-        if payload.duration_minutes is not None and (payload.duration_minutes < 1 or payload.duration_minutes > 43200):
+        if payload.duration_minutes < 1 or payload.duration_minutes > 43200:
             raise HTTPException(status_code=400, detail="Duration must be between 1 and 43200 minutes (30 days)")
 
         batch_id = str(uuid.uuid4())
@@ -93,7 +78,6 @@ async def generate_vouchers(
             voucher = Voucher(
                 id=uuid.uuid4(),
                 tenant_id=tenant_id,
-                package_id=package_uuid,
                 code=code,
                 batch_id=batch_id,
                 status="unused",
@@ -111,7 +95,7 @@ async def generate_vouchers(
             "quantity": len(vouchers),
             "codes": [v.code for v in vouchers],
             "expires_at": expires_at.isoformat(),
-            "voucher_type": "time_based" if payload.duration_minutes else "package_linked",
+            "voucher_type": "time_based",
             "duration_minutes": payload.duration_minutes,
         }
     except HTTPException:
