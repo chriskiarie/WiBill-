@@ -300,7 +300,9 @@ async def expire_old_sessions(
 
 def _is_valid_mac(mac: str) -> bool:
     """Validate MAC address format"""
-    # Accept: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF, or placeholder 00:00:00:00:00:00
+    if mac == "00:00:00:00:00:00":
+        return True
+    # Accept: AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF
     pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
     return bool(re.match(pattern, mac))
 

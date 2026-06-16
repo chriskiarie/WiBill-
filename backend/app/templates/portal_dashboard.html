@@ -1018,20 +1018,36 @@
     <div id="payment-modal" class="payment-modal" style="display: none;">
         <div class="payment-modal-content">
             <div class="payment-modal-header">
-                <h3>Pay with M-Pesa</h3>
+                <h3 id="pm-title">Pay with M-Pesa</h3>
                 <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
             </div>
             <div class="payment-modal-body">
-                <p>Package: <strong id="payment-package-name"></strong></p>
-                <p>Amount: <strong id="payment-package-price"></strong></p>
-                <input type="hidden" id="payment-package-id">
-                <div class="payment-input-group">
-                    <label for="payment-phone">Phone Number (M-Pesa)</label>
-                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
+                <div style="display:flex;gap:6px;margin-bottom:12px">
+                    <button id="pm-tab-mpesa" onclick="switchPayTab('mpesa')" style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--accent-primary);background:var(--accent-primary);color:white;font-size:11px;font-weight:600;cursor:pointer">M-Pesa</button>
+                    <button id="pm-tab-voucher" onclick="switchPayTab('voucher')" style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text-secondary);font-size:11px;font-weight:600;cursor:pointer">Voucher Code</button>
                 </div>
-                <div id="payment-error" class="payment-error" style="display: none;"></div>
-                <div id="payment-status" class="payment-status" style="display: none;"></div>
-                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
+                <div id="pm-mpesa">
+                    <p>Package: <strong id="payment-package-name"></strong></p>
+                    <p>Amount: <strong id="payment-package-price"></strong></p>
+                    <input type="hidden" id="payment-package-id">
+                    <div class="payment-input-group">
+                        <label for="payment-phone">Phone Number (M-Pesa)</label>
+                        <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
+                    </div>
+                    <div id="payment-error" class="payment-error" style="display: none;"></div>
+                    <div id="payment-status" class="payment-status" style="display: none;"></div>
+                    <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
+                </div>
+                <div id="pm-voucher" style="display:none">
+                    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">Enter your voucher code to get internet access.</p>
+                    <div class="payment-input-group">
+                        <label for="voucher-code">Voucher Code</label>
+                        <input type="text" id="voucher-code" placeholder="e.g. ABC12345" style="text-transform:uppercase;letter-spacing:2px;font-family:monospace;background:var(--bg-primary);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);border-radius:calc(var(--radius) * 0.5);width:100%;padding:0.85rem 1rem;outline:none;box-sizing:border-box">
+                    </div>
+                    <div id="voucher-error" class="payment-error" style="display: none;"></div>
+                    <div id="voucher-status" class="payment-status" style="display: none;"></div>
+                    <button id="voucher-submit" class="payment-submit-btn" onclick="redeemVoucher()">Redeem Voucher</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1039,6 +1055,7 @@
     <script>
         // Payment flow - open modal when package clicked
         function openPaymentModal(packageId, packageName, packagePrice) {
+            switchPayTab('mpesa');
             document.getElementById('payment-modal').style.display = 'flex';
             document.getElementById('payment-package-name').textContent = packageName;
             document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
@@ -1051,6 +1068,60 @@
 
         function closePaymentModal() {
             document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        function switchPayTab(tab) {
+            const mpesaBtn = document.getElementById('pm-tab-mpesa');
+            const voucherBtn = document.getElementById('pm-tab-voucher');
+            const mpesaPane = document.getElementById('pm-mpesa');
+            const voucherPane = document.getElementById('pm-voucher');
+            if (tab === 'mpesa') {
+                mpesaBtn.style.background = 'var(--accent-primary)'; mpesaBtn.style.color = 'white'; mpesaBtn.style.borderColor = 'var(--accent-primary)';
+                voucherBtn.style.background = 'transparent'; voucherBtn.style.color = 'var(--text-secondary)'; voucherBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+                mpesaPane.style.display = 'block';
+                voucherPane.style.display = 'none';
+            } else {
+                voucherBtn.style.background = 'var(--accent-primary)'; voucherBtn.style.color = 'white'; voucherBtn.style.borderColor = 'var(--accent-primary)';
+                mpesaBtn.style.background = 'transparent'; mpesaBtn.style.color = 'var(--text-secondary)'; mpesaBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+                mpesaPane.style.display = 'none';
+                voucherPane.style.display = 'block';
+            }
+            document.getElementById('payment-error').style.display = 'none';
+            document.getElementById('voucher-error').style.display = 'none';
+            document.getElementById('voucher-status').style.display = 'none';
+        }
+
+        async function redeemVoucher() {
+            const code = document.getElementById('voucher-code').value.trim().toUpperCase();
+            if (!code) { showVoucherError('Please enter a voucher code'); return; }
+            const urlParams = new URLSearchParams(window.location.search);
+            const mac = urlParams.get('mac') || '';
+            const ip = urlParams.get('ip') || '';
+            const submitBtn = document.getElementById('voucher-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Redeeming...';
+            try {
+                const response = await fetch('/api/vouchers/redeem', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, mac_address: mac, ip_address: ip })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Invalid voucher');
+                const statusEl = document.getElementById('voucher-status');
+                statusEl.style.display = 'block';
+                statusEl.textContent = data.message || 'Voucher redeemed!';
+                setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 1500);
+            } catch (e) {
+                showVoucherError(e.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Redeem Voucher';
+            }
+        }
+
+        function showVoucherError(msg) {
+            const el = document.getElementById('voucher-error');
+            el.textContent = msg; el.style.display = 'block';
         }
 
         async function initiatePayment() {

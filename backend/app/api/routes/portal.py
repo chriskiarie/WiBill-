@@ -195,7 +195,7 @@ async def get_live_portal(
     # Handle reward token redemption
     if token:
         from app.models.reward_token import RewardToken
-        from app.services.session_service import create_session
+        from app.services.session_service import create_session, activate_session
         from datetime import datetime, timedelta
         tr = await db.execute(select(RewardToken).where(RewardToken.token_code == token))
         rtoken = tr.scalar_one_or_none()
@@ -217,6 +217,7 @@ async def get_live_portal(
             expires_at=datetime.utcnow() + timedelta(minutes=rtoken.minutes),
             db=db,
         )
+        await activate_session(session_id=str(session.id), db=db)
         rtoken.redeemed = True
         rtoken.redeemed_at = datetime.utcnow()
         rtoken.session_id = session.id

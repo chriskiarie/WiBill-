@@ -13,7 +13,7 @@ from app.models.package import Package
 from app.models.tenant import Tenant
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
-from app.services.session_service import create_session
+from app.services.session_service import create_session, activate_session
 
 router = APIRouter(tags=["vouchers"])
 
@@ -402,6 +402,8 @@ async def redeem_voucher_portal(
         expires_at=now + duration,
         db=db,
     )
+
+    await activate_session(session_id=str(session.id), db=db)
 
     voucher.status = "used"
     voucher.used_at = now

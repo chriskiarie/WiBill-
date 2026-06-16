@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.models.reward_token import RewardToken
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
-from app.services.session_service import create_session
+from app.services.session_service import create_session, activate_session
 
 router = APIRouter(tags=["reward-tokens"])
 
@@ -213,6 +213,7 @@ async def redeem_token(
         expires_at=now + duration,
         db=db,
     )
+    await activate_session(session_id=str(session.id), db=db)
 
     token.session_id = session.id
     await db.commit()
