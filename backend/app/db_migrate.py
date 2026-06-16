@@ -93,6 +93,9 @@ MIGRATIONS = [
     ("reward_tokens index", """
         CREATE INDEX IF NOT EXISTS ix_reward_tokens_tenant_id ON reward_tokens(tenant_id)
     """),
+    ("sessions.package_id nullable", """
+        ALTER TABLE sessions ALTER COLUMN package_id DROP NOT NULL
+    """),
 ]
 
 
