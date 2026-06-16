@@ -28,7 +28,7 @@ export default function VouchersPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showGenerate, setShowGenerate] = useState(false)
   const [generating, setGenerating] = useState(false)
-  const [genForm, setGenForm] = useState({ duration_minutes: 60, quantity: 50, prefix: '', expires_in_days: 365 })
+  const [genForm, setGenForm] = useState({ duration_minutes: 60, quantity: 50, expires_in_days: 365 })
 
   const PRESET_DURATIONS = [
     { label: '30 min', minutes: 30 },
@@ -60,7 +60,7 @@ export default function VouchersPage() {
     if (genForm.quantity < 1) { showToast('Quantity must be at least 1', { type: 'error' }); return }
     setGenerating(true)
     try {
-      const body: any = { quantity: genForm.quantity, prefix: genForm.prefix, expires_in_days: genForm.expires_in_days, duration_minutes: minutes }
+      const body: any = { quantity: genForm.quantity, expires_in_days: genForm.expires_in_days, duration_minutes: minutes }
       const result = await api.generateVouchers(body)
       showToast(`Generated ${result.quantity} vouchers (batch: ${result.batch_id.slice(0, 8)}...)`, { type: 'success' })
       setShowGenerate(false)
@@ -248,10 +248,7 @@ export default function VouchersPage() {
                 <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Quantity *</label>
                 <input type="number" min={1} max={500} value={genForm.quantity} onChange={e => setGenForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} style={inputSx} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Prefix</label>
-                <input type="text" value={genForm.prefix} onChange={e => setGenForm(p => ({ ...p, prefix: e.target.value }))} placeholder="e.g. WIFI-" style={inputSx} />
-              </div>
+
             </div>
 
             <div style={{ marginBottom: 16 }}>

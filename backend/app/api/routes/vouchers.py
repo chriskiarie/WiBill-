@@ -20,7 +20,6 @@ router = APIRouter(tags=["vouchers"])
 
 class GenerateVoucherRequest(BaseModel):
     quantity: int = 1
-    prefix: str = ""
     expires_in_days: int = 365
     duration_minutes: int
 
@@ -31,12 +30,10 @@ class RedeemVoucherRequest(BaseModel):
     ip_address: str = ""
 
 
-def generate_code(prefix: str = "") -> str:
+def generate_code() -> str:
+    """Generate a short 5-char voucher code (uppercase + digits)."""
     chars = string.ascii_uppercase + string.digits
-    max_total = 30
-    max_random = max(4, max_total - len(prefix))
-    random_part = ''.join(secrets.choice(chars) for _ in range(min(max_random, 8)))
-    return f"{prefix}{random_part}"[:max_total]
+    return ''.join(secrets.choice(chars) for _ in range(5))
 
 
 @router.post("/generate")
@@ -64,7 +61,7 @@ async def generate_vouchers(
         unique_codes = set()
         attempts = 0
         while len(unique_codes) < payload.quantity and attempts < payload.quantity * 5:
-            code = generate_code(payload.prefix)
+            code = generate_code()
             attempts += 1
             existing = await db.execute(select(Voucher).where(Voucher.tenant_id == tenant_id, Voucher.code == code))
             if not existing.scalar_one_or_none():
