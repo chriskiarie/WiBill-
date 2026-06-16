@@ -2,19 +2,21 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func
 from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.loyalty_account import LoyaltyAccount, LoyaltyTransaction
 from app.models.tenant import Tenant
 from app.models.session import Session
+from app.models.reward_token import RewardToken
 from app.api.routes.auth import get_current_user
 from app.services.session_service import create_session
+from app.api.routes.reward_tokens import generate_token_code
 
 router = APIRouter(tags=["loyalty"])
 
 
-POINTS_PER_100_KES = 10
+POINTS_PER_100_KES = 100  # 1 point per Ksh
 REDEMPTION_THRESHOLD_POINTS = 100
 REDEMPTION_DURATION_HOURS = 1
 
@@ -278,6 +280,85 @@ async def redeem_loyalty_points(
     tenant_id = uuid.UUID(str(tenant_id_raw))
 
     raise HTTPException(status_code=501, detail="Portal redemption is a public endpoint. Use POST /api/vouchers/redeem-loyalty")
+
+
+class SendRewardRequest(BaseModel):
+    account_id: str
+    minutes: int = 60
+    reason: str | None = None
+
+
+@router.post("/send-reward")
+async def send_reward_token(
+    payload: SendRewardRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = uuid.UUID(str(tenant_id_raw))
+
+    try:
+        account_uuid = uuid.UUID(payload.account_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid account_id")
+
+    result = await db.execute(
+        select(LoyaltyAccount).where(
+            LoyaltyAccount.id == account_uuid,
+            LoyaltyAccount.tenant_id == tenant_id
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Loyalty account not found")
+
+    if payload.minutes < 5 or payload.minutes > 1440:
+        raise HTTPException(status_code=400, detail="Minutes must be between 5 and 1440")
+
+    code = generate_token_code()
+    while True:
+        existing = await db.execute(select(RewardToken).where(RewardToken.token_code == code))
+        if not existing.scalar_one_or_none():
+            break
+        code = generate_token_code()
+
+    now = datetime.utcnow()
+    token = RewardToken(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        token_code=code,
+        minutes=payload.minutes,
+        bound_phone=account.phone_number,
+        reason=payload.reason or "loyalty reward",
+        redeemed=False,
+        expires_at=now + timedelta(days=90),
+        created_at=now,
+    )
+    db.add(token)
+
+    account.points_balance -= payload.minutes
+    account.total_redeemed += payload.minutes
+
+    txn = LoyaltyTransaction(
+        id=uuid.uuid4(),
+        account_id=account.id,
+        type="redeem",
+        points=payload.minutes,
+        description=f"Reward token {code[:8]}… — {payload.minutes}min ({payload.reason or 'loyalty reward'})",
+        created_at=now,
+    )
+    db.add(txn)
+    await db.commit()
+
+    return {
+        "success": True,
+        "token_code": code,
+        "minutes": payload.minutes,
+        "points_remaining": account.points_balance,
+        "expires_at": token.expires_at.isoformat(),
+    }
 
 
 @router.post("/redeem-portal")

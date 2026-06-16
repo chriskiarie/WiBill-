@@ -275,6 +275,8 @@ export const api = {
   getLoyaltyAccountByPhone: (phone: string) => request<any>(`/api/loyalty/accounts/${phone}`),
   getLoyaltyStats: () => request<any>('/api/loyalty/stats'),
   getLoyaltyConfig: () => request<any>('/api/loyalty/config'),
+  sendReward: (data: { account_id: string; minutes: number; reason?: string }) =>
+    request<any>('/api/loyalty/send-reward', { method: 'POST', body: JSON.stringify(data) }),
   redeemLoyaltyPortal: (data: { phone_number: string; mac_address?: string; ip_address?: string }) =>
     request<any>('/api/loyalty/redeem-portal', { method: 'POST', body: JSON.stringify(data) }),
 

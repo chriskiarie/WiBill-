@@ -714,6 +714,105 @@
             }
         }
 
+        /* ── Voucher Section ── */
+        .voucher-section {
+            width: 100%; max-width: 440px;
+            position: relative; z-index: 2;
+        }
+
+        .voucher-box {
+            background: rgba(255,255,255,0.04); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: calc(var(--radius) * 0.8);
+            padding: var(--spacing-md);
+            transition: box-shadow 0.4s, border-color 0.4s;
+            box-shadow: 0 0 0px rgba(255,255,255,0);
+        }
+
+        .voucher-box.glow-green {
+            border-color: rgba(16,185,129,0.5);
+            box-shadow: 0 0 30px rgba(16,185,129,0.2), 0 0 60px rgba(16,185,129,0.08);
+        }
+
+        .voucher-box.glow-red {
+            border-color: rgba(239,68,68,0.5);
+            box-shadow: 0 0 30px rgba(239,68,68,0.2), 0 0 60px rgba(239,68,68,0.08);
+        }
+
+        .voucher-box.glow-yellow {
+            border-color: rgba(234,179,8,0.5);
+            box-shadow: 0 0 30px rgba(234,179,8,0.2), 0 0 60px rgba(234,179,8,0.08);
+        }
+
+        .voucher-header {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .voucher-header svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .voucher-title {
+            font-family: var(--font-display);
+            font-size: 0.95rem; font-weight: 700; color: var(--text-primary);
+        }
+
+        .voucher-subtitle {
+            font-size: 0.8rem; color: var(--text-secondary);
+            margin-bottom: 12px; line-height: 1.5;
+        }
+
+        .voucher-input-row {
+            display: flex; gap: 8px; align-items: stretch;
+        }
+
+        .voucher-input-row input {
+            flex: 1; padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: calc(var(--radius) * 0.4);
+            color: var(--text-primary);
+            font-family: 'DM Mono', 'Courier New', monospace;
+            font-size: 1.1rem; font-weight: 600;
+            letter-spacing: 3px; text-transform: uppercase;
+            outline: none; transition: border-color 0.2s;
+            box-sizing: border-box; min-width: 0;
+        }
+
+        .voucher-input-row input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .voucher-input-row input::placeholder {
+            letter-spacing: 1px; font-size: 0.8rem;
+            color: var(--text-secondary); opacity: 0.5;
+        }
+
+        .voucher-btn {
+            padding: 0.75rem 1.2rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: calc(var(--radius) * 0.4);
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: 0.8rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .voucher-btn:hover { background: rgba(255,255,255,0.12); }
+        .voucher-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .voucher-message {
+            margin-top: 10px; padding: 8px 12px;
+            border-radius: calc(var(--radius) * 0.4);
+            font-size: 0.8rem; font-weight: 500;
+            display: none; animation: slideUp 0.25s ease;
+        }
+
+        .voucher-message.success { display: block; background: rgba(16,185,129,0.08); color: #34d399; }
+        .voucher-message.error { display: block; background: rgba(239,68,68,0.08); color: #f87171; }
+        .voucher-message.warning { display: block; background: rgba(234,179,8,0.08); color: #fbbf24; }
+
         /* ── Payment Modal ─────────────────────────────── */
         .payment-modal {
             display: none;
@@ -954,6 +1053,26 @@
                 </div>
                 {% endif %}
             </div>
+
+            <!-- Voucher Section -->
+            <div class="voucher-section">
+                <div id="voucher-box" class="voucher-box">
+                    <div class="voucher-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
+                            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/>
+                            <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
+                            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
+                        </svg>
+                        <span class="voucher-title">Got a voucher code?</span>
+                    </div>
+                    <div class="voucher-subtitle">Enter your code below — no phone or M-Pesa needed.</div>
+                    <div class="voucher-input-row">
+                        <input type="text" id="voucher-code" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
+                        <button id="voucher-btn" class="voucher-btn" onclick="redeemVoucher()">Redeem</button>
+                    </div>
+                    <div id="voucher-message" class="voucher-message"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Content -->
@@ -1022,32 +1141,16 @@
                 <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
             </div>
             <div class="payment-modal-body">
-                <div style="display:flex;gap:6px;margin-bottom:12px">
-                    <button id="pm-tab-mpesa" onclick="switchPayTab('mpesa')" style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--accent-primary);background:var(--accent-primary);color:white;font-size:11px;font-weight:600;cursor:pointer">M-Pesa</button>
-                    <button id="pm-tab-voucher" onclick="switchPayTab('voucher')" style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text-secondary);font-size:11px;font-weight:600;cursor:pointer">Voucher Code</button>
+                <p>Package: <strong id="payment-package-name"></strong></p>
+                <p>Amount: <strong id="payment-package-price"></strong></p>
+                <input type="hidden" id="payment-package-id">
+                <div class="payment-input-group">
+                    <label for="payment-phone">Phone Number (M-Pesa)</label>
+                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
                 </div>
-                <div id="pm-mpesa">
-                    <p>Package: <strong id="payment-package-name"></strong></p>
-                    <p>Amount: <strong id="payment-package-price"></strong></p>
-                    <input type="hidden" id="payment-package-id">
-                    <div class="payment-input-group">
-                        <label for="payment-phone">Phone Number (M-Pesa)</label>
-                        <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
-                    </div>
-                    <div id="payment-error" class="payment-error" style="display: none;"></div>
-                    <div id="payment-status" class="payment-status" style="display: none;"></div>
-                    <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
-                </div>
-                <div id="pm-voucher" style="display:none">
-                    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">Enter your voucher code to get internet access.</p>
-                    <div class="payment-input-group">
-                        <label for="voucher-code">Voucher Code</label>
-                        <input type="text" id="voucher-code" placeholder="e.g. ABC12345" style="text-transform:uppercase;letter-spacing:2px;font-family:monospace;background:var(--bg-primary);border:1px solid rgba(255,255,255,0.1);color:var(--text-primary);border-radius:calc(var(--radius) * 0.5);width:100%;padding:0.85rem 1rem;outline:none;box-sizing:border-box">
-                    </div>
-                    <div id="voucher-error" class="payment-error" style="display: none;"></div>
-                    <div id="voucher-status" class="payment-status" style="display: none;"></div>
-                    <button id="voucher-submit" class="payment-submit-btn" onclick="redeemVoucher()">Redeem Voucher</button>
-                </div>
+                <div id="payment-error" class="payment-error" style="display: none;"></div>
+                <div id="payment-status" class="payment-status" style="display: none;"></div>
+                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
             </div>
         </div>
     </div>
@@ -1055,7 +1158,6 @@
     <script>
         // Payment flow - open modal when package clicked
         function openPaymentModal(packageId, packageName, packagePrice) {
-            switchPayTab('mpesa');
             document.getElementById('payment-modal').style.display = 'flex';
             document.getElementById('payment-package-name').textContent = packageName;
             document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
@@ -1070,58 +1172,61 @@
             document.getElementById('payment-modal').style.display = 'none';
         }
 
-        function switchPayTab(tab) {
-            const mpesaBtn = document.getElementById('pm-tab-mpesa');
-            const voucherBtn = document.getElementById('pm-tab-voucher');
-            const mpesaPane = document.getElementById('pm-mpesa');
-            const voucherPane = document.getElementById('pm-voucher');
-            if (tab === 'mpesa') {
-                mpesaBtn.style.background = 'var(--accent-primary)'; mpesaBtn.style.color = 'white'; mpesaBtn.style.borderColor = 'var(--accent-primary)';
-                voucherBtn.style.background = 'transparent'; voucherBtn.style.color = 'var(--text-secondary)'; voucherBtn.style.borderColor = 'rgba(255,255,255,0.1)';
-                mpesaPane.style.display = 'block';
-                voucherPane.style.display = 'none';
-            } else {
-                voucherBtn.style.background = 'var(--accent-primary)'; voucherBtn.style.color = 'white'; voucherBtn.style.borderColor = 'var(--accent-primary)';
-                mpesaBtn.style.background = 'transparent'; mpesaBtn.style.color = 'var(--text-secondary)'; mpesaBtn.style.borderColor = 'rgba(255,255,255,0.1)';
-                mpesaPane.style.display = 'none';
-                voucherPane.style.display = 'block';
-            }
-            document.getElementById('payment-error').style.display = 'none';
-            document.getElementById('voucher-error').style.display = 'none';
-            document.getElementById('voucher-status').style.display = 'none';
+        function setVoucherGlow(type) {
+            const box = document.getElementById('voucher-box');
+            box.classList.remove('glow-green', 'glow-red', 'glow-yellow');
+            if (type) box.classList.add(type);
+        }
+
+        function showVoucherMessage(msg, type) {
+            const el = document.getElementById('voucher-message');
+            el.textContent = msg;
+            el.className = 'voucher-message ' + type;
         }
 
         async function redeemVoucher() {
             const code = document.getElementById('voucher-code').value.trim().toUpperCase();
-            if (!code) { showVoucherError('Please enter a voucher code'); return; }
+            if (!code) { showVoucherMessage('Please enter a voucher code', 'error'); setVoucherGlow('glow-red'); return; }
             const urlParams = new URLSearchParams(window.location.search);
             const mac = urlParams.get('mac') || '';
             const ip = urlParams.get('ip') || '';
-            const submitBtn = document.getElementById('voucher-submit');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Redeeming...';
+            const btn = document.getElementById('voucher-btn');
+            btn.disabled = true; btn.textContent = 'Checking\u2026';
+            setVoucherGlow(null);
             try {
                 const response = await fetch('/api/vouchers/redeem', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code, mac_address: mac, ip_address: ip })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'Invalid voucher');
-                const statusEl = document.getElementById('voucher-status');
-                statusEl.style.display = 'block';
-                statusEl.textContent = data.message || 'Voucher redeemed!';
-                setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 1500);
-            } catch (e) {
-                showVoucherError(e.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Redeem Voucher';
-            }
-        }
+                const text = await response.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { detail: text || 'Server error' }; }
 
-        function showVoucherError(msg) {
-            const el = document.getElementById('voucher-error');
-            el.textContent = msg; el.style.display = 'block';
+                if (response.ok) {
+                    setVoucherGlow('glow-green');
+                    showVoucherMessage(data.message || 'Voucher redeemed!', 'success');
+                    setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 1500);
+                    return;
+                }
+
+                const detail = (data.detail || '').toLowerCase();
+                if (detail.includes('already used')) {
+                    setVoucherGlow('glow-yellow');
+                    showVoucherMessage(data.detail || 'Voucher already used', 'warning');
+                } else if (detail.includes('suspended')) {
+                    setVoucherGlow('glow-red');
+                    showVoucherMessage(data.detail || 'Voucher has been suspended', 'error');
+                } else {
+                    setVoucherGlow('glow-red');
+                    showVoucherMessage(data.detail || 'Invalid voucher code', 'error');
+                }
+                btn.disabled = false; btn.textContent = 'Redeem';
+            } catch (e) {
+                setVoucherGlow('glow-red');
+                showVoucherMessage('Connection error. Please try again.', 'error');
+                btn.disabled = false; btn.textContent = 'Redeem';
+            }
         }
 
         async function initiatePayment() {

@@ -362,59 +362,68 @@ async def redeem_voucher_portal(
     payload: RedeemVoucherRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Voucher, Package).join(Package, Voucher.package_id == Package.id, isouter=True)
-        .where(Voucher.code == payload.code)
-    )
-    row = result.one_or_none()
-    if not row:
-        raise HTTPException(status_code=404, detail="Voucher not found")
+    try:
+        result = await db.execute(
+            select(Voucher, Package).join(Package, Voucher.package_id == Package.id, isouter=True)
+            .where(Voucher.code == payload.code)
+        )
+        row = result.one_or_none()
+        if not row:
+            raise HTTPException(status_code=404, detail="Voucher not found")
 
-    voucher, package = row
+        voucher, package = row
 
-    now = datetime.utcnow()
-    if voucher.is_suspended:
-        raise HTTPException(status_code=400, detail="Voucher has been suspended")
-    if voucher.status == "used":
-        raise HTTPException(status_code=400, detail="Voucher already used")
-    if voucher.expires_at and voucher.expires_at < now:
-        raise HTTPException(status_code=400, detail="Voucher has expired")
-    if voucher.status == "expired":
-        raise HTTPException(status_code=400, detail="Voucher has expired")
+        now = datetime.utcnow()
+        if voucher.is_suspended:
+            raise HTTPException(status_code=400, detail="Voucher has been suspended")
+        if voucher.status == "used":
+            raise HTTPException(status_code=400, detail="Voucher already used")
+        if voucher.expires_at and voucher.expires_at < now:
+            raise HTTPException(status_code=400, detail="Voucher has expired")
+        if voucher.status == "expired":
+            raise HTTPException(status_code=400, detail="Voucher has expired")
 
-    if package and not package.is_active:
-        raise HTTPException(status_code=400, detail="Package is no longer active")
+        if package and not package.is_active:
+            raise HTTPException(status_code=400, detail="Package is no longer active")
 
-    if package:
-        duration = timedelta(hours=package.duration_hours)
-        pkg_name = package.name
-    elif voucher.duration_minutes:
-        duration = timedelta(minutes=voucher.duration_minutes)
-        pkg_name = f"Time-based ({voucher.duration_minutes} min)"
-    else:
-        raise HTTPException(status_code=400, detail="Voucher has no duration configured")
+        if package:
+            duration = timedelta(hours=package.duration_hours)
+            pkg_name = package.name
+        elif voucher.duration_minutes:
+            duration = timedelta(minutes=voucher.duration_minutes)
+            pkg_name = f"Time-based ({voucher.duration_minutes} min)"
+        else:
+            raise HTTPException(status_code=400, detail="Voucher has no duration configured")
 
-    session = await create_session(
-        tenant_id=voucher.tenant_id,
-        mac_address=payload.mac_address or "00:00:00:00:00:00",
-        ip_address=payload.ip_address or "0.0.0.0",
-        package_id=voucher.package_id or package.id if package else None,
-        expires_at=now + duration,
-        db=db,
-    )
+        pkg_id = voucher.package_id
+        if pkg_id is None and package is not None:
+            pkg_id = package.id
 
-    await activate_session(session_id=str(session.id), db=db)
+        session = await create_session(
+            tenant_id=voucher.tenant_id,
+            mac_address=payload.mac_address or "00:00:00:00:00:00",
+            ip_address=payload.ip_address or "0.0.0.0",
+            package_id=pkg_id,
+            expires_at=now + duration,
+            db=db,
+        )
 
-    voucher.status = "used"
-    voucher.used_at = now
-    voucher.session_id = session.id
-    voucher.mac_address = payload.mac_address
-    await db.commit()
+        await activate_session(session_id=str(session.id), db=db)
 
-    return {
-        "success": True,
-        "session_id": str(session.id),
-        "package_name": pkg_name,
-        "duration_hours": duration.total_seconds() / 3600,
-        "message": f"Voucher redeemed! {duration.total_seconds() / 3600:.1f}h of internet access activated.",
-    }
+        voucher.status = "used"
+        voucher.used_at = now
+        voucher.session_id = session.id
+        voucher.mac_address = payload.mac_address
+        await db.commit()
+
+        return {
+            "success": True,
+            "session_id": str(session.id),
+            "package_name": pkg_name,
+            "duration_hours": duration.total_seconds() / 3600,
+            "message": f"Voucher redeemed! {duration.total_seconds() / 3600:.1f}h of internet access activated.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Redeem error: {type(e).__name__}: {e}")

@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Smartphone, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users,
+  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -53,6 +53,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const [collapsed, setCollapsed] = useState(false)
   const [indicatorTop, setIndicatorTop] = useState(8)
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null)
+  const [brandHover, setBrandHover] = useState(false)
   const [liveData, setLiveData] = useState({ revenue: 0, sessions: 0, loaded: false })
 
   const isAdmin = pathname.startsWith('/admin')
@@ -110,42 +111,34 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         justifyContent: collapsed ? 'center' : 'space-between',
         borderBottom: '0.5px solid #0f0f0f',
       }}>
-        {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: C.gold, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', flexShrink: 0,
-            }}>
-              <span style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 15, fontWeight: 700, color: '#3D2A06',
-              }}>
-                W
-              </span>
-            </div>
-            <span style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 16, fontWeight: 600, color: C.text,
-            }}>
-              WiBill
-            </span>
-          </div>
-        )}
-        {collapsed && (
+        <a href={`/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
+          onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
           <div style={{
             width: 28, height: 28, borderRadius: 7,
             background: C.gold, display: 'flex', alignItems: 'center',
             justifyContent: 'center', flexShrink: 0,
           }}>
-            <span style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 15, fontWeight: 700, color: '#3D2A06',
-            }}>
-              W
-            </span>
+            <Wifi size={18} color="#3D2A06" />
           </div>
-        )}
+          <span style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 16, fontWeight: 600, color: C.text,
+            display: collapsed ? 'none' : 'inline',
+          }}>
+            WiBill
+          </span>
+          <span style={{
+            position: 'absolute', bottom: -18, left: 0,
+            background: '#1A1A18', borderRadius: 4,
+            padding: '2px 8px', fontSize: 11, fontFamily: 'Inter, sans-serif',
+            color: C.dim, whiteSpace: 'nowrap',
+            opacity: brandHover ? 1 : 0,
+            pointerEvents: 'none', transition: 'opacity 0.15s',
+          }}>
+            Open your portal <ExternalLink size={10} style={{ verticalAlign: 'middle', marginLeft: 2 }} />
+          </span>
+        </a>
 
         <button
           onClick={() => setCollapsed(!collapsed)}
