@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
 
 const C = {
   void: '#030303', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -22,7 +22,7 @@ const statusColors: Record<string, string> = {
   draft: C.dim, launched: C.green, completed: C.gold, cancelled: C.red,
 }
 
-const audienceOptions = [
+const audienceOptions: { value: string; label: string; desc?: string; icon: LucideIcon }[] = [
   { value: 'all', label: 'All customers', icon: Users },
   { value: 'active_7d', label: 'Active in last 7 days', desc: 'Purchased recently' },
   { value: 'inactive_5d', label: 'Inactive for 5+ days', desc: 'Might be slipping' },
