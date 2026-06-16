@@ -5,7 +5,7 @@ import { api, maskPhone } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Topbar from '@/components/Topbar';
 import { useToast } from '@/context/ToastContext';
-import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, X, Settings } from 'lucide-react';
+import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, X, Settings, RefreshCw } from 'lucide-react';
 
 const C = {
   void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -51,6 +51,7 @@ export default function IspDashboard() {
   const [weekly, setWeekly] = useState<number[]>([]);
   const [configs, setConfigs] = useState({ mpesa: false, mikrotik: false, packages: 0 });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [kicking, setKicking] = useState<Set<string>>(new Set());
   const [time, setTime] = useState(new Date());
   const [showSetup, setShowSetup] = useState(false);
@@ -62,6 +63,7 @@ export default function IspDashboard() {
 
   const load = useCallback(async () => {
     if (!token) return;
+    setRefreshing(true);
     try {
       const [dd, ss, tt, trend7, inv, mpesaCfg, mkCfg, pkgs] = await Promise.all([
         api.getTenantDashboard(),
@@ -102,7 +104,7 @@ export default function IspDashboard() {
       });
     } catch (e: any) {
       showToast(e.message || 'Failed to load dashboard', { type: 'error' });
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setRefreshing(false); }
   }, [token, showToast]);
 
   useEffect(() => {
@@ -179,13 +181,90 @@ export default function IspDashboard() {
     if (e.target === overlayRef.current) setShowSetup(false);
   };
 
+  const skeletonBar = (h: number, delay: number) => ({
+    width: '100%', height: `${h}%`,
+    background: C.mute, borderRadius: '2px 2px 0 0',
+    minHeight: 6,
+    animation: `skel-pulse 2s ease-in-out infinite`,
+    animationDelay: `${delay}s`,
+  });
+
+  const skeletonBlock = (w: string, h: number, r = 4, d = 0) => ({
+    width: w, height: h, background: C.mute, borderRadius: r,
+    animation: 'skel-pulse 2s ease-in-out infinite',
+    animationDelay: `${d}s`,
+  });
+
   if (loading && !dash) {
+    const skelOuter: React.CSSProperties = {
+      background: C.void, color: C.dim, minHeight: '100vh',
+      display: 'flex', flexDirection: 'column',
+    };
+    const skelPage: React.CSSProperties = {
+      flex: 1, overflowY: 'auto', padding: '28px 32px',
+      maxWidth: 1240, margin: '0 auto', width: '100%',
+    };
+    const skelCard: React.CSSProperties = {
+      background: C.base, border: `0.5px solid ${C.border}`,
+      borderRadius: 11, padding: 16,
+    };
     return (
-      <div style={{ background: C.void, color: C.dim, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={skelOuter}>
+        <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }`}</style>
         <Topbar title="Dashboard" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexDirection: 'column' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.gold, animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
-          <div style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.dim }}>Loading your dashboard...</div>
+        <div style={skelPage}>
+          {/* header skeleton */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 28 }}>
+            <div>
+              <div style={skeletonBlock('160px', 22, 4, 0)} />
+              <div style={{ ...skeletonBlock('120px', 14, 4, 0.15), marginTop: 8 }} />
+            </div>
+            <div style={skeletonBlock('80px', 26, 13, 0.3)} />
+          </div>
+          {/* hero card skeleton */}
+          <div style={{ ...skelCard, padding: 20, marginBottom: 20 }}>
+            <div style={skeletonBlock('120px', 11, 4, 0.1)} />
+            <div style={{ ...skeletonBlock('200px', 40, 4, 0.2), marginTop: 12, marginBottom: 10 }} />
+            <div style={skeletonBlock('300px', 11, 4, 0.3)} />
+          </div>
+          {/* bar chart skeleton */}
+          <div style={{ ...skelCard, marginBottom: 20 }}>
+            <div style={skeletonBlock('140px', 11, 4, 0.15)} />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 40, marginTop: 12 }}>
+              {[30, 50, 20, 60, 40, 70, 35].map((h, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={skeletonBar(h, i * 0.1)} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* 4-card row skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+            {[0.1, 0.2, 0.3, 0.4].map((d, i) => (
+              <div key={i} style={skelCard}>
+                <div style={skeletonBlock('60%', 11, 4, d)} />
+                <div style={{ ...skeletonBlock('40%', 22, 4, d + 0.05), marginTop: 8, marginBottom: 4 }} />
+                <div style={skeletonBlock('70%', 11, 4, d + 0.1)} />
+              </div>
+            ))}
+          </div>
+          {/* 2-column panels skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[[0.1, 0.2], [0.3, 0.4]].map((delays, col) => (
+              <div key={col} style={skelCard}>
+                <div style={skeletonBlock('50%', 11, 4, delays[0])} />
+                {[1, 2, 3].map((row) => (
+                  <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '0.5px solid #0d0d0d' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.mute, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${delays[0] + row * 0.1}s` }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={skeletonBlock('40%', 11, 4, delays[0] + row * 0.1)} />
+                      <div style={{ ...skeletonBlock('60%', 11, 4, delays[1] + row * 0.1), marginTop: 3 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -250,6 +329,17 @@ export default function IspDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={load} disabled={refreshing} title="Refresh dashboard" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 26, height: 26, borderRadius: '50%',
+              border: `0.5px solid ${C.border}`,
+              background: 'transparent',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              color: C.dim, padding: 0,
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+            }}>
+              <RefreshCw size={12} />
+            </button>
             {!isNetworkUp && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
