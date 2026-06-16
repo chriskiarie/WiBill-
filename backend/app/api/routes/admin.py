@@ -159,7 +159,7 @@ async def reject_tenant(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
 ) -> TenantResponse:
-    """Reject a pending ISP tenant (deletes the tenant and associated admin users)."""
+    """Reject a tenant — locks it so it cannot be used, without deleting data."""
     stmt = select(Tenant).where(Tenant.id == uuid.UUID(tenant_id))
     result = await db.execute(stmt)
     tenant = result.scalar_one_or_none()
@@ -167,17 +167,26 @@ async def reject_tenant(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
-    # Delete associated admin users first
+    tenant.is_active = False
+    tenant.is_locked = True
+    tenant.locked_reason = "Rejected by admin"
+    tenant.locked_at = datetime.utcnow()
+    db.add(tenant)
+    
+    # Deactivate associated admin users
     from app.models.admin_user import AdminUser as AU
-    from sqlalchemy import delete as sa_delete
-    await db.execute(sa_delete(AU).where(AU.tenant_id == tenant.id))
+    from sqlalchemy import update as sa_update
+    await db.execute(
+        sa_update(AU)
+        .where(AU.tenant_id == tenant.id)
+        .values(is_active=False)
+    )
     
     await log_action(db, current_user, 'reject_tenant', 'tenant', tenant_id, {'name': tenant.name})
-    # Delete the tenant
-    await db.delete(tenant)
     await db.commit()
+    await db.refresh(tenant)
     
-    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=False, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
+    return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
 
 @router.patch("/admin/tenants/{tenant_id}/suspend", response_model=TenantResponse)
