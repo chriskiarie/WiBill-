@@ -2,6 +2,7 @@
 Admin invoice tracking endpoints.
 """
 from typing import Optional
+from datetime import datetime, timezone
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -44,11 +45,11 @@ async def list_invoices(
             tenant_slug=t.slug,
             is_active=t.is_active,
             status=t.status,
-            invoice_status=getattr(t, 'invoice_status', 'active') or 'active',
-            monthly_fee_ksh=float(t.monthly_fee_ksh) if getattr(t, 'monthly_fee_ksh', None) else None,
-            next_invoice_date=t.next_invoice_date.isoformat() if getattr(t, 'next_invoice_date', None) else None,
-            last_paid_date=t.last_paid_date.isoformat() if getattr(t, 'last_paid_date', None) else None,
-            avg_days_punctual=float(t.avg_days_punctual) if getattr(t, 'avg_days_punctual', None) else None,
+            invoice_status=t.invoice_status or "active",
+            monthly_fee_ksh=float(t.monthly_fee_ksh) if t.monthly_fee_ksh is not None else None,
+            next_invoice_date=t.next_invoice_date.isoformat() if t.next_invoice_date else None,
+            last_paid_date=t.last_paid_date.isoformat() if t.last_paid_date else None,
+            avg_days_punctual=float(t.avg_days_punctual) if t.avg_days_punctual is not None else None,
         )
         for t in tenants
     ]
@@ -65,7 +66,27 @@ async def mark_invoice_paid(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    return {"ok": False, "message": "Database migration required. Run: alembic upgrade d4e5f6a7b8c9"}
+    result = await db.execute(select(Tenant).where(Tenant.id == uuid.UUID(tenant_id)))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    now = datetime.now(timezone.utc)
+
+    # Calculate punctuality delta from last payment
+    if tenant.last_paid_date:
+        delta_days = (now - tenant.last_paid_date).days
+        current_avg = tenant.avg_days_punctual or 0.0
+        tenant.avg_days_punctual = round((current_avg + delta_days) / 2, 1)
+
+    tenant.invoice_status = "active"
+    tenant.last_paid_date = now
+    tenant.next_invoice_date = None
+    if body.monthly_fee_ksh:
+        tenant.monthly_fee_ksh = body.monthly_fee_ksh
+
+    await db.commit()
+    return {"ok": True, "invoice_status": "active"}
 
 
 @router.patch("/admin/invoices/{tenant_id}/status")
@@ -75,4 +96,19 @@ async def update_invoice_status(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    return {"ok": False, "message": "Database migration required. Run: alembic upgrade d4e5f6a7b8c9"}
+    result = await db.execute(select(Tenant).where(Tenant.id == uuid.UUID(tenant_id)))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    new_status = body.get("invoice_status", "active")
+    valid = {"active", "pending", "overdue", "paused", "trial"}
+    if new_status not in valid:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(sorted(valid))}")
+
+    tenant.invoice_status = new_status
+    if new_status == "active" and not tenant.last_paid_date:
+        tenant.last_paid_date = datetime.now(timezone.utc)
+
+    await db.commit()
+    return {"ok": True, "invoice_status": new_status}

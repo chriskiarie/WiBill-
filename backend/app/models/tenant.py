@@ -38,6 +38,13 @@ class Tenant(Base):
     portal_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
+    # Invoice tracking fields
+    invoice_status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
+    monthly_fee_ksh: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    next_invoice_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_paid_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    avg_days_punctual: Mapped[float | None] = mapped_column(Numeric(5, 1), nullable=True)
+
     # Account lock fields
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     locked_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
