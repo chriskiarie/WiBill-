@@ -139,6 +139,22 @@ MIGRATIONS = [
     ("notifications index", """
         CREATE INDEX IF NOT EXISTS ix_notifications_target_tenant_id ON notifications(target_tenant_id)
     """),
+    # ── Invoice tracking columns (tenants) ────────────────────────────────────
+    ("tenants.invoice_status", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS invoice_status VARCHAR(20) NOT NULL DEFAULT 'active'
+    """),
+    ("tenants.monthly_fee_ksh", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS monthly_fee_ksh NUMERIC(12, 2)
+    """),
+    ("tenants.next_invoice_date", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS next_invoice_date TIMESTAMP WITH TIME ZONE
+    """),
+    ("tenants.last_paid_date", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS last_paid_date TIMESTAMP WITH TIME ZONE
+    """),
+    ("tenants.avg_days_punctual", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avg_days_punctual NUMERIC(5, 1)
+    """),
     # ── MikroTik Phase 2 columns ────────────────────────────────────────────
     ("mikrotik_configs.hotspot_profile_name", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS hotspot_profile_name VARCHAR(255) NOT NULL DEFAULT 'WiBill_Profile'
