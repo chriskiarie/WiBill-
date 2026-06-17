@@ -279,10 +279,6 @@ const STEP_META = [
     s: 'Define your identity, palette, and typography' 
   },
   { 
-    t: 'Packages & Pricing', 
-    s: 'Configure your internet plans' 
-  },
-  { 
     t: 'Features & Extras', 
     s: 'Payments, loyalty, vouchers, referrals and more' 
   },
@@ -376,19 +372,7 @@ const CSS_STYLES = `
   .pal-sw{flex:1}
   .pal-name{font-size:.72rem;font-weight:700;padding:.45rem .75rem;background:#0D0D0B;color:var(--ink)}
   .pal-name small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
-  .pkg-hdr{display:grid;grid-template-columns:1.4fr 1fr .9fr .9fr auto auto;gap:.4rem;margin-bottom:.5rem;padding:0 .5rem}
-  .pkg-hdr span{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-  .pkg-list{display:flex;flex-direction:column;gap:.55rem;margin-bottom:.75rem}
-  .pkg-row{display:grid;grid-template-columns:1.4fr 1fr .9fr .9fr auto auto;gap:.4rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.65rem .5rem;transition:all .2s}
-  .pkg-row:hover{border-color:rgba(232,184,75,.3);background:#111}
-  .pkg-row input{border:1.5px solid var(--border);border-radius:7px;padding:.38rem .6rem;font-size:.8rem;background:var(--white);width:100%;outline:none;font-family:'Figtree',sans-serif;transition:border .2s}
-  .pkg-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,184,75,.08)}
-  .pkg-star{background:none;border:1.5px solid var(--border);border-radius:6px;padding:.35rem .55rem;cursor:pointer;font-size:.75rem;transition:all .2s;color:var(--muted)}
-  .pkg-star.on{background:#fef9c3;border-color:#fcd34d;color:#b45309;box-shadow:0 2px 8px rgba(252,211,77,.2)}
-  .pkg-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1rem;padding:.2rem;transition:color .2s;line-height:1}
-  .pkg-del:hover{color:var(--red)}
-  .add-pkg{background:transparent;border:1.5px dashed var(--border);border-radius:10px;padding:.6rem;width:100%;font-size:.8rem;color:var(--muted);cursor:pointer;font-family:'Figtree',sans-serif;font-weight:600;transition:all .2s}
-  .add-pkg:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+
   .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
   .feat{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;transition:all .2s;cursor:pointer}
   .feat:hover{border-color:rgba(232,184,75,.2);background:#111}
@@ -790,7 +774,7 @@ export default function XbillPortalWizard() {
   };
 
   const goto = (n: number) => {
-    if (n < 1 || n > 5) return;
+    if (n < 1 || n > 4) return;
     updateState({ step: n });
   };
 
@@ -799,29 +783,6 @@ export default function XbillPortalWizard() {
     updateState({ feats: newFeats });
   };
 
-  const addPkg = () => {
-    updateState({ pkgs: [...S.pkgs, { n: 'New Plan', d: '1 hr', s: '10 Mbps', p: 50, star: false }] });
-  };
-
-  const removePkg = (i: number) => {
-    if (S.pkgs.length <= 1) {
-      toast('Need at least 1 package');
-      return;
-    }
-    updateState({ pkgs: S.pkgs.filter((_, idx) => idx !== i) });
-  };
-
-  const toggleStar = (i: number) => {
-    const newPkgs = [...S.pkgs];
-    newPkgs[i].star = !newPkgs[i].star;
-    updateState({ pkgs: newPkgs });
-  };
-
-  const updatePkg = (i: number, field: keyof Package, value: any) => {
-    const newPkgs = [...S.pkgs];
-    newPkgs[i] = { ...newPkgs[i], [field]: value };
-    updateState({ pkgs: newPkgs });
-  };
 
   // ============ BUILD PREVIEW URL FUNCTION ============
   const buildPreviewUrl = (template: string): string => {
@@ -961,50 +922,9 @@ export default function XbillPortalWizard() {
       const configResult = await configResponse.json();
       console.log('✅ Portal config saved:', configResult);
 
-      let packagesCreated = 0;
-      let packagesFailed = 0;
-
-      for (const p of S.pkgs) {
-        const durationHours = calculateDurationHours(p.d);
-        
-        console.log(`📦 Creating package: "${p.n}" (${durationHours}h at Ksh${p.p})`);
-
-        const pkgResponse = await fetch(`${apiBase}/api/packages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: p.n,
-            price_ksh: parseFloat(p.p.toString()),
-            duration_hours: durationHours,
-            duration_label: p.d,
-            max_devices: 1,
-            display_order: packagesCreated,
-          }),
-        });
-
-        if (!pkgResponse.ok) {
-          const errData = await pkgResponse.json().catch(() => ({ detail: 'Unknown error' }));
-          console.error(`⚠️ Package "${p.n}" failed:`, errData);
-          packagesFailed++;
-        } else {
-          const pkgResult = await pkgResponse.json();
-          console.log(`✅ Package "${p.n}" created (ID: ${pkgResult.id})`);
-          packagesCreated++;
-        }
-      }
-
-      console.log(`📊 Package summary: ${packagesCreated}/${S.pkgs.length} created`);
-
       sessionStorage.setItem('onboarding_done', 'true');
       
-      if (packagesCreated > 0) {
-        toast(`🚀 Portal live! ${packagesCreated} packages created. Redirecting...`);
-      } else {
-        toast(`⚠️ Portal config saved but no packages created. Redirecting...`);
-      }
+      toast(`🚀 Portal live! Redirecting to your dashboard...`);
       
       setTimeout(() => {
         router.push('/dashboard');
@@ -1016,7 +936,7 @@ export default function XbillPortalWizard() {
     }
   };
 
-  const pct = Math.round((S.step / 5) * 100);
+  const pct = Math.round((S.step / 4) * 100);
   const stepMeta = STEP_META[S.step] || { t: '', s: '' };
 
   const templates = [
@@ -1054,7 +974,7 @@ export default function XbillPortalWizard() {
             </div>
           </div>
           <div className="steps">
-            {[1, 2, 3, 4, 5].map((step) => (
+            {[1, 2, 3, 4].map((step) => (
               <div key={step}>
                 <div
                   className={`step ${S.step === step ? 'active' : ''} ${S.step > step ? 'done' : ''}`}
@@ -1066,7 +986,7 @@ export default function XbillPortalWizard() {
                     <span className="sdesc">{STEP_META[step]?.s.split(' & ')[0] || ''}</span>
                   </div>
                 </div>
-                {step < 5 && <div className="conn"></div>}
+                {step < 4 && <div className="conn"></div>}
               </div>
             ))}
           </div>
@@ -1092,12 +1012,12 @@ export default function XbillPortalWizard() {
                   ← Back
                 </button>
               )}
-              {S.step < 5 && (
+              {S.step < 4 && (
                 <button className="btn btn-primary" onClick={() => goto(S.step + 1)}>
                   Next →
                 </button>
               )}
-              {S.step === 5 && (
+              {S.step === 4 && (
                 <button className="btn btn-green" onClick={() => setShowModal(true)}>
                   ⬆ Share Wizard
                 </button>
@@ -1331,87 +1251,6 @@ export default function XbillPortalWizard() {
             {S.step === 3 && (
               <>
                 <div className="card">
-                  <div className="card-title">Internet Packages</div>
-                  <div className="pkg-hdr">
-                    <span>Plan Name</span>
-                    <span>Duration</span>
-                    <span>Speed</span>
-                    <span>Price (KES)</span>
-                    <span>★</span>
-                    <span></span>
-                  </div>
-                  <div className="pkg-list">
-                    {S.pkgs.map((p, i) => (
-                      <div key={i} className="pkg-row">
-                        <input
-                          value={p.n}
-                          onChange={(e) => updatePkg(i, 'n', e.target.value)}
-                          placeholder="Plan name"
-                        />
-                        <input
-                          value={p.d}
-                          onChange={(e) => updatePkg(i, 'd', e.target.value)}
-                          placeholder="6 hrs"
-                        />
-                        <input
-                          value={p.s}
-                          onChange={(e) => updatePkg(i, 's', e.target.value)}
-                          placeholder="10 Mbps"
-                        />
-                        <input
-                          type="number"
-                          value={p.p}
-                          onChange={(e) => updatePkg(i, 'p', +e.target.value)}
-                          placeholder="80"
-                        />
-                        <button
-                          className={`pkg-star ${p.star ? 'on' : ''}`}
-                          onClick={() => toggleStar(i)}
-                          title="Mark as popular"
-                        >
-                          ★
-                        </button>
-                        <button className="pkg-del" onClick={() => removePkg(i)}>
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button className="add-pkg" onClick={addPkg}>
-                    + Add Package
-                  </button>
-                </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-title">Network Status Banner</div>
-                  <div className="infobox">
-                    <span>💡</span>
-                    <span>Show customers whether the internet is working before they pay.</span>
-                  </div>
-                  <div className="opt-row">
-                    <div className="opt-label">Status indicator</div>
-                    <div className="opt-group">
-                      <button
-                        className={`opt-btn ${S.showSB ? 'on' : ''}`}
-                        onClick={() => updateState({ showSB: true })}
-                      >
-                        Show Status
-                      </button>
-                      <button
-                        className={`opt-btn ${!S.showSB ? 'on' : ''}`}
-                        onClick={() => updateState({ showSB: false })}
-                      >
-                        Hide
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {S.step === 4 && (
-              <>
-                <div className="card">
                   <div className="card-title">Payment Methods</div>
                   <div className="feat-grid">
                     {PAY_FEATS.map((f) => (
@@ -1460,10 +1299,35 @@ export default function XbillPortalWizard() {
                     ))}
                   </div>
                 </div>
+
+                <div className="card" style={{ marginBottom: 0 }}>
+                  <div className="card-title">Network Status Banner</div>
+                  <div className="infobox">
+                    <span>💡</span>
+                    <span>Show customers whether the internet is working before they pay.</span>
+                  </div>
+                  <div className="opt-row">
+                    <div className="opt-label">Status indicator</div>
+                    <div className="opt-group">
+                      <button
+                        className={`opt-btn ${S.showSB ? 'on' : ''}`}
+                        onClick={() => updateState({ showSB: true })}
+                      >
+                        Show Status
+                      </button>
+                      <button
+                        className={`opt-btn ${!S.showSB ? 'on' : ''}`}
+                        onClick={() => updateState({ showSB: false })}
+                      >
+                        Hide
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
-            {S.step === 5 && (
+            {S.step === 4 && (
               <>
                 <div className="preview-shell">
                   <div className="prev-toolbar">
