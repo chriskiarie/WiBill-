@@ -91,9 +91,9 @@ function authHeaders(): Record<string, string> {
 
 // ── Shared UI components ──────────────────────────────────────────────────────
 
-function Panel({ title, subtitle, accent = C.gold, children }: { title: string; subtitle?: string; accent?: string; children: ReactNode }) {
+function Panel({ title, subtitle, children }: { title: string; subtitle?: string; accent?: string; children: ReactNode }) {
   return (
-    <section style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${accent}`, borderRadius: 18, overflow: 'hidden' }}>
+    <section style={{ background: C.panel, border: `0.5px solid #2A2A27`, borderRadius: 18, overflow: 'hidden' }}>
       <div style={{ padding: '18px 20px 0' }}>
         <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
           {title}
@@ -478,7 +478,7 @@ export default function AdminISPNetwork() {
                     <button
                       onClick={() => suspendISP(isp)}
                       disabled={approvingId === isp.id}
-                      style={{ height: 36, padding: '0 14px', borderRadius: 8, border: `1px solid ${toneBorder('warn')}`, background: toneBg('warn'), color: C.amber, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 11, cursor: approvingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, opacity: approvingId === isp.id ? 0.6 : 1 }}
+                      style={{ height: 36, padding: '0 14px', borderRadius: 8, border: `1px solid ${toneBorder('bad')}`, background: toneBg('bad'), color: C.red, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 11, cursor: approvingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, opacity: approvingId === isp.id ? 0.6 : 1 }}
                     >
                       {approvingId === isp.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : 'Suspend'}
                     </button>

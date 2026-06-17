@@ -99,12 +99,12 @@ export default function CommsPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
           {/* Send message */}
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: C.panel, border: `0.5px solid #2A2A27`, borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setActiveTab('broadcast')} style={{ flex: 1, height: 40, borderRadius: 10, border: 'none', background: activeTab === 'broadcast' ? C.gold : C.panel2, color: activeTab === 'broadcast' ? '#000' : C.muted, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <button onClick={() => setActiveTab('broadcast')} style={{ flex: 1, height: 40, borderRadius: 10, border: `0.5px solid ${activeTab === 'broadcast' ? C.gold : C.border}`, background: activeTab === 'broadcast' ? `${C.gold}12` : C.panel2, color: activeTab === 'broadcast' ? C.gold : C.muted, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Globe size={14} /> Broadcast
               </button>
-              <button onClick={() => setActiveTab('direct')} style={{ flex: 1, height: 40, borderRadius: 10, border: 'none', background: activeTab === 'direct' ? C.gold : C.panel2, color: activeTab === 'direct' ? '#000' : C.muted, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <button onClick={() => setActiveTab('direct')} style={{ flex: 1, height: 40, borderRadius: 10, border: `0.5px solid ${activeTab === 'direct' ? C.gold : C.border}`, background: activeTab === 'direct' ? `${C.gold}12` : C.panel2, color: activeTab === 'direct' ? C.gold : C.muted, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Building2 size={14} /> Direct
               </button>
             </div>
@@ -122,10 +122,12 @@ export default function CommsPage() {
 
             <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Message" rows={4} style={{ padding: 14, borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2, color: C.text, fontSize: 13, fontFamily: 'Inter, system-ui, sans-serif', outline: 'none', resize: 'vertical' }} />
 
-            <button onClick={send} disabled={sending || !title.trim() || !message.trim() || (activeTab === 'direct' && !selectedIsp)} style={{ height: 48, borderRadius: 12, border: 'none', background: C.gold, color: '#000', fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 800, fontSize: 13, cursor: sending ? 'not-allowed' : 'pointer', opacity: sending ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {sending ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
-              {sending ? 'Sending...' : activeTab === 'broadcast' ? 'Broadcast to All ISPs' : 'Send Direct Message'}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={send} disabled={sending || !title.trim() || !message.trim() || (activeTab === 'direct' && !selectedIsp)} style={{ height: 40, padding: '0 20px', borderRadius: 10, border: 'none', background: C.gold, color: '#000', fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 800, fontSize: 12, cursor: sending ? 'not-allowed' : 'pointer', opacity: sending ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {sending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
+                {sending ? 'Sending...' : activeTab === 'broadcast' ? 'Broadcast' : 'Send Direct'}
+              </button>
+            </div>
 
             {result && (
               <div style={{ padding: '12px 14px', borderRadius: 12, border: `1px solid ${result.ok ? C.green : C.red}33`, background: result.ok ? `${C.green}14` : `${C.red}14`, color: result.ok ? C.green : C.red, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
@@ -136,7 +138,7 @@ export default function CommsPage() {
           </div>
 
           {/* History */}
-          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.gold}`, borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: C.panel, border: `0.5px solid #2A2A27`, borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, textTransform: 'uppercase' }}>History</div>
             {loadingHistory && history.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

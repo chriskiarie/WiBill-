@@ -273,7 +273,7 @@ export default function AdminDashboard() {
                     <div style={{ width: '100%', height: 150, display: 'flex', alignItems: 'end', justifyContent: 'center' }}>
                       <div style={{
                         width: '100%', maxWidth: 32, height: `${height}%`, minHeight: 6,
-                        borderRadius: 4, background: isToday ? C.gold : C.faint,
+                        borderRadius: 4, background: isToday ? C.gold : C.line,
                       }} />
                     </div>
                     <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.mute }}>{point.date}</span>

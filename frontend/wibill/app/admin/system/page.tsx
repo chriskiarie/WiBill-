@@ -4,523 +4,399 @@ import { useState, useEffect } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface HealthStatus {
-  status?: string;
-  version?: string;
-  database?: string;
-  environment?: string;
-  timestamp?: string;
-}
-
-// COLOR PALETTE
-const colors = {
-  void: '#000000',
-  base: '#0a0a0a',
-  raised: '#0d0d0d',
-  border: '#141414',
-  textPrimary: '#f0f0f0',
-  textSecondary: '#666666',
-  textMuted: '#2a2a2a',
-  gold: '#E8B84B',
-  green: '#22c55e',
-  red: '#ef4444',
-  amber: '#f59e0b',
-  blue: '#3b82f6',
+const C = {
+  black: '#000000', card: '#0D0D0B', border: '#2A2A27', line: '#1A1A18',
+  text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
+  gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 };
 
-type Tab = 'overview' | 'health' | 'database' | 'payments' | 'security' | 'notifications' | 'api' | 'logs' | 'danger';
+const tabDefs = [
+  { id: 'overview' as const, label: 'Overview' },
+  { id: 'mpesa' as const, label: 'M-Pesa' },
+  { id: 'security' as const, label: 'Security' },
+  { id: 'notifications' as const, label: 'Notifications' },
+  { id: 'danger' as const, label: 'Danger Zone', danger: true },
+];
+type TabId = (typeof tabDefs)[number]['id'];
 
-export default function BatmanControlCenter() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [health, setHealth] = useState<HealthStatus | null>(null);
+export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [health, setHealth] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [mpesaEnv, setMpesaEnv] = useState<'sandbox' | 'live'>('sandbox');
+  const [testMpesaResult, setTestMpesaResult] = useState<string | null>(null);
+  const [testMpesaRunning, setTestMpesaRunning] = useState(false);
 
   useEffect(() => {
-    loadHealth();
+    (async () => {
+      try {
+        const r = await fetch(`${API}/health`);
+        const d = await r.json();
+        setHealth({
+          status: d.status || 'error',
+          database: d.database || 'disconnected',
+          environment: d.environment || 'production',
+          version: d.version || '0.1.0',
+        });
+      } catch {
+        setHealth({ status: 'error', database: 'disconnected', environment: 'production', version: '0.1.0' });
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const loadHealth = async () => {
+  const runMpesaTest = async () => {
+    setTestMpesaRunning(true);
+    setTestMpesaResult(null);
     try {
-      const r = await fetch(`${API}/health`);
-      const data = await r.json();
-      setHealth(data);
-    } catch (err) {
-      setHealth({ status: 'error', version: '0.1.0', database: 'disconnected', environment: 'production' });
+      const token = localStorage.getItem('wb_token');
+      const r = await fetch(`${API}/api/mpesa/test`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setTestMpesaResult('success');
+      else setTestMpesaResult(`Failed: ${r.status} ${r.statusText}`);
+    } catch {
+      setTestMpesaResult('Failed: Network error');
     } finally {
-      setLoading(false);
+      setTestMpesaRunning(false);
     }
   };
 
-  const refreshHealth = async () => {
-    setRefreshing(true);
-    await loadHealth();
-    setRefreshing(false);
-  };
-
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const tabs = [
-    { id: 'overview' as const, label: 'Overview', icon: '📊' },
-    { id: 'health' as const, label: 'System Health', icon: '❤️' },
-    { id: 'database' as const, label: 'Database', icon: '🗄️' },
-    { id: 'payments' as const, label: 'M-Pesa Config', icon: '💳' },
-    { id: 'security' as const, label: 'Security', icon: '🔒' },
-    { id: 'notifications' as const, label: 'Alerts', icon: '🔔' },
-    { id: 'api' as const, label: 'API Keys', icon: '🔑' },
-    { id: 'logs' as const, label: 'Logs', icon: '📝' },
-    { id: 'danger' as const, label: 'Danger Zone', icon: '⚠️' },
+  const statusItems = [
+    { label: 'API', value: (health.status || 'checking').toUpperCase(), color: health.status === 'ok' ? C.green : C.red },
+    { label: 'DATABASE', value: (health.database || 'checking').toUpperCase(), color: health.database === 'connected' ? C.green : C.red },
+    { label: 'ENVIRONMENT', value: (health.environment || 'unknown').toUpperCase(), color: C.gold },
+    { label: 'VERSION', value: health.version || '—', color: C.text },
   ];
 
   return (
-    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '2000px', margin: '0 auto' }}>
-      {/* HEADER - BATMAN THEME */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <span style={{ fontSize: 36 }}>🦇</span>
-          <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: 0, color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
-            Control Center
-          </h1>
-        </div>
-        <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-          Mission control. Monitor. Configure. Protect. Everything you need to keep ISPs protected.
+    <div style={{ padding: '28px 32px', maxWidth: 1440 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ margin: 0, fontFamily: '"Space Grotesk", sans-serif', fontSize: 24, fontWeight: 700, color: C.text, letterSpacing: '0.05em' }}>SETTINGS</h1>
+        <p style={{ margin: '4px 0 0', fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute }}>
+          System configuration · v0.1.0 · Production
         </p>
       </div>
 
-      {/* SYSTEM STATUS QUICK VIEW */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-        {[
-          { label: 'API Status', value: health?.status || 'checking', color: health?.status === 'ok' ? colors.green : colors.red, icon: '🌐' },
-          { label: 'Database', value: health?.database || 'checking', color: health?.database === 'connected' ? colors.green : colors.red, icon: '🗄️' },
-          { label: 'Environment', value: health?.environment || 'unknown', color: colors.blue, icon: '⚙️' },
-          { label: 'Version', value: health?.version || '—', color: colors.gold, icon: '📦' },
-        ].map((item, i) => (
-          <div key={i} style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
-            borderRadius: '12px',
-            padding: '20px',
-            position: 'relative',
-          }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: item.color }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
-                {item.label}
-              </div>
-              <span style={{ fontSize: 16 }}>{item.icon}</span>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: item.color, fontFamily: '"JetBrains Mono", monospace' }}>
-              {item.value}
-            </div>
+      {/* Status strip */}
+      <div style={{ height: 40, background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: '0 20px', display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+        {statusItems.map((item, i) => (
+          <div key={item.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, height: '100%', borderRight: i < statusItems.length - 1 ? `1px solid ${C.line}` : 'none' }}>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute }}>{item.label}</span>
+            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: item.color }}>{loading ? '...' : item.value}</span>
           </div>
         ))}
       </div>
 
-      {/* TAB NAVIGATION */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '0', marginBottom: '32px', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, borderBottom: `0.5px solid ${colors.border}` }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '16px 12px',
-                background: activeTab === tab.id ? colors.raised : 'transparent',
-                border: 'none',
-                borderRight: `0.5px solid ${colors.border}`,
-                color: activeTab === tab.id ? colors.gold : colors.textSecondary,
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontFamily: 'inherit',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== tab.id) {
-                  (e.currentTarget as HTMLElement).style.color = colors.gold;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== tab.id) {
-                  (e.currentTarget as HTMLElement).style.color = colors.textSecondary;
-                }
-              }}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* TAB CONTENT */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '32px' }}>
-        {/* OVERVIEW TAB */}
-        {activeTab === 'overview' && (
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, margin: '0 0 24px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              Platform Overview
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              <div>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-                  System Stats
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {[
-                    { label: 'Uptime', value: '99.8%', unit: 'reliability' },
-                    { label: 'API Response Time', value: '45', unit: 'ms' },
-                    { label: 'Transaction Volume', value: '2,847', unit: 'today' },
-                    { label: 'Active ISPs', value: '5', unit: 'connected' },
-                  ].map((stat, i) => (
-                    <div key={i} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '12px',
-                      background: colors.raised,
-                      border: `0.5px solid ${colors.border}`,
-                      borderRadius: '8px',
-                    }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: colors.textSecondary, marginBottom: '2px' }}>
-                          {stat.label}
-                        </div>
-                        <div style={{ fontSize: 10, color: colors.textMuted }}>
-                          {stat.unit}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: colors.gold, fontFamily: '"JetBrains Mono", monospace' }}>
-                        {stat.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Quick Actions
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                  {[
-                    { label: 'Refresh Health Check', action: 'refresh', color: colors.blue },
-                    { label: 'View API Docs', action: 'docs', color: colors.gold },
-                    { label: 'Download Logs', action: 'logs', color: colors.green },
-                    { label: 'Test M-Pesa Connection', action: 'test', color: colors.amber },
-                  ].map((btn, i) => (
-                    <button
-                      key={i}
-                      onClick={() => refreshHealth()}
-                      style={{
-                        padding: '10px 12px',
-                        background: `${btn.color}15`,
-                        border: `0.5px solid ${btn.color}40`,
-                        borderRadius: '8px',
-                        color: btn.color,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.2s',
-                        fontFamily: 'inherit',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = `${btn.color}25`;
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = `${btn.color}15`;
-                      }}
-                    >
-                      {btn.label} →
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* HEALTH TAB */}
-        {activeTab === 'health' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, margin: 0, fontFamily: '"Space Grotesk", sans-serif' }}>
-                System Health Diagnostics
-              </h2>
+      {/* Two-column layout */}
+      <div style={{ display: 'flex', gap: 24 }}>
+        {/* Left: Vertical tabs */}
+        <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {tabDefs.map(tab => {
+            const isActive = activeTab === tab.id;
+            const isDanger = tab.id === 'danger';
+            const activeBorderColor = isDanger ? C.red : C.gold;
+            return (
               <button
-                onClick={refreshHealth}
-                disabled={refreshing}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 style={{
-                  padding: '8px 12px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                  color: colors.gold,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: refreshing ? 'not-allowed' : 'pointer',
-                  opacity: refreshing ? 0.5 : 1,
+                  height: 36, padding: '0 12px', border: 'none', borderRadius: 0, cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13, textAlign: 'left',
+                  display: 'flex', alignItems: 'center',
+                  background: isActive
+                    ? `rgba(232,184,75,${isDanger ? '0' : '0.06'})`
+                    : 'transparent',
+                  color: isDanger ? (isActive ? C.red : C.red) : (isActive ? C.gold : C.dim),
+                  borderLeft: isActive ? `2px solid ${activeBorderColor}` : '2px solid transparent',
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#111110';
+                    if (!isDanger) e.currentTarget.style.color = C.text;
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    if (!isDanger) e.currentTarget.style.color = C.dim;
+                  }
                 }}
               >
-                {refreshing ? '⟳ Checking...' : '🔄 Refresh'}
+                {tab.label}
               </button>
-            </div>
+            );
+          })}
+        </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              {[
-                { name: 'Backend API', status: health?.status, icon: '🌐' },
-                { name: 'PostgreSQL Database', status: health?.database, icon: '🗄️' },
-                { name: 'M-Pesa Integration', status: 'healthy', icon: '💳' },
-                { name: 'Redis Cache', status: 'healthy', icon: '⚡' },
-                { name: 'JWT Auth', status: 'healthy', icon: '🔐' },
-                { name: 'Email Service', status: 'healthy', icon: '📧' },
-              ].map((service, i) => (
-                <div key={i} style={{
-                  padding: '16px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: 16 }}>{service.icon}</span>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>
-                        {service.name}
+        {/* Right: Tab content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* OVERVIEW */}
+          {activeTab === 'overview' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 24 }}>
+              {/* System Stats */}
+              <div>
+                <h2 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 16, fontWeight: 700, color: C.text }}>System Stats</h2>
+                <div style={{ borderTop: `0.5px solid ${C.line}` }}>
+                  {[
+                    { label: 'Uptime', value: '99.8%' },
+                    { label: 'API Response Time', value: '45ms' },
+                    { label: 'Transaction Volume', value: '2,847 (today)' },
+                    { label: 'Active ISPs', value: '5' },
+                    { label: 'Platform Mode', value: (health.environment || 'production').toUpperCase() },
+                  ].map((row, i) => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 44, borderBottom: `0.5px solid ${C.line}` }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.dim }}>{row.label}</span>
+                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 13, color: C.text }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div>
+                <h2 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 16, fontWeight: 700, color: C.text }}>Quick Actions</h2>
+                <div style={{ borderTop: `0.5px solid ${C.line}` }}>
+                  {[
+                    { label: 'Refresh Health Check', action: () => window.location.reload() },
+                    { label: 'View API Docs', action: () => window.open(`${API}/docs`, '_blank') },
+                    { label: 'Download Logs', action: () => {} },
+                    { label: 'Test M-Pesa Connection', action: runMpesaTest },
+                  ].map((item, i) => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        height: 40, border: 'none', borderBottom: `0.5px solid ${C.line}`,
+                        background: 'transparent', cursor: 'pointer', width: '100%', padding: '0',
+                        fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.text, textAlign: 'left',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.querySelector('.chev') && ((e.currentTarget.querySelector('.chev') as HTMLElement).style.color = C.gold); }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.querySelector('.chev') && ((e.currentTarget.querySelector('.chev') as HTMLElement).style.color = C.faint); }}
+                    >
+                      <span>{item.label}</span>
+                      <span className="chev" style={{ color: C.faint, fontSize: 16, fontFamily: 'Inter, sans-serif' }}>›</span>
+                    </button>
+                  ))}
+                </div>
+                {testMpesaResult && (
+                  <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 6, border: `0.5px solid ${testMpesaResult === 'success' ? C.green : C.red}`, background: testMpesaResult === 'success' ? `${C.green}10` : `${C.red}10`, fontFamily: '"DM Mono", monospace', fontSize: 11, color: testMpesaResult === 'success' ? C.green : C.red }}>
+                    {testMpesaResult === 'success' ? '● Connection successful' : `● ${testMpesaResult}`}
+                  </div>
+                )}
+                {testMpesaRunning && (
+                  <div style={{ marginTop: 12, padding: '8px 12px', fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.mute }}>
+                    Testing connection...
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* M-PESA */}
+          {activeTab === 'mpesa' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+              {/* Environment Toggle */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: C.text }}>M-Pesa Environment</span>
+                  <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: `0.5px solid ${C.border}` }}>
+                    {(['sandbox', 'live'] as const).map(env => (
+                      <button
+                        key={env}
+                        onClick={() => setMpesaEnv(env)}
+                        style={{
+                          padding: '6px 16px', border: 'none', cursor: 'pointer',
+                          fontFamily: '"DM Mono", monospace', fontSize: 11, fontWeight: 700,
+                          background: mpesaEnv === env ? C.gold : C.card,
+                          color: mpesaEnv === env ? '#3D2A06' : C.mute,
+                          letterSpacing: '0.06em',
+                        }}
+                      >
+                        {env === 'sandbox' ? 'SANDBOX' : 'LIVE'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p style={{ margin: 0, fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.dim }}>
+                  Currently in {mpesaEnv} mode. Transactions are {mpesaEnv === 'sandbox' ? 'simulated' : 'live'}.
+                </p>
+              </div>
+
+              {/* Credentials */}
+              <div>
+                <h3 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: C.text }}>Credentials</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { label: 'Consumer Key', value: 'jd7...8hK' },
+                    { label: 'Consumer Secret', value: 'aB9...xR2' },
+                    { label: 'Passkey', value: '••••••••' },
+                    { label: 'Shortcode', value: '174379' },
+                  ].map(field => (
+                    <div key={field.label}>
+                      <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: C.dim, marginBottom: 6 }}>{field.label}</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="password"
+                          defaultValue={field.value}
+                          style={{
+                            flex: 1, height: 40, padding: '0 12px', borderRadius: 6,
+                            border: `0.5px solid ${C.border}`, background: C.black, color: C.text,
+                            fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none',
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            const input = document.activeElement as HTMLInputElement;
+                            if (input) input.type = input.type === 'password' ? 'text' : 'password';
+                          }}
+                          style={{
+                            height: 40, padding: '0 12px', borderRadius: 6,
+                            border: `0.5px solid ${C.border}`, background: C.card, color: C.dim,
+                            cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 11,
+                          }}
+                        >
+                          Show
+                        </button>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: service.status === 'healthy' || service.status === 'ok' ? colors.green : colors.red,
-                        boxShadow: `0 0 8px ${service.status === 'healthy' || service.status === 'ok' ? colors.green : colors.red}`,
-                      }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 10, color: colors.textMuted, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {service.status === 'healthy' || service.status === 'ok' ? '✓ Operational' : '✕ Issue Detected'}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            <div style={{ marginTop: '24px', padding: '16px', background: colors.raised, border: `0.5px solid ${colors.border}`, borderRadius: '8px' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: colors.textSecondary, marginBottom: '8px' }}>
-                Last Check
-              </div>
-              <div style={{ fontSize: 13, color: colors.textPrimary, fontFamily: '"JetBrains Mono", monospace' }}>
-                {new Date().toLocaleString('en-KE')}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* DATABASE TAB */}
-        {activeTab === 'database' && (
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, margin: '0 0 24px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              Database Administration
-            </h2>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              {[
-                { label: 'Connection Status', value: health?.database || 'unknown', color: colors.green },
-                { label: 'Database Name', value: 'wibill_prod', color: colors.blue },
-                { label: 'Total Tables', value: '18', color: colors.gold },
-                { label: 'Last Backup', value: 'Today 02:30 UTC', color: colors.amber },
-              ].map((item, i) => (
-                <div key={i} style={{
-                  padding: '16px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textMuted, marginBottom: '8px' }}>
-                    {item.label}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: item.color, fontFamily: '"JetBrains Mono", monospace' }}>
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ padding: '16px', background: `${colors.blue}15`, border: `0.5px solid ${colors.blue}40`, borderRadius: '8px', color: colors.blue, fontSize: 12, lineHeight: '1.6' }}>
-              <strong>ℹ️ Database Tools</strong>
-              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                <li>Run migrations: <code style={{ background: colors.raised, padding: '2px 6px', borderRadius: '3px', fontFamily: '"JetBrains Mono", monospace' }}>alembic upgrade head</code></li>
-                <li>Backup database: <code style={{ background: colors.raised, padding: '2px 6px', borderRadius: '3px', fontFamily: '"JetBrains Mono", monospace' }}>pg_dump</code></li>
-                <li>Monitor performance: Use Railway dashboard</li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* PAYMENTS TAB */}
-        {activeTab === 'payments' && (
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, margin: '0 0 24px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              M-Pesa Configuration
-            </h2>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              {[
-                { label: 'Shortcode', value: '174379', secret: true },
-                { label: 'Consumer Key', value: 'jd7...8hK', secret: true },
-                { label: 'Consumer Secret', value: 'aB9...xR2', secret: true },
-                { label: 'Environment', value: 'sandbox', secret: false },
-              ].map((config, i) => (
-                <div key={i} style={{
-                  padding: '16px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textMuted, marginBottom: '8px' }}>
-                    {config.label}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <code style={{ fontSize: 12, color: colors.gold, fontFamily: '"JetBrains Mono", monospace', flex: 1 }}>
-                      {config.value}
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(config.value, i.toString())}
-                      style={{
-                        background: colors.border,
-                        border: `0.5px solid ${colors.border}`,
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        color: colors.gold,
-                        fontSize: 10,
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {copiedField === i.toString() ? '✓' : '📋'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ padding: '16px', background: `${colors.amber}15`, border: `0.5px solid ${colors.amber}40`, borderRadius: '8px', color: colors.amber, fontSize: 12 }}>
-              <strong>⚙️ Test Payment</strong>
-              <div style={{ marginTop: '8px', fontSize: 11 }}>
-                Send test payment: +254712345678, Amount: 100 KES
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SECURITY TAB */}
-        {activeTab === 'security' && (
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.textPrimary, margin: '0 0 24px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              Security Settings
-            </h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[
-                { name: 'Two-Factor Authentication', status: true },
-                { name: 'HTTPS Everywhere', status: true },
-                { name: 'Rate Limiting', status: true },
-                { name: 'CORS Protection', status: true },
-                { name: 'SQL Injection Prevention', status: true },
-                { name: 'DDoS Protection', status: false },
-              ].map((feature, i) => (
-                <div key={i} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
-                  borderRadius: '8px',
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>
-                    {feature.name}
-                  </div>
-                  <div style={{
-                    padding: '3px 8px',
-                    background: feature.status ? `${colors.green}15` : `${colors.amber}15`,
-                    color: feature.status ? colors.green : colors.amber,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    borderRadius: '4px',
-                  }}>
-                    {feature.status ? '✓ Enabled' : '⚠️ Review'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* DANGER ZONE */}
-        {activeTab === 'danger' && (
-          <div>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.red, margin: '0 0 24px', fontFamily: '"Space Grotesk", sans-serif' }}>
-              ⚠️ Danger Zone
-            </h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[
-                { label: 'Clear Cache', desc: 'Remove all cached data', color: colors.amber },
-                { label: 'Reset API Keys', desc: 'Generate new API credentials', color: colors.amber },
-                { label: 'Export Database', desc: 'Download full database backup', color: colors.blue },
-                { label: 'Delete All Test Data', desc: 'Remove development transactions', color: colors.red },
-              ].map((action, i) => (
                 <button
-                  key={i}
                   style={{
-                    padding: '16px',
-                    background: `${action.color}10`,
-                    border: `0.5px solid ${action.color}40`,
-                    borderRadius: '8px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = `${action.color}20`;
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = `${action.color}10`;
+                    marginTop: 16, height: 36, padding: '0 20px', borderRadius: 6,
+                    border: `0.5px solid ${C.border}`, background: C.card, color: C.text,
+                    cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 12,
                   }}
                 >
-                  <div style={{ fontSize: 11, fontWeight: 700, color: action.color, marginBottom: '4px' }}>
-                    {action.label}
-                  </div>
-                  <div style={{ fontSize: 10, color: colors.textMuted }}>
-                    {action.desc}
-                  </div>
+                  Save Credentials
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* OTHER TABS - PLACEHOLDER */}
-        {['notifications', 'api', 'logs'].includes(activeTab) && (
-          <div style={{ textAlign: 'center', padding: '40px', color: colors.textMuted }}>
-            <div style={{ fontSize: 18, marginBottom: '12px' }}>
-              {activeTab === 'notifications' ? '🔔' : activeTab === 'api' ? '🔑' : '📝'}
+              {/* Connection Test */}
+              <div>
+                <button
+                  onClick={runMpesaTest}
+                  disabled={testMpesaRunning}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    height: 40, padding: '0', border: 'none', borderBottom: `0.5px solid ${C.line}`,
+                    background: 'transparent', cursor: testMpesaRunning ? 'not-allowed' : 'pointer', width: '100%',
+                    fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.text,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.gold; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = C.text; }}
+                >
+                  <span>{testMpesaRunning ? 'Testing...' : 'Test M-Pesa Connection →'}</span>
+                </button>
+                {testMpesaResult && (
+                  <div style={{ marginTop: 8, fontFamily: '"DM Mono", monospace', fontSize: 11, color: testMpesaResult === 'success' ? C.green : C.red }}>
+                    {testMpesaResult === 'success' ? '● Connection successful' : `● ${testMpesaResult}`}
+                  </div>
+                )}
+              </div>
             </div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: '4px' }}>
-              {activeTab === 'notifications' ? 'Alert Configuration' : activeTab === 'api' ? 'API Key Management' : 'System Logs'}
+          )}
+
+          {/* SECURITY */}
+          {activeTab === 'security' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+              <div>
+                <h3 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: C.text }}>Admin Credentials</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[
+                    { label: 'Current Password', placeholder: 'Enter current password' },
+                    { label: 'New Password', placeholder: 'Enter new password' },
+                    { label: 'Confirm New Password', placeholder: 'Confirm new password' },
+                  ].map(field => (
+                    <div key={field.label}>
+                      <label style={{ display: 'block', fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: C.dim, marginBottom: 6 }}>{field.label}</label>
+                      <input type="password" placeholder={field.placeholder} style={{ width: '100%', maxWidth: 400, height: 40, padding: '0 12px', borderRadius: 6, border: `0.5px solid ${C.border}`, background: C.black, color: C.text, fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none' }} />
+                    </div>
+                  ))}
+                </div>
+                <button style={{ marginTop: 16, height: 36, padding: '0 20px', borderRadius: 6, border: `0.5px solid ${C.border}`, background: C.card, color: C.text, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
+                  Update Password
+                </button>
+              </div>
+
+              <div>
+                <div style={{ borderTop: `0.5px solid ${C.line}`, paddingTop: 24 }}>
+                  <h3 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: C.text }}>API Keys</h3>
+                  <p style={{ margin: '0 0 12px', fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.dim }}>Manage your platform API keys for programmatic access.</p>
+                  <button style={{ height: 36, padding: '0 20px', borderRadius: 6, border: `0.5px solid ${C.border}`, background: C.card, color: C.text, cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
+                    Generate New Key
+                  </button>
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: colors.textMuted }}>
-              Coming soon - Advanced {activeTab} management tools
+          )}
+
+          {/* NOTIFICATIONS */}
+          {activeTab === 'notifications' && (
+            <div>
+              <h3 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: C.text }}>Alert Email</h3>
+              <input type="email" placeholder="admin@honestbill.co.ke" style={{ width: '100%', maxWidth: 400, height: 40, padding: '0 12px', borderRadius: 6, border: `0.5px solid ${C.border}`, background: C.black, color: C.text, fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', marginBottom: 24 }} />
+
+              <div style={{ borderTop: `0.5px solid ${C.line}`, paddingTop: 24 }}>
+                <h3 style={{ margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: C.text }}>Event Toggles</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {[
+                    { label: 'ISP approval pending', desc: 'When a new ISP registers and needs review' },
+                    { label: 'Payment failure rate spike', desc: 'When failed transactions exceed 10% in an hour' },
+                    { label: 'MikroTik disconnect', desc: 'When an ISP router goes offline' },
+                    { label: 'New ISP signup', desc: 'When a new ISP completes registration' },
+                  ].map((event, i) => (
+                    <div key={event.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `0.5px solid ${C.line}` }}>
+                      <div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.text }}>{event.label}</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute }}>{event.desc}</div>
+                      </div>
+                      <div style={{
+                        width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                        background: C.gold, position: 'relative', transition: 'background 0.2s',
+                      }}>
+                        <div style={{
+                          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                          position: 'absolute', top: 2, right: 2, transition: 'right 0.2s',
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* DANGER ZONE */}
+          {activeTab === 'danger' && (
+            <div style={{ border: `1px solid rgba(229,112,122,0.3)`, borderRadius: 8, padding: 24, background: C.black }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {[
+                  { label: 'Reset all feature flags', desc: 'Disable all premium features across all ISPs' },
+                  { label: 'Suspend all ISPs', desc: 'Temporarily disable all partner access' },
+                  { label: 'Wipe platform data', desc: 'Remove all transaction and session data' },
+                ].map((action, i) => (
+                  <div key={action.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < 2 ? `0.5px solid rgba(229,112,122,0.15)` : 'none' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.text }}>{action.label}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.red, opacity: 0.7 }}>{action.desc}</div>
+                    </div>
+                    <button
+                      style={{
+                        padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.red}`,
+                        background: 'none', color: C.red, cursor: 'pointer',
+                        fontFamily: 'Inter, sans-serif', fontSize: 12,
+                      }}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
