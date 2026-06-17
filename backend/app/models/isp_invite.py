@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, UniqueConstraint, Index, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -22,9 +22,13 @@ class ISPInvite(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     token = Column(String(64), unique=True, nullable=False, index=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("admin_users.id"), nullable=False, index=True)
+    isp_name = Column(Text, nullable=True)
     status = Column(Enum(InviteStatus, name="invitestatus", values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=InviteStatus.PENDING, index=True)
     expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    used_by_tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
+    used_by_tenant_name = Column(Text, nullable=True)
+    used_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     creator = relationship("AdminUser", foreign_keys=[created_by])

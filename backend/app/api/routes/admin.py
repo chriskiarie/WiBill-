@@ -57,9 +57,12 @@ class ISPInviteResponse(BaseModel):
     id: str
     token: str
     invite_link: str
+    isp_name: str | None = None
     expires_at: datetime
     created_at: datetime
     status: str
+    used_by_tenant_name: str | None = None
+    used_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -67,7 +70,7 @@ class ISPInviteResponse(BaseModel):
 
 class ISPInviteGenerateRequest(BaseModel):
     isp_name: str | None = None
-    expires_in_days: int = 7
+    expires_in_days: int = 1
 
 
 class TenantResponse(BaseModel):
@@ -87,6 +90,7 @@ class TenantListResponse(BaseModel):
     id: str
     slug: str
     name: str
+    email: str = ""
     is_active: bool
     is_locked: bool
     commission_rate: float
@@ -111,6 +115,7 @@ async def generate_invite(
         id=uuid.uuid4(),
         token=token,
         created_by=current_user.id,
+        isp_name=request.isp_name,
         status=InviteStatus.PENDING,
         expires_at=expires_at,
         created_at=created_at
@@ -129,9 +134,12 @@ async def generate_invite(
         id=str(invite.id),
         token=invite.token,
         invite_link=invite_link,
+        isp_name=invite.isp_name,
         expires_at=invite.expires_at,
         created_at=invite.created_at,
-        status=invite.status.value
+        status=invite.status.value,
+        used_by_tenant_name=invite.used_by_tenant_name,
+        used_at=invite.used_at,
     )
 
 
@@ -145,11 +153,21 @@ async def list_tenants(
     result = await db.execute(stmt)
     tenants = result.scalars().all()
     
+    # Fetch admin email for each tenant
+    tenant_ids = [t.id for t in tenants]
+    admin_stmt = select(AdminUser.tenant_id, AdminUser.email).where(
+        AdminUser.tenant_id.in_(tenant_ids),
+        AdminUser.role == "isp_admin",
+    )
+    admin_result = await db.execute(admin_stmt)
+    email_map = {str(row.tenant_id): row.email for row in admin_result}
+    
     return [
         TenantListResponse(
             id=str(t.id),
             slug=t.slug,
             name=t.name,
+            email=email_map.get(str(t.id), ""),
             is_active=t.is_active,
             is_locked=t.is_locked,
             commission_rate=float(t.commission_rate),
@@ -267,9 +285,12 @@ async def list_invites(
             id=str(i.id),
             token=i.token,
             invite_link=f"https://wi-bill.vercel.app/join?ref={i.token}",
+            isp_name=i.isp_name,
             expires_at=i.expires_at,
             created_at=i.created_at,
-            status=i.status.value
+            status=i.status.value,
+            used_by_tenant_name=i.used_by_tenant_name,
+            used_at=i.used_at,
         )
         for i in invites
     ]

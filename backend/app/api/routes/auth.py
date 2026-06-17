@@ -264,6 +264,9 @@ async def register(
     # ====== STEP 5: Mark invite as USED (if provided) ======
     if token:
         invite.status = InviteStatus.USED
+        invite.used_by_tenant_id = tenant.id
+        invite.used_by_tenant_name = data.isp_name
+        invite.used_at = datetime.now(timezone.utc)
         db.merge(invite)
         status_msg = "Account created successfully. Your dashboard is ready!"
         next_status = "active"

@@ -27,11 +27,13 @@ interface Invite {
   id: string;
   token: string;
   url?: string;
-  invite_link?: string; // backend may return either field
+  invite_link?: string;
   expires_at: string;
   created_at: string;
   status: string;
-  isp_name?: string;
+  isp_name?: string | null;
+  used_by_tenant_name?: string | null;
+  used_at?: string | null;
 }
 
 interface ISP {
@@ -124,7 +126,7 @@ export default function AdminISPNetwork() {
   const [generating, setGenerating]     = useState(false);
   const [newISPName, setNewISPName]     = useState('');
   const [generatedLink, setGeneratedLink] = useState<Invite | null>(null);
-  const [copied, setCopied]             = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [statusMsg, setStatusMsg]       = useState('');
   const [showInvitePanel, setShowInvitePanel] = useState(false);
   const [searchTerm, setSearchTerm]     = useState('');
@@ -274,13 +276,21 @@ export default function AdminISPNetwork() {
     }
   }
 
-  async function copyToClipboard(text: string) {
+  async function copyToClipboard(text: string, id: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1800);
     } catch {
-      setStatusMsg('Failed to copy to clipboard.');
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1800);
     }
   }
 
@@ -503,29 +513,43 @@ export default function AdminISPNetwork() {
                     <div style={{ fontSize: 12 }}>No invite records yet.</div>
                   </div>
                 ) : (
-                  visibleInvites.slice(0, 10).map((invite, i) => {
+                  <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, padding: '8px 14px', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.dim, borderBottom: `1px solid ${C.borderSoft}` }}>
+                    <span>ISP</span><span>Created</span><span>Expires</span><span>Status</span><span></span>
+                  </div>
+                  {visibleInvites.slice(0, 20).map((invite, i) => {
                     const status = (invite.status || '').toLowerCase();
                     const tone: Tone = status === 'used' ? 'good' : status === 'expired' ? 'bad' : 'warn';
                     const link = inviteUrl(invite);
+                    const displayName = invite.used_by_tenant_name || invite.isp_name || '—';
                     return (
-                      <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'center', padding: '12px 14px', borderBottom: i < Math.min(visibleInvites.length, 10) - 1 ? `1px solid ${C.borderSoft}` : 'none' }}>
+                      <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, alignItems: 'center', padding: '10px 14px', borderBottom: i < Math.min(visibleInvites.length, 20) - 1 ? `1px solid ${C.borderSoft}` : 'none', fontSize: 11 }}>
                         <div>
-                          <div style={{ fontSize: 13, color: C.text }}>{invite.isp_name || 'Unnamed ISP'}</div>
-                          <div style={{ marginTop: 3, fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
-                            {link || shortId(invite.id, 16)}
+                          <div style={{ fontWeight: 600, color: C.text, fontSize: 12 }}>{displayName}</div>
+                          <div style={{ marginTop: 2, fontSize: 9, color: C.dim, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {invite.id.slice(0, 8)}…
                           </div>
                         </div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 72, padding: '4px 10px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace' }}>
+                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.dim, fontSize: 9 }}>
+                          {invite.created_at ? new Date(invite.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
+                        </div>
+                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.dim, fontSize: 9 }}>
+                          {invite.expires_at ? new Date(invite.expires_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
+                        </div>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '3px 8px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace', fontWeight: 700 }}>
                           {invite.status || 'pending'}
                         </div>
-                        {link && (
-                          <button onClick={() => copyToClipboard(link)} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
-                            <ClipboardCopy size={13} />
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {link && status === 'pending' && (
+                            <button onClick={() => copyToClipboard(link, invite.id)} title={copied === invite.id ? 'Copied!' : 'Copy invite link'} style={{ background: 'none', border: 'none', color: copied === invite.id ? C.green : C.dim, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+                              <ClipboardCopy size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
-                  })
+                  })}
+                  </>
                 )}
               </div>
             </div>
@@ -591,9 +615,9 @@ export default function AdminISPNetwork() {
                       {inviteUrl(generatedLink)}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => copyToClipboard(inviteUrl(generatedLink))} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
+                      <button onClick={() => copyToClipboard(inviteUrl(generatedLink), 'generated')} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
                         <ClipboardCopy size={14} />
-                        {copied ? 'Copied!' : 'Copy Link'}
+                        {copied === 'generated' ? 'Copied!' : 'Copy Link'}
                       </button>
                       <div style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: toneBg('good'), color: C.green, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: '"DM Mono", monospace' }}>
                         <Clock3 size={13} />
