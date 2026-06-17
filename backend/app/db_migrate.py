@@ -215,8 +215,13 @@ MIGRATIONS = [
     ("vouchers.code length to 30", """
         ALTER TABLE vouchers ALTER COLUMN code TYPE VARCHAR(30)
     """),
+    ("mpesa_transactions.mpesa_config_id_nullable", """
+        ALTER TABLE mpesa_transactions ALTER COLUMN mpesa_config_id DROP NOT NULL
+    """),
+    ("mpesa_configs.tenant_id_nullable", """
+        ALTER TABLE mpesa_configs ALTER COLUMN tenant_id DROP NOT NULL
+    """),
 ]
-
 
 async def run_migrations():
     logger.info("=== Running schema migrations ===")

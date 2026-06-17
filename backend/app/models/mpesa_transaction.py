@@ -32,7 +32,7 @@ class MpesaTransaction(Base):
 
     # Payment details
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    mpesa_config_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("mpesa_configs.id", ondelete="CASCADE"), nullable=False)
+    mpesa_config_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("mpesa_configs.id", ondelete="CASCADE"), nullable=True)
     amount_ksh: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
 

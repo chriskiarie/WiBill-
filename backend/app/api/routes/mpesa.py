@@ -23,7 +23,7 @@ from app.services.mpesa_service import (
 )
 from app.services.daraja_service import get_access_token
 from app.services.crypto_service import decrypt, encrypt
-from app.api.routes.auth import get_current_user
+from app.api.routes.auth import get_current_user, require_isp_admin
 
 router = APIRouter(tags=["mpesa"])
 logger = logging.getLogger(__name__)
@@ -52,6 +52,10 @@ class SessionPaymentInput(BaseModel):
 class InvoicePaymentInput(BaseModel):
     invoice_id: str
     phone_number: str
+
+class PlatformInvoicePaymentInput(BaseModel):
+    phone_number: str
+    amount_ksh: float
 
 
 # ============================================================================
@@ -211,6 +215,97 @@ async def pay_invoice(
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/mpesa/pay/platform-invoice")
+async def pay_platform_invoice(
+    payload: PlatformInvoicePaymentInput,
+    current_user=Depends(require_isp_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Initiate STK push for ISP's platform invoice payment.
+    Uses platform M-Pesa credentials (not ISP's).
+    """
+    from app.services.daraja_service import initiate_stk_push
+    from app.models.mpesa_transaction import MpesaTransaction
+    from app.models.mpesa_config import MpesaConfig
+
+    tenant_id = UUID(str(current_user.tenant_id))
+
+    if not settings.MPESA_CONSUMER_KEY or not settings.MPESA_CONSUMER_SECRET:
+        raise HTTPException(status_code=400, detail="Platform M-Pesa not configured. Please contact support.")
+
+    # Get or create platform M-Pesa config (tenant_id=NULL = platform-level)
+    result = await db.execute(
+        select(MpesaConfig).where(MpesaConfig.tenant_id.is_(None)).limit(1)
+    )
+    platform_cfg = result.scalar_one_or_none()
+
+    if not platform_cfg:
+        from app.services.crypto_service import encrypt as enc
+        platform_cfg = MpesaConfig(
+            id=uuid.uuid4(),
+            tenant_id=None,
+            consumer_key_enc=enc(settings.MPESA_CONSUMER_KEY),
+            consumer_secret_enc=enc(settings.MPESA_CONSUMER_SECRET),
+            shortcode=settings.MPESA_SHORTCODE,
+            passkey_enc=enc(settings.MPESA_PASSKEY),
+            account_reference="XwB-PLATFORM",
+            is_active=True,
+            is_verified=True,
+            status="configured",
+        )
+        db.add(platform_cfg)
+        await db.flush()
+
+    callback_url = settings.MPESA_CALLBACK_URL or "https://pay.honestbill.co.ke/api/mpesa/callback"
+
+    txn = MpesaTransaction(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        mpesa_config_id=platform_cfg.id,
+        amount_ksh=Decimal(str(payload.amount_ksh)),
+        phone_number=payload.phone_number,
+        payment_type="invoice",
+        status="pending",
+        reference_id=tenant_id,
+    )
+    db.add(txn)
+    await db.flush()
+
+    try:
+        result = await initiate_stk_push(
+            consumer_key_enc=platform_cfg.consumer_key_enc,
+            consumer_secret_enc=platform_cfg.consumer_secret_enc,
+            shortcode=platform_cfg.shortcode,
+            passkey_enc=platform_cfg.passkey_enc,
+            phone_number=payload.phone_number,
+            amount=Decimal(str(payload.amount_ksh)),
+            account_reference=f"INV-{str(tenant_id)[:8]}",
+            description="Invoice Payment",
+            callback_url=callback_url,
+        )
+
+        txn.merchant_request_id = result.get("MerchantRequestID")
+        txn.checkout_request_id = result.get("CheckoutRequestID")
+        txn.response_code = result.get("ResponseCode")
+        txn.response_description = result.get("ResponseDescription")
+        txn.status = "processing" if result.get("ResponseCode") == "0" else "failed"
+
+    except Exception as e:
+        txn.status = "failed"
+        txn.error_reason = str(e)
+        logger.error(f"Platform invoice STK push failed: {e}")
+
+    await db.commit()
+
+    return {
+        "success": txn.status == "processing",
+        "checkout_request_id": txn.checkout_request_id,
+        "status": txn.status,
+        "message": "Check your phone for M-Pesa prompt" if txn.status == "processing" else ("Payment failed: " + (txn.error_reason or "unknown error")),
+    }
 
 
 @router.get("/mpesa/status/{checkout_request_id}")

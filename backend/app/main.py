@@ -112,7 +112,7 @@ from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, tra
 from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
-from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms, admin_invoices
+from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms, admin_invoices, payment_notifications
 
 # Portal preview router removed - using new portal renderer
 
@@ -146,6 +146,7 @@ app.include_router(admin_audit_log.router, prefix="/api", tags=["admin-audit-log
 app.include_router(admin_comms.router, prefix="/api", tags=["admin-comms"])
 app.include_router(admin_invoices.router, prefix="/api", tags=["admin-invoices"])
 app.include_router(mikrotik.router, prefix="/api", tags=["mikrotik"])
+app.include_router(payment_notifications.router, prefix="/api", tags=["payment-notifications"])
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

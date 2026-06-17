@@ -406,6 +406,9 @@ async def get_current_user_info(
         "onboarding_complete": current_user.onboarding_complete,
         "is_premium": tenant_obj.is_premium if tenant_obj else False,
         "invoice_status": tenant_obj.invoice_status if tenant_obj else "active",
+        "monthly_fee_ksh": float(tenant_obj.monthly_fee_ksh) if tenant_obj and tenant_obj.monthly_fee_ksh else 0,
+        "next_invoice_date": tenant_obj.next_invoice_date.isoformat() if tenant_obj and tenant_obj.next_invoice_date else None,
+        "last_paid_date": tenant_obj.last_paid_date.isoformat() if tenant_obj and tenant_obj.last_paid_date else None,
         "features": {
             "vouchers": tenant_obj.has_vouchers if tenant_obj else True,
             "campaigns": tenant_obj.has_campaigns if tenant_obj else False,
