@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import { DashboardProvider } from '@/context/DashboardContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const DISMISS_KEY = 'wb_invoice_notice_dismissed'
 
 function DashboardToast() {
   const searchParams = useSearchParams()
@@ -55,6 +56,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [nextInvoiceDate, setNextInvoiceDate] = useState<string | null>(null)
   const [lastPaidDate, setLastPaidDate] = useState<string | null>(null)
   const [daysOverdue, setDaysOverdue] = useState(0)
+  const [preInvoiceDays, setPreInvoiceDays] = useState<number | null>(null)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   // Paused overlay state
   const [stkState, setStkState] = useState<StkState>('idle')
@@ -121,6 +124,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const id = setInterval(() => setDaysOverdue(computeOverdueDays(nextInvoiceDate)), 60000)
     return () => clearInterval(id)
   }, [invoiceStatus, nextInvoiceDate])
+
+  // Pre-invoice notice: compute days until next invoice due
+  useEffect(() => {
+    if (!nextInvoiceDate) return
+    const due = new Date(nextInvoiceDate)
+    const now = new Date()
+    const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diff > 0 && diff <= 7) {
+      setPreInvoiceDays(diff)
+    } else {
+      setPreInvoiceDays(null)
+    }
+  }, [nextInvoiceDate])
+
+  // Check dismissal (24h suppression)
+  useEffect(() => {
+    try {
+      const val = localStorage.getItem(DISMISS_KEY)
+      if (val) {
+        const ts = parseInt(val, 10)
+        if (Date.now() - ts < 86400000) { setBannerDismissed(true) }
+        else { localStorage.removeItem(DISMISS_KEY) }
+      }
+    } catch {}
+  }, [])
 
   // STK push polling
   useEffect(() => {
@@ -272,8 +300,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          paddingTop: isOverdue ? 48 : 0,
+          paddingTop: isOverdue ? 48 : (preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed ? 44 : 0),
         }}>
+          {/* ── OVERDUE BANNER ── */}
           {isOverdue && (
             <div style={{
               position: 'fixed', top: 0, left: sidebarWidth, right: 0, zIndex: 9999,
@@ -294,6 +323,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 fontSize: 11, color: '#6B6964', textDecoration: 'none', marginLeft: 8,
               }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
                  onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>Contact support</a>
+            </div>
+          )}
+
+          {/* ── PRE-INVOICE NOTICE BANNER ── */}
+          {!isOverdue && !isPaused && preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed && (
+            <div style={{
+              position: 'fixed', top: 0, left: sidebarWidth, right: 0, zIndex: 9998,
+              height: 44, background: 'rgba(232,184,75,0.06)',
+              borderBottom: '1px solid rgba(232,184,75,0.15)',
+              display: 'flex', alignItems: 'center', padding: '0 24px', gap: 8,
+              fontFamily: 'Inter, sans-serif',
+            }}>
+              <span style={{ fontSize: 12, color: '#E8B84B' }}>📄</span>
+              <span style={{ fontSize: 12, color: '#8C8A84' }}>
+                Your invoice of <strong style={{ color: '#EDEBE6' }}>KES {feeDue.toLocaleString()}</strong> is due in <strong style={{ color: '#E8B84B' }}>{preInvoiceDays} {preInvoiceDays === 1 ? 'day' : 'days'}</strong>. Pay early to avoid interruption.
+              </span>
+              <button onClick={() => { /* future: open payment modal */ }} style={{
+                background: 'none', border: '0.5px solid rgba(232,184,75,0.3)', borderRadius: 5,
+                padding: '3px 10px', color: '#E8B84B', fontSize: 11, cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+              }}>Pay now →</button>
+              <button onClick={() => { localStorage.setItem(DISMISS_KEY, String(Date.now())); setBannerDismissed(true) }} style={{
+                marginLeft: 'auto', background: 'none', border: 'none', color: '#3A3A37',
+                cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '2px 4px',
+              }}>✕</button>
             </div>
           )}
 

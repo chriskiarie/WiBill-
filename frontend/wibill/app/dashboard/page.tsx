@@ -37,6 +37,37 @@ const steps = [
   { key: 'share', label: 'Share your portal link', desc: 'Start accepting customers', href: '/dashboard/portal-preview', icon: Link },
 ];
 
+function Drawer({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <>
+      {open && <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201,
+        width: '100%', maxWidth: 420, background: C.base,
+        borderLeft: '0.5px solid rgba(232,184,75,0.08)',
+        boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
+        transform: open ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 0' }}>
+          <button onClick={onClose} style={{
+            position: 'absolute', top: 18, right: 18,
+            width: 28, height: 28, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.04)',
+            border: '0.5px solid rgba(255,255,255,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: C.dim, zIndex: 2,
+          }}>
+            <X size={14} />
+          </button>
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function IspDashboard() {
   const { token } = useAuth();
   const { showToast } = useToast();
@@ -55,6 +86,16 @@ export default function IspDashboard() {
   const [kicking, setKicking] = useState<Set<string>>(new Set());
   const [time, setTime] = useState(new Date());
   const [showSetup, setShowSetup] = useState(false);
+  const [showMikrotikDrawer, setShowMikrotikDrawer] = useState(false);
+  const [showMpesaDrawer, setShowMpesaDrawer] = useState(false);
+  const [mkForm, setMkForm] = useState({ router_ip: '', api_port: 8728, api_username: '', api_password: '' });
+  const [mkTesting, setMkTesting] = useState(false);
+  const [mkSaving, setMkSaving] = useState(false);
+  const [mkStatus, setMkStatus] = useState<{ ok?: boolean; message?: string }>({});
+  const [mpForm, setMpForm] = useState({ consumer_key: '', consumer_secret: '', shortcode: '', passkey: '', account_reference: '', payout_phone: '', payout_account_name: '' });
+  const [mpTesting, setMpTesting] = useState(false);
+  const [mpSaving, setMpSaving] = useState(false);
+  const [mpStatus, setMpStatus] = useState<{ ok?: boolean; message?: string }>({});
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -114,16 +155,64 @@ export default function IspDashboard() {
   }, [load]);
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowSetup(false); };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
+    if (showSetup || showMikrotikDrawer || showMpesaDrawer) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showSetup, showMikrotikDrawer, showMpesaDrawer]);
 
   useEffect(() => {
-    if (showSetup) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [showSetup]);
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showMikrotikDrawer) setShowMikrotikDrawer(false);
+        else if (showMpesaDrawer) setShowMpesaDrawer(false);
+        else setShowSetup(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [showMikrotikDrawer, showMpesaDrawer]);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!api.getMikrotikHealth) return;
+    const ping = async () => {
+      try {
+        await api.getMikrotikHealth();
+      } catch {
+        /* router unreachable — UI already reflects configs.mikrotik state */
+      }
+    };
+    ping();
+    const t = setInterval(ping, 30000);
+    return () => clearInterval(t);
+  }, [token]);
+
+  useEffect(() => {
+    if (!showMikrotikDrawer) return;
+    (async () => {
+      try {
+        const cfg = await api.getMikrotikConfig();
+        if (cfg?.router_ip) {
+          setMkForm({ router_ip: cfg.router_ip || '', api_port: cfg.api_port || 8728, api_username: cfg.api_username || '', api_password: '' });
+        }
+      } catch { /* no existing config */ }
+    })();
+  }, [showMikrotikDrawer]);
+
+  useEffect(() => {
+    if (!showMpesaDrawer) return;
+    (async () => {
+      try {
+        const cfg = await api.getMpesaConfig();
+        if (cfg?.consumer_key_enc || cfg?.shortcode) {
+          setMpForm((p) => ({ ...p, shortcode: cfg.shortcode || '', account_reference: cfg.account_reference || '' }));
+        }
+      } catch { /* no existing config */ }
+    })();
+  }, [showMpesaDrawer]);
 
   const handleKick = async (id: string) => {
     setKicking(prev => new Set(prev).add(id));
@@ -180,6 +269,65 @@ export default function IspDashboard() {
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) setShowSetup(false);
   };
+
+  const handleTestMikrotik = useCallback(async () => {
+    setMkTesting(true);
+    setMkStatus({});
+    try {
+      const res = await api.testMikrotikRaw(mkForm);
+      setMkStatus(res);
+    } catch (e: any) {
+      setMkStatus({ ok: false, message: e?.detail || 'Could not reach router' });
+    } finally {
+      setMkTesting(false);
+    }
+  }, [mkForm]);
+
+  const handleSaveMikrotik = useCallback(async () => {
+    setMkSaving(true);
+    try {
+      try {
+        await api.saveMikrotikConfig(mkForm);
+      } catch {
+        await api.updateMikrotikConfig(mkForm);
+      }
+      setShowMikrotikDrawer(false);
+      setConfigs((p) => ({ ...p, mikrotik: true }));
+      showToast('Router connected', { type: 'success' });
+    } catch {
+      showToast('Failed to save config', { type: 'error' });
+    } finally {
+      setMkSaving(false);
+    }
+  }, [mkForm, showToast]);
+
+  const handleTestMpesa = useCallback(async () => {
+    setMpTesting(true);
+    setMpStatus({});
+    try {
+      await api.saveMpesaConfig(mpForm);
+      const res = await api.testMpesaConnection();
+      setMpStatus({ ok: res.status || false, message: res.message || (res.status ? 'Credentials verified' : 'Validation failed') });
+    } catch {
+      setMpStatus({ ok: false, message: 'Credential validation failed' });
+    } finally {
+      setMpTesting(false);
+    }
+  }, [mpForm]);
+
+  const handleSaveMpesa = useCallback(async () => {
+    setMpSaving(true);
+    try {
+      await api.saveMpesaConfig(mpForm);
+      setShowMpesaDrawer(false);
+      setConfigs((p) => ({ ...p, mpesa: true }));
+      showToast('M-Pesa enabled', { type: 'success' });
+    } catch {
+      showToast('Failed to save config', { type: 'error' });
+    } finally {
+      setMpSaving(false);
+    }
+  }, [mpForm, showToast]);
 
   const skeletonBar = (h: number, delay: number) => ({
     width: '100%', height: `${h}%`,
@@ -674,24 +822,24 @@ export default function IspDashboard() {
               <Link size={13} color={C.dim} /> Share Link <ChevronRight size={11} color={C.mute} />
             </a>
             {!configs.mikrotik && (
-              <a href="/dashboard/mikrotik" style={{
+              <button onClick={() => setShowMikrotikDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                 background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
-                color: C.gold, textDecoration: 'none',
+                color: C.gold, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 <Router size={13} /> Connect MikroTik <ChevronRight size={11} color={C.gold} />
-              </a>
+              </button>
             )}
             {!configs.mpesa && (
-              <a href="/dashboard/mpesa" style={{
+              <button onClick={() => setShowMpesaDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                 background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
-                color: C.gold, textDecoration: 'none',
+                color: C.gold, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 <CreditCard size={13} /> Set up M-Pesa <ChevronRight size={11} color={C.gold} />
-              </a>
+              </button>
             )}
             {configs.packages === 0 && (
               <a href="/dashboard/packages" style={{
@@ -835,6 +983,167 @@ export default function IspDashboard() {
           </div>
         </div>
       )}
+
+      {/* ════════════════════════════════════════════ */}
+      {/* MIKROTIK CONNECTION DRAWER                  */}
+      {/* ════════════════════════════════════════════ */}
+      <Drawer open={showMikrotikDrawer} onClose={() => setShowMikrotikDrawer(false)}>
+        <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 4 }}>
+          <Router size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} color={C.gold} />
+          Connect MikroTik
+        </div>
+        <div style={{ fontSize: 12, color: C.dim, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+          Enter your MikroTik RouterOS credentials to link your router
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Router IP Address</div>
+            <input value={mkForm.router_ip} onChange={(e) => setMkForm({ ...mkForm, router_ip: e.target.value })}
+              placeholder="192.168.88.1"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>API Port</div>
+            <input value={mkForm.api_port} onChange={(e) => setMkForm({ ...mkForm, api_port: Number(e.target.value) })}
+              placeholder="8728"
+              type="number" min={1} max={65535}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Username</div>
+            <input value={mkForm.api_username} onChange={(e) => setMkForm({ ...mkForm, api_username: e.target.value })}
+              placeholder="admin"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Password</div>
+            <input value={mkForm.api_password} onChange={(e) => setMkForm({ ...mkForm, api_password: e.target.value })}
+              placeholder="••••••••"
+              type="password"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
+
+        {mkStatus.message && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 11, fontFamily: 'Inter, sans-serif',
+            background: mkStatus.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `0.5px solid ${mkStatus.ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: mkStatus.ok ? C.green : C.red,
+          }}>
+            {mkStatus.ok ? '✓ ' : '✕ '}{mkStatus.message}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={handleTestMikrotik} disabled={mkTesting || !mkForm.router_ip || !mkForm.api_username}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+              color: C.gold, fontFamily: 'Inter, sans-serif',
+            }}>
+            {mkTesting ? 'Testing...' : 'Test Connection'}
+          </button>
+          <button onClick={handleSaveMikrotik} disabled={mkSaving || !mkStatus.ok}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: C.gold, border: 'none', color: C.void, fontFamily: 'Inter, sans-serif',
+              opacity: mkSaving || !mkStatus.ok ? 0.5 : 1,
+            }}>
+            {mkSaving ? 'Saving...' : 'Save & Connect'}
+          </button>
+        </div>
+      </Drawer>
+
+      {/* ════════════════════════════════════════════ */}
+      {/* M-PESA SETUP DRAWER                         */}
+      {/* ════════════════════════════════════════════ */}
+      <Drawer open={showMpesaDrawer} onClose={() => setShowMpesaDrawer(false)}>
+        <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 4 }}>
+          <CreditCard size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} color={C.gold} />
+          Set Up M-Pesa
+        </div>
+        <div style={{ fontSize: 12, color: C.dim, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+          Enter your Safaricom API credentials to accept STK Push payments
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Consumer Key</div>
+            <input value={mpForm.consumer_key} onChange={(e) => setMpForm({ ...mpForm, consumer_key: e.target.value })}
+              placeholder="••••••••••••••••"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Consumer Secret</div>
+            <input value={mpForm.consumer_secret} onChange={(e) => setMpForm({ ...mpForm, consumer_secret: e.target.value })}
+              placeholder="••••••••••••••••"
+              type="password"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Shortcode</div>
+              <input value={mpForm.shortcode} onChange={(e) => setMpForm({ ...mpForm, shortcode: e.target.value })}
+                placeholder="174379"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Passkey</div>
+              <input value={mpForm.passkey} onChange={(e) => setMpForm({ ...mpForm, passkey: e.target.value })}
+                placeholder="••••••••••••••••"
+                type="password"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Account Reference (appears on customer statement)</div>
+            <input value={mpForm.account_reference} onChange={(e) => setMpForm({ ...mpForm, account_reference: e.target.value })}
+              placeholder="WiBill"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
+
+        {mpStatus.message && (
+          <div style={{
+            padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 11, fontFamily: 'Inter, sans-serif',
+            background: mpStatus.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `0.5px solid ${mpStatus.ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: mpStatus.ok ? C.green : C.red,
+          }}>
+            {mpStatus.ok ? '✓ ' : '✕ '}{mpStatus.message}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={handleTestMpesa} disabled={mpTesting || !mpForm.consumer_key || !mpForm.shortcode}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+              color: C.gold, fontFamily: 'Inter, sans-serif',
+            }}>
+            {mpTesting ? 'Validating...' : 'Test Credentials'}
+          </button>
+          <button onClick={handleSaveMpesa} disabled={mpSaving || !mpStatus.ok}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: C.gold, border: 'none', color: C.void, fontFamily: 'Inter, sans-serif',
+              opacity: mpSaving || !mpStatus.ok ? 0.5 : 1,
+            }}>
+            {mpSaving ? 'Saving...' : 'Save & Enable'}
+          </button>
+        </div>
+      </Drawer>
     </div>
   );
 }
