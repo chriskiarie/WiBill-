@@ -16,7 +16,7 @@ class MikrotikConfig(Base):
     api_username: Mapped[str] = mapped_column(String(100), nullable=False)
     api_password_enc: Mapped[str] = mapped_column(String(500), nullable=False)
     hotspot_server: Mapped[str] = mapped_column(String(100), default="hotspot1")
-    hotspot_profile_name: Mapped[str] = mapped_column(String(255), default="WiBill_Profile")
+    hotspot_profile_name: Mapped[str] = mapped_column(String(255), default="XwB_Profile")
     nas_ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="DISCONNECTED")
     last_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -105,10 +105,14 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
     return (
       <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.3)', borderTop: '2px solid #E8B84B', margin: '0 auto 24px', animation: 'spin 1s linear infinite' }} />
+          <div style={{ position: 'relative', width: 90, height: 90, margin: '0 auto 24px' }}>
+            <style>{`@keyframes orb { from { transform: rotate(0deg) translateX(38px) rotate(0deg); } to { transform: rotate(360deg) translateX(38px) rotate(-360deg); } }`}</style>
+            <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '0s', color: '#E8B84B' }}>X</span>
+            <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-1s', color: '#EDEBE6' }}>w</span>
+            <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-2s', color: '#E8B84B' }}>B</span>
+          </div>
           <div style={{ fontSize: 13, color: '#6B6964', fontFamily: 'Inter, sans-serif' }}>Loading Batcave</div>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -140,16 +144,17 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
           display: 'flex', alignItems: 'center', gap: 10,
           borderBottom: '0.5px solid #1A1A18',
         }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: '#E8B84B', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0,
+          <span style={{
+            fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700,
+            lineHeight: 1,
           }}>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
-          </div>
+            <span style={{ color: '#E8B84B' }}>X</span>
+            <span style={{ color: '#EDEBE6' }}>w</span>
+            <span style={{ color: '#E8B84B' }}>B</span>
+          </span>
           <div>
-            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 15, fontWeight: 700, color: '#E8B84B', lineHeight: 1.1 }}>BATCAVE</div>
-            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 400, color: '#6B6964', letterSpacing: '0.15em' }}>COMMAND</div>
+            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 12, fontWeight: 500, color: '#6B6964', lineHeight: 1.1 }}>BATCAVE</div>
+            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 400, color: '#3A3A37', letterSpacing: '0.15em' }}>ADMIN</div>
           </div>
         </div>
 
@@ -189,7 +194,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
               color: '#8C8A84', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}>
-            ↩ Exit to ISP
+            ISP Dashboard ↗
           </button>
         </div>
       </aside>
@@ -205,7 +210,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
         }}>
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>BATCAVE</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>XwB</span>
             <span style={{ color: '#3A3A37', fontSize: 12 }}>›</span>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 500, color: '#EDEBE6' }}>{pageName}</span>
           </div>

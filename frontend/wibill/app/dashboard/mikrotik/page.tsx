@@ -41,7 +41,7 @@ export default function MikrotikPage() {
     api_username: '',
     api_password: '',
     hotspot_server: 'hotspot1',
-    hotspot_profile_name: 'WiBill_Profile',
+    hotspot_profile_name: 'XwB_Profile',
     nas_ip_address: '',
     notes: '',
   })
@@ -58,7 +58,7 @@ export default function MikrotikPage() {
         api_username: data.api_username || '',
         api_password: '',
         hotspot_server: data.hotspot_server || 'hotspot1',
-        hotspot_profile_name: data.hotspot_profile_name || 'WiBill_Profile',
+        hotspot_profile_name: data.hotspot_profile_name || 'XwB_Profile',
         nas_ip_address: data.nas_ip_address || '',
         notes: data.notes || '',
       })
@@ -327,7 +327,7 @@ export default function MikrotikPage() {
                         </div>
                         <div>
                           <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Profile</div>
-                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_profile_name || 'WiBill_Profile'}</div>
+                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_profile_name || 'XwB_Profile'}</div>
                         </div>
                         <div>
                           <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Username</div>
@@ -466,7 +466,7 @@ export default function MikrotikPage() {
                   </div>
                   <Input label="API Username *" value={form.api_username} onChange={f('api_username')} placeholder="wibill_api" mono />
                   <Input label="API Password" value={form.api_password} onChange={f('api_password')} placeholder={config ? 'Leave blank to keep' : ''} type="password" />
-                  <Input label="Hotspot Profile" value={form.hotspot_profile_name} onChange={f('hotspot_profile_name')} placeholder="WiBill_Profile" />
+                  <Input label="Hotspot Profile" value={form.hotspot_profile_name} onChange={f('hotspot_profile_name')} placeholder="XwB_Profile" />
                   <Input label="NAS IP (optional)" value={form.nas_ip_address} onChange={f('nas_ip_address')} placeholder={config?.router_ip || 'Same as router IP'} />
                 </div>
                 <Input label="Notes (optional)" value={form.notes} onChange={f('notes')} placeholder="Location, contact info, etc." />

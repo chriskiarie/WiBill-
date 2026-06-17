@@ -176,7 +176,7 @@ MIGRATIONS = [
     """),
     # ── MikroTik Phase 2 columns ────────────────────────────────────────────
     ("mikrotik_configs.hotspot_profile_name", """
-        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS hotspot_profile_name VARCHAR(255) NOT NULL DEFAULT 'WiBill_Profile'
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS hotspot_profile_name VARCHAR(255) NOT NULL DEFAULT 'XwB_Profile'
     """),
     ("mikrotik_configs.status", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'DISCONNECTED'

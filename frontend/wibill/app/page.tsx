@@ -9,7 +9,7 @@ export default function Root() {
   useEffect(() => { router.push(token ? '/dashboard' : '/login') }, [token])
   return (
     <div style={{ minHeight:'100vh', background:'#030303', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ fontFamily:'Syne, sans-serif', fontSize:20, fontWeight:800, color:'#111', letterSpacing:'-0.5px' }}>WiBill</div>
+      <span style={{ fontFamily:'"Space Grotesk", sans-serif', fontSize:22, fontWeight:700 }}><span style={{ color:'#E8B84B' }}>X</span><span style={{ color:'#111' }}>w</span><span style={{ color:'#E8B84B' }}>B</span></span>
     </div>
   )
 }

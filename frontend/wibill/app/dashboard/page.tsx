@@ -30,7 +30,7 @@ function fmt(n: number) {
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const steps = [
-  { key: 'mikrotik', label: 'Connect your MikroTik router', desc: 'Link your router so WiBill can manage sessions', href: '/dashboard/mikrotik', icon: Router },
+  { key: 'mikrotik', label: 'Connect your MikroTik router', desc: 'Link your router to manage sessions', href: '/dashboard/mikrotik', icon: Router },
   { key: 'mpesa', label: 'Set up M-Pesa payments', desc: 'Configure your Till or Paybill to accept payments', href: '/dashboard/mpesa', icon: CreditCard },
   { key: 'packages', label: 'Create internet packages', desc: 'Define speeds, data limits, and pricing', href: '/dashboard/packages', icon: Package },
   { key: 'portal', label: 'Customize your portal', desc: 'Set your brand name, colors, and template', href: '/dashboard/settings', icon: Smartphone },

@@ -91,14 +91,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fontFamily: 'Inter, sans-serif', padding: 40,
       }}>
         <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E8B84B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3D2A06" strokeWidth="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
-          </div>
-          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: '#EDEBE6' }}>WiBill</span>
+          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700 }}>
+            <span style={{ color: '#E8B84B' }}>X</span>
+            <span style={{ color: '#EDEBE6' }}>w</span>
+            <span style={{ color: '#E8B84B' }}>B</span>
+          </span>
         </div>
         <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 28, fontWeight: 700, color: '#E5707A', margin: '0 0 12px' }}>Account Suspended</h1>
         <p style={{ fontSize: 14, color: '#8C8A84', margin: '0 0 32px', maxWidth: 400, textAlign: 'center', lineHeight: 1.6 }}>
-          Your account has been suspended by WiBill. Please contact support to resolve this.
+          Your account has been suspended. Please contact support to resolve this.
         </p>
         <a href="mailto:support@honestbill.co.ke" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 8,
@@ -111,7 +112,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!ready) return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#222' }}>Loading WiBill...</div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ position: 'relative', width: 90, height: 90, margin: '0 auto 24px' }}>
+          <style>{`@keyframes orb { from { transform: rotate(0deg) translateX(38px) rotate(0deg); } to { transform: rotate(360deg) translateX(38px) rotate(-360deg); } }`}</style>
+          <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '0s', color: '#E8B84B' }}>X</span>
+          <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-1s', color: '#EDEBE6' }}>w</span>
+          <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-2s', color: '#E8B84B' }}>B</span>
+        </div>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#6B6964' }}>Preparing your space</div>
+      </div>
     </div>
   )
 
@@ -171,7 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E5707A', display: 'inline-block' }} />
                   <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 600, color: '#EDEBE6' }}>Account Paused</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#6B6964', marginBottom: 16 }}>Your WiBill subscription payment is overdue.</div>
+                <div style={{ fontSize: 13, color: '#6B6964', marginBottom: 16 }}>Your subscription payment is overdue.</div>
 
                 <div style={{ background: '#161614', borderRadius: 8, padding: '14px 16px', marginBottom: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>

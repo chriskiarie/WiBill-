@@ -320,10 +320,10 @@ async def approve_tenant(
                         'https://api.resend.com/emails',
                         headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
                         json={
-                            'from': 'WiBill <onboarding@resend.dev>',
+                            'from': 'XwB <onboarding@resend.dev>',
                             'to': [isp_admin.email],
-                            'subject': f'Your WiBill account is approved - {tenant.name}',
-                            'html': f'<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#22c55e">You are approved!</h2><p>Your ISP <strong>{tenant.name}</strong> is now live on WiBill.</p><a href="https://wi-bill.vercel.app/login" style="background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:16px">Login to Dashboard</a><p style="margin-top:16px;color:#666;font-size:12px">Login with: {isp_admin.email}</p></div>',
+                            'subject': f'Your XwB account is approved - {tenant.name}',
+                            'html': f'<div style="font-family:sans-serif;max-width:600px"><h2 style="color:#22c55e">You are approved!</h2><p>Your ISP <strong>{tenant.name}</strong> is now live on XwB.</p><a href="https://wi-bill.vercel.app/login" style="background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:16px">Login to Dashboard</a><p style="margin-top:16px;color:#666;font-size:12px">Login with: {isp_admin.email}</p></div>',
                         },
                         timeout=5.0
                     )
@@ -373,12 +373,12 @@ async def update_tenant_status(
                         'https://api.resend.com/emails',
                         headers={'Authorization': f'Bearer {resend_key}', 'Content-Type': 'application/json'},
                         json={
-                            'from': 'WiBill <onboarding@resend.dev>',
+                            'from': 'XwB <onboarding@resend.dev>',
                             'to': [isp_admin.email],
-                            'subject': f'Welcome to WiBill - Your account is approved!',
+                            'subject': f'Welcome to XwB - Your account is approved!',
                             'html': f'''<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
                                 <h2 style="color:#22c55e">You are approved!</h2>
-                                <p>Your ISP <strong>{tenant.name}</strong> has been approved on WiBill.</p>
+                                <p>Your ISP <strong>{tenant.name}</strong> has been approved on XwB.</p>
                                 <p>You can now log in and set up your captive portal, configure M-Pesa payments, and start onboarding customers.</p>
                                 <div style="margin-top:24px">
                                     <a href="https://wi-bill.vercel.app/login"

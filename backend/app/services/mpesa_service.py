@@ -356,7 +356,7 @@ async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
                 mac_address=session.mac_address,
                 duration_minutes=duration_m,
                 session_id=str(session.id),
-                profile_name=mk_cfg.hotspot_profile_name or "WiBill_Profile",
+                profile_name=mk_cfg.hotspot_profile_name or "XwB_Profile",
                 speed_limit_kbps=speed_kbps,
             )
 

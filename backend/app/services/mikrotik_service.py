@@ -161,7 +161,7 @@ async def create_hotspot_user(
     mac_address: str,
     duration_minutes: int,
     session_id: str,
-    profile_name: str = "WiBill_Profile",
+    profile_name: str = "XwB_Profile",
     speed_limit_kbps: Optional[int] = None,
 ) -> Dict[str, Any]:
     """

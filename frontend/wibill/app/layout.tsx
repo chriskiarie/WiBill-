@@ -5,7 +5,7 @@ import { ToastProvider } from '@/context/ToastContext'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 export const metadata: Metadata = {
-  title: 'WiBill — ISP Management',
+  title: 'XwB — ISP Management',
   description: 'HonestBill ISP Dashboard',
 }
 

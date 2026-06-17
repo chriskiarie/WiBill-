@@ -140,9 +140,11 @@ function LoginContent() {
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 34, fontWeight: 800, letterSpacing: '-1px', color: '#fff' }}>
-            WiBill
-          </div>
+          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 34, fontWeight: 700 }}>
+            <span style={{ color: '#E8B84B' }}>X</span>
+            <span style={{ color: '#fff' }}>w</span>
+            <span style={{ color: '#E8B84B' }}>B</span>
+          </span>
           <div style={{ fontFamily: 'Instrument Serif, serif', fontStyle: 'italic', fontSize: 14, color: '#2a2a2a', marginTop: 2 }}>
             ISP Management Portal
           </div>
@@ -160,7 +162,7 @@ function LoginContent() {
             fontSize: 12,
             textAlign: 'center',
           }}>
-            🎉 You've been invited to WiBill. Create your account below.
+            🎉 You've been invited. Create your account below.
           </div>
         )}
 

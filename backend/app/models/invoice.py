@@ -34,7 +34,7 @@ class Invoice(Base):
         year: Year (2026, 2027, etc)
         
         gross_revenue: Total revenue from all transactions this month
-        platform_fee: WiBill platform fee (10% of gross)
+        platform_fee: XwB platform fee (10% of gross)
         isp_earnings: ISP earnings (90% of gross)
         amount_due: Amount ISP needs to pay
         

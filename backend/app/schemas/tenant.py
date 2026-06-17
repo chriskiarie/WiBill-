@@ -12,5 +12,5 @@ class PortalConfigUpdate(BaseModel):
     announcement: Optional[str] = None
     show_vouchers: bool = False
     show_loyalty: bool = False
-    loyalty_name: Optional[str] = 'WiBill Points'
+    loyalty_name: Optional[str] = 'XwB Points'
     loyalty_rate: Optional[float] = 0.0

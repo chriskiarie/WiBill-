@@ -127,20 +127,15 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       }}>
         <a href={`/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: C.gold, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0,
-          }}>
-            <Wifi size={18} color="#3D2A06" />
-          </div>
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
           <span style={{
             fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 16, fontWeight: 600, color: C.text,
-            display: collapsed ? 'none' : 'inline',
+            fontSize: collapsed ? 20 : 22, fontWeight: 700,
+            letterSpacing: 0,
           }}>
-            WiBill
+            <span style={{ color: C.gold }}>X</span>
+            <span style={{ color: C.text }}>w</span>
+            <span style={{ color: C.gold }}>B</span>
           </span>
           <span style={{
             position: 'absolute', bottom: -18, left: 0,

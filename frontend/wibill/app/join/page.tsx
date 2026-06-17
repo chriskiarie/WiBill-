@@ -220,7 +220,7 @@ function JoinPageInner() {
               <div style={{ width: 48, height: 48, borderRadius: 12, background: '#E8B84B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
               </div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#e0e0e0', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 4 }}>Join WiBill</h1>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#e0e0e0', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 4 }}>Join XwB</h1>
               <p style={{ fontSize: 12, color: '#555', fontFamily: 'Inter, sans-serif' }}>Create your ISP account</p>
             </div>
 

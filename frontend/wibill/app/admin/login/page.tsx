@@ -86,7 +86,7 @@ export default function BatcaveLoginPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {[
             { label: 'Your Cut', value: '10%', desc: 'Per transaction' },
-            { label: 'Platform', value: 'WiBill', desc: 'v0.1.0' },
+            { label: 'Platform', value: 'XwB', desc: 'v0.1.0' },
             { label: 'Security', value: 'JWT', desc: 'Role-gated' },
             { label: 'Access', value: 'Admin', desc: 'Only you' },
           ].map(s => (

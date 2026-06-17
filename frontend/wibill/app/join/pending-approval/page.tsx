@@ -192,7 +192,7 @@ export default function PendingApprovalPage() {
           color: '#161616',
           fontFamily: 'DM Mono, monospace',
         }}>
-          WiBill
+          XwB
         </div>
       </div>
     </div>

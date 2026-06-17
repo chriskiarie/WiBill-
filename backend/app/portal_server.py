@@ -21,7 +21,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="WiBill Portal Previews")
+app = FastAPI(title="XwB Portal Previews")
 
 # Enable CORS so iframes can communicate with parent
 app.add_middleware(
@@ -39,7 +39,7 @@ PORTAL_TEMPLATE_BASE = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WiBill Portal — {template_name}</title>
+  <title>XwB Portal — {template_name}</title>
   
   <!-- GOOGLE FONTS FOR ALL TYPOGRAPHY OPTIONS -->
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -504,7 +504,7 @@ async def health_check():
 async def root():
     """Root endpoint with helpful info"""
     return """
-    <h1>✅ WiBill Portal Preview Server</h1>
+    <h1>✅ XwB Portal Preview Server</h1>
     <p>Server is running and ready to serve portal templates.</p>
     
     <h2>Available Endpoints:</h2>

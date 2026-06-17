@@ -40,7 +40,7 @@ class MikrotikCreate(BaseModel):
     api_username: str
     api_password: str | None = None
     hotspot_server: str = "hotspot1"
-    hotspot_profile_name: str = "WiBill_Profile"
+    hotspot_profile_name: str = "XwB_Profile"
     nas_ip_address: str | None = None
     notes: str | None = None
 
@@ -112,7 +112,7 @@ async def create_mikrotik_config(
         api_username=data.api_username,
         api_password_enc=encrypt(data.api_password),
         hotspot_server=data.hotspot_server,
-        hotspot_profile_name=data.hotspot_profile_name or "WiBill_Profile",
+        hotspot_profile_name=data.hotspot_profile_name or "XwB_Profile",
         nas_ip_address=data.nas_ip_address,
         notes=data.notes,
     )
@@ -375,34 +375,34 @@ async def generate_init_script(
 # RouterOS Version: 7.0+
 # ════════════════════════════════════════════════════════════════════════════
 
-# ── Step 1: Enable API access (required for WiBill to control the router) ──
+# ── Step 1: Enable API access (required for XwB to control the router) ──
 /ip service enable api
 /ip service set api address=0.0.0.0/0
 
-# ── Step 2: Create API user for WiBill ──
-/user add name=wibill_api password=CHANGE_THIS_PASSWORD group=full disabled=no
+# ── Step 2: Create API user for XwB ──
+/user add name=xwb_api password=CHANGE_THIS_PASSWORD group=full disabled=no
 
 # ── Step 3: Create hotspot profile (if it doesn't exist) ──
-/ip hotspot profile add name="{cfg.hotspot_profile_name or "WiBill_Profile"}" \\
+/ip hotspot profile add name="{cfg.hotspot_profile_name or "XwB_Profile"}" \\
   hotspot-address={cfg.router_ip} login-by=http-pap use-radius=no
 
 # ── Step 4: Create hotspot server on the LAN interface ──
 # Replace "ether5" with your LAN interface name
-/ip hotspot add name="WiBill_Hotspot" interface=ether5 \\
-  profile="{cfg.hotspot_profile_name or "WiBill_Profile"}" disabled=no
+/ip hotspot add name="XwB_Hotspot" interface=ether5 \\
+  profile="{cfg.hotspot_profile_name or "XwB_Profile"}" disabled=no
 
 # ── Step 5: Optional - Disable unused services ──
 /ip service set telnet disabled=yes
 /ip service set ftp disabled=yes
 
 # ── Verification ──
-:log info "WiBill Hotspot Initialized"
-:put "WiBill configuration complete"
+:log info "XwB Hotspot Initialized"
+:put "XwB configuration complete"
 """
 
     return {
         "script": script,
-        "filename": f"wibill_init_{slug}_{today}.rsc",
+        "filename": f"xwb_init_{slug}_{today}.rsc",
         "instructions": [
             "1. Open WinBox and connect to your MikroTik",
             "2. Open Terminal (menu: New Terminal)",
