@@ -1,8 +1,12 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import AdminLayout from '../layout'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+const C = {
+  text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
+  gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
+}
 
 interface Invoice {
   tenant_id: string
@@ -17,22 +21,29 @@ interface Invoice {
   avg_days_punctual: number | null
 }
 
-const statusColors: Record<string, string> = {
-  active: '#1A6B3C',
-  overdue: '#B8860B',
-  paused: '#8B3A3A',
+type Filter = 'all' | 'paid' | 'pending' | 'overdue' | 'trial'
+
+const statusConfig: Record<string, { label: string; dot: string; bg: string; border: string }> = {
+  active: { label: 'Paid', dot: '#4ade80', bg: '#071a0f', border: '#0d3d1d' },
+  pending: { label: 'Pending', dot: '#f59e0b', bg: '#1a1200', border: '#3a2800' },
+  overdue: { label: 'Overdue', dot: '#ef4444', bg: '#1a0505', border: '#3d0d0d' },
+  paused: { label: 'Paused', dot: '#ef4444', bg: '#1a0505', border: '#3d0d0d' },
 }
 
-const statusText: Record<string, string> = {
-  active: 'Active',
-  overdue: 'Overdue',
-  paused: 'Paused',
+const initials = (name: string) =>
+  name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+
+function formatKsh(n: number | null) {
+  if (n == null) return '—'
+  return 'KSh ' + n.toLocaleString()
 }
 
 export default function AdminInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState('')
+  const [filter, setFilter] = useState<Filter>('all')
+  const [search, setSearch] = useState('')
 
   const fetchInvoices = useCallback(async () => {
     try {
@@ -72,126 +83,222 @@ export default function AdminInvoicesPage() {
     fetchInvoices()
   }
 
+  const filtered = invoices.filter(inv => {
+    const st = inv.invoice_status || 'active'
+    if (filter === 'paid' && st !== 'active') return false
+    if (filter === 'pending' && st !== 'pending') return false
+    if (filter === 'overdue' && st !== 'overdue' && st !== 'paused') return false
+    if (filter === 'trial' && st !== 'trial') return false
+    if (search && !inv.tenant_name.toLowerCase().includes(search.toLowerCase()) && !inv.tenant_slug.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
+
+  const outstanding = invoices.filter(i => (i.invoice_status || 'active') !== 'active').reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
+  const overdue = invoices.filter(i => i.invoice_status === 'overdue' || i.invoice_status === 'paused').reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
+  const collected = invoices.filter(i => i.invoice_status === 'active' && i.last_paid_date).reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
+  const commission = collected * 0.1
+
+  function PunctualityBar({ avg }: { avg: number | null }) {
+    if (avg == null) return <span style={{ fontSize: 11, color: '#444' }}>n/a</span>
+    const pct = Math.min(Math.max((30 - avg) / 30 * 100, 5), 100)
+    const color = avg <= 3 ? '#4ade80' : avg <= 10 ? '#f59e0b' : '#ef4444'
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 60, height: 4, background: '#141414', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: color }} />
+        </div>
+        <span style={{ fontSize: 11, color }}>{avg.toFixed(0)}d</span>
+      </div>
+    )
+  }
+
   return (
-    <AdminLayout>
-      <div style={{ padding: '32px 40px', color: '#EDEBE6', fontFamily: 'Inter, sans-serif' }}>
-        <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 24, fontWeight: 700, margin: '0 0 8px', color: '#EDEBE6' }}>Invoices</h1>
-        <p style={{ fontSize: 13, color: '#6B6964', margin: '0 0 32px' }}>
-          Manage ISP subscription invoices and payment status
-        </p>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', color: C.text, fontSize: 13 }}>
+      {/* Top Bar */}
+      <div style={{
+        background: '#080808', borderBottom: `0.5px solid #141414`, padding: '0 28px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, minHeight: 52,
+      }}>
+        <h1 style={{ fontSize: 16, fontWeight: 500, color: '#e8e8e8', margin: 0, fontFamily: '"Space Grotesk", sans-serif' }}>Invoices</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {[
+            { label: 'Export CSV', icon: '⇩' },
+            { label: 'Send reminders', icon: '✉' },
+            { label: 'Create invoice', icon: '+', primary: true },
+          ].map((btn, i) => (
+            <button
+              key={i}
+              style={{
+                background: btn.primary ? '#1a1200' : '#141414',
+                border: `0.5px solid ${btn.primary ? '#3a2a00' : '#1e1e1e'}`,
+                borderRadius: 6, padding: '7px 12px', fontSize: 11,
+                color: btn.primary ? C.gold : '#777', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              <span style={{ fontSize: 13 }}>{btn.icon}</span>
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary Strip */}
+      <div style={{ display: 'flex', borderBottom: `0.5px solid #141414`, background: '#050505' }}>
+        {[
+          { label: 'Outstanding', value: formatKsh(outstanding), sub: `${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length} ISP${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length !== 1 ? 's' : ''} unpaid`, cls: 'warn' },
+          { label: 'Overdue', value: formatKsh(overdue), sub: `${invoices.filter(i => i.invoice_status === 'overdue' || i.invoice_status === 'paused').length} ISP >30 days`, cls: 'danger' },
+          { label: 'Collected (June)', value: formatKsh(collected), sub: `${invoices.filter(i => i.invoice_status === 'active' && i.last_paid_date).length} payments received`, cls: 'ok' },
+          { label: 'Your 10% fee', value: formatKsh(commission), sub: 'Commission this month', cls: 'gold' },
+        ].map((s, i) => (
+          <div key={i} style={{
+            flex: 1, padding: '16px 24px',
+            borderRight: i < 3 ? `0.5px solid #141414` : 'none',
+          }}>
+            <div style={{ fontSize: 10, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>{s.label}</div>
+            <div style={{
+              fontSize: 22, fontWeight: 500, fontFamily: '"DM Mono", monospace',
+              color: s.cls === 'warn' ? '#f59e0b' : s.cls === 'danger' ? C.red : s.cls === 'ok' ? '#4ade80' : C.gold,
+            }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter Row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '14px 24px', borderBottom: `0.5px solid #141414`, background: '#050505',
+      }}>
+        <input
+          type="text" placeholder="🔍  Search ISP or account…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+            padding: '7px 12px', fontSize: 12, color: '#ccc', outline: 'none', width: 220,
+            fontFamily: 'Inter, sans-serif',
+          }}
+        />
+        {(['all', 'paid', 'pending', 'overdue', 'trial'] as Filter[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '5px 12px', borderRadius: 20, fontSize: 11,
+              border: `0.5px solid ${filter === f ? '#3a2a00' : '#1e1e1e'}`,
+              background: filter === f ? '#1a1200' : 'transparent',
+              color: filter === f ? C.gold : '#555', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#444' }}>{filtered.length} ISP{filtered.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Table */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
         {loading ? (
-          <div style={{ fontSize: 12, color: '#6B6964' }}>Loading...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: '#444', fontSize: 12 }}>Loading...</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1A1A18' }}>
-                <th style={{ textAlign: 'left', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ISP</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Invoice Status</th>
-                <th style={{ textAlign: 'right', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fee (KSH)</th>
-                <th style={{ textAlign: 'right', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last Paid</th>
-                <th style={{ textAlign: 'center', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Punctual</th>
-                <th style={{ textAlign: 'right', padding: '12px 16px', color: '#8C8A84', fontWeight: 500, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
+              <tr>
+                {['ISP', 'Account / Plan', 'Status', 'Fee (KSh)', 'Last paid', 'Punctuality', ''].map(h => (
+                  <th key={h} style={{
+                    padding: '11px 20px', fontSize: 10, color: '#444', textTransform: 'uppercase',
+                    letterSpacing: '0.08em', textAlign: 'left', borderBottom: `0.5px solid #141414`,
+                    background: '#050505', position: 'sticky', top: 0, fontWeight: 400,
+                  }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {invoices.map(inv => (
-                <tr key={inv.tenant_id} style={{ borderBottom: '1px solid #1A1A18' }}>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 600 }}>{inv.tenant_name}</div>
-                    <div style={{ fontSize: 11, color: '#6B6964' }}>{inv.tenant_slug}</div>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '4px 10px', borderRadius: 6,
-                      background: inv.is_active ? 'rgba(26,107,60,0.15)' : 'rgba(139,58,58,0.15)',
-                      color: inv.is_active ? '#4ADE80' : '#E5707A',
-                      fontSize: 12, fontWeight: 600,
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: inv.is_active ? '#4ADE80' : '#E5707A' }} />
-                      {inv.is_active ? 'Active' : 'Suspended'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '4px 10px', borderRadius: 6,
-                      background: `${statusColors[inv.invoice_status] || '#3A3A37'}22`,
-                      color: statusColors[inv.invoice_status] || '#8C8A84',
-                      fontSize: 12, fontWeight: 600,
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColors[inv.invoice_status] || '#8C8A84' }} />
-                      {statusText[inv.invoice_status] || inv.invoice_status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right', fontFamily: 'DM Mono, monospace', fontSize: 13 }}>
-                    {inv.monthly_fee_ksh != null ? inv.monthly_fee_ksh.toLocaleString() : '-'}
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: 12, color: '#8C8A84' }}>
-                    {inv.last_paid_date ? new Date(inv.last_paid_date).toLocaleDateString() : '-'}
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, color: inv.avg_days_punctual != null && inv.avg_days_punctual <= 3 ? '#4ADE80' : '#E8B84B' }}>
-                    {inv.avg_days_punctual != null ? `${inv.avg_days_punctual.toFixed(1)}d` : '-'}
-                  </td>
-                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => {
-                          const fee = inv.monthly_fee_ksh || 0
-                          markPaid(inv.tenant_id, fee)
-                        }}
-                        style={{
-                          padding: '6px 12px', borderRadius: 6, border: '1px solid #1A6B3C',
-                          background: 'transparent', color: '#4ADE80',
-                          fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        }}
-                      >
-                        Mark Paid
-                      </button>
-                      {inv.invoice_status !== 'overdue' && (
-                        <button
-                          onClick={() => setStatus(inv.tenant_id, 'overdue')}
-                          style={{
-                            padding: '6px 12px', borderRadius: 6, border: '1px solid #B8860B',
-                            background: 'transparent', color: '#E8B84B',
-                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                          }}
-                        >
-                          Overdue
-                        </button>
-                      )}
-                      {inv.invoice_status !== 'paused' ? (
-                        <button
-                          onClick={() => setStatus(inv.tenant_id, 'paused')}
-                          style={{
-                            padding: '6px 12px', borderRadius: 6, border: '1px solid #8B3A3A',
-                            background: 'transparent', color: '#E5707A',
-                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                          }}
-                        >
-                          Pause
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setStatus(inv.tenant_id, 'active')}
-                          style={{
-                            padding: '6px 12px', borderRadius: 6, border: '1px solid #1A6B3C',
-                            background: 'transparent', color: '#4ADE80',
-                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                          }}
-                        >
-                          Resume
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {invoices.length === 0 && (
+              {filtered.map((inv, i) => {
+                const st = inv.invoice_status || 'active'
+                const cfg = statusConfig[st] || statusConfig.active
+                const isUnpaid = st === 'pending' || st === 'overdue' || st === 'paused'
+                return (
+                  <tr key={inv.tenant_id} style={{ borderBottom: `0.5px solid #0e0e0e`, transition: 'background 0.1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#080808'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '14px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: 6, background: '#1a1a0a',
+                          border: '0.5px solid #2a2a14', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: 10, fontWeight: 500, color: C.gold, flexShrink: 0,
+                        }}>{initials(inv.tenant_name)}</div>
+                        <div>
+                          <div style={{ fontSize: 12, color: '#ddd', fontWeight: 500 }}>{inv.tenant_name}</div>
+                          <div style={{ fontSize: 10, color: '#444', marginTop: 1 }}>{inv.tenant_slug}.wi-bill.co.ke</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ fontSize: 11, color: '#888' }}>Standard · 1,000 users</td>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '4px 9px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                        background: cfg.bg, color: cfg.dot, border: `0.5px solid ${cfg.border}`,
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.dot, fontSize: 11 }} />
+                        {st === 'active' ? 'Paid' : st === 'overdue' ? 'Overdue' : st === 'paused' ? 'Paused' : 'Pending'}
+                      </span>
+                    </td>
+                    <td style={{ fontFamily: '"DM Mono", monospace', fontSize: 12 }}>
+                      {inv.monthly_fee_ksh != null ? inv.monthly_fee_ksh.toLocaleString() : '—'}
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: st === 'overdue' || st === 'paused' ? C.red : '#555' }}>
+                        {inv.last_paid_date ? new Date(inv.last_paid_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
+                      </span>
+                    </td>
+                    <td><PunctualityBar avg={inv.avg_days_punctual} /></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        {isUnpaid && (
+                          <button
+                            onClick={() => markPaid(inv.tenant_id, inv.monthly_fee_ksh || 0)}
+                            style={{
+                              background: 'transparent', border: `0.5px solid #0d3d1d`,
+                              borderRadius: 5, padding: '5px 10px', fontSize: 11,
+                              color: '#4ade80', cursor: 'pointer',
+                            }}
+                          >✓ Mark Paid</button>
+                        )}
+                        {st === 'active' && (
+                          <button
+                            onClick={() => setStatus(inv.tenant_id, 'overdue')}
+                            style={{
+                              background: '#0e0a00', border: `0.5px solid #3a2800`,
+                              borderRadius: 5, padding: '5px 10px', fontSize: 11,
+                              color: '#f59e0b', cursor: 'pointer',
+                            }}
+                          >◷ Overdue</button>
+                        )}
+                        {(st === 'active' || st === 'overdue') && (
+                          <button
+                            onClick={() => setStatus(inv.tenant_id, st === 'active' ? 'paused' : 'active')}
+                            style={{
+                              background: 'transparent',
+                              border: `0.5px solid ${st === 'active' ? '#3d0d0d' : '#0d3d1d'}`,
+                              borderRadius: 5, padding: '5px 10px', fontSize: 11,
+                              color: st === 'active' ? C.red : '#4ade80', cursor: 'pointer',
+                            }}
+                          >{st === 'active' ? '◉ Pause' : '▶ Resume'}</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#6B6964', fontSize: 13 }}>
-                    No ISPs found
+                  <td colSpan={7} style={{ textAlign: 'center', padding: 80, color: '#333' }}>
+                    <div style={{ fontSize: 12 }}>No ISPs match this filter.</div>
                   </td>
                 </tr>
               )}
@@ -199,6 +306,16 @@ export default function AdminInvoicesPage() {
           </table>
         )}
       </div>
-    </AdminLayout>
+
+      {/* Table Footer */}
+      <div style={{
+        borderTop: `0.5px solid #141414`, padding: '11px 24px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        fontSize: 11, color: '#444', background: '#050505',
+      }}>
+        <span>Showing {filtered.length} of {invoices.length} ISPs · June 2026</span>
+        <span>Platform commission: <strong style={{ color: C.gold, fontFamily: '"DM Mono", monospace' }}>{formatKsh(commission)}</strong></span>
+      </div>
+    </div>
   )
 }
