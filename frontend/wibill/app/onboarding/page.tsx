@@ -922,6 +922,24 @@ export default function XbillPortalWizard() {
       const configResult = await configResponse.json();
       console.log('✅ Portal config saved:', configResult);
 
+      // ── Create packages from wizard defaults ──
+      for (let i = 0; i < S.pkgs.length; i++) {
+        const p = S.pkgs[i]
+        const dh = parseInt(p.d) || 1
+        await fetch(`${apiBase}/api/packages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            name: p.n,
+            price_ksh: p.p,
+            duration_hours: p.d.includes('hr') ? dh : dh * 24,
+            duration_label: p.d,
+            max_devices: 1,
+            display_order: i,
+          }),
+        }).catch(() => {})
+      }
+
       // ── Refresh user data in localStorage ──
       try {
         const meRes = await fetch(`${apiBase}/api/auth/me`, {
