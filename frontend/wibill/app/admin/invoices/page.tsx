@@ -83,6 +83,15 @@ export default function AdminInvoicesPage() {
     fetchInvoices()
   }
 
+  const toggleSuspension = async (tenantId: string, currentlyActive: boolean) => {
+    await fetch(`${API}/api/tenants/${tenantId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ is_active: !currentlyActive }),
+    })
+    fetchInvoices()
+  }
+
   const filtered = invoices.filter(inv => {
     const st = inv.invoice_status || 'active'
     if (filter === 'paid' && st !== 'active') return false
@@ -290,6 +299,15 @@ export default function AdminInvoicesPage() {
                             }}
                           >{st === 'active' ? '◉ Pause' : '▶ Resume'}</button>
                         )}
+                        <button
+                          onClick={() => toggleSuspension(inv.tenant_id, inv.is_active)}
+                          style={{
+                            background: 'transparent',
+                            border: `0.5px solid ${inv.is_active ? '#3d0d0d' : '#0d3d1d'}`,
+                            borderRadius: 5, padding: '5px 10px', fontSize: 11,
+                            color: inv.is_active ? C.red : '#4ade80', cursor: 'pointer',
+                          }}
+                        >{inv.is_active ? '◉ Suspend' : '▶ Activate'}</button>
                       </div>
                     </td>
                   </tr>
