@@ -1,11 +1,10 @@
 ﻿'use client'
 import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import OnboardingWizard from '@/components/OnboardingWizard'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-type Phase = 'register' | 'welcome' | 'loading' | 'wizard' | 'launching'
+type Phase = 'register' | 'welcome' | 'loading'
 
 const steps = [
   'Creating your account',
@@ -151,8 +150,7 @@ function JoinPageInner() {
     }
     await delay(400)
 
-    // ── Wizard ──────────────────────────────────────────────────
-    setPhase('wizard')
+    router.push('/onboarding')
   }, [ispName, ispSlug, adminEmail, password, confirmPassword, phone, token, router])
 
   if (!token) {
@@ -365,34 +363,6 @@ function JoinPageInner() {
               Preparing your workspace...
             </div>
           )}
-        </div>
-      )}
-
-      {/* ─── WIZARD ─── */}
-      {phase === 'wizard' && (
-        <OnboardingWizard
-          onComplete={() => {
-            setPhase('launching')
-            setTimeout(() => {
-              router.push('/dashboard?onboarded=true')
-            }, 800)
-          }}
-        />
-      )}
-
-      {/* ─── LAUNCHING (fade out before dashboard) ─── */}
-      {phase === 'launching' && (
-        <div style={{
-          position: 'fixed', inset: 0, background: '#000', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          animation: 'fade-out 0.5s ease-in forwards',
-        }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 18, background: '#E8B84B',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 34, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
-          </div>
         </div>
       )}
     </div>
