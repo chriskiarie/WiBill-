@@ -922,6 +922,24 @@ export default function XbillPortalWizard() {
       const configResult = await configResponse.json();
       console.log('✅ Portal config saved:', configResult);
 
+      // ── Refresh user data in localStorage ──
+      try {
+        const meRes = await fetch(`${apiBase}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (meRes.ok) {
+          const me = await meRes.json()
+          localStorage.setItem('wb_user', JSON.stringify({
+            email: me.email,
+            role: me.role,
+            tenant_id: me.tenant_id,
+            tenant_name: me.tenant_name,
+            tenant_slug: me.tenant_slug,
+            onboarding_complete: me.onboarding_complete,
+          }))
+        }
+      } catch {}
+
       sessionStorage.setItem('onboarding_done', 'true');
       
       toast(`🚀 Portal live! Redirecting to your dashboard...`);
@@ -1018,8 +1036,8 @@ export default function XbillPortalWizard() {
                 </button>
               )}
               {S.step === 4 && (
-                <button className="btn btn-green" onClick={() => setShowModal(true)}>
-                  ⬆ Share Wizard
+                <button className="btn btn-primary" onClick={saveAndLaunch} style={{ fontSize: 14, padding: '0.65rem 1.5rem' }}>
+                  Launch dashboard →
                 </button>
               )}
             </div>
@@ -1357,20 +1375,10 @@ export default function XbillPortalWizard() {
                     <h3>Download Portal HTML</h3>
                     <p>Drop directly into your MikroTik hotspot server folder</p>
                   </div>
-                  <div className="exp-card" onClick={() => setShowModal(true)}>
-                    <div className="exp-icon">🔗</div>
-                    <h3>Share Wizard Link</h3>
-                    <p>Send any ISP a link — they design their own portal in minutes</p>
-                  </div>
                   <div className="exp-card" onClick={copyConfig}>
                     <div className="exp-icon">📋</div>
                     <h3>Copy Config JSON</h3>
                     <p>Use in WiBill backend for dynamic server-side rendering</p>
-                  </div>
-                  <div className="exp-card" onClick={saveAndLaunch}>
-                    <div className="exp-icon">🚀</div>
-                    <h3>Launch Portal</h3>
-                    <p>Save config and deploy to your dashboard</p>
                   </div>
                 </div>
               </>
