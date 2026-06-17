@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const PORTAL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production.up.railway.app'
 
 const nav = [
   { label: 'Overview', items: [
@@ -125,17 +126,22 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         justifyContent: collapsed ? 'center' : 'space-between',
         borderBottom: '0.5px solid #0f0f0f',
       }}>
-        <a href={`/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
+        <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: C.gold, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Wifi size={16} color="#3D2A06" />
+          </div>
           <span style={{
             fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: collapsed ? 20 : 22, fontWeight: 700,
-            letterSpacing: 0,
+            fontSize: collapsed ? 0 : 16, fontWeight: 600, color: C.text,
+            display: collapsed ? 'none' : 'inline',
           }}>
-            <span style={{ color: C.gold }}>X</span>
-            <span style={{ color: C.text }}>w</span>
-            <span style={{ color: C.gold }}>B</span>
+            WiBill
           </span>
           <span style={{
             position: 'absolute', bottom: -18, left: 0,

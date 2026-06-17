@@ -232,11 +232,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fontFamily: 'Inter, sans-serif', padding: 40,
       }}>
         <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700 }}>
-            <span style={{ color: '#E8B84B' }}>X</span>
-            <span style={{ color: '#EDEBE6' }}>w</span>
-            <span style={{ color: '#E8B84B' }}>B</span>
-          </span>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: '#E8B84B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2A06" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
+          </div>
+          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: '#EDEBE6' }}>WiBill</span>
         </div>
         <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 28, fontWeight: 700, color: '#E5707A', margin: '0 0 12px' }}>Account Suspended</h1>
         <p style={{ fontSize: 14, color: '#8C8A84', margin: '0 0 32px', maxWidth: 400, textAlign: 'center', lineHeight: 1.6 }}>
@@ -253,11 +252,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!ready) return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 36, fontWeight: 700 }}>
-        <span style={{ color: '#E8B84B' }}>X</span>
-        <span style={{ color: '#EDEBE6' }}>w</span>
-        <span style={{ color: '#E8B84B' }}>B</span>
-      </span>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#3A3A37' }}>Loading</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
     </div>
   )
 
