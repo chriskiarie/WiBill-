@@ -1,9 +1,15 @@
-from fastapi import APIRouter
+from typing import Optional
+
+from fastapi import APIRouter, Query
 from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/api/v1/portal-previews", tags=["portal-previews"])
 
-SPOTLIGHT_PREVIEW = """<!DOCTYPE html>
+def make_preview(template, shape: str, size: str):
+    pkg_padding = {"compact": "1rem", "comfortable": "1.5rem", "large": "2rem"}.get(size, "1.5rem")
+
+    if template == "spotlight":
+        return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -11,34 +17,30 @@ SPOTLIGHT_PREVIEW = """<!DOCTYPE html>
   <title>Spotlight Preview</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
       font-family: 'Syne', sans-serif;
-      background: #0c0c1a;
-      color: #e8e6ff;
-      padding: 2rem;
-      min-height: 100vh;
-    }
-    .container { max-width: 500px; margin: 0 auto; }
-    .header { text-align: center; margin-bottom: 3rem; }
-    .logo { font-size: 3rem; margin-bottom: 1rem; }
-    .title { font-size: 1.8rem; font-weight: 900; margin-bottom: 0.5rem; }
-    .subtitle { font-size: 0.9rem; opacity: 0.7; }
-    .pkg-card {
+      background: #0c0c1a; color: #e8e6ff;
+      padding: 2rem; min-height: 100vh;
+    }}
+    .container {{ max-width: 500px; margin: 0 auto; }}
+    .header {{ text-align: center; margin-bottom: 3rem; }}
+    .header .title {{ font-size: 1.8rem; font-weight: 900; margin-bottom: 0.5rem; }}
+    .header .subtitle {{ font-size: 0.9rem; opacity: 0.7; }}
+    .pkg-card {{
       background: rgba(255,255,255,.06);
       border: 1px solid rgba(255,255,255,.12);
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: {shape};
+      padding: {pkg_padding};
       margin-bottom: 1rem;
-    }
-    .pkg-name { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .pkg-price { font-size: 1.4rem; font-weight: 900; color: #8b73ff; }
+    }}
+    .pkg-name {{ font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }}
+    .pkg-price {{ font-size: 1.4rem; font-weight: 900; color: #8b73ff; }}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">📡</div>
       <div class="title">Spotlight</div>
       <div class="subtitle">Premium WiFi Experience</div>
     </div>
@@ -54,7 +56,8 @@ SPOTLIGHT_PREVIEW = """<!DOCTYPE html>
 </body>
 </html>"""
 
-DASHBOARD_PREVIEW = """<!DOCTYPE html>
+    if template == "dashboard":
+        return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -62,33 +65,27 @@ DASHBOARD_PREVIEW = """<!DOCTYPE html>
   <title>Dashboard Preview</title>
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
       font-family: 'Figtree', sans-serif;
-      background: #f0f9ff;
-      color: #0c4a6e;
-      padding: 1.5rem;
-      min-height: 100vh;
-    }
-    .container { max-width: 800px; margin: 0 auto; }
-    .header {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
-      border: 1px solid #bae6fd;
-    }
-    .title { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.5rem; }
-    .subtitle { color: #0369a1; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .pkg-card {
-      background: white;
-      border: 1px solid #bae6fd;
-      border-radius: 12px;
-      padding: 1.5rem;
-    }
-    .pkg-name { font-weight: 700; margin-bottom: 0.5rem; }
-    .pkg-price { font-size: 1.3rem; color: #0284c7; font-weight: 900; }
+      background: #f0f9ff; color: #0c4a6e;
+      padding: 1.5rem; min-height: 100vh;
+    }}
+    .container {{ max-width: 800px; margin: 0 auto; }}
+    .header {{
+      background: white; padding: 2rem; border-radius: 12px;
+      margin-bottom: 1.5rem; border: 1px solid #bae6fd;
+    }}
+    .header .title {{ font-size: 1.6rem; font-weight: 800; margin-bottom: 0.5rem; }}
+    .header .subtitle {{ color: #0369a1; }}
+    .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }}
+    .pkg-card {{
+      background: white; border: 1px solid #bae6fd;
+      border-radius: {shape};
+      padding: {pkg_padding};
+    }}
+    .pkg-name {{ font-weight: 700; margin-bottom: 0.5rem; }}
+    .pkg-price {{ font-size: 1.3rem; color: #0284c7; font-weight: 900; }}
   </style>
 </head>
 <body>
@@ -111,7 +108,8 @@ DASHBOARD_PREVIEW = """<!DOCTYPE html>
 </body>
 </html>"""
 
-STORIES_PREVIEW = """<!DOCTYPE html>
+    if template == "stories":
+        return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -119,28 +117,26 @@ STORIES_PREVIEW = """<!DOCTYPE html>
   <title>Stories Preview</title>
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
       font-family: 'Figtree', sans-serif;
-      background: #052e16;
-      color: #dcfce7;
-      padding: 1.5rem;
-      min-height: 100vh;
-    }
-    .container { max-width: 100%; }
-    .header { text-align: center; margin-bottom: 2rem; }
-    .title { font-size: 1.6rem; font-weight: 800; }
-    .cards { display: flex; gap: 1rem; overflow-x: auto; }
-    .pkg-card {
+      background: #052e16; color: #dcfce7;
+      padding: 1.5rem; min-height: 100vh;
+    }}
+    .container {{ max-width: 100%; }}
+    .header {{ text-align: center; margin-bottom: 2rem; }}
+    .header .title {{ font-size: 1.6rem; font-weight: 800; }}
+    .cards {{ display: flex; gap: 1rem; overflow-x: auto; }}
+    .pkg-card {{
       background: rgba(255,255,255,.07);
       border: 1px solid rgba(134,239,172,.15);
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: {shape};
+      padding: {pkg_padding};
       min-width: 280px;
       flex-shrink: 0;
-    }
-    .pkg-name { font-weight: 700; margin-bottom: 0.5rem; }
-    .pkg-price { font-size: 1.3rem; color: #86efac; font-weight: 900; }
+    }}
+    .pkg-name {{ font-weight: 700; margin-bottom: 0.5rem; }}
+    .pkg-price {{ font-size: 1.3rem; color: #86efac; font-weight: 900; }}
   </style>
 </head>
 <body>
@@ -166,14 +162,13 @@ STORIES_PREVIEW = """<!DOCTYPE html>
 </body>
 </html>"""
 
+    return make_preview("spotlight", shape, size)
+
+
 @router.get("/{template_id}", response_class=HTMLResponse)
-async def get_portal_preview(template_id: str):
-    """Return HTML preview for wizard iframe - static preview templates"""
-    previews = {
-        "spotlight": SPOTLIGHT_PREVIEW,
-        "dashboard": DASHBOARD_PREVIEW,
-        "stories": STORIES_PREVIEW,
-    }
-    
-    html = previews.get(template_id, SPOTLIGHT_PREVIEW)
-    return html
+async def get_portal_preview(
+    template_id: str,
+    shape: str = Query("16px"),
+    size: str = Query("comfortable"),
+):
+    return make_preview(template_id, shape, size)

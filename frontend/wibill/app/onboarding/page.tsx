@@ -301,7 +301,7 @@ const CSS_STYLES = `
   }
   body{font-family:'Inter',sans-serif;background:#000;color:var(--ink);min-height:100vh;font-size:15px}
   .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-  .sidebar{background:var(--ink);color:#fff;padding:1.75rem 1.5rem;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+  .sidebar{background:#000;color:#fff;padding:1.75rem 1.5rem;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
   .xbill-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
   .xbill-logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;color:#fff}
   .xbill-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-.02em}
