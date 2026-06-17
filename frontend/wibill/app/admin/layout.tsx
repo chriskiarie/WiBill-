@@ -15,6 +15,7 @@ const NAV_OPERATIONS = [
 
 const NAV_PLATFORM = [
   { href: '/admin/feature-flags', label: 'Feature Flags' },
+  { href: '/admin/invoices', label: 'Invoices' },
   { href: '/admin/comms', label: 'Comms' },
   { href: '/admin/audit-log', label: 'Audit Log' },
 ];
@@ -29,6 +30,7 @@ const pageNames: Record<string, string> = {
   '/admin/billing': 'Billing',
   '/admin/transactions': 'Transactions',
   '/admin/feature-flags': 'Feature Flags',
+  '/admin/invoices': 'Invoices',
   '/admin/comms': 'Comms',
   '/admin/audit-log': 'Audit Log',
   '/admin/system': 'Settings',

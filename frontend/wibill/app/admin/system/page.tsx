@@ -80,9 +80,9 @@ export default function SettingsPage() {
       {/* Status strip */}
       <div style={{ height: 40, background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: '0 20px', display: 'flex', alignItems: 'center', marginBottom: 24 }}>
         {statusItems.map((item, i) => (
-          <div key={item.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, height: '100%', borderRight: i < statusItems.length - 1 ? `1px solid ${C.line}` : 'none' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute }}>{item.label}</span>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: item.color }}>{loading ? '...' : item.value}</span>
+          <div key={item.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, height: '100%', borderRight: i < statusItems.length - 1 ? `1px solid ${C.line}` : 'none' }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute, minWidth: 0 }}>{item.label}</div>
+            <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, fontWeight: 600, color: item.color }}>{loading ? '...' : item.value}</div>
           </div>
         ))}
       </div>
@@ -159,8 +159,12 @@ export default function SettingsPage() {
                   {[
                     { label: 'Refresh Health Check', action: () => window.location.reload() },
                     { label: 'View API Docs', action: () => window.open(`${API}/docs`, '_blank') },
-                    { label: 'Download Logs', action: () => {} },
                     { label: 'Test M-Pesa Connection', action: runMpesaTest },
+                    { label: 'Test MikroTik Connection', action: () => {} },
+                    { label: 'Clear Cache', action: () => {} },
+                    { label: 'Run Database Migration', action: () => {} },
+                    { label: 'View Changelog', action: () => {} },
+                    { label: 'Download Logs', action: () => {} },
                   ].map((item, i) => (
                     <button
                       key={item.label}

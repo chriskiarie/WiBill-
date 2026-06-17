@@ -518,8 +518,10 @@ export default function AdminISPNetwork() {
                     <span>ISP</span><span>Created</span><span>Expires</span><span>Status</span><span></span>
                   </div>
                   {visibleInvites.slice(0, 20).map((invite, i) => {
-                    const status = (invite.status || '').toLowerCase();
-                    const tone: Tone = status === 'used' ? 'good' : status === 'expired' ? 'bad' : 'warn';
+                    const rawStatus = (invite.status || '').toLowerCase();
+                    const isExpired = invite.expires_at && new Date(invite.expires_at) < new Date();
+                    const displayStatus = (rawStatus === 'pending' && isExpired) ? 'expired' : rawStatus;
+                    const tone: Tone = displayStatus === 'used' ? 'good' : displayStatus === 'expired' ? 'bad' : 'warn';
                     const link = inviteUrl(invite);
                     const displayName = invite.used_by_tenant_name || invite.isp_name || '—';
                     return (
@@ -537,10 +539,10 @@ export default function AdminISPNetwork() {
                           {invite.expires_at ? new Date(invite.expires_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
                         </div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '3px 8px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace', fontWeight: 700 }}>
-                          {invite.status || 'pending'}
+                          {displayStatus}
                         </div>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          {link && status === 'pending' && (
+                          {link && rawStatus === 'pending' && !isExpired && (
                             <button onClick={() => copyToClipboard(link, invite.id)} title={copied === invite.id ? 'Copied!' : 'Copy invite link'} style={{ background: 'none', border: 'none', color: copied === invite.id ? C.green : C.dim, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
                               <ClipboardCopy size={13} />
                             </button>

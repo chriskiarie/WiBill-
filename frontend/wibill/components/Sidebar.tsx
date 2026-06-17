@@ -55,13 +55,23 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null)
   const [brandHover, setBrandHover] = useState(false)
   const [liveData, setLiveData] = useState({ revenue: 0, sessions: 0, loaded: false })
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
 
   const isAdmin = pathname.startsWith('/admin')
   const w = collapsed ? W_COLLAPSED : W
 
+  const filteredNav = nav.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      if (item.href === '/dashboard/campaigns' && !featureFlags.campaigns) return false
+      if (item.href === '/dashboard/loyalty' && !featureFlags.loyalty) return false
+      return true
+    }),
+  })).filter(section => section.items.length > 0)
+
   const ispName = user?.tenant_name || (user?.email?.split('@')[0] || 'My ISP')
 
-  const activeHref = nav.flatMap(s => s.items).find(i => {
+  const activeHref = filteredNav.flatMap(s => s.items).find(i => {
     if (i.href === '/dashboard') return pathname === '/dashboard'
     return pathname.startsWith(i.href)
   })?.href || '/dashboard'
@@ -86,13 +96,17 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       .then(r => r.json())
       .then(d => setLiveData({ revenue: d?.today?.gross_ksh || 0, sessions: d?.active_sessions || 0, loaded: true }))
       .catch(() => setLiveData(p => ({ ...p, loaded: true })))
+    fetch(`${API}/api/tenants/feature-flags`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setFeatureFlags(d) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
     if (!collapsed) setTimeout(updateIndicator, 50)
   }, [collapsed, updateIndicator])
 
-  const allItems = nav.flatMap(s => s.items)
+  const allItems = filteredNav.flatMap(s => s.items)
 
   return (
     <aside style={{
@@ -169,7 +183,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           }} />
         )}
 
-        {nav.map(section => (
+        {filteredNav.map(section => (
           <div key={section.label} style={{ marginBottom: collapsed ? 12 : 20 }}>
             {!collapsed && (
               <div style={{

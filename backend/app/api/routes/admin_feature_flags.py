@@ -1,7 +1,7 @@
 """
 Feature Flags management for platform admin.
 """
-from typing import List
+from typing import List, Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.feature_flag import FeatureFlag, FEATURES
-from app.api.routes.auth import get_current_user, require_platform_admin
+from app.api.routes.auth import get_current_user, require_platform_admin, require_isp_admin
 
 router = APIRouter(tags=["admin-feature-flags"])
 
@@ -25,10 +25,11 @@ class TenantFlagsResponse(BaseModel):
     tenant_id: str
     tenant_name: str
     tenant_slug: str
+    is_active: bool
+    status: str
+    tier: str
+    monthly_fee_ksh: Optional[float] = None
     flags: dict[str, bool]
-
-    class Config:
-        from_attributes = True
 
 async def ensure_flags_for_tenant(tenant_id: uuid.UUID, db: AsyncSession):
     """Ensure all default features exist for a tenant."""
@@ -76,10 +77,15 @@ async def list_feature_flags(
         for key in FEATURES:
             if key not in flags_dict:
                 flags_dict[key] = False
+        tier = "premium" if flags_dict.get('campaigns') or flags_dict.get('loyalty') else "free"
         response.append(TenantFlagsResponse(
             tenant_id=tid,
             tenant_name=t.name,
             tenant_slug=t.slug,
+            is_active=t.is_active,
+            status=t.status,
+            tier=tier,
+            monthly_fee_ksh=None,
             flags=flags_dict
         ))
     return response
@@ -115,3 +121,49 @@ async def update_feature_flags(
             ))
     await db.commit()
     return {"status": "ok"}
+
+@router.patch("/admin/feature-flags/{tenant_id}/tier")
+async def update_tier(
+    tenant_id: str,
+    body: dict,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    tid = uuid.UUID(tenant_id)
+    stmt = select(Tenant).where(Tenant.id == tid)
+    result = await db.execute(stmt)
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    tier = body.get("tier", "free")
+    premium_keys = ['campaigns', 'loyalty']
+    for key in premium_keys:
+        f_stmt = select(FeatureFlag).where(
+            FeatureFlag.tenant_id == tid,
+            FeatureFlag.feature_key == key
+        )
+        f_result = await db.execute(f_stmt)
+        flag = f_result.scalar_one_or_none()
+        if tier == "premium":
+            if not flag:
+                db.add(FeatureFlag(id=uuid.uuid4(), tenant_id=tid, feature_key=key, is_enabled=True))
+        else:
+            if flag:
+                flag.is_enabled = False
+    await db.commit()
+    return {"status": "ok", "tier": tier}
+
+
+@router.get("/tenants/feature-flags")
+async def get_my_feature_flags(
+    current_user: AdminUser = Depends(require_isp_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get feature flags for the current ISP admin's tenant."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="No tenant associated with this user")
+    stmt = select(FeatureFlag).where(FeatureFlag.tenant_id == current_user.tenant_id)
+    result = await db.execute(stmt)
+    flags = result.scalars().all()
+    return {f.feature_key: f.is_enabled for f in flags}

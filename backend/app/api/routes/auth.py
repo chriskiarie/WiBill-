@@ -89,6 +89,19 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is inactive")
 
+    # If user belongs to a tenant, check tenant is active
+    if user.tenant_id:
+        t_result = await db.execute(
+            select(Tenant).where(Tenant.id == user.tenant_id)
+        )
+        tenant = t_result.scalar_one_or_none()
+        if tenant:
+            if not tenant.is_active:
+                raise HTTPException(status_code=403, detail="account_suspended")
+            invoice_status = getattr(tenant, 'invoice_status', 'active') or 'active'
+            if invoice_status == 'paused':
+                raise HTTPException(status_code=403, detail="account_paused")
+
     return user
 
 
@@ -364,12 +377,16 @@ async def get_current_user_info(
     """
     tenant_name = None
     tenant_slug = None
+    tenant_is_active = True
+    invoice_status = "active"
     if current_user.tenant_id:
         t_result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
         tenant = t_result.scalar_one_or_none()
         if tenant:
             tenant_name = tenant.name
             tenant_slug = tenant.slug
+            tenant_is_active = tenant.is_active
+            invoice_status = getattr(tenant, 'invoice_status', 'active') or 'active'
 
     return {
         "id": str(current_user.id),
@@ -380,6 +397,8 @@ async def get_current_user_info(
         "tenant_name": tenant_name,
         "tenant_slug": tenant_slug,
         "is_active": current_user.is_active,
+        "tenant_is_active": tenant_is_active,
+        "invoice_status": invoice_status,
         "onboarding_complete": current_user.onboarding_complete,
     }
 
