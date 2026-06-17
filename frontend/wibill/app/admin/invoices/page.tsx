@@ -276,38 +276,44 @@ export default function AdminInvoicesPage() {
                               borderRadius: 5, padding: '5px 10px', fontSize: 11,
                               color: '#4ade80', cursor: 'pointer',
                             }}
-                          >✓ Mark Paid</button>
+                          >✓ Paid</button>
                         )}
+                        {/* ── ACTIVE → Mark Overdue enabled, Pause disabled ── */}
                         {st === 'active' && (
-                          <button
-                            onClick={() => setStatus(inv.tenant_id, 'overdue')}
-                            style={{
-                              background: '#0e0a00', border: `0.5px solid #3a2800`,
-                              borderRadius: 5, padding: '5px 10px', fontSize: 11,
-                              color: '#f59e0b', cursor: 'pointer',
-                            }}
-                          >◷ Overdue</button>
+                          <>
+                            <button onClick={() => setStatus(inv.tenant_id, 'overdue')} style={{ background: 'none', border: '1px solid rgba(232,184,75,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 500, color: '#E8B84B', cursor: 'pointer' }}>
+                              ◷ Mark Overdue
+                            </button>
+                            <span style={{ background: 'none', border: '1px solid rgba(229,112,122,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 500, color: '#E5707A', opacity: 0.3, cursor: 'not-allowed' }}>
+                              ◉ Pause
+                            </span>
+                          </>
                         )}
-                        {(st === 'active' || st === 'overdue') && (
-                          <button
-                            onClick={() => setStatus(inv.tenant_id, st === 'active' ? 'paused' : 'active')}
-                            style={{
-                              background: 'transparent',
-                              border: `0.5px solid ${st === 'active' ? '#3d0d0d' : '#0d3d1d'}`,
-                              borderRadius: 5, padding: '5px 10px', fontSize: 11,
-                              color: st === 'active' ? C.red : '#4ade80', cursor: 'pointer',
-                            }}
-                          >{st === 'active' ? '◉ Pause' : '▶ Resume'}</button>
+                        {/* ── OVERDUE → current state indicator + Pause enabled + Activate ── */}
+                        {st === 'overdue' && (
+                          <>
+                            <span style={{ background: 'rgba(232,184,75,0.1)', border: '1px solid rgba(232,184,75,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#E8B84B' }}>
+                              ◷ Overdue
+                            </span>
+                            <button onClick={() => setStatus(inv.tenant_id, 'paused')} style={{ background: 'none', border: '1px solid rgba(229,112,122,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 500, color: '#E5707A', cursor: 'pointer' }}>
+                              ◉ Pause
+                            </button>
+                            <button onClick={() => setStatus(inv.tenant_id, 'active')} style={{ background: 'none', border: '1px solid rgba(111,207,115,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 500, color: '#6FCF73', cursor: 'pointer' }}>
+                              ▶ Activate
+                            </button>
+                          </>
                         )}
-                        <button
-                          onClick={() => toggleSuspension(inv.tenant_id, inv.is_active)}
-                          style={{
-                            background: 'transparent',
-                            border: `0.5px solid ${inv.is_active ? '#3d0d0d' : '#0d3d1d'}`,
-                            borderRadius: 5, padding: '5px 10px', fontSize: 11,
-                            color: inv.is_active ? C.red : '#4ade80', cursor: 'pointer',
-                          }}
-                        >{inv.is_active ? '◉ Suspend' : '▶ Activate'}</button>
+                        {/* ── PAUSED → current state indicator + Activate ── */}
+                        {st === 'paused' && (
+                          <>
+                            <span style={{ background: 'rgba(229,112,122,0.12)', border: '1px solid rgba(229,112,122,0.3)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#E5707A' }}>
+                              ◉ Paused
+                            </span>
+                            <button onClick={() => setStatus(inv.tenant_id, 'active')} style={{ background: 'none', border: '1px solid rgba(111,207,115,0.4)', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 500, color: '#6FCF73', cursor: 'pointer' }}>
+                              ▶ Activate
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
