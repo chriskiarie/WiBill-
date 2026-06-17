@@ -19,8 +19,11 @@ interface Account {
 }
 
 export default function LoyaltyPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showToast } = useToast()
+
+  const features = (user as any)?.features ?? {}
+  const isAllowed = features.loyalty !== false
 
   const [accounts, setAccounts] = useState<Account[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -77,6 +80,16 @@ export default function LoyaltyPage() {
       showToast(`Reward token sent: ${res.token_code}`, { type: 'success' })
     } catch (err) { showToast('Failed to send reward', { type: 'error', message: (err as Error).message }) }
     finally { setSending(false) }
+  }
+
+  if (!isAllowed) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.void, color: C.dim, fontSize: 13, fontFamily: 'Inter, sans-serif' }}>
+        <Award size={32} color={C.mute} />
+        <div style={{ marginTop: 12, fontWeight: 600, color: C.text }}>Loyalty not available</div>
+        <div style={{ marginTop: 4, color: C.mute, fontSize: 11, textAlign: 'center', maxWidth: 280 }}>Upgrade to Premium to access loyalty rewards.</div>
+      </div>
+    )
   }
 
   return (

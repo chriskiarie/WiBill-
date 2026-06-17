@@ -45,6 +45,14 @@ class Tenant(Base):
     last_paid_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     avg_days_punctual: Mapped[float | None] = mapped_column(Numeric(5, 1), nullable=True)
 
+    # Feature flag columns (on the tenant, not a separate table)
+    is_premium: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    has_vouchers: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    has_campaigns: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    has_loyalty: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    has_mikrotik: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    has_portal_customization: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
     # Account lock fields
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     locked_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)

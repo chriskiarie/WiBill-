@@ -52,7 +52,7 @@ export default function FeatureFlagsPage() {
       await fetch(`${API}/api/admin/feature-flags/${tenantId}`, {
         method: 'PATCH',
         headers: authHeaders(),
-        body: JSON.stringify([{ feature_key: feature, is_enabled: !current }]),
+        body: JSON.stringify({ [feature]: !current }),
       });
       setData(prev => prev.map(t =>
         t.tenant_id === tenantId

@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, Copy, Check, type LucideIcon } from 'lucide-react'
+import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, Copy, Check, Megaphone, type LucideIcon } from 'lucide-react'
 
 const C = {
   void: '#030303', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -33,8 +33,11 @@ const audienceOptions: { value: string; label: string; desc?: string; icon: Luci
 ]
 
 export default function CampaignsPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showToast } = useToast()
+
+  const features = (user as any)?.features ?? {}
+  const isAllowed = features.campaigns !== false
 
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -125,6 +128,16 @@ export default function CampaignsPage() {
   }
 
   const smb = (n: number) => n?.toLocaleString() ?? '0'
+
+  if (!isAllowed) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: C.void, color: C.dim, fontSize: 13, fontFamily: 'Inter, sans-serif' }}>
+        <Megaphone size={32} color={C.mute} />
+        <div style={{ marginTop: 12, fontWeight: 600, color: C.text }}>Campaigns not available</div>
+        <div style={{ marginTop: 4, color: C.mute, fontSize: 11, textAlign: 'center', maxWidth: 280 }}>Upgrade to Premium to access engagement campaigns.</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>

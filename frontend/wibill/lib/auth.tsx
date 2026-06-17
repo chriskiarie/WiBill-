@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { login as apiLogin } from './api'
 
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
+  const hydrate = useCallback(() => {
     const t = localStorage.getItem('wb_token')
     const u = localStorage.getItem('wb_user')
     const r = localStorage.getItem('wb_role')
@@ -30,8 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u ? JSON.parse(u) : null)
       setRole(r)
     }
-    setHydrated(true) // always set true after reading localStorage
+    setHydrated(true)
   }, [])
+
+  useEffect(() => {
+    hydrate()
+    const onStorage = () => hydrate()
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [hydrate])
 
   const login = async (email: string, pass: string) => {
     const data = await apiLogin(email, pass)

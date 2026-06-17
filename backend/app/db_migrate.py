@@ -155,6 +155,25 @@ MIGRATIONS = [
     ("tenants.avg_days_punctual", """
         ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avg_days_punctual NUMERIC(5, 1)
     """),
+    # ── Tenant feature-flag columns ──────────────────────────────────────────
+    ("tenants.is_premium", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("tenants.has_vouchers", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_vouchers BOOLEAN NOT NULL DEFAULT true
+    """),
+    ("tenants.has_campaigns", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_campaigns BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("tenants.has_loyalty", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_loyalty BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("tenants.has_mikrotik", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_mikrotik BOOLEAN NOT NULL DEFAULT true
+    """),
+    ("tenants.has_portal_customization", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_portal_customization BOOLEAN NOT NULL DEFAULT true
+    """),
     # ── MikroTik Phase 2 columns ────────────────────────────────────────────
     ("mikrotik_configs.hotspot_profile_name", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS hotspot_profile_name VARCHAR(255) NOT NULL DEFAULT 'WiBill_Profile'

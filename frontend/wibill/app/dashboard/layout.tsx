@@ -59,6 +59,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             return
           }
         }
+        if (r.ok) {
+          const me = await r.json()
+          localStorage.setItem('wb_user', JSON.stringify(me))
+          window.dispatchEvent(new Event('storage'))
+        }
       } catch {}
     }
 

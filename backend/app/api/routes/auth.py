@@ -114,12 +114,18 @@ async def require_platform_admin(
 
 async def require_isp_admin(
     current_user: AdminUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> AdminUser:
     """
-    Verify user is ISP admin
+    Verify user is ISP admin and their tenant is active (not suspended).
     """
     if current_user.role != AdminRole.ISP_ADMIN:
         raise HTTPException(status_code=403, detail="Only ISP admins can access this")
+    if current_user.tenant_id:
+        t = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
+        tenant = t.scalar_one_or_none()
+        if tenant and not tenant.is_active:
+            raise HTTPException(status_code=403, detail="account_suspended")
     return current_user
 
 
@@ -337,6 +343,13 @@ async def login(
             detail="User account is inactive. Please contact admin.",
         )
 
+    # Check tenant suspension on login
+    if user.tenant_id:
+        t_result = await db.execute(select(Tenant).where(Tenant.id == user.tenant_id))
+        t = t_result.scalar_one_or_none()
+        if t and not t.is_active:
+            raise HTTPException(status_code=403, detail="account_suspended")
+
     # Create JWT token
     access_token = create_access_token(str(user.id), user.role, user.tenant_id)
 
@@ -373,12 +386,13 @@ async def get_current_user_info(
     """
     tenant_name = None
     tenant_slug = None
+    tenant_obj = None
     if current_user.tenant_id:
         t_result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
-        tenant = t_result.scalar_one_or_none()
-        if tenant:
-            tenant_name = tenant.name
-            tenant_slug = tenant.slug
+        tenant_obj = t_result.scalar_one_or_none()
+        if tenant_obj:
+            tenant_name = tenant_obj.name
+            tenant_slug = tenant_obj.slug
 
     return {
         "id": str(current_user.id),
@@ -390,6 +404,15 @@ async def get_current_user_info(
         "tenant_slug": tenant_slug,
         "is_active": current_user.is_active,
         "onboarding_complete": current_user.onboarding_complete,
+        "is_premium": tenant_obj.is_premium if tenant_obj else False,
+        "invoice_status": tenant_obj.invoice_status if tenant_obj else "active",
+        "features": {
+            "vouchers": tenant_obj.has_vouchers if tenant_obj else True,
+            "campaigns": tenant_obj.has_campaigns if tenant_obj else False,
+            "loyalty": tenant_obj.has_loyalty if tenant_obj else False,
+            "mikrotik": tenant_obj.has_mikrotik if tenant_obj else True,
+            "portal_customization": tenant_obj.has_portal_customization if tenant_obj else True,
+        } if tenant_obj else {},
     }
 
 
