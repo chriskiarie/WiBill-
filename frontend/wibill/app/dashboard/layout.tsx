@@ -1,11 +1,38 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import Sidebar from '@/components/Sidebar'
 import { DashboardProvider } from '@/context/DashboardContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
+function DashboardToast() {
+  const searchParams = useSearchParams()
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    if (searchParams?.get('onboarded') === 'true') {
+      setToast('Your hotspot is live')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('onboarded')
+      window.history.replaceState({}, '', url.toString())
+      setTimeout(() => setToast(''), 5000)
+    }
+  }, [searchParams])
+
+  if (!toast) return null
+  return (
+    <div style={{
+      position: 'fixed', bottom: 24, right: 24, zIndex: 9999, animation: 'slide-up 0.5s ease-out forwards',
+      background: '#0D0D0B', border: '0.5px solid #2A2A27', borderRadius: 10, padding: '14px 20px',
+      display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#EDEBE6',
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+      {toast}
+    </div>
+  )
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token, hydrated } = useAuth()
@@ -83,6 +110,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar activeSessions={0} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{children}</main>
       </div>
+      <Suspense fallback={null}>
+        <DashboardToast />
+      </Suspense>
     </DashboardProvider>
   )
 }

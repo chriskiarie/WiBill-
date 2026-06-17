@@ -1,10 +1,11 @@
 ﻿'use client'
 import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import OnboardingWizard from '@/components/OnboardingWizard'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-type Phase = 'register' | 'welcome' | 'loading'
+type Phase = 'register' | 'welcome' | 'loading' | 'wizard' | 'launching'
 
 const steps = [
   'Creating your account',
@@ -150,7 +151,8 @@ function JoinPageInner() {
     }
     await delay(400)
 
-    router.push('/onboarding')
+    // ── Wizard ──────────────────────────────────────────────────
+    setPhase('wizard')
   }, [ispName, ispSlug, adminEmail, password, confirmPassword, phone, token, router])
 
   if (!token) {
@@ -319,7 +321,7 @@ function JoinPageInner() {
           </div>
 
           <p style={{ fontSize: 18, fontWeight: 600, color: '#e0e0e0', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 28, letterSpacing: '0.02em' }}>
-            Preparing your space
+            Preparing your workspace...
           </p>
 
           <div style={{ width: 280, height: 3, background: '#1A1A18', borderRadius: 2, marginBottom: 40, overflow: 'hidden' }}>
@@ -360,9 +362,37 @@ function JoinPageInner() {
               marginTop: 40, animation: 'slide-up 0.5s ease-out forwards',
               fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, color: '#E8B84B', fontWeight: 600,
             }}>
-              Redirecting to your dashboard...
+              Preparing your workspace...
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── WIZARD ─── */}
+      {phase === 'wizard' && (
+        <OnboardingWizard
+          onComplete={() => {
+            setPhase('launching')
+            setTimeout(() => {
+              router.push('/dashboard?onboarded=true')
+            }, 800)
+          }}
+        />
+      )}
+
+      {/* ─── LAUNCHING (fade out before dashboard) ─── */}
+      {phase === 'launching' && (
+        <div style={{
+          position: 'fixed', inset: 0, background: '#000', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fade-out 0.5s ease-in forwards',
+        }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: 18, background: '#E8B84B',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 34, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
+          </div>
         </div>
       )}
     </div>
