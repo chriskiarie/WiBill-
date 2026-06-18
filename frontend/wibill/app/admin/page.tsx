@@ -12,32 +12,57 @@ const C = {
 };
 
 function money(n?: number) {
-  if (typeof n !== 'number' || Number.isNaN(n)) return '--';
+  if (typeof n !== 'number' || Number.isNaN(n)) return 'KES 0';
   return `KES ${new Intl.NumberFormat('en-KE').format(Math.round(n))}`;
 }
 
-function shortId(id: string, len = 10) {
-  return id && id.length > len ? `${id.slice(0, len)}…` : id || '—';
+function dateKey(d: Date) {
+  return d.toISOString().slice(0, 10);
 }
 
-function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function formatDayAbbr(date: Date) {
-  return date.toLocaleDateString('en-US', { weekday: 'short' });
-}
-
-function statusTone(status?: string) {
-  const s = (status || '').toLowerCase();
-  if (['completed', 'paid', 'success', 'active'].includes(s)) return 'good';
-  if (['pending', 'processing', 'sandbox'].includes(s)) return 'warn';
-  if (['failed', 'cancelled', 'error', 'expired'].includes(s)) return 'bad';
+function statusTone(s?: string) {
+  const st = (s || '').toLowerCase();
+  if (['completed', 'paid', 'success', 'active'].includes(st)) return 'good';
+  if (['pending', 'processing', 'sandbox'].includes(st)) return 'warn';
+  if (['failed', 'cancelled', 'error', 'expired'].includes(st)) return 'bad';
   return 'neutral';
 }
 
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const w = 80; const h = 24;
+  if (data.length < 2) return <div style={{ width: w, height: h }} />;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * (w - 4) + 2;
+    const y = h - 4 - ((v - min) / range) * (h - 8);
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function shortId(id: string, len = 10) {
+  return id && id.length > len ? `${id.slice(0, len)}\u2026` : id || '\u2014';
+}
+
+function formatTime(d: Date) {
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+function formatDateFull(d: Date) {
+  return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function AdminDashboard() {
-  const [time, setTime] = useState(new Date());
+  const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -46,9 +71,11 @@ export default function AdminDashboard() {
   const [isps, setIsps] = useState<any[]>([]);
   const [txns, setTxns] = useState<any[]>([]);
   const [syncedAt, setSyncedAt] = useState('');
+  const [allTxns, setAllTxns] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
 
   useEffect(() => {
-    const tick = () => setTime(new Date());
+    const tick = () => setNow(new Date());
     tick(); const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
@@ -68,7 +95,6 @@ export default function AdminDashboard() {
         f(`${API}/api/admin/tenants`),
       ]);
 
-      const now = new Date();
       const txnsList = Array.isArray(txnData?.value) ? txnData.value : Array.isArray(txnData) ? txnData : [];
       const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : Array.isArray(sessionData) ? sessionData : [];
       const ispList = Array.isArray(ispData?.value) ? ispData.value : Array.isArray(ispData) ? ispData : [];
@@ -80,9 +106,11 @@ export default function AdminDashboard() {
         total_isps: ispList.length,
       });
 
+      setAllTxns(txnsList);
+      setSessions(sessionsList);
       setTxns(txnsList.slice(0, 5));
       setIsps(ispList);
-      setSyncedAt(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+      setSyncedAt(formatTime(now));
 
       const byDay = new Map<string, number>();
       for (let i = 6; i >= 0; i--) {
@@ -96,33 +124,40 @@ export default function AdminDashboard() {
         if (!byDay.has(key)) return;
         byDay.set(key, (byDay.get(key) || 0) + Number(txn.amount_ksh || 0));
       });
-      setTrend([...byDay.entries()].map(([key, amount]) => ({ date: formatDayAbbr(new Date(`${key}T00:00:00`)), amount })));
+      setTrend([...byDay.entries()].map(([key, amount]) => {
+        const d = new Date(`${key}T00:00:00`);
+        return { date: `${DAYS[d.getDay()]} ${d.getDate()}`, amount };
+      }));
       setError('');
     } catch { setError('Dashboard stream unavailable.'); } finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  }, [now]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, []);
 
   const trendMax = useMemo(() => Math.max(...trend.map(p => p.amount), 1), [trend]);
+  const trendValues = useMemo(() => trend.map(p => p.amount), [trend]);
   const activeCount = isps.filter(i => i.is_active).length;
   const pendingCount = isps.filter(i => !i.is_active).length;
   const completedCount = txns.filter(t => statusTone(t.status) === 'good').length;
   const pendingTxns = txns.filter(t => statusTone(t.status) === 'warn').length;
   const failedCount = txns.filter(t => statusTone(t.status) === 'bad').length;
 
-  // Daily delta
-  const yesterdayRev = 0; // No baseline yet
-  const deltaClass = yesterdayRev > 0 ? (stats.revenue_today >= yesterdayRev ? 'up' : 'down') : 'flat';
-  const deltaText = yesterdayRev > 0 ? `${deltaClass === 'up' ? '↑' : '↓'} KES ${Math.abs(stats.revenue_today - yesterdayRev).toLocaleString()}` : 'No baseline yet';
+  const grossMonth = stats.revenue_month;
+  const platformCut = grossMonth * 0.10;
+  const ispPayout = grossMonth * 0.90;
+  const allCompleted = allTxns.filter(t => statusTone(t.status) === 'good').length;
+  const allFailed = allTxns.filter(t => statusTone(t.status) === 'bad').length;
+  const voucherCount = allTxns.filter((t: any) => (t.package_name || '').toLowerCase().includes('voucher')).length;
 
-  const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  const dateStr = time.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const monthLabel = MONTHS[now.getMonth()];
+  const yearLabel = now.getFullYear();
 
   const systemNodes = [
-    { label: 'API Gateway', value: 'ONLINE', tone: 'good' },
-    { label: 'Database', value: 'ONLINE', tone: 'good' },
-    { label: 'M-Pesa', value: 'SANDBOX', tone: 'warn' },
-    { label: 'MikroTik', value: 'NOT CONFIGURED', tone: 'neutral' },
+    { label: 'API Gateway', value: 'ONLINE', tone: 'good' as const },
+    { label: 'Database', value: 'ONLINE', tone: 'good' as const },
+    { label: 'M-Pesa', value: 'SANDBOX', tone: 'warn' as const },
+    { label: 'MikroTik', value: 'NOT CONFIGURED', tone: 'neutral' as const },
+    { label: 'Captive Portal', value: 'ACTIVE', tone: 'good' as const },
   ];
 
   const toneColor: Record<string, string> = { good: C.green, warn: C.gold, bad: C.red, neutral: C.faint };
@@ -134,7 +169,7 @@ export default function AdminDashboard() {
   });
 
   if (loading && !stats.revenue_today && !txns.length) {
-    return (
+    const skeleton = (
       <div style={{ padding: '28px 32px', maxWidth: 1440, minHeight: '100%' }}>
         <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -153,6 +188,12 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+            <div style={skel('120px', 11, 0.05)} />
+            <div style={{ ...skel('100%', 36, 0.1), marginTop: 12 }} />
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, marginBottom: 20 }}>
           <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
             <div style={skel('140px', 11, 0.1)} />
@@ -167,8 +208,8 @@ export default function AdminDashboard() {
           </div>
           <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
             <div style={skel('100px', 11, 0.2)} />
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 4 ? `0.5px solid ${C.line}` : 'none' }}>
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 5 ? `0.5px solid ${C.line}` : 'none' }}>
                 <div style={skel('100px', 13, 0.2 + i * 0.05)} />
                 <div style={skel('60px', 11, 0.2 + i * 0.08)} />
               </div>
@@ -190,19 +231,35 @@ export default function AdminDashboard() {
         </div>
       </div>
     );
+    return skeleton;
   }
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1440, minHeight: '100%' }}>
-      {/* Page title section */}
+    <div style={{ padding: '28px 32px', maxWidth: 1440, minHeight: '100%', fontFamily: 'Inter, sans-serif' }}>
+      <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
+
+      {/* ── HEADER ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ margin: 0, fontFamily: '"Space Grotesk", sans-serif', fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: '-0.02em' }}>CONTROL ROOM</h1>
-          <p style={{ margin: '4px 0 0', fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.mute }}>{dateStr}</p>
+          <h1 style={{ margin: 0, fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700, color: C.text, letterSpacing: '-0.02em' }}>
+            Batcave Dashboard
+          </h1>
+          <p style={{ margin: '4px 0 0', fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.mute }}>
+            {formatDateFull(now)}
+            <span style={{ marginLeft: 12, fontFamily: '"DM Mono", monospace', fontSize: 12, color: C.faint }}>
+              {formatTime(now)}
+            </span>
+          </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.faint }}>Last synced {syncedAt}</span>
-          <button onClick={load} disabled={refreshing} style={{ background: 'none', border: 'none', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.faint, padding: 0, display: 'flex', animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.faint }}>
+            synced {formatTime(new Date())}
+          </span>
+          <button onClick={load} disabled={refreshing} style={{
+            background: 'none', border: 'none', cursor: refreshing ? 'not-allowed' : 'pointer',
+            color: C.faint, padding: 0, display: 'flex',
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
             <RefreshCw size={12} />
           </button>
         </div>
@@ -213,110 +270,193 @@ export default function AdminDashboard() {
         <div style={{ marginBottom: 20, padding: '10px 14px', borderRadius: 8, border: `0.5px solid ${C.red}`, background: `${C.red}10`, color: C.red, fontFamily: 'Inter, sans-serif', fontSize: 12 }}>{error}</div>
       )}
 
-      {/* ── STAT CARDS ── */}
+      {/* ── KPI CARDS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        {/* KES Collected Today */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>KES Collected Today</div>
-          <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 32, fontWeight: 500, color: C.gold, marginBottom: 4 }}>
-            {loading ? '...' : money(stats.revenue_today)}
+        {[
+          {
+            label: 'KES Collected Today',
+            value: stats.revenue_today,
+            display: money(stats.revenue_today),
+            trend: trendValues,
+            color: C.gold,
+          },
+          {
+            label: 'Monthly Revenue',
+            value: stats.revenue_month,
+            display: money(stats.revenue_month),
+            sub: `${monthLabel} ${yearLabel}`,
+            trend: trendValues,
+            color: C.text,
+          },
+          {
+            label: 'Active Sessions',
+            value: stats.active_sessions,
+            display: String(stats.active_sessions),
+            sub: `across ${activeCount} ISP${activeCount !== 1 ? 's' : ''}`,
+            trend: [],
+            color: C.text,
+          },
+          {
+            label: 'Active ISPs',
+            value: activeCount,
+            display: `${activeCount} / ${stats.total_isps}`,
+            sub: `${pendingCount} pending`,
+            trend: [],
+            color: C.text,
+          },
+        ].map((card, i) => (
+          <div key={card.label} style={{
+            background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 16,
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+              letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8,
+            }}>{card.label}</div>
+            <div style={{
+              fontFamily: '"DM Mono", monospace', fontSize: i === 1 ? 26 : 30, fontWeight: 500,
+              color: card.color, marginBottom: 4, lineHeight: 1.1,
+            }}>{card.display}</div>
+            {card.sub && (
+              <div style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute, marginBottom: 8,
+              }}>{card.sub}</div>
+            )}
+            <div style={{ marginTop: 'auto' }}>
+              {card.trend.length >= 2 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sparkline data={card.trend} color={C.gold} />
+                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.faint }}>
+                    7d
+                  </span>
+                </div>
+              ) : (
+                <div style={{ height: 24 }} />
+              )}
+            </div>
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute }}>
-            {deltaClass === 'up' ? <span style={{ color: C.green }}>{deltaText}</span> : deltaClass === 'down' ? <span style={{ color: C.red }}>{deltaText}</span> : deltaText}
-          </div>
-        </div>
-        {/* Monthly Revenue */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Monthly Revenue</div>
-          <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 28, fontWeight: 500, color: C.text, marginBottom: 4 }}>
-            {loading ? '...' : money(stats.revenue_month)}
-          </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute }}>across {isps.length} ISP partner{isps.length !== 1 ? 's' : ''}</div>
-        </div>
-        {/* Active Sessions */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Active Sessions</div>
-          <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 32, fontWeight: 500, color: C.text, marginBottom: 4 }}>
-            {loading ? '...' : stats.active_sessions}
-          </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute }}>across {activeCount} ISP{activeCount !== 1 ? 's' : ''} right now</div>
-        </div>
-        {/* Active ISPs */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Active ISPs</div>
-          <div style={{ fontFamily: '"DM Mono", monospace', fontSize: 28, fontWeight: 500, color: C.text, marginBottom: 4 }}>
-            <span>{activeCount}</span><span style={{ color: C.faint }}> / </span><span>{stats.total_isps}</span>
-          </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute }}>{pendingCount} pending approval</div>
+        ))}
+      </div>
+
+      {/* ── MONTH P&L STRIP ── */}
+      <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
+        <div style={{
+          fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+          letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14,
+        }}>Month P&L &middot; {monthLabel} {yearLabel}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16 }}>
+          {[
+            { label: 'Gross Revenue', value: money(grossMonth), color: C.text },
+            { label: 'Platform Cut (10%)', value: money(platformCut), color: C.gold },
+            { label: 'ISP Payouts (90%)', value: money(ispPayout), color: C.green },
+            { label: 'Completed Txns', value: String(allCompleted), color: C.green },
+            { label: 'Failed Txns', value: String(allFailed), color: C.red },
+            { label: 'Vouchers Issued', value: voucherCount > 0 ? String(voucherCount) : '\u2014', color: C.text },
+          ].map(item => (
+            <div key={item.label}>
+              <div style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, color: C.mute,
+                letterSpacing: '0.04em', marginBottom: 4,
+              }}>{item.label}</div>
+              <div style={{
+                fontFamily: '"DM Mono", monospace', fontSize: 18, fontWeight: 500, color: item.color,
+              }}>{item.value}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── SECOND ROW ── */}
+      {/* ── SECOND ROW: Revenue Chart + System Nodes ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12, marginBottom: 20 }}>
         {/* Revenue Contour */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Revenue Contour</div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute, marginBottom: 16 }}>7-day collection from real transactions</div>
-
-          {/* Bar chart */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, alignItems: 'end', minHeight: 180, marginBottom: 16 }}>
-            {trend.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160, border: `0.5px dashed ${C.faint}`, borderRadius: 6, color: C.faint, fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
-                Awaiting transaction data.
-              </div>
-            ) : (
-              trend.map((point, i) => {
-                const isToday = i === trend.length - 1;
-                const height = Math.max((point.amount / trendMax) * 100, 6);
-                return (
-                  <div key={point.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: '100%', height: 150, display: 'flex', alignItems: 'end', justifyContent: 'center' }}>
-                      <div style={{
-                        width: '100%', maxWidth: 32, height: `${height}%`, minHeight: 6,
-                        borderRadius: 4, background: isToday ? C.gold : C.line,
-                      }} />
-                    </div>
-                    <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.mute }}>{point.date}</span>
-                  </div>
-                );
-              })
-            )}
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+          <div style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2,
+          }}>Revenue Contour</div>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.mute, marginBottom: 16 }}>
+            7-day collection from real transactions
           </div>
 
-          {/* Completed / Pending / Failed */}
-          <div style={{ display: 'flex', gap: 16, fontFamily: '"DM Mono", monospace', fontSize: 12 }}>
+          {/* Y-axis labels + chart */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 180, paddingBottom: 24 }}>
+              {[4, 3, 2, 1, 0].map(i => (
+                <span key={i} style={{ fontFamily: '"DM Mono", monospace', fontSize: 9, color: C.faint, textAlign: 'right' }}>
+                  {money(trendMax * i / 4)}
+                </span>
+              ))}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, alignItems: 'end', minHeight: 180 }}>
+                {trend.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 160, border: `0.5px dashed ${C.faint}`, borderRadius: 6, color: C.faint, fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
+                    Awaiting transaction data.
+                  </div>
+                ) : (
+                  trend.map((point, i) => {
+                    const isToday = i === trend.length - 1;
+                    const height = Math.max((point.amount / trendMax) * 180, 6);
+                    return (
+                      <div key={point.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 6, height: 180 }}>
+                        <div style={{
+                          width: '100%', maxWidth: 36, height, minHeight: 6,
+                          borderRadius: 4, background: isToday ? C.gold : C.line,
+                          transition: 'height 400ms ease',
+                        }} />
+                        <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.mute, whiteSpace: 'nowrap' }}>{point.date}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Transaction summary */}
+          <div style={{ display: 'flex', gap: 16, fontFamily: '"DM Mono", monospace', fontSize: 12, paddingTop: 12, borderTop: `0.5px solid ${C.line}` }}>
             <span>Completed: <span style={{ color: C.green }}>{completedCount}</span></span>
-            <span style={{ color: C.faint }}>·</span>
+            <span style={{ color: C.faint }}>&middot;</span>
             <span>Pending: <span style={{ color: C.gold }}>{pendingTxns}</span></span>
-            <span style={{ color: C.faint }}>·</span>
+            <span style={{ color: C.faint }}>&middot;</span>
             <span>Failed: <span style={{ color: C.red }}>{failedCount}</span></span>
           </div>
         </div>
 
         {/* System Nodes */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>System Nodes</div>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+          <div style={{
+            fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12,
+          }}>System Nodes</div>
 
           {systemNodes.map((node, i) => (
             <div key={node.label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              height: 36, borderBottom: i < systemNodes.length - 1 ? `0.5px solid ${C.line}` : 'none',
+              height: 34, borderBottom: i < systemNodes.length - 1 ? `0.5px solid ${C.line}` : 'none',
             }}>
               <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.text }}>{node.label}</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: toneColor[node.tone] }}>
-                {node.value}
-              </span>
+              <span style={{
+                fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 600,
+                letterSpacing: '0.08em', color: toneColor[node.tone],
+              }}>{node.value}</span>
             </div>
           ))}
 
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${C.line}` }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Network Summary</div>
+            <div style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: C.dim,
+              letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8,
+            }}>Network Summary</div>
             {[
               { label: 'Configured ISPs', value: String(stats.total_isps) },
               { label: 'Live Sessions', value: String(stats.active_sessions) },
               { label: 'Platform Mode', value: 'Operational', valueColor: C.gold },
-            ].map((row, i) => (
-              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 28, fontFamily: 'Inter, sans-serif', fontSize: 12 }}>
+            ].map((row) => (
+              <div key={row.label} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                height: 28, fontFamily: 'Inter, sans-serif', fontSize: 12,
+              }}>
                 <span style={{ color: C.mute }}>{row.label}</span>
                 <span style={{ fontFamily: '"DM Mono", monospace', color: (row as any).valueColor || C.dim }}>{row.value}</span>
               </div>
@@ -328,18 +468,23 @@ export default function AdminDashboard() {
       {/* ── THIRD ROW ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         {/* Recent Transactions */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Recent Transactions</span>
-            <Link href="/admin/transactions" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all →</Link>
+            <span style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>Recent Transactions</span>
+            <Link href="/admin/transactions" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all &rarr;</Link>
           </div>
 
           {txns.length === 0 ? (
             <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.faint, textAlign: 'center', padding: '32px 0' }}>No transactions recorded yet</div>
           ) : (
-            <div>
-              {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr', gap: 12, padding: '0 0 8px', borderBottom: `0.5px solid ${C.line}` }}>
+            <>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr', gap: 12,
+                padding: '0 0 8px', borderBottom: `0.5px solid ${C.line}`,
+              }}>
                 {['RECEIPT', 'AMOUNT', 'STATUS'].map(h => (
                   <div key={h} style={{ fontFamily: 'Inter, sans-serif', fontSize: 9, fontWeight: 700, color: C.faint, letterSpacing: '0.1em' }}>{h}</div>
                 ))}
@@ -360,17 +505,20 @@ export default function AdminDashboard() {
                 );
               })}
               <div style={{ marginTop: 8 }}>
-                <Link href="/admin/transactions" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all in Transactions →</Link>
+                <Link href="/admin/transactions" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all in Transactions &rarr;</Link>
               </div>
-            </div>
+            </>
           )}
         </div>
 
         {/* ISP Network Snapshot */}
-        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim, letterSpacing: '0.08em', textTransform: 'uppercase' }}>ISP Network Snapshot</span>
-            <Link href="/admin/isps" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all →</Link>
+            <span style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>ISP Network Snapshot</span>
+            <Link href="/admin/isps" style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: C.gold, textDecoration: 'none' }}>View all &rarr;</Link>
           </div>
 
           {isps.length === 0 ? (
