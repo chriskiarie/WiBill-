@@ -4,12 +4,18 @@ Real librouteros implementation for hotspot user management.
 """
 
 import asyncio
+import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional
 import logging
 
 from librouteros import connect
 from librouteros.exceptions import TrapError, MultiTrapError, LibRouterosError, ConnectionClosed
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.models.mikrotik_config import MikrotikConfig
+from app.services.crypto_service import decrypt
 
 logger = logging.getLogger("honestbill.mikrotik")
 
@@ -35,6 +41,16 @@ def _parse_uptime(uptime_str: str) -> int:
     if mins:  total += int(mins.group(1)) * 60
     if secs:  total += int(secs.group(1))
     return total
+
+
+async def _get_config(tenant_id: str, db: AsyncSession) -> Optional[MikrotikConfig]:
+    """Fetch MikroTik config for a tenant from DB."""
+    result = await db.execute(
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == uuid.UUID(tenant_id)
+        )
+    )
+    return result.scalar_one_or_none()
 
 
 async def test_connection(host: str, port: int, username: str, password: str) -> tuple[bool, str, dict]:
@@ -356,27 +372,65 @@ async def get_router_stats(
         return {}
 
 
-# ── Backward compatibility aliases ─────────────────────────────────────────
-# These maintain the old function signatures for code that hasn't been
-# fully refactored yet (sessions.py /activate endpoint).
+# ── Tenant-aware wrappers (read config from DB) ──────────────────────────
 
 async def create_mikrotik_user(
-    tenant_id: str,
+    tenant_id: str | uuid.UUID,
     session_id: str,
     mac_address: str,
     ip_address: str,
     username: str,
     password: str,
     expires_at: datetime,
-    db=None,
+    db: AsyncSession,
 ) -> Dict[str, Any]:
     """
-    Legacy wrapper. The real provisioning now happens in _handle_session_paid().
-    This stub logs and returns success for any callers still using the old path.
+    Create a hotspot user on the MikroTik router using the tenant's saved config.
+    Reads MikrotikConfig from DB by tenant_id.
+
+    This is the DB-aware wrapper used by sessions.py (manual activate endpoint).
+    The M-Pesa callback path uses create_hotspot_user() directly in _handle_session_paid().
     """
-    logger.info(f"create_mikrotik_user (legacy) called for session {session_id}, mac={mac_address}")
-    return {
-        "success": True,
-        "user_id": f"legacy_{session_id[:8]}",
-        "message": f"Provisioning delegated to payment callback for {mac_address}",
-    }
+    config = await _get_config(str(tenant_id) if not isinstance(tenant_id, str) else tenant_id, db)
+    if not config:
+        logger.warning(f"No MikroTik config for tenant {tenant_id} — cannot provision router")
+        return {"success": False, "message": "MikroTik not configured for this ISP", "user_id": None}
+
+    # Compute duration in minutes from expires_at
+    remaining = (expires_at - datetime.utcnow()).total_seconds()
+    duration_minutes = max(1, int(remaining / 60))
+
+    try:
+        api = await _connect_async(
+            host=config.router_ip,
+            port=config.api_port,
+            username=config.api_username,
+            password=decrypt(config.api_password_enc),
+        )
+
+        params = {
+            "=name": username,
+            "=password": password,
+            "=mac-address": mac_address.upper(),
+            "=profile": config.hotspot_profile_name or "XwB_Profile",
+            "=comment": f"wibill-{session_id[:8]}",
+            "=limit-uptime": f"{duration_minutes}m",
+            "=disabled": "no",
+        }
+
+        result = list(api("/ip/hotspot/user/add", **params))
+        api.close()
+
+        router_id = result[0].get(".id") if result else None
+        logger.info(f"MikroTik user {username} created for session {session_id[:8]}, id={router_id}")
+        return {"success": True, "user_id": router_id, "username": username, "message": "User created on router"}
+    except TrapError as e:
+        msg = str(e).lower()
+        if "already exist" in msg or "already have such entry" in msg:
+            logger.info(f"User {username} already exists on router (session {session_id[:8]})")
+            return {"success": True, "user_id": None, "message": "User already exists"}
+        logger.error(f"TrapError creating {username}: {e}")
+        return {"success": False, "user_id": None, "message": f"Router error: {e}"}
+    except Exception as e:
+        logger.error(f"create_mikrotik_user failed for {username}: {e}")
+        return {"success": False, "user_id": None, "message": str(e)}

@@ -153,6 +153,7 @@ async def update_mikrotik_config(
 # TEST & HEALTH ENDPOINTS
 # ============================================================================
 
+@router.get("/test")
 @router.post("/test")
 async def test_mikrotik_connection(
     db: AsyncSession = Depends(get_db),
