@@ -334,7 +334,7 @@ async def get_active_users(
             for a in active
         ]
     except Exception as e:
-        logger.error(f"get_active_users failed: {e}")
+        logger.warning(f"get_active_users failed: {e}")
         return []
 
 
@@ -368,7 +368,7 @@ async def get_router_stats(
             "active_users_count": len(active),
         }
     except Exception as e:
-        logger.error(f"get_router_stats failed: {e}")
+        logger.warning(f"get_router_stats failed: {e}")
         return {}
 
 
