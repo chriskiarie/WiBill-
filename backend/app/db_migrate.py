@@ -221,6 +221,10 @@ MIGRATIONS = [
     ("mpesa_configs.tenant_id_nullable", """
         ALTER TABLE mpesa_configs ALTER COLUMN tenant_id DROP NOT NULL
     """),
+    # ── Fix network_events.status from ENUM to VARCHAR ──────────────────────────
+    ("network_events.status to varchar", """
+        ALTER TABLE network_events ALTER COLUMN status TYPE VARCHAR(20)
+    """),
 ]
 
 async def run_migrations():
