@@ -14,6 +14,12 @@ from app.models.tenant import Tenant
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
 from app.services.session_service import create_session, activate_session
+from app.services.mikrotik_service import create_hotspot_user
+from app.models.mikrotik_config import MikrotikConfig
+from app.services.crypto_service import decrypt
+import logging
+
+logger = logging.getLogger("honestbill.vouchers")
 
 router = APIRouter(tags=["vouchers"])
 
@@ -395,7 +401,41 @@ async def redeem_voucher_portal(
             db=db,
         )
 
-        await activate_session(session_id=str(session.id), db=db)
+        session = await activate_session(session_id=str(session.id), db=db)
+
+        # Provision MikroTik user if router is configured (mirrors mpesa_service.py _handle_session_paid)
+        try:
+            mk_result = await db.execute(
+                select(MikrotikConfig).where(MikrotikConfig.tenant_id == voucher.tenant_id)
+            )
+            mk_cfg = mk_result.scalar_one_or_none()
+
+            if mk_cfg:
+                api_password = decrypt(mk_cfg.api_password_enc)
+                duration_m = int(duration.total_seconds() / 60)
+
+                mk_result = await create_hotspot_user(
+                    host=mk_cfg.router_ip,
+                    port=mk_cfg.api_port,
+                    username=mk_cfg.api_username,
+                    password=api_password,
+                    mac_address=session.mac_address,
+                    duration_minutes=duration_m,
+                    session_id=str(session.id),
+                    profile_name=mk_cfg.hotspot_profile_name or "XwB_Profile",
+                    speed_limit_kbps=getattr(package, 'speed_limit_kbps', None) if package else None,
+                )
+
+                if mk_result.get("success"):
+                    session.mikrotik_user_id = mk_result.get("user_id")
+                    logger.info(f"MikroTik provisioned for voucher session {session.id}: {mk_result['user_id']}")
+                else:
+                    logger.warning(f"MikroTik provisioning failed for voucher session {session.id}: {mk_result['message']}")
+            else:
+                logger.info(f"No MikroTik config for tenant {voucher.tenant_id}, skipping provisioning")
+
+        except Exception as e:
+            logger.error(f"MikroTik provisioning error for voucher session {session.id}: {e}")
 
         voucher.status = "used"
         voucher.used_at = now
