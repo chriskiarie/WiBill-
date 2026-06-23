@@ -259,7 +259,7 @@ async def pay_platform_invoice(
         db.add(platform_cfg)
         await db.flush()
 
-    callback_url = settings.MPESA_CALLBACK_URL or "https://pay.honestbill.co.ke/api/mpesa/callback"
+    callback_url = settings.MPESA_CALLBACK_URL or f"{settings.PUBLIC_BACKEND_URL}/api/mpesa/callback"
 
     txn = MpesaTransaction(
         id=uuid.uuid4(),

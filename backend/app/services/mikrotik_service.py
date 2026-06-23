@@ -372,6 +372,49 @@ async def get_router_stats(
         return {}
 
 
+async def add_walled_garden_entry(
+    host: str, port: int, username: str, password: str,
+    dst_host: str,
+) -> Dict[str, Any]:
+    """
+    Add a walled-garden entry allowing unauthenticated access to dst_host.
+    This is required so the captive portal (served from the cloud) is reachable
+    before the user authenticates with the hotspot.
+
+    Idempotent: checks for an existing matching entry before adding.
+    Returns: {"success": bool, "message": str}
+    """
+    try:
+        api = await _connect_async(host, port, username, password)
+
+        existing = list(api('/ip/hotspot/walled-garden/print', **{'?dst-host': dst_host}))
+        if existing:
+            api.close()
+            logger.info(f"Walled-garden entry for {dst_host} already exists")
+            return {"success": True, "message": f"Walled-garden entry for {dst_host} already exists"}
+
+        api('/ip/hotspot/walled-garden/add', **{
+            'dst-host': dst_host,
+            'action': 'allow',
+            'comment': 'WiBill portal access',
+        })
+        api.close()
+
+        logger.info(f"Walled-garden entry added for {dst_host}")
+        return {"success": True, "message": f"Walled-garden entry added for {dst_host}"}
+
+    except TrapError as e:
+        msg = str(e).lower()
+        if "already" in msg or "duplicate" in msg:
+            logger.info(f"Walled-garden entry for {dst_host} already exists (TrapError)")
+            return {"success": True, "message": f"Entry for {dst_host} already exists"}
+        logger.error(f"TrapError adding walled-garden entry for {dst_host}: {e}")
+        return {"success": False, "message": f"Router error: {e}"}
+    except Exception as e:
+        logger.error(f"add_walled_garden_entry failed for {dst_host}: {e}")
+        return {"success": False, "message": str(e)}
+
+
 # ── Tenant-aware wrappers (read config from DB) ──────────────────────────
 
 async def create_mikrotik_user(

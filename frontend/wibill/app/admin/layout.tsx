@@ -8,6 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const NAV_OPERATIONS = [
   { href: '/admin', label: 'Dashboard', exact: true },
+  { href: '/admin/operations', label: 'Operations Center' },
   { href: '/admin/isps', label: 'ISP Network' },
   { href: '/admin/billing', label: 'Billing' },
   { href: '/admin/transactions', label: 'Transactions' },
@@ -26,6 +27,7 @@ const NAV_SYSTEM = [
 
 const pageNames: Record<string, string> = {
   '/admin': 'Dashboard',
+  '/admin/operations': 'Operations Center',
   '/admin/isps': 'ISP Network',
   '/admin/billing': 'Billing',
   '/admin/transactions': 'Transactions',
