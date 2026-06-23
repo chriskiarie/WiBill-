@@ -48,13 +48,6 @@ class Settings(BaseSettings):
     STK_PUSH_RATE_LIMIT_SECONDS: int = 30
     PAYMENT_ATTEMPTS_PER_HOUR: int = 3
 
-    # ── Public Portal Base URL ─────────────────────────
-    # Used by login.html generator and walled-garden configuration.
-    # Each tenant's portal lives at {PUBLIC_BACKEND_URL}/portal/{slug}.
-    # REQUIRED (no default) — app WILL fail to start if this is not set.
-    # Set it in .env or Railway dashboard for the environment.
-    PUBLIC_BACKEND_URL: str
-
     # ── Network Polling ───────────────────────────────
     NETWORK_POLL_INTERVAL_SECONDS: int = 60
     NETWORK_OUTAGE_THRESHOLD: int = 3  # consecutive failures before marking DOWN

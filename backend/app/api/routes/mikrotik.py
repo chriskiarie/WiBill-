@@ -24,9 +24,7 @@ from app.services.mikrotik_service import (
     get_active_users as get_router_active_users,
     get_router_stats,
     remove_hotspot_user_by_mac,
-    add_walled_garden_entry,
 )
-from app.core.config import settings
 
 router = APIRouter(prefix="/mikrotik", tags=["mikrotik"])
 logger = logging.getLogger("honestbill.mikrotik")
@@ -345,81 +343,6 @@ async def disconnect_mikrotik_user(
 
 
 # ============================================================================
-# LOGIN.HTML GENERATOR
-# ============================================================================
-
-@router.get("/login-html")
-async def generate_login_html(
-    db: AsyncSession = Depends(get_db),
-    current_user: AdminUser = Depends(require_isp_admin),
-):
-    """Generate a login.html file to upload to the MikroTik router's hotspot directory.
-
-    This file redirects the user's browser to the WiBill cloud portal with
-    RouterOS template variables (mac, ip, link-login-only, error, username)
-    URL-encoded via JavaScript on the client side.
-
-    The ISP must upload this file to the router's hotspot directory
-    (typically /hotspot/login.html) via FTP or WinBox File Manager.
-    """
-    from app.models.tenant import Tenant
-    tenant_result = await db.execute(
-        select(Tenant).where(Tenant.id == current_user.tenant_id)
-    )
-    tenant = tenant_result.scalar_one_or_none()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-
-    slug = tenant.slug
-    portal_base = settings.PUBLIC_BACKEND_URL.rstrip("/")
-
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Redirecting to {tenant.name} Portal...</title>
-<style>
-  body {{ font-family: system-ui, sans-serif; background: #030303; color: #f0f0f0;
-         display: flex; align-items: center; justify-content: center;
-         min-height: 100vh; margin: 0; text-align: center; }}
-  .spinner {{ width: 32px; height: 32px; border: 4px solid #2a2a2a;
-              border-top-color: #E8B84B; border-radius: 50%; animation: spin .8s linear infinite;
-              margin: 0 auto 16px; }}
-  @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-</style>
-</head>
-<body>
-<div>
-  <div class="spinner"></div>
-  <p>Loading {tenant.name} portal...</p>
-</div>
-<script>
-  (function() {{
-    var params = new URLSearchParams();
-    params.set('mac', '$(mac)');
-    params.set('ip', '$(ip)');
-    params.set('link_login_only', '$(link-login-only)');
-    params.set('error', '$(error)');
-    params.set('username', '$(username)');
-    window.location.replace('{portal_base}/portal/{slug}?' + params.toString());
-  }})();
-</script>
-</body>
-</html>"""
-
-    from fastapi.responses import Response
-    return Response(
-        content=html,
-        media_type="text/html",
-        headers={
-            "Content-Disposition": f'attachment; filename="login.html"',
-            "Content-Type": "text/html; charset=utf-8",
-        },
-    )
-
-
-# ============================================================================
 # INITIALIZATION SCRIPT GENERATOR
 # ============================================================================
 
@@ -445,7 +368,6 @@ async def generate_init_script(
 
     from datetime import date
     today = date.today().isoformat()
-    portal_base = settings.PUBLIC_BACKEND_URL.rstrip("/")
 
     script = f"""# ════════════════════════════════════════════════════════════════════════════
 # WIBILL AUTOMATED MIKROTIK CONFIGURATION SCRIPT
@@ -470,19 +392,7 @@ async def generate_init_script(
 /ip hotspot add name="XwB_Hotspot" interface=ether5 \\
   profile="{cfg.hotspot_profile_name or "XwB_Profile"}" disabled=no
 
-# ── Step 5: Add walled-garden entry for cloud portal access ──
-# Ensures the captive portal (hosted at {portal_base}) is reachable
-# BEFORE the user authenticates with the hotspot.
-:if ([/ip hotspot walled-garden print count-only where comment="WiBill portal access"] = 0) do={{
-  /ip hotspot walled-garden add dst-host={portal_base.replace("https://", "").replace("http://", "")} action=allow comment="WiBill portal access"
-}}
-
-# ── Step 6: Optional - Upload login.html to router ──
-# 1. Download the login.html file from Dashboard → MikroTik → Download login.html
-# 2. Connect via FTP/WinBox and upload it to the hotspot directory
-# 3. The file will redirect users to your branded portal on login
-
-# ── Step 7: Optional - Disable unused services ──
+# ── Step 5: Optional - Disable unused services ──
 /ip service set telnet disabled=yes
 /ip service set ftp disabled=yes
 
