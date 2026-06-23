@@ -20,7 +20,12 @@ from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.isp_invite import ISPInvite, InviteStatus
 from app.models.audit_log import AuditLog
+from app.models.mpesa_config import MpesaConfig, DarajaEnvironment
+from app.models.mikrotik_config import MikrotikConfig
+from app.models.mpesa_transaction import MpesaTransaction
 from app.api.routes.auth import get_current_user, require_platform_admin
+from app.services.crypto_service import encrypt, decrypt
+from app.services.daraja_service import get_access_token
 
 
 class CommissionUpdate(BaseModel):
@@ -398,3 +403,211 @@ async def update_tenant_commission(
     await db.refresh(tenant)
 
     return {"id": str(tenant.id), "commission_rate": float(tenant.commission_rate)}
+
+
+# ── Platform M-Pesa Config ─────────────────────────────────────────────
+
+class PlatformMpesaConfigResponse(BaseModel):
+    environment: str = "sandbox"
+    consumer_key: str = ""
+    consumer_secret: str = ""  # masked
+    shortcode: str = ""
+    passkey: str = ""  # masked
+    account_reference: str = ""
+    payout_phone: str = ""
+    payout_account_name: str = ""
+    is_configured: bool = False
+
+
+class PlatformMpesaConfigSave(BaseModel):
+    environment: str = "sandbox"
+    consumer_key: str = ""
+    consumer_secret: str = ""
+    shortcode: str = ""
+    passkey: str = ""
+    account_reference: str = "HonestBill Platform"
+    payout_phone: str = ""
+    payout_account_name: str = "HonestBill Platform"
+
+
+@router.get("/admin/mpesa-config")
+async def get_platform_mpesa_config(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return platform-level M-Pesa config (tenant_id IS NULL)."""
+    stmt = select(MpesaConfig).where(MpesaConfig.tenant_id.is_(None))
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+    if not config:
+        return PlatformMpesaConfigResponse()
+
+    return PlatformMpesaConfigResponse(
+        environment=config.environment.value if hasattr(config.environment, 'value') else str(config.environment),
+        consumer_key=decrypt(config.consumer_key_enc) if config.consumer_key_enc else "",
+        consumer_secret="********" if config.consumer_secret_enc else "",
+        shortcode=config.shortcode or "",
+        passkey="********" if config.passkey_enc else "",
+        account_reference=config.account_reference or "",
+        payout_phone=config.payout_phone or "",
+        payout_account_name=config.payout_account_name or "",
+        is_configured=True,
+    )
+
+
+@router.post("/admin/mpesa-config")
+async def save_platform_mpesa_config(
+    body: PlatformMpesaConfigSave,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save platform-level M-Pesa config (tenant_id IS NULL)."""
+    env_val = body.environment
+    try:
+        env_enum = DarajaEnvironment(env_val)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid environment: {env_val}")
+
+    stmt = select(MpesaConfig).where(MpesaConfig.tenant_id.is_(None))
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+
+    if config:
+        if body.consumer_key:
+            config.consumer_key_enc = encrypt(body.consumer_key)
+        if body.consumer_secret:
+            config.consumer_secret_enc = encrypt(body.consumer_secret)
+        if body.passkey:
+            config.passkey_enc = encrypt(body.passkey)
+        config.shortcode = body.shortcode or config.shortcode
+        config.account_reference = body.account_reference or config.account_reference
+        config.payout_phone = body.payout_phone or config.payout_phone
+        config.payout_account_name = body.payout_account_name or config.payout_account_name
+        config.environment = env_enum
+        config.status = "configured"
+        config.is_verified = False
+    else:
+        config = MpesaConfig(
+            id=uuid.uuid4(),
+            tenant_id=None,
+            consumer_key_enc=encrypt(body.consumer_key) if body.consumer_key else "",
+            consumer_secret_enc=encrypt(body.consumer_secret) if body.consumer_secret else "",
+            shortcode=body.shortcode or "",
+            passkey_enc=encrypt(body.passkey) if body.passkey else "",
+            account_reference=body.account_reference or "HonestBill Platform",
+            payout_phone=body.payout_phone or "",
+            payout_account_name=body.payout_account_name or "HonestBill Platform",
+            environment=env_enum,
+            status="configured",
+            is_active=True,
+            is_verified=False,
+        )
+        db.add(config)
+
+    await db.commit()
+    await db.refresh(config)
+    await log_action(db, current_user, 'update_mpesa_config', 'system', 'platform',
+                     {"environment": body.environment})
+    return {"status": "ok", "message": "Platform M-Pesa config saved"}
+
+
+class MpesaTestResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@router.post("/admin/mpesa-config/test")
+async def test_platform_mpesa(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Test platform M-Pesa by fetching an access token from Daraja."""
+    stmt = select(MpesaConfig).where(MpesaConfig.tenant_id.is_(None))
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=404, detail="No platform M-Pesa config found")
+
+    try:
+        ck = decrypt(config.consumer_key_enc)
+        cs = decrypt(config.consumer_secret_enc)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to decrypt credentials")
+
+    if not ck or not cs:
+        raise HTTPException(status_code=400, detail="Consumer key or secret not configured")
+
+    try:
+        token = await get_access_token(ck, cs)
+        if token:
+            config.is_verified = True
+            db.add(config)
+            await db.commit()
+            return MpesaTestResponse(success=True, message="M-Pesa connection successful")
+        return MpesaTestResponse(success=False, message="Got empty token response")
+    except Exception as e:
+        config.is_verified = False
+        db.add(config)
+        await db.commit()
+        return MpesaTestResponse(success=False, message=f"Connection failed: {str(e)}")
+
+
+# ── Admin MikroTik Router Status ──────────────────────────────────────
+
+@router.get("/admin/mikrotik-routers")
+async def list_all_router_statuses(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all ISP MikroTik routers with status."""
+    stmt = (
+        select(MikrotikConfig, Tenant)
+        .join(Tenant, MikrotikConfig.tenant_id == Tenant.id)
+        .order_by(Tenant.name)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    return [
+        {
+            "tenant_id": str(mc.tenant_id),
+            "tenant_name": t.name,
+            "host": mc.host or "",
+            "port": mc.port or 0,
+            "status": mc.status.value if hasattr(mc.status, 'value') else str(mc.status),
+            "last_error": mc.last_error_message or "",
+            "last_checked": mc.last_checked_at.isoformat() if mc.last_checked_at else None,
+            "is_active": mc.is_active,
+        }
+        for mc, t in rows
+    ]
+
+
+# ── System Actions (Quick Actions) ────────────────────────────────────
+
+@router.post("/admin/system/clear-cache")
+async def clear_system_cache(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Clear application cache (stub — no real cache layer yet)."""
+    await log_action(db, current_user, 'clear_cache', 'system', 'platform', {})
+    return {"status": "ok", "message": "Cache cleared"}
+
+
+@router.get("/admin/system/logs")
+async def get_system_logs(
+    current_user: AdminUser = Depends(require_platform_admin),
+    lines: int = 100,
+):
+    """Return recent application log lines."""
+    import os
+    log_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "logs", "app.log")
+    log_path = os.path.normpath(log_path)
+    if not os.path.exists(log_path):
+        return {"logs": ["No log file found"]}
+
+    with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+        all_lines = f.readlines()
+    recent = all_lines[-lines:]
+    return {"logs": [l.rstrip("\n") for l in recent]}

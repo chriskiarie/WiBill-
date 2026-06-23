@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -21,50 +21,55 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id']
 
-const qaGroups = [
-  {
-    label: 'Health',
-    items: [
-      { label: 'Refresh health check', icon: '↻', action: () => window.location.reload() },
-      { label: 'View API docs', icon: '⌘', action: () => window.open(`${API}/docs`, '_blank') },
-      { label: 'Download logs', icon: '☰', action: () => {} },
-      { label: 'View changelog', icon: '⏱', action: () => {} },
-    ],
-  },
-  {
-    label: 'Integrations',
-    items: [
-      { label: 'Test M-Pesa', icon: '◈', action: () => {} },
-      { label: 'Test MikroTik', icon: '⌗', action: () => {} },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { label: 'Run DB migration', icon: '⛁', action: () => {} },
-      { label: 'Clear cache', icon: '✕', action: () => {} },
-    ],
-  },
-  {
-    label: 'Danger',
-    danger: true,
-    items: [
-      { label: 'Reset platform', icon: '⚠', action: () => {} },
-    ],
-  },
-]
+function getToken(): string {
+  if (typeof window === 'undefined') return ''
+  const m = document.cookie.match(/(?:^|;\s*)token=([^;]*)/)
+  return m ? decodeURIComponent(m[1]) : ''
+}
+
+async function api(method: string, path: string, body?: unknown) {
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || `Request failed: ${res.status}`)
+  }
+  return res.json()
+}
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [health, setHealth] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
-  const [mpesaEnv, setMpesaEnv] = useState<'sandbox' | 'live'>('sandbox')
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+
+  // ── M-Pesa state ──
+  const [mpesaConfig, setMpesaConfig] = useState<any>(null)
+  const [mpesaForm, setMpesaForm] = useState({ consumer_key: '', consumer_secret: '', passkey: '', shortcode: '', environment: 'sandbox', account_reference: 'HonestBill Platform' })
+  const [mpesaSaving, setMpesaSaving] = useState(false)
+  const [mpesaTesting, setMpesaTesting] = useState(false)
+  const [mpesaTestResult, setMpesaTestResult] = useState<string | null>(null)
+
+  // ── MikroTik state ──
+  const [routers, setRouters] = useState<any[]>([])
+  const [routersLoading, setRoutersLoading] = useState(false)
+
+  // ── Quick Action state ──
+  const [logs, setLogs] = useState<string[]>([])
+  const [showLogs, setShowLogs] = useState(false)
+
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch(`${API}/health`)
-        const d = await r.json()
+        const d = await api('GET', '/health')
         setHealth({
           status: d.status || 'error',
           database: d.database || 'disconnected',
@@ -79,15 +84,88 @@ export default function SettingsPage() {
     })()
   }, [])
 
+  // ── Load M-Pesa config ──
+  const loadMpesaConfig = useCallback(async () => {
+    try {
+      const cfg = await api('GET', '/api/admin/mpesa-config')
+      setMpesaConfig(cfg)
+      if (cfg.is_configured) {
+        setMpesaForm({
+          consumer_key: cfg.consumer_key || '',
+          consumer_secret: '',
+          passkey: '',
+          shortcode: cfg.shortcode || '',
+          environment: cfg.environment || 'sandbox',
+          account_reference: cfg.account_reference || 'HonestBill Platform',
+        })
+      }
+    } catch { /* no config yet */ }
+  }, [])
+
+  useEffect(() => { if (activeTab === 'mpesa') loadMpesaConfig() }, [activeTab, loadMpesaConfig])
+
+  // ── Load MikroTik routers ──
+  const loadRouters = useCallback(async () => {
+    setRoutersLoading(true)
+    try {
+      const data = await api('GET', '/api/admin/mikrotik-routers')
+      setRouters(data)
+    } catch {
+      setRouters([])
+    } finally {
+      setRoutersLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { if (activeTab === 'mikrotik') loadRouters() }, [activeTab, loadRouters])
+
+  const handleMpesaSave = async () => {
+    setMpesaSaving(true)
+    try {
+      await api('POST', '/api/admin/mpesa-config', mpesaForm)
+      showToast('M-Pesa config saved', true)
+      await loadMpesaConfig()
+    } catch (e: any) {
+      showToast(e.message, false)
+    } finally {
+      setMpesaSaving(false)
+    }
+  }
+
+  const handleMpesaTest = async () => {
+    setMpesaTesting(true)
+    setMpesaTestResult(null)
+    try {
+      const res = await api('POST', '/api/admin/mpesa-config/test', {})
+      setMpesaTestResult(res.message)
+      showToast(res.message, res.success)
+    } catch (e: any) {
+      setMpesaTestResult(e.message)
+      showToast(e.message, false)
+    } finally {
+      setMpesaTesting(false)
+    }
+  }
+
   const statCards = [
     { label: 'Uptime', value: '99.8%', sub: '30-day rolling', highlight: true },
     { label: 'API Response', value: `45<span style="font-size:13px;color:#555">ms</span>`, sub: 'P95 latency' },
-    { label: 'Active ISPs', value: '5', sub: '2 onboarding' },
+    { label: 'Active ISPs', value: `${routers.filter(r => r.status === 'ONLINE').length || '—'}`, sub: 'Routers online' },
     { label: 'Txn Volume', value: '2,847', sub: 'Today' },
   ]
 
   return (
     <div style={{ display: 'flex', height: '100%', color: C.text, fontSize: 13 }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+          background: toast.ok ? '#0a2a0a' : '#2a0a0a', border: `0.5px solid ${toast.ok ? C.green : C.red}`,
+          borderRadius: 8, padding: '10px 20px', fontSize: 12, color: toast.ok ? C.green : C.red,
+          fontFamily: '"DM Mono", monospace',
+        }}>{toast.msg}</div>
+      )}
+
       {/* Secondary Settings Nav */}
       <div style={{ width: 200, minWidth: 200, background: '#050505', borderRight: `0.5px solid ${C.line}`, padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {tabs.map(tab => (
@@ -155,7 +233,7 @@ export default function SettingsPage() {
                     { label: 'Database', value: (health.database || 'checking').toUpperCase() },
                     { label: 'Environment', value: (health.environment || 'unknown').toUpperCase() },
                     { label: 'Version', value: health.version || '—' },
-                  ].map((row, i) => (
+                  ].map((row) => (
                     <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 44, borderBottom: `0.5px solid ${C.line}` }}>
                       <span style={{ fontSize: 12, color: '#777' }}>{row.label}</span>
                       <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: C.text }}>{row.value}</span>
@@ -173,18 +251,18 @@ export default function SettingsPage() {
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>M-Pesa Credentials</div>
-                <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Daraja API authentication — sandbox mode active</div>
+                <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Platform Daraja API authentication</div>
               </div>
               <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: `0.5px solid ${C.line}` }}>
-                {(['sandbox', 'live'] as const).map(env => (
+                {(['sandbox', 'production'] as const).map(env => (
                   <button
                     key={env}
-                    onClick={() => setMpesaEnv(env)}
+                    onClick={() => setMpesaForm(f => ({ ...f, environment: env }))}
                     style={{
                       padding: '7px 16px', border: 'none', cursor: 'pointer',
                       fontSize: 11, fontWeight: 500,
-                      background: mpesaEnv === env ? '#1a1200' : 'transparent',
-                      color: mpesaEnv === env ? C.gold : '#555',
+                      background: mpesaForm.environment === env ? '#1a1200' : 'transparent',
+                      color: mpesaForm.environment === env ? C.gold : '#555',
                       fontFamily: 'Inter, sans-serif',
                     }}
                   >
@@ -195,19 +273,22 @@ export default function SettingsPage() {
             </div>
             <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
-                { label: 'Consumer Key', sub: 'Daraja API', value: '••••••••••••••••••••••••••' },
-                { label: 'Consumer Secret', sub: 'Daraja API', value: '••••••••••••••••••••' },
-                { label: 'Passkey', sub: 'STK Push', value: '••••••••••••••••••••' },
-                { label: 'Shortcode', sub: 'Business number', value: '174379' },
+                { key: 'consumer_key', label: 'Consumer Key', sub: 'Daraja API', type: 'text', placeholder: mpesaConfig?.consumer_key && mpesaConfig.consumer_key !== '********' ? mpesaConfig.consumer_key : 'Enter consumer key' },
+                { key: 'consumer_secret', label: 'Consumer Secret', sub: 'Daraja API', type: 'password', placeholder: 'Enter new secret (leave blank to keep)' },
+                { key: 'passkey', label: 'Passkey', sub: 'STK Push', type: 'password', placeholder: 'Enter new passkey (leave blank to keep)' },
+                { key: 'shortcode', label: 'Shortcode', sub: 'Business number', type: 'text', placeholder: '174379' },
               ].map(f => (
-                <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 160, minWidth: 160, fontSize: 12, color: '#777' }}>
                     {f.label}
                     <span style={{ display: 'block', fontSize: 10, color: '#444', marginTop: 2 }}>{f.sub}</span>
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input
-                      type="password" defaultValue={f.value} readOnly
+                      type={f.type}
+                      value={(mpesaForm as any)[f.key]}
+                      placeholder={f.placeholder}
+                      onChange={e => setMpesaForm(fm => ({ ...fm, [f.key]: e.target.value }))}
                       style={{
                         flex: 1, background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
                         padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
@@ -219,23 +300,109 @@ export default function SettingsPage() {
               ))}
             </div>
             <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 11, color: '#444' }}>
-                Last saved: never · <span style={{ color: C.gold, cursor: 'pointer' }}>Test connection →</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 11, color: '#444' }}>
+                  {mpesaConfig?.is_configured ? `Last saved: recently` : 'Not configured'}
+                </div>
+                {mpesaTestResult && (
+                  <span style={{ fontSize: 11, color: mpesaTestResult.includes('successful') ? C.green : C.red }}>
+                    {mpesaTestResult}
+                  </span>
+                )}
               </div>
-              <button style={{
-                background: C.gold, color: '#000', border: 'none', borderRadius: 6,
-                padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-              }}>Save Credentials</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleMpesaTest}
+                  disabled={mpesaTesting || !mpesaConfig?.is_configured}
+                  style={{
+                    background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 6,
+                    padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: mpesaTesting || !mpesaConfig?.is_configured ? 'not-allowed' : 'pointer',
+                    opacity: mpesaTesting || !mpesaConfig?.is_configured ? 0.5 : 1,
+                  }}
+                >
+                  {mpesaTesting ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  onClick={handleMpesaSave}
+                  disabled={mpesaSaving}
+                  style={{
+                    background: C.gold, color: '#000', border: 'none', borderRadius: 6,
+                    padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: mpesaSaving ? 'not-allowed' : 'pointer',
+                    opacity: mpesaSaving ? 0.5 : 1,
+                  }}
+                >
+                  {mpesaSaving ? 'Saving...' : 'Save Credentials'}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* MIKROTIK */}
         {activeTab === 'mikrotik' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, padding: 24, textAlign: 'center', color: '#555' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⌗</div>
-            <div style={{ fontSize: 13, color: '#888' }}>MikroTik Configuration</div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Configure default router connection settings.</div>
+          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>ISP Router Status</div>
+              <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Connection status for all ISP MikroTik routers</div>
+            </div>
+            <div style={{ padding: '18px 20px' }}>
+              {routersLoading ? (
+                <div style={{ textAlign: 'center', padding: 24, color: '#555', fontSize: 12 }}>Loading routers...</div>
+              ) : routers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 24, color: '#555', fontSize: 12 }}>
+                  No routers configured yet. ISPs need to configure their MikroTik from their dashboard.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {['ONLINE', 'DISCONNECTED', 'ERROR'].map(statusGroup => {
+                    const group = routers.filter(r => r.status === statusGroup)
+                    if (group.length === 0) return null
+                    return (
+                      <div key={statusGroup}>
+                        <div style={{ fontSize: 10, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, marginTop: statusGroup === 'ONLINE' ? 0 : 12 }}>
+                          {statusGroup} ({group.length})
+                        </div>
+                        {group.map(r => (
+                          <div key={r.tenant_id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '8px 12px', marginBottom: 4, borderRadius: 6,
+                            border: `0.5px solid ${C.line}`,
+                          }}>
+                            <div>
+                              <div style={{ fontSize: 13, color: C.text }}>{r.tenant_name}</div>
+                              <div style={{ fontSize: 11, color: '#555', marginTop: 1 }}>
+                                {r.host ? `${r.host}:${r.port}` : 'Not set up'}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{
+                                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                                background: r.status === 'ONLINE' ? C.green : r.status === 'DISCONNECTED' ? C.red : C.gold,
+                              }} />
+                              <span style={{ fontSize: 11, color: '#777', fontFamily: '"DM Mono", monospace' }}>
+                                {r.status}
+                              </span>
+                              {r.last_error && (
+                                <span style={{ fontSize: 10, color: C.red }} title={r.last_error}>⚠</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 11, color: '#444' }}>
+                {routers.length} total router{routers.length !== 1 ? 's' : ''}
+              </div>
+              <button onClick={loadRouters} style={{
+                background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`,
+                borderRadius: 6, padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              }}>↻ Refresh</button>
+            </div>
           </div>
         )}
 
@@ -287,7 +454,7 @@ export default function SettingsPage() {
                   { label: 'MikroTik disconnect', desc: 'When an ISP router goes offline' },
                   { label: 'New ISP signup', desc: 'When a new ISP completes registration' },
                 ].map((event, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? `0.5px solid #111` : 'none' }}>
+                  <div key={event.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? `0.5px solid #111` : 'none' }}>
                     <div>
                       <div style={{ fontSize: 12, color: '#bbb' }}>{event.label}</div>
                       <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{event.desc}</div>
@@ -358,30 +525,106 @@ export default function SettingsPage() {
       {/* Quick Actions Sidebar */}
       <div style={{ width: 220, minWidth: 220, background: '#050505', borderLeft: `0.5px solid ${C.line}`, padding: '20px 0', overflowY: 'auto' }}>
         <div style={{ padding: '0 18px 14px', fontSize: 11, color: '#444', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: `0.5px solid ${C.line}` }}>Quick Actions</div>
-        {qaGroups.map((g, gi) => (
-          <div key={gi}>
-            <div style={{ padding: '14px 18px 8px', fontSize: 10, color: '#333', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{g.label}</div>
-            {g.items.map((item, ii) => (
-              <button
-                key={ii}
-                onClick={item.action}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-                  padding: '9px 18px', fontSize: 12, color: g.danger ? '#7f1d1d' : '#555',
-                  background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
-                  fontFamily: 'Inter, sans-serif',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; if (!g.danger) e.currentTarget.style.color = '#aaa' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; if (!g.danger) e.currentTarget.style.color = '#555' }}
-              >
-                <span style={{ fontSize: 14, width: 16, color: g.danger ? '#5f1d1d' : '#333' }}>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-            {gi < qaGroups.length - 1 && <div style={{ height: '0.5px', background: C.line, margin: '8px 0' }} />}
-          </div>
-        ))}
+
+        {/* Health */}
+        <div>
+          <div style={{ padding: '14px 18px 8px', fontSize: 10, color: '#333', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Health</div>
+          <button onClick={() => window.location.reload()} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>↻</span>Refresh health check
+          </button>
+          <button onClick={() => window.open(`${API}/docs`, '_blank')} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>⌘</span>View API docs
+          </button>
+          <button onClick={async () => {
+            try {
+              const data = await api('GET', '/api/admin/system/logs')
+              setLogs(data.logs || [])
+              setShowLogs(true)
+            } catch { showToast('Failed to load logs', false) }
+          }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>☰</span>Download logs
+          </button>
+          <div style={{ height: '0.5px', background: C.line, margin: '8px 0' }} />
+        </div>
+
+        {/* Integrations */}
+        <div>
+          <div style={{ padding: '14px 18px 8px', fontSize: 10, color: '#333', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Integrations</div>
+          <button onClick={async () => {
+            try {
+              setActiveTab('mpesa')
+              await loadMpesaConfig()
+              const res = await api('POST', '/api/admin/mpesa-config/test', {})
+              showToast(res.message, res.success)
+            } catch (e: any) { showToast(e.message, false) }
+          }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>◈</span>Test M-Pesa
+          </button>
+          <button onClick={async () => {
+            try {
+              setActiveTab('mikrotik')
+              await loadRouters()
+              if (routers.length === 0) { showToast('No routers to test', false); return }
+              showToast(`Routers: ${routers.filter(r => r.status === 'ONLINE').length} ONLINE, ${routers.filter(r => r.status !== 'ONLINE').length} offline`, false)
+            } catch (e: any) { showToast(e.message, false) }
+          }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>⌗</span>Test MikroTik
+          </button>
+          <div style={{ height: '0.5px', background: C.line, margin: '8px 0' }} />
+        </div>
+
+        {/* System */}
+        <div>
+          <div style={{ padding: '14px 18px 8px', fontSize: 10, color: '#333', textTransform: 'uppercase', letterSpacing: '0.08em' }}>System</div>
+          <button onClick={async () => {
+            try {
+              const res = await api('POST', '/api/admin/system/clear-cache')
+              showToast(res.message, true)
+            } catch (e: any) { showToast(e.message, false) }
+          }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 18px', fontSize: 12, color: '#555', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#0a0a0a'; e.currentTarget.style.color = '#aaa' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#555' }}>
+            <span style={{ fontSize: 14, width: 16, color: '#333' }}>✕</span>Clear cache
+          </button>
+          <div style={{ height: '0.5px', background: C.line, margin: '8px 0' }} />
+        </div>
       </div>
+
+      {/* Logs Modal */}
+      {showLogs && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9998,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowLogs(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '80%', maxWidth: 800, maxHeight: '80vh', background: '#050505',
+            border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ padding: '14px 18px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>Application Logs (last {logs.length} lines)</span>
+              <button onClick={() => setShowLogs(false)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 14 }}>✕</button>
+            </div>
+            <pre style={{
+              flex: 1, overflowY: 'auto', padding: 12, margin: 0,
+              fontSize: 11, lineHeight: 1.6, color: '#888',
+              fontFamily: '"DM Mono", monospace', background: '#000',
+            }}>
+              {logs.join('\n') || 'No logs available'}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
