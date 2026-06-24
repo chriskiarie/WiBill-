@@ -1,5 +1,6 @@
 """
 Comms - platform admin can send broadcast/direct notifications to ISPs.
+Also sends real emails via SMTP when SMTP is configured.
 """
 from typing import List, Optional
 import uuid
@@ -15,6 +16,7 @@ from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.notification import Notification
 from app.api.routes.auth import get_current_user, require_platform_admin, require_isp_admin
+from app.services.email_service import send_email
 
 router = APIRouter(tags=["admin-comms"])
 
@@ -48,6 +50,9 @@ async def broadcast_to_all(
 ):
     result = await db.execute(select(Tenant))
     tenants = result.scalars().all()
+
+    email_results = {"sent": 0, "failed": 0, "skipped": 0}
+
     for t in tenants:
         db.add(Notification(
             id=uuid.uuid4(),
@@ -58,8 +63,34 @@ async def broadcast_to_all(
             target_tenant_id=t.id,
             created_at=datetime.utcnow()
         ))
+
+        # Send email to all ISP admins for this tenant
+        admins_result = await db.execute(
+            select(AdminUser).where(
+                AdminUser.tenant_id == t.id,
+                AdminUser.is_active == True
+            )
+        )
+        admins = admins_result.scalars().all()
+        for admin in admins:
+            ok = await send_email(
+                to_email=admin.email,
+                subject=f"[HonestBill] {req.title}",
+                html_body=f"<h2>{req.title}</h2><p>{req.message}</p><hr><p style='color:#888'>HonestBill Platform</p>",
+                text_body=f"{req.title}\n\n{req.message}\n\n-- HonestBill Platform",
+                db=db,
+            )
+            if ok:
+                email_results["sent"] += 1
+            else:
+                email_results["failed"] += 1
+
     await db.commit()
-    return {"status": "ok", "sent_to": len(tenants)}
+    return {
+        "status": "ok",
+        "sent_to": len(tenants),
+        "emails": email_results,
+    }
 
 @router.post("/admin/comms/direct")
 async def direct_message(
@@ -81,8 +112,31 @@ async def direct_message(
         target_tenant_id=tenant_id,
         created_at=datetime.utcnow()
     ))
+
+    # Send email to all ISP admins for this tenant
+    email_results = {"sent": 0, "failed": 0}
+    admins_result = await db.execute(
+        select(AdminUser).where(
+            AdminUser.tenant_id == tenant_id,
+            AdminUser.is_active == True
+        )
+    )
+    admins = admins_result.scalars().all()
+    for admin in admins:
+        ok = await send_email(
+            to_email=admin.email,
+            subject=f"[HonestBill] {req.title}",
+            html_body=f"<h2>{req.title}</h2><p>{req.message}</p><hr><p style='color:#888'>HonestBill Platform</p>",
+            text_body=f"{req.title}\n\n{req.message}\n\n-- HonestBill Platform",
+            db=db,
+        )
+        if ok:
+            email_results["sent"] += 1
+        else:
+            email_results["failed"] += 1
+
     await db.commit()
-    return {"status": "ok", "target": tenant.name}
+    return {"status": "ok", "target": tenant.name, "emails": email_results}
 
 @router.get("/admin/comms/history")
 async def comms_history(

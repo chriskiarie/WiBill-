@@ -23,8 +23,7 @@ type TabId = (typeof tabs)[number]['id']
 
 function getToken(): string {
   if (typeof window === 'undefined') return ''
-  const m = document.cookie.match(/(?:^|;\s*)token=([^;]*)/)
-  return m ? decodeURIComponent(m[1]) : ''
+  return localStorage.getItem('wb_token') || sessionStorage.getItem('token') || ''
 }
 
 async function api(method: string, path: string, body?: unknown) {
