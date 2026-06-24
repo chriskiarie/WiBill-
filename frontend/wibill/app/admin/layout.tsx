@@ -188,13 +188,17 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73' }} />
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>System operational</span>
           </div>
-          <button onClick={() => { localStorage.removeItem('wb_token'); router.push('/admin/login'); }}
+          <button onClick={() => {
+              document.cookie = 'token=; path=/; max-age=0';
+              localStorage.removeItem('wb_token');
+              router.push('/admin/login');
+            }}
             style={{
               height: 32, borderRadius: 6, border: '0.5px solid #2A2A27', background: '#111110',
-              color: '#8C8A84', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
+              color: '#E5707A', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}>
-            ISP Dashboard ↗
+            Logout
           </button>
         </div>
       </aside>
