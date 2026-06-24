@@ -57,6 +57,21 @@ export default function SettingsPage() {
   const [routers, setRouters] = useState<any[]>([])
   const [routersLoading, setRoutersLoading] = useState(false)
 
+  // ── SMTP state ──
+  const [smtpConfig, setSmtpConfig] = useState<any>(null)
+  const [smtpForm, setSmtpForm] = useState({ host: '', port: 587, username: '', password: '', from_email: '', from_name: '', use_tls: true })
+  const [smtpSaving, setSmtpSaving] = useState(false)
+  const [smtpTesting, setSmtpTesting] = useState(false)
+  const [smtpTestResult, setSmtpTestResult] = useState<string | null>(null)
+
+  // ── API Key state ──
+  const [apiKeys, setApiKeys] = useState<any[]>([])
+  const [apiKeysLoading, setApiKeysLoading] = useState(false)
+  const [showNewKeyForm, setShowNewKeyForm] = useState(false)
+  const [newKeyName, setNewKeyName] = useState('')
+  const [newKeyResult, setNewKeyResult] = useState<string | null>(null)
+  const [newKeyCreating, setNewKeyCreating] = useState(false)
+
   // ── Quick Action state ──
   const [logs, setLogs] = useState<string[]>([])
   const [showLogs, setShowLogs] = useState(false)
@@ -118,6 +133,82 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => { if (activeTab === 'mikrotik') loadRouters() }, [activeTab, loadRouters])
+
+  // ── Load SMTP config ──
+  const loadSmtpConfig = useCallback(async () => {
+    try {
+      const cfg = await api('GET', '/api/admin/smtp-config')
+      setSmtpConfig(cfg)
+      if (cfg.host) {
+        setSmtpForm(f => ({ ...f, host: cfg.host || '', port: cfg.port || 587, username: cfg.username || '', from_email: cfg.from_email || '', from_name: cfg.from_name || '', use_tls: cfg.use_tls ?? true }))
+      }
+    } catch { /* no config */ }
+  }, [])
+
+  useEffect(() => { if (activeTab === 'email') loadSmtpConfig() }, [activeTab, loadSmtpConfig])
+
+  const handleSmtpSave = async () => {
+    setSmtpSaving(true)
+    try {
+      await api('POST', '/api/admin/smtp-config', smtpForm)
+      showToast('SMTP config saved', true)
+      await loadSmtpConfig()
+    } catch (e: any) { showToast(e.message, false) }
+    finally { setSmtpSaving(false) }
+  }
+
+  const handleSmtpTest = async () => {
+    setSmtpTesting(true)
+    setSmtpTestResult(null)
+    try {
+      const res = await api('POST', '/api/admin/smtp-config/test', {})
+      setSmtpTestResult(res.message)
+      showToast(res.message, res.success)
+    } catch (e: any) { setSmtpTestResult(e.message); showToast(e.message, false) }
+    finally { setSmtpTesting(false) }
+  }
+
+  // ── Load API keys ──
+  const loadApiKeys = useCallback(async () => {
+    setApiKeysLoading(true)
+    try {
+      const data = await api('GET', '/api/admin/api-keys')
+      setApiKeys(data)
+    } catch { setApiKeys([]) }
+    finally { setApiKeysLoading(false) }
+  }, [])
+
+  useEffect(() => { if (activeTab === 'apikeys') loadApiKeys() }, [activeTab, loadApiKeys])
+
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim()) { showToast('Key name is required', false); return }
+    setNewKeyCreating(true)
+    setNewKeyResult(null)
+    try {
+      const res = await api('POST', '/api/admin/api-keys', { name: newKeyName })
+      setNewKeyResult(res.key)
+      showToast(`API key "${res.name}" created — copy it now, it won't be shown again`, true)
+      setNewKeyName('')
+      await loadApiKeys()
+    } catch (e: any) { showToast(e.message, false) }
+    finally { setNewKeyCreating(false) }
+  }
+
+  const handleRevokeKey = async (id: string) => {
+    try {
+      const res = await api('PATCH', `/api/admin/api-keys/${id}/revoke`)
+      showToast(res.message, true)
+      await loadApiKeys()
+    } catch (e: any) { showToast(e.message, false) }
+  }
+
+  const handleDeleteKey = async (id: string) => {
+    try {
+      const res = await api('DELETE', `/api/admin/api-keys/${id}`)
+      showToast(res.message, true)
+      await loadApiKeys()
+    } catch (e: any) { showToast(e.message, false) }
+  }
 
   const handleMpesaSave = async () => {
     setMpesaSaving(true)
@@ -484,19 +575,187 @@ export default function SettingsPage() {
 
         {/* EMAIL / SMTP */}
         {activeTab === 'email' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, padding: 24, textAlign: 'center', color: '#555' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>✉</div>
-            <div style={{ fontSize: 13, color: '#888' }}>Email / SMTP Configuration</div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Configure outgoing mail server settings.</div>
+          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}` }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>SMTP Configuration</div>
+              <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Outgoing mail server for system emails</div>
+            </div>
+            <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                { key: 'host', label: 'SMTP Host', sub: 'e.g. smtp.postmarkapp.com', type: 'text' },
+                { key: 'port', label: 'Port', sub: '587 (TLS) or 465 (SSL)', type: 'number' },
+                { key: 'username', label: 'Username', sub: 'SMTP login', type: 'text' },
+                { key: 'password', label: 'Password', sub: 'Leave blank to keep existing', type: 'password' },
+                { key: 'from_email', label: 'From Email', sub: 'Sender address', type: 'email' },
+                { key: 'from_name', label: 'From Name', sub: 'Sender display name', type: 'text' },
+              ].map(f => (
+                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 160, minWidth: 160, fontSize: 12, color: '#777' }}>
+                    {f.label}
+                    <span style={{ display: 'block', fontSize: 10, color: '#444', marginTop: 2 }}>{f.sub}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type={f.type}
+                      value={(smtpForm as any)[f.key]}
+                      placeholder={f.label}
+                      onChange={e => setSmtpForm(fm => ({ ...fm, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value }))}
+                      style={{
+                        width: '100%', background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                        padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
+                        fontFamily: '"DM Mono", monospace',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 160, minWidth: 160, fontSize: 12, color: '#777' }}>
+                  Use TLS
+                  <span style={{ display: 'block', fontSize: 10, color: '#444', marginTop: 2 }}>STARTTLS encryption</span>
+                </div>
+                <div
+                  onClick={() => setSmtpForm(fm => ({ ...fm, use_tls: !fm.use_tls }))}
+                  style={{
+                    width: 34, height: 19, borderRadius: 10, cursor: 'pointer',
+                    background: smtpForm.use_tls ? C.gold : '#222', position: 'relative', flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    width: 13, height: 13, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 3, transition: 'right 0.15s',
+                    right: smtpForm.use_tls ? 3 : 18,
+                  }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 11, color: '#444' }}>
+                  {smtpConfig?.is_configured ? 'Configured' : 'Not configured'}
+                </div>
+                {smtpTestResult && (
+                  <span style={{ fontSize: 11, color: smtpTestResult.includes('valid') ? C.green : C.red }}>{smtpTestResult}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={handleSmtpTest} disabled={smtpTesting || !smtpConfig?.is_configured} style={{
+                  background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 6,
+                  padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: smtpTesting || !smtpConfig?.is_configured ? 'not-allowed' : 'pointer', opacity: smtpTesting || !smtpConfig?.is_configured ? 0.5 : 1,
+                }}>{smtpTesting ? 'Testing...' : 'Test Connection'}</button>
+                <button onClick={handleSmtpSave} disabled={smtpSaving} style={{
+                  background: C.gold, color: '#000', border: 'none', borderRadius: 6,
+                  padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: smtpSaving ? 'not-allowed' : 'pointer', opacity: smtpSaving ? 0.5 : 1,
+                }}>{smtpSaving ? 'Saving...' : 'Save Config'}</button>
+              </div>
+            </div>
           </div>
         )}
 
         {/* API KEYS */}
         {activeTab === 'apikeys' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, padding: 24, textAlign: 'center', color: '#555' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⚷</div>
-            <div style={{ fontSize: 13, color: '#888' }}>API Keys</div>
-            <div style={{ fontSize: 11, marginTop: 4 }}>Manage platform API keys for programmatic access.</div>
+          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>API Keys</div>
+                <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Tokens for programmatic platform access</div>
+              </div>
+              <button onClick={() => { setShowNewKeyForm(true); setNewKeyResult(null) }} style={{
+                background: C.gold, color: '#000', border: 'none', borderRadius: 6,
+                padding: '7px 16px', fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              }}>+ Generate Key</button>
+            </div>
+            <div style={{ padding: '18px 20px' }}>
+              {/* New key creation */}
+              {showNewKeyForm && (
+                <div style={{ marginBottom: 16, padding: 14, border: `0.5px solid ${C.gold}`, borderRadius: 8, background: '#0d0a00' }}>
+                  <div style={{ fontSize: 11, color: C.gold, marginBottom: 8 }}>New API Key</div>
+                  {newKeyResult ? (
+                    <>
+                      <div style={{ fontSize: 11, color: C.green, marginBottom: 6 }}>Key created — copy it now. It won't be shown again.</div>
+                      <div style={{
+                        background: '#000', border: `0.5px solid ${C.line}`, borderRadius: 6, padding: '10px 12px',
+                        fontFamily: '"DM Mono", monospace', fontSize: 12, color: C.gold, wordBreak: 'break-all', marginBottom: 8,
+                      }}>{newKeyResult}</div>
+                      <button onClick={() => { setShowNewKeyForm(false); setNewKeyResult(null) }} style={{
+                        background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 6,
+                        padding: '6px 14px', fontSize: 11, cursor: 'pointer',
+                      }}>Close</button>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="text" value={newKeyName} placeholder="e.g. CI/CD Token"
+                        onChange={e => setNewKeyName(e.target.value)}
+                        style={{
+                          flex: 1, background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                          padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
+                          fontFamily: '"DM Mono", monospace',
+                        }}
+                      />
+                      <button onClick={handleCreateKey} disabled={newKeyCreating} style={{
+                        background: C.gold, color: '#000', border: 'none', borderRadius: 6,
+                        padding: '8px 16px', fontSize: 11, fontWeight: 500, cursor: newKeyCreating ? 'not-allowed' : 'pointer', opacity: newKeyCreating ? 0.5 : 1,
+                      }}>{newKeyCreating ? 'Creating...' : 'Create'}</button>
+                      <button onClick={() => setShowNewKeyForm(false)} style={{
+                        background: 'transparent', color: '#555', border: `0.5px solid #333`, borderRadius: 6,
+                        padding: '8px 12px', fontSize: 11, cursor: 'pointer',
+                      }}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {apiKeysLoading ? (
+                <div style={{ textAlign: 'center', padding: 24, color: '#555', fontSize: 12 }}>Loading keys...</div>
+              ) : apiKeys.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 24, color: '#555', fontSize: 12 }}>No API keys created yet.</div>
+              ) : (
+                <div>
+                  {apiKeys.map(k => (
+                    <div key={k.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 12px', marginBottom: 6, borderRadius: 6,
+                      border: `0.5px solid ${C.line}`, opacity: k.is_active ? 1 : 0.4,
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 13, color: C.text }}>{k.name}</span>
+                          <span style={{
+                            fontSize: 9, padding: '2px 6px', borderRadius: 3,
+                            background: k.is_active ? '#0a2a0a' : '#2a0a0a',
+                            color: k.is_active ? C.green : C.red,
+                          }}>{k.is_active ? 'ACTIVE' : 'REVOKED'}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#555', fontFamily: '"DM Mono", monospace', marginTop: 2 }}>
+                          {k.key_prefix}... · created {new Date(k.created_at).toLocaleDateString()}
+                          {k.last_used_at ? ` · last used ${new Date(k.last_used_at).toLocaleDateString()}` : ' · never used'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {k.is_active && (
+                          <button onClick={() => handleRevokeKey(k.id)} style={{
+                            background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 4,
+                            padding: '5px 10px', fontSize: 10, cursor: 'pointer',
+                          }}>Revoke</button>
+                        )}
+                        <button onClick={() => handleDeleteKey(k.id)} style={{
+                          background: 'transparent', color: C.red, border: `0.5px solid ${C.red}`, borderRadius: 4,
+                          padding: '5px 10px', fontSize: 10, cursor: 'pointer', opacity: 0.6,
+                        }}>Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 11, color: '#444' }}>{apiKeys.length} key{apiKeys.length !== 1 ? 's' : ''}</div>
+              <button onClick={loadApiKeys} style={{
+                background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 6,
+                padding: '8px 18px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              }}>↻ Refresh</button>
+            </div>
           </div>
         )}
 

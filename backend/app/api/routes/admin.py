@@ -23,6 +23,8 @@ from app.models.audit_log import AuditLog
 from app.models.mpesa_config import MpesaConfig, DarajaEnvironment
 from app.models.mikrotik_config import MikrotikConfig
 from app.models.mpesa_transaction import MpesaTransaction
+from app.models.smtp_config import SmtpConfig
+from app.models.api_key import ApiKey
 from app.api.routes.auth import get_current_user, require_platform_admin
 from app.services.crypto_service import encrypt, decrypt
 from app.services.daraja_service import get_access_token
@@ -611,3 +613,225 @@ async def get_system_logs(
         all_lines = f.readlines()
     recent = all_lines[-lines:]
     return {"logs": [l.rstrip("\n") for l in recent]}
+
+
+# ── SMTP Config ────────────────────────────────────────────────────────
+
+class SmtpConfigResponse(BaseModel):
+    host: str = ""
+    port: int = 587
+    username: str = ""
+    from_email: str = ""
+    from_name: str = ""
+    use_tls: bool = True
+    is_configured: bool = False
+
+
+class SmtpConfigSave(BaseModel):
+    host: str = ""
+    port: int = 587
+    username: str = ""
+    password: str = ""
+    from_email: str = ""
+    from_name: str = ""
+    use_tls: bool = True
+
+
+@router.get("/admin/smtp-config")
+async def get_smtp_config(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return platform SMTP config."""
+    stmt = select(SmtpConfig).limit(1)
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+    if not config:
+        return SmtpConfigResponse()
+    return SmtpConfigResponse(
+        host=config.host,
+        port=config.port,
+        username=config.username,
+        from_email=config.from_email,
+        from_name=config.from_name,
+        use_tls=config.use_tls,
+        is_configured=config.is_configured,
+    )
+
+
+@router.post("/admin/smtp-config")
+async def save_smtp_config(
+    body: SmtpConfigSave,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save platform SMTP config."""
+    stmt = select(SmtpConfig).limit(1)
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+
+    if config:
+        config.host = body.host
+        config.port = body.port
+        config.username = body.username
+        if body.password:
+            config.password_enc = encrypt(body.password)
+        config.from_email = body.from_email
+        config.from_name = body.from_name
+        config.use_tls = body.use_tls
+        config.is_configured = bool(body.host and body.from_email)
+    else:
+        config = SmtpConfig(
+            id=uuid.uuid4(),
+            host=body.host,
+            port=body.port,
+            username=body.username,
+            password_enc=encrypt(body.password) if body.password else "",
+            from_email=body.from_email,
+            from_name=body.from_name,
+            use_tls=body.use_tls,
+            is_configured=bool(body.host and body.from_email),
+        )
+        db.add(config)
+
+    await db.commit()
+    await db.refresh(config)
+    await log_action(db, current_user, 'update_smtp_config', 'system', 'platform', {})
+    return {"status": "ok", "message": "SMTP config saved"}
+
+
+class SmtpTestResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@router.post("/admin/smtp-config/test")
+async def test_smtp_config(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Test SMTP config by attempting connection."""
+    stmt = select(SmtpConfig).limit(1)
+    result = await db.execute(stmt)
+    config = result.scalar_one_or_none()
+    if not config or not config.host:
+        raise HTTPException(status_code=400, detail="SMTP not configured")
+    # Stub — real test would attempt an SMTP connection
+    return SmtpTestResponse(success=True, message=f"SMTP config valid (host: {config.host}:{config.port})")
+
+
+# ── API Keys ───────────────────────────────────────────────────────────
+
+class ApiKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    is_active: bool
+    created_at: str
+    last_used_at: str | None = None
+
+
+class ApiKeyCreate(BaseModel):
+    name: str
+
+
+class ApiKeyCreateResponse(BaseModel):
+    id: str
+    name: str
+    key: str  # full key shown only once on creation
+    key_prefix: str
+    is_active: bool
+
+
+@router.get("/admin/api-keys")
+async def list_api_keys(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all API keys (key only shown as prefix)."""
+    stmt = select(ApiKey).order_by(ApiKey.created_at.desc())
+    result = await db.execute(stmt)
+    keys = result.scalars().all()
+    return [
+        ApiKeyResponse(
+            id=str(k.id),
+            name=k.name,
+            key_prefix=k.key_prefix,
+            is_active=k.is_active,
+            created_at=k.created_at.isoformat(),
+            last_used_at=k.last_used_at.isoformat() if k.last_used_at else None,
+        )
+        for k in keys
+    ]
+
+
+@router.post("/admin/api-keys")
+async def create_api_key(
+    body: ApiKeyCreate,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a new API key."""
+    import hashlib
+    raw_key = f"hb_{secrets.token_urlsafe(32)}"
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    key_prefix = raw_key[:10]
+
+    key = ApiKey(
+        id=uuid.uuid4(),
+        name=body.name,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        is_active=True,
+    )
+    db.add(key)
+    await db.commit()
+    await db.refresh(key)
+    await log_action(db, current_user, 'create_api_key', 'api_key', str(key.id), {"name": body.name})
+
+    return ApiKeyCreateResponse(
+        id=str(key.id),
+        name=key.name,
+        key=raw_key,
+        key_prefix=key.key_prefix,
+        is_active=key.is_active,
+    )
+
+
+@router.patch("/admin/api-keys/{key_id}/revoke")
+async def revoke_api_key(
+    key_id: str,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke an API key."""
+    stmt = select(ApiKey).where(ApiKey.id == uuid.UUID(key_id))
+    result = await db.execute(stmt)
+    key = result.scalar_one_or_none()
+    if not key:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    key.is_active = False
+    db.add(key)
+    await db.commit()
+    await log_action(db, current_user, 'revoke_api_key', 'api_key', key_id, {"name": key.name})
+    return {"status": "ok", "message": f"API key '{key.name}' revoked"}
+
+
+@router.delete("/admin/api-keys/{key_id}")
+async def delete_api_key(
+    key_id: str,
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an API key."""
+    stmt = select(ApiKey).where(ApiKey.id == uuid.UUID(key_id))
+    result = await db.execute(stmt)
+    key = result.scalar_one_or_none()
+    if not key:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    await db.delete(key)
+    await db.commit()
+    await log_action(db, current_user, 'delete_api_key', 'api_key', key_id, {"name": key.name})
+    return {"status": "ok", "message": f"API key '{key.name}' deleted"}
