@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # ── Platform Commission ───────────────────────────
     DEFAULT_COMMISSION_RATE: float = 0.10  # 10%
 
+    # ── Alfred / Anthropic ────────────────────────────
+    ANTHROPIC_API_KEY: str = ""
+
     # ── Rate Limiting ─────────────────────────────────
     STK_PUSH_RATE_LIMIT_SECONDS: int = 30
     PAYMENT_ATTEMPTS_PER_HOUR: int = 3

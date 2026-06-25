@@ -60,6 +60,8 @@ function renderNavItem(n: { href: string; label: string; exact?: boolean }, path
   );
 }
 
+import Alfred from '@/components/Alfred'
+
 export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
@@ -232,6 +234,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
       </div>
+      <Alfred />
     </div>
   );
 }
