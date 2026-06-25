@@ -69,6 +69,9 @@ export default function Alfred() {
   const [pulseAlfred, setPulseAlfred] = useState(false)
   const [errorPlaceholder, setErrorPlaceholder] = useState(false)
   const [hDismiss, setHDismiss] = useState<string | null>(null)
+  const [pupil, setPupil] = useState({ x: 0, y: 0 })
+  const mouseRef = useRef({ x: 0, y: 0, active: false })
+  const orbRef = useRef<HTMLDivElement>(null)
 
   const dragOff = useRef({ x: 0, y: 0 })
   const sizeStart = useRef({ w: 0, h: 0, x: 0, y: 0 })
@@ -100,6 +103,30 @@ export default function Alfred() {
       }
     } catch {}
   }, [token, mode])
+
+  // ── Eye animation loop ──
+  useEffect(() => {
+    if (mode !== 'orb') return
+    const start = Date.now()
+    let frame: number
+    const tick = () => {
+      const t = (Date.now() - start) / 1000
+      if (mouseRef.current.active) {
+        setPupil(prev => ({
+          x: prev.x + (mouseRef.current.x - prev.x) * 0.12,
+          y: prev.y + (mouseRef.current.y - prev.y) * 0.12,
+        }))
+      } else {
+        setPupil({
+          x: Math.sin(t * 0.5) * 4,
+          y: Math.sin(t * 0.25 + 1) * 1.5,
+        })
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [mode])
 
   // ── Chat send ──
   const send = async (content: string) => {
@@ -252,9 +279,22 @@ export default function Alfred() {
       {/* ── ORB ── */}
       {mode === 'orb' && (
         <div
+          ref={orbRef}
           onPointerDown={orbDragStart}
           onClick={() => setMode('compact')}
           onDoubleClick={() => setMode('expanded')}
+          onPointerMove={e => {
+            if (!orbRef.current || dragging) return
+            const r = orbRef.current.getBoundingClientRect()
+            const cx = r.left + r.width / 2
+            const cy = r.top + r.height / 2
+            mouseRef.current = {
+              x: ((e.clientX - cx) / (r.width / 2)) * 6,
+              y: ((e.clientY - cy) / (r.height / 2)) * 4,
+              active: true,
+            }
+          }}
+          onPointerLeave={() => { mouseRef.current.active = false }}
           style={{
             position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
             width: ORB_SIZE, height: ORB_SIZE, borderRadius: '50%',
@@ -262,8 +302,8 @@ export default function Alfred() {
             backdropFilter: 'blur(16px) saturate(180%)',
             WebkitBackdropFilter: 'blur(16px) saturate(180%)',
             border: '1px solid rgba(232,184,75,0.4)',
-            boxShadow: `0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none',
             transition: dragging ? 'none' : 'box-shadow 0.3s, transform 0.2s',
             animation: pulseAlfred ? 'alfredPulse 2s ease-in-out 2' : 'orbIdle 4s ease-in-out infinite',
@@ -271,11 +311,56 @@ export default function Alfred() {
           onMouseEnter={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.2), 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(232,184,75,0.12) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)' } }}
           onMouseLeave={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' } }}
         >
-          <span style={{ fontSize: 14, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, lineHeight: 1 }}>
+          {/* ── Eyes ── */}
+          <div style={{ display: 'flex', gap: 12, marginTop: -6, alignItems: 'center' }}>
+            {[0, 1].map(i => (
+              <div key={i} style={{
+                width: 16, height: 16, borderRadius: '50%',
+                background: 'rgba(237,235,230,0.9)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+              }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: '#1A1814',
+                  position: 'absolute',
+                  transform: `translate(${pupil.x}px, ${pupil.y}px)`,
+                  transition: 'transform 0.05s',
+                }} />
+                <div style={{
+                  width: 2, height: 2, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.6)',
+                  position: 'absolute',
+                  transform: `translate(${pupil.x + 1.5}px, ${pupil.y - 1.5}px)`,
+                }} />
+              </div>
+            ))}
+          </div>
+
+          {/* ── Bow tie ── */}
+          <div style={{ display: 'flex', gap: 0, marginTop: 4, marginBottom: 2, alignItems: 'center' }}>
+            <div style={{
+              width: 0, height: 0,
+              borderTop: '5px solid transparent',
+              borderBottom: '5px solid transparent',
+              borderRight: '7px solid #E8B84B',
+            }} />
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#E8B84B', margin: '0 1px' }} />
+            <div style={{
+              width: 0, height: 0,
+              borderTop: '5px solid transparent',
+              borderBottom: '5px solid transparent',
+              borderLeft: '7px solid #E8B84B',
+            }} />
+          </div>
+
+          {/* ── XwB ── */}
+          <span style={{ fontSize: 10, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, lineHeight: 1 }}>
             <span style={{ color: '#E8B84B' }}>X</span>
             <span style={{ color: '#D4D2CC', fontWeight: 300 }}>w</span>
             <span style={{ color: '#E8B84B' }}>B</span>
           </span>
+
           {alerts.length > 0 && (
             <div style={{
               position: 'absolute', top: -6, right: -6,
