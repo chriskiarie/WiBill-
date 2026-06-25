@@ -177,19 +177,41 @@ async def get_my_notifications(
 ):
     stmt = select(Notification).where(
         Notification.target_tenant_id == current_user.tenant_id
-    ).order_by(desc(Notification.created_at)).limit(20)
+    ).order_by(desc(Notification.created_at)).limit(50)
     result = await db.execute(stmt)
     notifications = result.scalars().all()
+
+    # Also include invoice notifications from invoices table
+    from app.models.invoice import Invoice
+    inv_stmt = select(Invoice).where(
+        Invoice.tenant_id == current_user.tenant_id
+    ).order_by(desc(Invoice.created_at)).limit(10)
+    inv_result = await db.execute(inv_stmt)
+    invoices = inv_result.scalars().all()
+
+    combined = list(notifications)
+    for inv in invoices:
+        inv_status = inv.status.value if hasattr(inv.status, 'value') else inv.status
+        if inv_status == 'paid':
+            combined.append(type('obj', (object,), {
+                'id': inv.id, 'type': 'payment_received', 'title': f"Payment Received — KSh {float(inv.amount_due):,.0f}",
+                'message': f"Invoice {inv.invoice_number} paid on {inv.paid_date.strftime('%d %b %Y') if inv.paid_date else 'N/A'}.",
+                'created_at': inv.paid_date or inv.created_at,
+                'read_at': None,
+            }))
+
+    combined.sort(key=lambda n: n.created_at, reverse=True)
+
     return [
-        NotificationResponse(
-            id=str(n.id),
-            type=n.type,
-            title=n.title,
-            message=n.message,
-            created_at=n.created_at.isoformat() if n.created_at else "",
-            read_at=n.read_at.isoformat() if n.read_at else None
-        )
-        for n in notifications
+        {
+            "id": str(n.id),
+            "type": n.type,
+            "title": n.title,
+            "message": n.message,
+            "created_at": n.created_at.isoformat() if hasattr(n.created_at, 'isoformat') else str(n.created_at),
+            "read_at": n.read_at.isoformat() if hasattr(n.read_at, 'isoformat') and n.read_at else None,
+        }
+        for n in combined[:50]
     ]
 
 @router.patch("/notifications/{notification_id}/read")
@@ -210,3 +232,35 @@ async def mark_notification_read(
     n.read_at = datetime.utcnow()
     await db.commit()
     return {"status": "ok"}
+
+
+@router.get("/notifications/unread-count")
+async def unread_notification_count(
+    current_user: AdminUser = Depends(require_isp_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return count of unread notifications for the ISP."""
+    result = await db.execute(
+        select(Notification).where(
+            Notification.target_tenant_id == current_user.tenant_id,
+            Notification.read_at.is_(None),
+        )
+    )
+    notifications = result.scalars().all()
+    return {"unread": len(notifications)}
+
+
+@router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(
+    current_user: AdminUser = Depends(require_isp_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark all notifications as read for this ISP."""
+    await db.execute(
+        Notification.__table__.update().where(
+            Notification.target_tenant_id == current_user.tenant_id,
+            Notification.read_at.is_(None),
+        ).values(read_at=datetime.utcnow())
+    )
+    await db.commit()
+    return {"status": "ok", "message": "All notifications marked as read"}

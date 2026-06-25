@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.invoice import Invoice, InvoiceStatus
+from app.models.notification import Notification
 from app.api.routes.auth import get_current_user, require_platform_admin
 from app.services.email_service import send_email
 
@@ -157,6 +158,17 @@ async def create_invoice(
         status=InvoiceStatus.DUE,
     )
     db.add(invoice)
+
+    # Create notification for ISP
+    db.add(Notification(
+        id=uuid.uuid4(),
+        type='invoice_due',
+        title=f"Invoice Due — KSh {body.monthly_fee_ksh:,.0f}",
+        message=f"Monthly invoice for {tenant.name} is due on {due.strftime('%d %b %Y')}. Amount: KSh {body.monthly_fee_ksh:,.0f}.",
+        sender_id=current_user.id,
+        target_tenant_id=tenant.id,
+        created_at=datetime.utcnow(),
+    ))
 
     await db.commit()
     return {

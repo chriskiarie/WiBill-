@@ -315,10 +315,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span style={{ fontSize: 12, color: '#6B6964' }}>
                 · Payment of KES {feeDue.toLocaleString()} was due · 
               </span>
-              <button onClick={() => { /* future: open payment modal */ }} style={{
+              <a href="/dashboard/billing" style={{
                 background: '#E8B84B', color: '#3D2A06', border: 'none', borderRadius: 6,
                 padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              }}>Pay now →</button>
+                textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+              }}>Pay now →</a>
               <a href="mailto:support@honestbill.co.ke" style={{
                 fontSize: 11, color: '#6B6964', textDecoration: 'none', marginLeft: 8,
               }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
@@ -339,11 +340,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span style={{ fontSize: 12, color: '#8C8A84' }}>
                 Your invoice of <strong style={{ color: '#EDEBE6' }}>KES {feeDue.toLocaleString()}</strong> is due in <strong style={{ color: '#E8B84B' }}>{preInvoiceDays} {preInvoiceDays === 1 ? 'day' : 'days'}</strong>. Pay early to avoid interruption.
               </span>
-              <button onClick={() => { /* future: open payment modal */ }} style={{
+              <a href="/dashboard/billing" style={{
                 background: 'none', border: '0.5px solid rgba(232,184,75,0.3)', borderRadius: 5,
                 padding: '3px 10px', color: '#E8B84B', fontSize: 11, cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-              }}>Pay now →</button>
+                fontFamily: 'Inter, sans-serif', textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+              }}>Pay now →</a>
               <button onClick={() => { localStorage.setItem(DISMISS_KEY, String(Date.now())); setBannerDismissed(true) }} style={{
                 marginLeft: 'auto', background: 'none', border: 'none', color: '#3A3A37',
                 cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '2px 4px',

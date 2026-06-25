@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Smartphone, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink,
+  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink, Bell,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -16,6 +16,7 @@ const nav = [
   { label: 'Overview', items: [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics' },
+    { href: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
     { href: '/dashboard/portal-preview', icon: Smartphone, label: 'Portal Preview' },
     { href: '/dashboard/network', icon: Activity, label: 'Network' },
   ]},
@@ -57,6 +58,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const [brandHover, setBrandHover] = useState(false)
   const [liveData, setLiveData] = useState({ revenue: 0, sessions: 0, loaded: false })
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const isAdmin = pathname.startsWith('/admin')
   const w = collapsed ? W_COLLAPSED : W
@@ -100,6 +102,10 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
     fetch(`${API}/api/tenants/feature-flags`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setFeatureFlags(d) })
+      .catch(() => {})
+    fetch(`${API}/api/notifications/unread-count`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setUnreadCount(d.unread ?? 0) })
       .catch(() => {})
   }, [])
 
@@ -255,6 +261,16 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                         fontFamily: "'DM Mono', monospace",
                       }}>
                         {liveData.sessions}
+                      </span>
+                    )}
+                    {item.label === 'Notifications' && unreadCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        background: 'rgba(232,184,75,0.08)', color: C.gold,
+                        fontSize: 9, padding: '2px 7px', borderRadius: 10,
+                        fontFamily: "'DM Mono', monospace",
+                      }}>
+                        {unreadCount}
                       </span>
                     )}
                   </div>
