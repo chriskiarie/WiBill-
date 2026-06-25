@@ -106,20 +106,20 @@ export default function Alfred() {
 
   // ── Eye animation loop ──
   useEffect(() => {
-    if (mode !== 'orb') return
+    if (mode === 'orb') return
     const start = Date.now()
     let frame: number
     const tick = () => {
       const t = (Date.now() - start) / 1000
       if (mouseRef.current.active) {
         setPupil(prev => ({
-          x: prev.x + (mouseRef.current.x - prev.x) * 0.12,
-          y: prev.y + (mouseRef.current.y - prev.y) * 0.12,
+          x: prev.x + (mouseRef.current.x - prev.x) * 0.25,
+          y: prev.y + (mouseRef.current.y - prev.y) * 0.25,
         }))
       } else {
         setPupil({
-          x: Math.sin(t * 0.5) * 4,
-          y: Math.sin(t * 0.25 + 1) * 1.5,
+          x: Math.sin(t * 1.2) * 5,
+          y: Math.sin(t * 0.6 + 1) * 2,
         })
       }
       frame = requestAnimationFrame(tick)
@@ -311,51 +311,8 @@ export default function Alfred() {
           onMouseEnter={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.2), 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(232,184,75,0.12) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)' } }}
           onMouseLeave={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' } }}
         >
-          {/* ── Eyes ── */}
-          <div style={{ display: 'flex', gap: 12, marginTop: -6, alignItems: 'center' }}>
-            {[0, 1].map(i => (
-              <div key={i} style={{
-                width: 16, height: 16, borderRadius: '50%',
-                background: 'rgba(237,235,230,0.9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                position: 'relative',
-              }}>
-                <div style={{
-                  width: 7, height: 7, borderRadius: '50%',
-                  background: '#1A1814',
-                  position: 'absolute',
-                  transform: `translate(${pupil.x}px, ${pupil.y}px)`,
-                  transition: 'transform 0.05s',
-                }} />
-                <div style={{
-                  width: 2, height: 2, borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.6)',
-                  position: 'absolute',
-                  transform: `translate(${pupil.x + 1.5}px, ${pupil.y - 1.5}px)`,
-                }} />
-              </div>
-            ))}
-          </div>
-
-          {/* ── Bow tie ── */}
-          <div style={{ display: 'flex', gap: 0, marginTop: 4, marginBottom: 2, alignItems: 'center' }}>
-            <div style={{
-              width: 0, height: 0,
-              borderTop: '5px solid transparent',
-              borderBottom: '5px solid transparent',
-              borderRight: '7px solid #E8B84B',
-            }} />
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#E8B84B', margin: '0 1px' }} />
-            <div style={{
-              width: 0, height: 0,
-              borderTop: '5px solid transparent',
-              borderBottom: '5px solid transparent',
-              borderLeft: '7px solid #E8B84B',
-            }} />
-          </div>
-
           {/* ── XwB ── */}
-          <span style={{ fontSize: 10, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, lineHeight: 1 }}>
+          <span style={{ fontSize: 11, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, lineHeight: 1 }}>
             <span style={{ color: '#E8B84B' }}>X</span>
             <span style={{ color: '#D4D2CC', fontWeight: 300 }}>w</span>
             <span style={{ color: '#E8B84B' }}>B</span>
@@ -402,6 +359,46 @@ export default function Alfred() {
             fontFamily: 'Inter, sans-serif',
           }}
         >
+          {/* ── Eyes + Bow tie ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 10 }}
+            className="alf-no-drag" onPointerDown={e => e.stopPropagation()}
+            onPointerMove={e => {
+              const r = cardRef.current?.getBoundingClientRect()
+              if (!r) return
+              const cx = r.left + r.width / 2
+              const cy = r.top + r.height / 2
+              mouseRef.current = { x: ((e.clientX - cx) / (r.width / 2)) * 8, y: ((e.clientY - cy) / (r.height / 2)) * 5, active: true }
+            }}
+            onPointerLeave={() => { mouseRef.current.active = false }}
+          >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {[0, 1].map(i => (
+                <div key={i} style={{
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: 'rgba(237,235,230,0.85)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%', background: '#1A1814',
+                    position: 'absolute',
+                    transform: `translate(${pupil.x}px, ${pupil.y}px)`,
+                  }} />
+                  <div style={{
+                    width: 1.5, height: 1.5, borderRadius: '50%', background: 'rgba(255,255,255,0.7)',
+                    position: 'absolute',
+                    transform: `translate(${pupil.x + 1.5}px, ${pupil.y - 1.5}px)`,
+                  }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginLeft: 8 }}>
+              <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderRight: '6px solid #E8B84B' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#E8B84B' }} />
+              <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '6px solid #E8B84B' }} />
+            </div>
+          </div>
+
           {/* ZONE 1 — Alfred message */}
           {lastAlfred ? (
             <div style={{
@@ -530,6 +527,46 @@ export default function Alfred() {
                 background: 'none', border: 'none', color: '#252520', cursor: 'pointer',
                 fontSize: 11, padding: 0, lineHeight: 1,
               }}>↺</button>
+            </div>
+          </div>
+
+          {/* ── Eyes + Bow tie ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, padding: '2px 0 6px' }}
+            className="alf-no-drag" onPointerDown={e => e.stopPropagation()}
+            onPointerMove={e => {
+              const r = cardRef.current?.getBoundingClientRect()
+              if (!r) return
+              const cx = r.left + r.width / 2
+              const cy = r.top + r.height / 2
+              mouseRef.current = { x: ((e.clientX - cx) / (r.width / 2)) * 8, y: ((e.clientY - cy) / (r.height / 2)) * 5, active: true }
+            }}
+            onPointerLeave={() => { mouseRef.current.active = false }}
+          >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {[0, 1].map(i => (
+                <div key={i} style={{
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: 'rgba(237,235,230,0.85)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%', background: '#1A1814',
+                    position: 'absolute',
+                    transform: `translate(${pupil.x}px, ${pupil.y}px)`,
+                  }} />
+                  <div style={{
+                    width: 1.5, height: 1.5, borderRadius: '50%', background: 'rgba(255,255,255,0.7)',
+                    position: 'absolute',
+                    transform: `translate(${pupil.x + 1.5}px, ${pupil.y - 1.5}px)`,
+                  }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginLeft: 8 }}>
+              <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderRight: '6px solid #E8B84B' }} />
+              <div style={{ width: 3, height: 3, borderRadius: '50%', background: '#E8B84B' }} />
+              <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '6px solid #E8B84B' }} />
             </div>
           </div>
 
