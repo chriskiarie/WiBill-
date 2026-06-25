@@ -27,7 +27,7 @@ const QUICK_PROMPTS: Record<string, string[]> = {
   '/admin/comms': ['Recent broadcasts', 'Delivery rates'],
 }
 
-const ORB_SIZE = 52
+const ORB_SIZE = 72
 
 function findPageKey(path: string): string {
   return Object.keys(PAGE_LABELS).find(k => path.startsWith(k)) || '/admin'
@@ -56,7 +56,7 @@ export default function Alfred() {
       const s = typeof window !== 'undefined' ? localStorage.getItem('alfred-size') : null
       if (s) return JSON.parse(s)
     } catch {}
-    return { w: 360, h: 500 }
+    return { w: 420, h: 600 }
   })
   const [context, setContext] = useState<any>(null)
   const [msgs, setMsgs] = useState<Message[]>([])
@@ -211,8 +211,8 @@ export default function Alfred() {
   const cardDragStart = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.alf-no-drag')) return
     e.preventDefault()
-    const cw = mode === 'compact' ? 320 : size.w
-    const ch = mode === 'compact' ? Math.min(380, Math.max(160, msgs.length * 50 + 100)) : size.h
+    const cw = mode === 'compact' ? 380 : size.w
+    const ch = mode === 'compact' ? Math.min(440, Math.max(200, msgs.length * 50 + 120)) : size.h
     dragOff.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
     setDragging(true)
     const move = (ev: PointerEvent) => {
@@ -232,8 +232,8 @@ export default function Alfred() {
     setResizing(true)
     const move = (ev: PointerEvent) => {
       setSize({
-        w: Math.max(280, Math.min(480, sizeStart.current.w + (ev.clientX - sizeStart.current.x))),
-        h: Math.max(360, Math.min(680, sizeStart.current.h + (ev.clientY - sizeStart.current.y))),
+        w: Math.max(320, Math.min(560, sizeStart.current.w + (ev.clientX - sizeStart.current.x))),
+        h: Math.max(400, Math.min(800, sizeStart.current.h + (ev.clientY - sizeStart.current.y))),
       })
     }
     const up = () => { setResizing(false); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up) }
@@ -258,16 +258,18 @@ export default function Alfred() {
           style={{
             position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
             width: ORB_SIZE, height: ORB_SIZE, borderRadius: '50%',
-            background: 'radial-gradient(circle at 40% 35%, #1A1600, #000000)',
-            border: '1px solid rgba(232,184,75,0.35)',
-            boxShadow: `0 0 0 1px rgba(232,184,75,0.08), 0 12px 40px rgba(0,0,0,0.8), 0 0 20px rgba(232,184,75,0.06) inset`,
+            background: 'rgba(15, 14, 10, 0.55)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+            border: '1px solid rgba(232,184,75,0.4)',
+            boxShadow: `0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none',
-            transition: dragging ? 'none' : 'box-shadow 0.2s',
-            animation: pulseAlfred ? 'alfredPulse 2s ease-in-out 2' : 'none',
+            transition: dragging ? 'none' : 'box-shadow 0.3s, transform 0.2s',
+            animation: pulseAlfred ? 'alfredPulse 2s ease-in-out 2' : 'orbIdle 4s ease-in-out infinite',
           }}
-          onMouseEnter={e => { if (!dragging) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.15), 0 16px 48px rgba(0,0,0,0.85), 0 0 24px rgba(232,184,75,0.1) inset' }}
-          onMouseLeave={e => { if (!dragging) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.08), 0 12px 40px rgba(0,0,0,0.8), 0 0 20px rgba(232,184,75,0.06) inset' }}
+          onMouseEnter={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.2), 0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(232,184,75,0.12) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.08)' } }}
+          onMouseLeave={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' } }}
         >
           <span style={{ fontSize: 14, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, lineHeight: 1 }}>
             <span style={{ color: '#E8B84B' }}>X</span>
@@ -296,7 +298,7 @@ export default function Alfred() {
           onPointerDown={cardDragStart}
           style={{
             position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
-            width: 320, minHeight: 160, height: 'auto', maxHeight: 380,
+            width: 380, minHeight: 200, height: 'auto', maxHeight: 440,
             background: 'rgba(10, 9, 8, 0.82)',
             backdropFilter: 'blur(28px) saturate(160%)',
             WebkitBackdropFilter: 'blur(28px) saturate(160%)',
@@ -586,6 +588,10 @@ export default function Alfred() {
         @keyframes barPulse {
           0%, 80%, 100% { height: 3px; }
           40% { height: 10px; }
+        }
+        @keyframes orbIdle {
+          0%, 100% { box-shadow: 0 0 0 1px rgba(232,184,75,0.1), 0 12px 48px rgba(0,0,0,0.6), 0 0 30px rgba(232,184,75,0.08) inset; }
+          50% { box-shadow: 0 0 0 1px rgba(232,184,75,0.15), 0 14px 52px rgba(0,0,0,0.65), 0 0 35px rgba(232,184,75,0.1) inset; }
         }
         ::-webkit-scrollbar { width: 0; }
       `}</style>
