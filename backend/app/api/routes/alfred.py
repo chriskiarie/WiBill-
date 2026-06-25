@@ -18,15 +18,29 @@ router = APIRouter()
 
 
 class ChatMessage(BaseModel):
-    role: str  # "user" | "assistant"
+    role: str
     content: str
 
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    system: str = ""
+    context: dict = {}
+    page: str = "/admin"
     model: str = "meta-llama/llama-3.2-3b-instruct:free"
-    max_tokens: int = 500
+    max_tokens: int = 400
+
+
+PAGE_CONTEXTS = {
+    "/admin": "User is on the Dashboard — overview. Lead with revenue and session health.",
+    "/admin/isps": "User is on ISP Network. Focus on pending approvals, active vs suspended, recent signups.",
+    "/admin/billing": "User is on Billing. Focus on per-ISP revenue, commission, outstanding invoices.",
+    "/admin/feature-flags": "User is on Feature Flags. Help identify which ISPs should be upgraded.",
+    "/admin/invoices": "User is on Invoices. Surface overdue accounts, days late, payment patterns.",
+    "/admin/transactions": "User is on Transactions. Highlight failed txn, success rate, unusual patterns.",
+    "/admin/audit-log": "User is on Audit Log. Summarize recent admin actions, flag anything unusual.",
+    "/admin/system": "User is on Settings. Note M-Pesa sandbox status, system health, misconfigurations.",
+    "/admin/comms": "User is on Comms. Focus on notification delivery, broadcast history.",
+}
 
 
 @router.post("/admin/alfred/chat")
@@ -37,11 +51,33 @@ async def alfred_chat(
     api_key = settings.OPENROUTER_API_KEY or settings.ANTHROPIC_API_KEY or ""
     if not api_key:
         raise HTTPException(status_code=503, detail="Alfred is not configured — set OPENROUTER_API_KEY in .env")
+
+    ctx = req.context
+    plat = ctx.get("platform", {})
+    isps = plat.get("isps", {})
+    rev = plat.get("revenue", {})
+    sess = plat.get("sessions", {})
+    overdue_names = ", ".join(o["name"] for o in isps.get("overdue", [])) or "none"
+
+    page_note = PAGE_CONTEXTS.get(req.page, "User is navigating the Batcave.")
+
+    system = f"""You are Alfred — the AI operations officer for WiBill, a Kenyan ISP billing platform.
+Tone: calm, precise, direct. Like a chief of staff who reads every log.
+Never say "I'm just an AI". Never apologize. Surface what matters, flag what's wrong.
+Maximum 3 sentences unless a full briefing is explicitly requested.
+Current page: {page_note}
+
+LIVE PLATFORM DATA ({ctx.get('timestamp', 'now')}):
+- ISPs: {isps.get('total', 0)} total, {isps.get('active', 0)} active, {isps.get('pending', 0)} pending
+- Overdue: {overdue_names}
+- Revenue today: KES {rev.get('today_ksh', 0)}, this month: KES {rev.get('month_ksh', 0)}
+- Active sessions: {sess.get('active_now', 0)}"""
+
     body = {
         "model": req.model,
         "max_tokens": req.max_tokens,
         "messages": [
-            {"role": "system", "content": req.system},
+            {"role": "system", "content": system},
             *[{"role": m.role, "content": m.content} for m in req.messages],
         ],
     }
@@ -61,7 +97,7 @@ async def alfred_chat(
             raise HTTPException(status_code=502, detail=f"OpenRouter error: {resp.status_code} — {detail}")
         data = resp.json()
     content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    return {"response": content or "No response."}
+    return {"reply": content or "No response."}
 
 
 @router.get("/admin/alfred/context")
