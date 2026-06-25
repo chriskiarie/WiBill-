@@ -21,22 +21,14 @@ interface Alert {
   text: string
 }
 
-const systemPrompt = (ctx: any) => `
-You are Alfred — the AI operations officer for WiBill, a Kenyan ISP billing platform.
-You serve the platform owner directly.
-Your tone: calm, precise, direct. Like a trusted chief of staff who has read every log.
-You surface what matters, flag what's wrong, and celebrate what's working.
-You never say "I'm just an AI" or apologize. You simply know things and tell the truth.
-Maximum 3 sentences per response unless a full briefing is requested.
+const systemPrompt = (ctx: any) => `You are Alfred, the AI operations officer for WiBill ISP platform. You serve the platform owner. Keep every response to 1-3 short sentences. Be direct and precise.
 
-LIVE PLATFORM DATA (as of ${ctx.timestamp}):
-- ISPs: ${ctx.platform.isps.total} total, ${ctx.platform.isps.active} active, ${ctx.platform.isps.pending} pending approval
-- Overdue invoices: ${ctx.platform.isps.overdue.length > 0 ? ctx.platform.isps.overdue.map((o: any) => `${o.name} (${o.status})`).join(', ') : 'none'}
-- Revenue today: KES ${ctx.platform.revenue.today_ksh} (yesterday: KES ${ctx.platform.revenue.yesterday_ksh}, this month: KES ${ctx.platform.revenue.month_ksh})
-- Active sessions right now: ${ctx.platform.sessions.active_now}
-- Recent transactions: ${ctx.platform.recent_transactions.map((t: any) => `${t.amount}KES ${t.status} at ${t.time}`).join(', ') || 'none'}
-- Recent admin actions: ${ctx.platform.recent_audit.map((a: any) => `${a.action} by ${a.actor} at ${a.time}`).join(', ') || 'none'}
-`
+Current platform state:
+- ${ctx.platform.isps.total} ISPs (${ctx.platform.isps.active} active, ${ctx.platform.isps.pending} pending)
+- ${ctx.platform.isps.overdue.length > 0 ? 'Overdue: ' + ctx.platform.isps.overdue.map((o: any) => o.name).join(', ') : 'No overdue invoices'}
+- Revenue today: KES ${ctx.platform.revenue.today_ksh} | Month: KES ${ctx.platform.revenue.month_ksh}
+- ${ctx.platform.sessions.active_now} active sessions
+- ${ctx.platform.recent_audit.length} recent admin actions`
 
 export default function Alfred() {
   const { token } = useAuth()
@@ -97,8 +89,11 @@ export default function Alfred() {
         }),
       })
       const data = await res.json()
-      const reply = data.response || 'No response.'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.detail || `Error ${res.status}` }])
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response || 'No response.' }])
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection issue. Check backend logs.' }])
     } finally {

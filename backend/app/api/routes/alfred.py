@@ -25,8 +25,8 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     system: str = ""
-    model: str = "claude-sonnet-4-20250514"
-    max_tokens: int = 1000
+    model: str = "meta-llama/llama-3.2-3b-instruct:free"
+    max_tokens: int = 500
 
 
 @router.post("/admin/alfred/chat")
@@ -34,29 +34,34 @@ async def alfred_chat(
     req: ChatRequest,
     _: AdminUser = Depends(require_platform_admin),
 ):
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="Alfred is not configured — ANTHROPIC_API_KEY missing")
+    api_key = settings.OPENROUTER_API_KEY or settings.ANTHROPIC_API_KEY or ""
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Alfred is not configured — set OPENROUTER_API_KEY in .env")
     body = {
         "model": req.model,
         "max_tokens": req.max_tokens,
-        "system": req.system,
-        "messages": [{"role": m.role, "content": m.content} for m in req.messages],
+        "messages": [
+            {"role": "system", "content": req.system},
+            *[{"role": m.role, "content": m.content} for m in req.messages],
+        ],
     }
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://openrouter.ai/api/v1/chat/completions",
             headers={
-                "x-api-key": settings.ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://honestbill.co.ke",
+                "X-Title": "WiBill Alfred",
             },
             json=body,
         )
         if resp.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"Claude API error: {resp.status_code}")
+            detail = resp.text[:200]
+            raise HTTPException(status_code=502, detail=f"OpenRouter error: {resp.status_code} — {detail}")
         data = resp.json()
-    content = data.get("content", [])
-    return {"response": content[0]["text"] if content else "No response."}
+    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    return {"response": content or "No response."}
 
 
 @router.get("/admin/alfred/context")
