@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
+from app.models.invoice import Invoice, InvoiceStatus
 from app.api.routes.auth import get_current_user, require_platform_admin
 from app.services.email_service import send_email
 
@@ -127,23 +128,44 @@ async def create_invoice(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create or renew an invoice for an ISP."""
+    """Create or renew an invoice for an ISP. Also creates an Invoice record for the ISP dashboard."""
     result = await db.execute(select(Tenant).where(Tenant.id == uuid.UUID(body.tenant_id)))
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     now = datetime.now(timezone.utc)
+    due = now + timedelta(days=body.due_days)
+
+    # Update tenant billing fields
     tenant.monthly_fee_ksh = body.monthly_fee_ksh
-    tenant.next_invoice_date = now + timedelta(days=body.due_days)
+    tenant.next_invoice_date = due
     tenant.invoice_status = "pending"
+
+    # Create an Invoice record so ISP dashboard sees it
+    invoice = Invoice(
+        id=uuid.uuid4(),
+        tenant_id=tenant.id,
+        month=now.month,
+        year=now.year,
+        gross_revenue=0,
+        platform_fee=0,
+        isp_earnings=0,
+        amount_due=body.monthly_fee_ksh,
+        issued_date=now,
+        due_date=due,
+        status=InvoiceStatus.DUE,
+    )
+    db.add(invoice)
 
     await db.commit()
     return {
         "ok": True,
         "tenant_id": body.tenant_id,
+        "invoice_id": str(invoice.id),
+        "invoice_number": invoice.invoice_number,
         "monthly_fee_ksh": body.monthly_fee_ksh,
-        "next_invoice_date": tenant.next_invoice_date.isoformat(),
+        "next_invoice_date": due.isoformat(),
         "invoice_status": "pending",
     }
 
