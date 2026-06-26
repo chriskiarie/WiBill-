@@ -60,11 +60,13 @@ function renderNavItem(n: { href: string; label: string; exact?: boolean }, path
   );
 }
 
+import { useAuth } from '@/lib/auth'
 import Alfred from '@/components/Alfred'
 
 export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
+  const { logout } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [clock, setClock] = useState('');
@@ -80,10 +82,10 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
     fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal })
       .then(r => { clearTimeout(tid); if (!r.ok) throw new Error(); return r.json(); })
       .then(d => {
-        if (d.role !== 'platform_admin') { localStorage.removeItem('wb_token'); router.replace('/admin/login'); return; }
+        if (d.role !== 'platform_admin') { logout(); return; }
         setUser(d); setLoading(false);
       })
-      .catch(() => { clearTimeout(tid); localStorage.removeItem('wb_token'); router.replace('/admin/login'); });
+      .catch(() => { clearTimeout(tid); logout(); });
     return () => clearTimeout(tid);
   }, [path, router, isLoginPage]);
 
@@ -190,11 +192,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73' }} />
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>System operational</span>
           </div>
-          <button onClick={() => {
-              document.cookie = 'token=; path=/; max-age=0';
-              localStorage.removeItem('wb_token');
-              router.push('/admin/login');
-            }}
+          <button onClick={logout}
             style={{
               height: 32, borderRadius: 6, border: '0.5px solid #2A2A27', background: '#111110',
               color: '#E5707A', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',

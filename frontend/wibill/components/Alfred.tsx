@@ -80,12 +80,23 @@ export default function Alfred() {
     return { left: Math.max(0, orbX + 28 - cw + 28), top: Math.max(0, orbY - ch - 12) }
   }
 
+  const authToken = () => typeof window !== 'undefined' ? localStorage.getItem('wb_token') : null
+
+  const handleAuthFail = useCallback(() => {
+    localStorage.removeItem('wb_token')
+    localStorage.removeItem('wb_user')
+    localStorage.removeItem('wb_role')
+    window.location.href = '/admin/login'
+  }, [])
+
   const fetchContext = useCallback(async () => {
-    if (!token) return
+    const t = token || authToken()
+    if (!t) return
     try {
       const r = await fetch(`${API}/api/admin/alfred/context`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${t}` },
       })
+      if (r.status === 401) { handleAuthFail(); return }
       const d = await r.json()
       setContext(d)
       const al: typeof alerts = []
@@ -95,10 +106,11 @@ export default function Alfred() {
       if (d.platform?.sessions?.active_now === 0 && d.platform?.isps?.active > 0) al.push({ id: 'no-sess', type: 'info' as const, text: 'No active sessions' })
       setAlerts(al)
     } catch {}
-  }, [token])
+  }, [token, handleAuthFail])
 
   const send = async (content: string) => {
-    if (!context || !content.trim() || loading) return
+    const t = token || authToken()
+    if (!context || !content.trim() || loading || !t) return
     const ts = new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
     const userMsg: Message = { role: 'user', content, ts }
     const next = [...msgs, userMsg]
@@ -108,9 +120,10 @@ export default function Alfred() {
     try {
       const r = await fetch(`${API}/api/admin/alfred/chat`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next, context, page: pathname }),
       })
+      if (r.status === 401) { handleAuthFail(); return }
       const d = await r.json()
       if (!r.ok) {
         setErrorPlaceholder(true)
