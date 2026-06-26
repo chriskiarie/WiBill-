@@ -258,7 +258,7 @@ export default function Alfred() {
           border: '1px solid rgba(232,184,75,0.38)',
           boxShadow: '0 0 0 1px rgba(232,184,75,0.06), 0 8px 32px rgba(0,0,0,0.8)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none',
+          cursor: 'default', userSelect: 'none',
           transition: dragging ? 'none' : 'box-shadow 0.2s',
           animation: 'alfredOrbPulse 2.2s ease-in-out 2',
         }}
@@ -304,7 +304,7 @@ export default function Alfred() {
           boxShadow: '0 32px 80px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.025) inset',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
-          cursor: dragging ? 'grabbing' : 'grab',
+          cursor: 'default',
           transform: mode === 'orb' ? 'scale(0.05)' : 'scale(1)',
           opacity: mode === 'orb' ? 0 : 1,
           pointerEvents: mode === 'orb' ? 'none' : 'all',
