@@ -70,6 +70,11 @@ export default function Alfred() {
   const inputRef = useRef<HTMLInputElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const lastPage = useRef(pathname)
+  const lastInteract = useRef(Date.now())
+  const posRef = useRef(pos)
+  posRef.current = pos
+
+  const touch = () => { lastInteract.current = Date.now() }
 
   const isExpanded = mode === 'expanded'
   const cw = mode === 'compact' ? CARD_W_COMPACT : cardSize.w
@@ -192,8 +197,21 @@ export default function Alfred() {
     return () => window.removeEventListener('pointerdown', h)
   }, [mode])
 
+  // Auto-snap orb to right after 20s idle
+  useEffect(() => {
+    if (mode !== 'orb') return
+    const i = setInterval(() => {
+      if (Date.now() - lastInteract.current >= 20000) {
+        const snapped = window.innerWidth - 56
+        if (Math.abs(posRef.current.x - snapped) > 2) setPos({ x: snapped, y: posRef.current.y })
+      }
+    }, 1000)
+    return () => clearInterval(i)
+  }, [mode])
+
   // Orb drag
   const orbDragStart = (e: React.PointerEvent) => {
+    touch()
     e.preventDefault()
     dragOff.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
     setDragging(true)
@@ -210,6 +228,7 @@ export default function Alfred() {
 
   // Card drag
   const cardDragStart = (e: React.PointerEvent) => {
+    touch()
     if ((e.target as HTMLElement).closest('.alf-no-drag')) return
     e.preventDefault()
     dragOff.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }
@@ -227,6 +246,7 @@ export default function Alfred() {
 
   // Resize
   const resizeStart = (e: React.PointerEvent) => {
+    touch()
     e.preventDefault(); e.stopPropagation()
     sizeStart.current = { w: cardSize.w, h: cardSize.h, x: e.clientX, y: e.clientY }
     setResizing(true)
@@ -249,8 +269,8 @@ export default function Alfred() {
       {/* ── ORB ── */}
       <div
         onPointerDown={orbDragStart}
-        onClick={() => setMode(m => m === 'orb' ? 'compact' : 'orb')}
-        onDoubleClick={() => setMode('expanded')}
+        onClick={() => { touch(); setMode(m => m === 'orb' ? 'compact' : 'orb') }}
+        onDoubleClick={() => { touch(); setMode('expanded') }}
         style={{
           position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
           width: 56, height: 56, borderRadius: '50%',
@@ -259,7 +279,7 @@ export default function Alfred() {
           boxShadow: '0 0 0 1px rgba(232,184,75,0.06), 0 8px 32px rgba(0,0,0,0.8)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'default', userSelect: 'none',
-          transition: dragging ? 'none' : 'box-shadow 0.2s',
+          transition: dragging ? 'none' : 'left 0.5s ease, box-shadow 0.2s',
           animation: 'alfredOrbPulse 2.2s ease-in-out 2',
         }}
         onMouseEnter={e => { if (!dragging) { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px rgba(232,184,75,0.12), 0 12px 40px rgba(0,0,0,0.85)'; (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.06)' } }}
