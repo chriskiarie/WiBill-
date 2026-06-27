@@ -403,51 +403,36 @@ async def redeem_voucher_portal(
 
         session = await activate_session(session_id=str(session.id), db=db)
 
-        # Provision MikroTik user if router is configured (mirrors mpesa_service.py _handle_session_paid)
-        try:
-            mk_result = await db.execute(
-                select(MikrotikConfig).where(MikrotikConfig.tenant_id == voucher.tenant_id)
-            )
-            mk_cfg = mk_result.scalar_one_or_none()
-
-            if mk_cfg:
-                api_password = decrypt(mk_cfg.api_password_enc)
-                duration_m = int(duration.total_seconds() / 60)
-
-                mk_result = await create_hotspot_user(
-                    host=mk_cfg.router_ip,
-                    port=mk_cfg.api_port,
-                    username=mk_cfg.api_username,
-                    password=api_password,
-                    mac_address=session.mac_address,
-                    duration_minutes=duration_m,
-                    session_id=str(session.id),
-                    profile_name=mk_cfg.hotspot_profile_name or "XwB_Profile",
-                    speed_limit_kbps=getattr(package, 'speed_limit_kbps', None) if package else None,
-                )
-
-                if mk_result.get("success"):
-                    session.mikrotik_user_id = mk_result.get("user_id")
-                    logger.info(f"MikroTik provisioned for voucher session {session.id}: {mk_result['user_id']}")
-                else:
-                    logger.warning(f"MikroTik provisioning failed for voucher session {session.id}: {mk_result['message']}")
-            else:
-                logger.info(f"No MikroTik config for tenant {voucher.tenant_id}, skipping provisioning")
-
-        except Exception as e:
-            logger.error(f"MikroTik provisioning error for voucher session {session.id}: {e}")
-
         voucher.status = "used"
         voucher.used_at = now
         voucher.session_id = session.id
         voucher.mac_address = payload.mac_address
+        session.status = "active"
         await db.commit()
+
+        # Provision on MikroTik (non-blocking — don't fail redemption if router unreachable)
+        from app.services.mikrotik_service import create_mikrotik_user
+        try:
+            mikrotik_result = await create_mikrotik_user(
+                tenant_id=str(voucher.tenant_id),
+                session_id=str(session.id),
+                mac_address=payload.mac_address or "00:00:00:00:00:00",
+                ip_address=payload.ip_address or "0.0.0.0",
+                username=session.reconnect_code,
+                password=session.reconnect_code,
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception as e:
+            logger.error(f"MikroTik provisioning error for voucher redemption: {e}")
+            mikrotik_result = {"success": False, "message": str(e)}
 
         return {
             "success": True,
             "session_id": str(session.id),
             "package_name": pkg_name,
             "duration_hours": duration.total_seconds() / 3600,
+            "mikrotik": mikrotik_result.get("success", False),
             "message": f"Voucher redeemed! {duration.total_seconds() / 3600:.1f}h of internet access activated.",
         }
     except HTTPException:

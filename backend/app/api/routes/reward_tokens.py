@@ -220,6 +220,22 @@ async def redeem_token(
     token.session_id = session.id
     await db.commit()
 
+    # Provision on MikroTik (non-blocking)
+    from app.services.mikrotik_service import create_mikrotik_user
+    try:
+        await create_mikrotik_user(
+            tenant_id=str(token.tenant_id),
+            session_id=str(session.id),
+            mac_address=payload.mac_address or "00:00:00:00:00:00",
+            ip_address=payload.ip_address or "0.0.0.0",
+            username=session.reconnect_code,
+            password=session.reconnect_code,
+            expires_at=session.expires_at,
+            db=db,
+        )
+    except Exception:
+        pass
+
     return {
         "success": True,
         "session_id": str(session.id),

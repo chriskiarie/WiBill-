@@ -322,54 +322,23 @@ async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
         dashboard_txn.mpesa_receipt = txn.mpesa_receipt_number
         dashboard_txn.confirmed_at = datetime.utcnow()
 
-    # Provision MikroTik user if router is configured
-    try:
-        mk_result = await db.execute(
-            select(MikrotikConfig).where(MikrotikConfig.tenant_id == session.tenant_id)
-        )
-        mk_cfg = mk_result.scalar_one_or_none()
-
-        if mk_cfg:
-            api_password = decrypt(mk_cfg.api_password_enc)
-            duration_m = 0
-            speed_kbps = None
-
-            if session.package_id:
-                pkg_result = await db.execute(
-                    select(Package).where(Package.id == session.package_id)
-                )
-                pkg = pkg_result.scalar_one_or_none()
-                if pkg:
-                    duration_m = int(pkg.duration_hours * 60) if pkg.duration_hours else 60
-                    speed_kbps = getattr(pkg, 'speed_limit_kbps', None)
-
-            if duration_m <= 0:
-                from datetime import timedelta
-                remaining = session.expires_at - session.created_at
-                duration_m = max(1, int(remaining.total_seconds() / 60))
-
-            mk_result = await create_hotspot_user(
-                host=mk_cfg.router_ip,
-                port=mk_cfg.api_port,
-                username=mk_cfg.api_username,
-                password=api_password,
-                mac_address=session.mac_address,
-                duration_minutes=duration_m,
-                session_id=str(session.id),
-                profile_name=mk_cfg.hotspot_profile_name or "XwB_Profile",
-                speed_limit_kbps=speed_kbps,
-            )
-
-            if mk_result.get("success"):
-                session.mikrotik_user_id = mk_result.get("user_id")
-                logger.info(f"MikroTik provisioned for session {session.id}: {mk_result['user_id']}")
-            else:
-                logger.warning(f"MikroTik provisioning failed for session {session.id}: {mk_result['message']}")
-        else:
-            logger.info(f"No MikroTik config for tenant {session.tenant_id}, skipping provisioning")
-
-    except Exception as e:
-        logger.error(f"MikroTik provisioning error for session {session.id}: {e}")
+    # Provision hotspot user on MikroTik router
+    from app.services.mikrotik_service import create_mikrotik_user
+    mikrotik_result = await create_mikrotik_user(
+        tenant_id=str(session.tenant_id),
+        session_id=str(session.id),
+        mac_address=session.mac_address,
+        ip_address=session.ip_address,
+        username=session.reconnect_code,
+        password=session.reconnect_code,
+        expires_at=session.expires_at,
+        db=db,
+    )
+    if not mikrotik_result.get("success"):
+        logger.error(f"MikroTik provisioning failed for session {session.id}: {mikrotik_result.get('message')}")
+    else:
+        logger.info(f"MikroTik user provisioned: {mikrotik_result.get('message')}")
+        session.mikrotik_user_id = mikrotik_result.get("user_id")
 
 
 def _parse_mpesa_date(date_int) -> datetime | None:

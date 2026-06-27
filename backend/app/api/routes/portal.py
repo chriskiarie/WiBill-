@@ -226,6 +226,22 @@ async def get_live_portal(
         rtoken.bound_mac = mac or rtoken.bound_mac
         await db.commit()
 
+        # Provision on MikroTik (non-blocking)
+        from app.services.mikrotik_service import create_mikrotik_user
+        try:
+            await create_mikrotik_user(
+                tenant_id=str(rtoken.tenant_id),
+                session_id=str(session.id),
+                mac_address=mac or rtoken.bound_mac or "00:00:00:00:00:00",
+                ip_address=request.client.host if request else "0.0.0.0",
+                username=session.reconnect_code,
+                password=session.reconnect_code,
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception:
+            pass
+
         return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0;text-align:center">
             <div style="font-size:48px;margin-bottom:16px">&#10004;&#65039;</div>
             <h1 style="color:#22c55e;margin-bottom:8px">Token Redeemed!</h1>

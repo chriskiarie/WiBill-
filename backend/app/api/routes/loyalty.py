@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +11,10 @@ from app.models.tenant import Tenant
 from app.models.session import Session
 from app.models.reward_token import RewardToken
 from app.api.routes.auth import get_current_user
-from app.services.session_service import create_session
+from app.services.session_service import create_session, activate_session
 from app.api.routes.reward_tokens import generate_token_code
+
+logger = logging.getLogger("wibill.loyalty")
 
 router = APIRouter(tags=["loyalty"])
 
@@ -395,6 +398,7 @@ async def redeem_loyalty_portal(
         expires_at=now + timedelta(hours=REDEMPTION_DURATION_HOURS),
         db=db,
     )
+    session = await activate_session(session_id=str(session.id), db=db)
 
     account.points_balance -= REDEMPTION_THRESHOLD_POINTS
     account.total_redeemed += REDEMPTION_THRESHOLD_POINTS
@@ -412,10 +416,28 @@ async def redeem_loyalty_portal(
     db.add(txn)
     await db.commit()
 
+    # Provision on MikroTik (non-blocking — don't fail redemption if router unreachable)
+    from app.services.mikrotik_service import create_mikrotik_user
+    try:
+        mikrotik_result = await create_mikrotik_user(
+            tenant_id=str(account.tenant_id),
+            session_id=str(session.id),
+            mac_address=mac_address or "00:00:00:00:00:00",
+            ip_address=ip_address or "0.0.0.0",
+            username=session.reconnect_code,
+            password=session.reconnect_code,
+            expires_at=session.expires_at,
+            db=db,
+        )
+    except Exception as e:
+        logger.error(f"MikroTik provisioning error for loyalty redemption: {e}")
+        mikrotik_result = {"success": False, "message": str(e)}
+
     return {
         "success": True,
         "session_id": str(session.id),
         "duration_hours": REDEMPTION_DURATION_HOURS,
         "points_remaining": account.points_balance,
+        "mikrotik": mikrotik_result.get("success", False),
         "message": f"Free {REDEMPTION_DURATION_HOURS}h internet activated! {REDEMPTION_THRESHOLD_POINTS} points redeemed.",
     }
