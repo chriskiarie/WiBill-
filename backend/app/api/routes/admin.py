@@ -236,6 +236,7 @@ async def suspend_tenant(
         raise HTTPException(status_code=404, detail="Tenant not found")
     
     tenant.is_active = False
+    tenant.is_locked = True
     db.add(tenant)
     await log_action(db, current_user, 'suspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
@@ -259,6 +260,7 @@ async def unsuspend_tenant(
         raise HTTPException(status_code=404, detail="Tenant not found")
     
     tenant.is_active = True
+    tenant.is_locked = False
     db.add(tenant)
     await log_action(db, current_user, 'unsuspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()

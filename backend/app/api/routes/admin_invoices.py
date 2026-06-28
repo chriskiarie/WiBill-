@@ -83,6 +83,8 @@ async def mark_invoice_paid(
         tenant.avg_days_punctual = round((current_avg + delta_days) / 2, 1)
 
     tenant.invoice_status = "active"
+    tenant.is_active = True
+    tenant.is_locked = False
     tenant.last_paid_date = now
     tenant.next_invoice_date = None
     if body.monthly_fee_ksh:
