@@ -9,8 +9,10 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.is_development,   # logs SQL in dev, silent in prod
     pool_pre_ping=True,             # verify connection before use
-    pool_size=10,
-    max_overflow=20,
+    pool_size=20,
+    max_overflow=10,
+    pool_recycle=3600,              # recycle connections hourly to prevent staleness
+    pool_timeout=10,                # fail fast (10s) instead of hanging 30s
 )
 
 # ── Session factory ───────────────────────────────────────────────────────────
