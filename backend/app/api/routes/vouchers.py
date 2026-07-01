@@ -14,7 +14,7 @@ from app.models.tenant import Tenant
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
 from app.services.session_service import create_session, activate_session
-from app.services.mikrotik_service import create_hotspot_user
+
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import decrypt
 import logging

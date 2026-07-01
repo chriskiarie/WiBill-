@@ -18,7 +18,7 @@ from app.models.mikrotik_config import MikrotikConfig
 from app.models.package import Package
 from app.services.daraja_service import initiate_stk_push, query_stk_status
 from app.services.crypto_service import encrypt, decrypt
-from app.services.mikrotik_service import create_hotspot_user
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
