@@ -18,6 +18,9 @@ from app.models.tenant import Tenant
 from app.models.package import Package
 from app.models.mikrotik_config import MikrotikConfig
 from app.models.mpesa_config import MpesaConfig, DarajaEnvironment
+from app.models.invoice import Invoice
+from app.models.invoice_transaction import InvoiceTransaction
+from app.models.invoice_reminder import InvoiceReminder
 
 
 async def seed():
