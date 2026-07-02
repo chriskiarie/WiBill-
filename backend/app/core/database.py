@@ -4,15 +4,9 @@ from sqlalchemy import text
 from app.core.config import settings
 
 
-# ── URL conversion ────────────────────────────────────────────────────────────
-# Railway injects DATABASE_URL as postgresql:// or postgres:// (sync). We need async driver.
-_ASYNC_URL = settings.DATABASE_URL
-if _ASYNC_URL and _ASYNC_URL.startswith("postgres") and "+asyncpg" not in _ASYNC_URL:
-    _ASYNC_URL = _ASYNC_URL.replace("://", "+asyncpg://", 1)
-
 # ── Engine ────────────────────────────────────────────────────────────────────
 engine = create_async_engine(
-    _ASYNC_URL,
+    settings.DATABASE_URL,
     echo=settings.is_development,   # logs SQL in dev, silent in prod
     pool_pre_ping=True,             # verify connection before use
     pool_size=20,
