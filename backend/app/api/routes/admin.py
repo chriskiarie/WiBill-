@@ -25,9 +25,12 @@ from app.models.mikrotik_config import MikrotikConfig
 from app.models.mpesa_transaction import MpesaTransaction
 from app.models.smtp_config import SmtpConfig
 from app.models.api_key import ApiKey
+from app.models.transaction import Transaction, TransactionStatus
+from app.models.session import Session as SessionModel, SessionStatus
 from app.api.routes.auth import get_current_user, require_platform_admin
 from app.services.crypto_service import encrypt, decrypt
 from app.services.daraja_service import get_access_token
+from sqlalchemy import func
 
 
 class CommissionUpdate(BaseModel):
@@ -148,6 +151,53 @@ async def generate_invite(
         used_by_tenant_name=invite.used_by_tenant_name,
         used_at=invite.used_at,
     )
+
+
+@router.get("/admin/dashboard")
+async def platform_dashboard(
+    current_user: AdminUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Platform-wide dashboard stats (all tenants combined). platform_admin only.
+    Used by the Batcave dashboard -- distinct from /api/tenants/dashboard,
+    which is a single ISP's own scoped stats.
+    """
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = today_start - timedelta(days=30)
+
+    today_result = await db.execute(
+        select(func.coalesce(func.sum(Transaction.amount_ksh), 0)).where(
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.created_at >= today_start,
+        )
+    )
+    revenue_today = float(today_result.scalar() or 0)
+
+    month_result = await db.execute(
+        select(func.coalesce(func.sum(Transaction.amount_ksh), 0)).where(
+            Transaction.status == TransactionStatus.SUCCESS.value,
+            Transaction.created_at >= month_start,
+        )
+    )
+    revenue_month = float(month_result.scalar() or 0)
+
+    active_sessions_result = await db.execute(
+        select(func.count(SessionModel.id)).where(
+            SessionModel.status == SessionStatus.ACTIVE.value
+        )
+    )
+    active_sessions = int(active_sessions_result.scalar() or 0)
+
+    total_isps_result = await db.execute(select(func.count(Tenant.id)))
+    total_isps = int(total_isps_result.scalar() or 0)
+
+    return {
+        "revenue_today": revenue_today,
+        "revenue_month": revenue_month,
+        "active_sessions": active_sessions,
+        "total_isps": total_isps,
+    }
 
 
 @router.get("/admin/tenants", response_model=List[TenantListResponse])

@@ -282,15 +282,13 @@ export default function AdminDashboard() {
           }
         };
 
-        const [dash, txnData, sessionData, ispData] = await Promise.all([
-          fetchJson(`${API}/api/tenants/dashboard`),
+        const [dash, txnData, ispData] = await Promise.all([
+          fetchJson(`${API}/api/admin/dashboard`),
           fetchJson(`${API}/api/transactions?limit=50`),
-          fetchJson(`${API}/api/sessions?limit=100`),
           fetchJson(`${API}/api/`),
         ]);
 
         const txnsList: Transaction[] = Array.isArray(txnData?.value) ? txnData.value : [];
-        const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : [];
         const ispList: ISP[] = Array.isArray(ispData?.value) ? ispData.value : [];
 
         if (!mounted) return;
@@ -298,8 +296,8 @@ export default function AdminDashboard() {
         setStats({
           revenue_today: Number(dash?.revenue_today || 0),
           revenue_month: Number(dash?.revenue_month || 0),
-          active_sessions: sessionsList.length,
-          total_isps: ispList.length,
+          active_sessions: Number(dash?.active_sessions || 0),
+          total_isps: Number(dash?.total_isps || ispList.length),
         });
 
         setTxns(txnsList.slice(0, 6));

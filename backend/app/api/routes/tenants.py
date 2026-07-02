@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import uuid
 
 from app.core.database import get_db
-from app.api.routes.auth import require_platform_admin, require_isp_admin
+from app.api.routes.auth import require_platform_admin, require_isp_admin, get_current_user
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.package import Package  # CRITICAL: Added import
@@ -596,3 +596,37 @@ async def test_mikrotik_connection(
     if ok:
         return {"ok": True, "message": f"Connected to {cfg.router_ip}:{cfg.api_port}"}
     raise HTTPException(status_code=502, detail=f"Router unreachable at {cfg.router_ip}:{cfg.api_port}")
+
+@router.get("/tenants/{tenant_id}")
+async def get_tenant_by_id(
+    tenant_id: str,
+    current_user: AdminUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Fetch a single tenant's public profile info. ISP admins may only fetch
+    their own tenant; platform admins may fetch any tenant.
+    Registered LAST among /tenants/* GET routes so it never shadows the
+    more specific paths above (status, mikrotik, dashboard, portal-config).
+    """
+    try:
+        tid = uuid.UUID(tenant_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid tenant_id")
+
+    if current_user.role != "platform_admin" and current_user.tenant_id != tid:
+        raise HTTPException(status_code=403, detail="Cannot access another tenant")
+
+    result = await db.execute(select(Tenant).where(Tenant.id == tid))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    return {
+        "id": str(tenant.id),
+        "slug": tenant.slug,
+        "name": tenant.name,
+        "is_active": tenant.is_active,
+        "commission_rate": float(tenant.commission_rate),
+        "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
+    }

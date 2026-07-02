@@ -118,6 +118,33 @@ async def test_connection(
     )
 
 
+@router.get("/mikrotik/health")
+async def health_check(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """
+    Lightweight health check polled by the dashboard. Returns configured/
+    connected status without requiring a POST test call each time.
+    """
+    result = await db.execute(
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        return {"configured": False, "connected": False}
+
+    from app.services.mikrotik_service import test_connection as tcp_check
+    reachable = await tcp_check(config)
+    return {
+        "configured": True,
+        "connected": reachable,
+        "router_ip": config.router_ip,
+    }
+
+
 @router.get("/mikrotik/users")
 async def list_active_users(
     db: AsyncSession = Depends(get_db),
