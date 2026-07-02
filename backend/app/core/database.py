@@ -5,10 +5,10 @@ from app.core.config import settings
 
 
 # ── URL conversion ────────────────────────────────────────────────────────────
-# Railway injects DATABASE_URL as postgresql:// (sync). We need async driver.
+# Railway injects DATABASE_URL as postgresql:// or postgres:// (sync). We need async driver.
 _ASYNC_URL = settings.DATABASE_URL
-if _ASYNC_URL.startswith("postgresql://") and "+asyncpg" not in _ASYNC_URL:
-    _ASYNC_URL = _ASYNC_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+if _ASYNC_URL and _ASYNC_URL.startswith("postgres") and "+asyncpg" not in _ASYNC_URL:
+    _ASYNC_URL = _ASYNC_URL.replace("://", "+asyncpg://", 1)
 
 # ── Engine ────────────────────────────────────────────────────────────────────
 engine = create_async_engine(
