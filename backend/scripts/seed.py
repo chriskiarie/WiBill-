@@ -12,6 +12,9 @@ from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.admin_user import AdminUser, AdminRole
 from app.models.tenant import Tenant
+from app.models.invoice import Invoice
+from app.models.invoice_transaction import InvoiceTransaction
+from app.models.invoice_reminder import InvoiceReminder
 
 
 async def seed():
