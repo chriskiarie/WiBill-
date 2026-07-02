@@ -7,9 +7,16 @@ from app.core.config import settings
 logger = logging.getLogger("honestbill")
 
 
+# ── Ensure async driver scheme ─────────────────────────────────────────────
+_db_url = settings.DATABASE_URL
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
 # ── Engine ────────────────────────────────────────────────────────────────────
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _db_url,
     echo=settings.is_development,   # logs SQL in dev, silent in prod
     pool_pre_ping=True,             # verify connection before use
     pool_size=20,
@@ -56,6 +63,6 @@ async def check_db_connection() -> bool:
         # "Cannot connect to database" undebuggable from Railway logs alone.
         logger.error(
             f"DB connection check failed: {type(e).__name__}: {e}. "
-            f"URL host being used: {settings.DATABASE_URL.split('@')[-1].split('/')[0] if '@' in settings.DATABASE_URL else '(unparseable)'}"
+            f"URL host being used: {_db_url.split('@')[-1].split('/')[0] if '@' in _db_url else '(unparseable)'}"
         )
         return False
