@@ -2,6 +2,7 @@
 mikrotik_service.py — calls the WiBill local bridge at 
 https://mikrotik.wi-bill.com which proxies to the router via librouteros.
 """
+import asyncio
 import httpx
 import uuid
 import logging
@@ -13,6 +14,28 @@ from sqlalchemy import select
 from app.models.mikrotik_config import MikrotikConfig
 
 logger = logging.getLogger("wibill.mikrotik")
+
+
+async def test_connection(cfg, timeout: float = 5.0) -> bool:
+    """
+    Real reachability + RouterOS API port check for a MikrotikConfig row.
+    Opens a raw TCP connection to router_ip:api_port -- confirms the router
+    is up and the API service is actually listening (not just that the
+    host responds to ICMP, which many networks block anyway).
+    """
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(cfg.router_ip, cfg.api_port),
+            timeout=timeout,
+        )
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+        return True
+    except (OSError, asyncio.TimeoutError):
+        return False
 
 
 async def _get_config(tenant_id: str, db: AsyncSession) -> Optional[MikrotikConfig]:

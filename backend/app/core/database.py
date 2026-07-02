@@ -1,7 +1,10 @@
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 from app.core.config import settings
+
+logger = logging.getLogger("honestbill")
 
 
 # ── Engine ────────────────────────────────────────────────────────────────────
@@ -48,5 +51,11 @@ async def check_db_connection() -> bool:
         async with AsyncSessionLocal() as session:
             await session.execute(text("SELECT 1"))
         return True
-    except Exception:
+    except Exception as e:
+        # Log full details -- this was what was previously swallowed, making
+        # "Cannot connect to database" undebuggable from Railway logs alone.
+        logger.error(
+            f"DB connection check failed: {type(e).__name__}: {e}. "
+            f"URL host being used: {settings.DATABASE_URL.split('@')[-1].split('/')[0] if '@' in settings.DATABASE_URL else '(unparseable)'}"
+        )
         return False
