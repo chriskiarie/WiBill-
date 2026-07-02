@@ -1,13 +1,12 @@
 """
-MikroTik RouterOS integration via bridge HTTP API.
-Makes async httpx calls to the bridge running on the AnyDesk machine,
-which proxies librouteros commands to the router.
+mikrotik_service.py — calls the WiBill local bridge at 
+https://mikrotik.wi-bill.com which proxies to the router via librouteros.
 """
+import httpx
 import uuid
 import logging
 from datetime import datetime
 from typing import Optional
-import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -24,23 +23,34 @@ async def _get_config(tenant_id: str, db: AsyncSession) -> Optional[MikrotikConf
 
 
 def _bridge_url(config: MikrotikConfig) -> str:
-    port = config.api_port if config.api_port else 443
-    return f"https://{config.router_ip}:{port}"
+    host = config.router_ip
+    if host.startswith("http"):
+        return host.rstrip("/")
+    return f"http://{host}:{config.api_port}"
+
+
+def _duration_str(expires_at: datetime) -> str:
+    delta = expires_at - datetime.utcnow()
+    total = max(int(delta.total_seconds()), 60)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}"
 
 
 async def check_mikrotik_connection(tenant_id: str, db: AsyncSession) -> dict:
     config = await _get_config(tenant_id, db)
     if not config:
         return {"connected": False, "error": "No MikroTik config saved for this ISP"}
-
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.get(f"{_bridge_url(config)}/test")
-        if r.status_code == 200:
-            return r.json()
-        return {"connected": False, "error": f"Bridge returned HTTP {r.status_code}: {r.text}"}
-    except httpx.ConnectError as e:
-        return {"connected": False, "error": f"Cannot reach bridge at {config.router_ip}:{config.api_port} — {e}"}
+            if r.status_code == 200:
+                return r.json()
+            return {"connected": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except httpx.ConnectError:
+        return {"connected": False, "error": "Cannot reach bridge — check cloudflared and bridge.py are running"}
+    except httpx.TimeoutException:
+        return {"connected": False, "error": "Bridge timed out — check bridge.py is running on port 8080"}
     except Exception as e:
         return {"connected": False, "error": str(e)}
 
@@ -57,42 +67,31 @@ async def create_mikrotik_user(
 ) -> dict:
     config = await _get_config(tenant_id, db)
     if not config:
-        logger.warning(f"No MikroTik config for tenant {tenant_id} — session active in DB but router not updated")
-        return {"success": False, "message": "No MikroTik config — router not updated", "user_id": None}
-
-    delta = expires_at - datetime.utcnow()
-    total = max(int(delta.total_seconds()), 60)
-    h, rem = divmod(total, 3600)
-    m, s = divmod(rem, 60)
-    limit_uptime = f"{h:02d}:{m:02d}:{s:02d}"
+        logger.warning(f"No MikroTik config for tenant {tenant_id} — skipping provisioning")
+        return {"success": False, "message": "No MikroTik config", "user_id": None}
 
     payload = {
         "username": username,
         "password": password,
-        "mac_address": mac_address.upper(),
-        "limit_uptime": limit_uptime,
+        "mac_address": mac_address,
+        "limit_uptime": _duration_str(expires_at),
         "session_id": session_id,
     }
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(f"{_bridge_url(config)}/users/create", json=payload)
-        if r.status_code != 200:
-            logger.error(f"Bridge create user failed: {r.status_code} {r.text}")
-            return {"success": False, "message": f"Bridge error: {r.text}", "user_id": None}
-
-        data = r.json()
-        logger.info(f"MikroTik user '{username}' created via bridge, expires in {limit_uptime}")
-        return {
-            "success": data.get("success", True),
-            "message": f"Hotspot user '{username}' created",
-            "user_id": data.get("router_id"),
-            "limit_uptime": limit_uptime,
-        }
-    except httpx.ConnectError as e:
-        return {"success": False, "message": f"Cannot reach bridge: {e}", "user_id": None}
+            data = r.json()
+            if r.status_code == 200:
+                logger.info(f"MikroTik user '{username}' provisioned via bridge")
+                return {
+                    "success": True,
+                    "message": f"User '{username}' created on router",
+                    "user_id": data.get("router_id"),
+                }
+            return {"success": False, "message": data.get("detail", "Bridge error"), "user_id": None}
     except Exception as e:
-        logger.error(f"Error creating MikroTik user via bridge: {e}")
+        logger.error(f"Bridge error creating MikroTik user: {e}")
         return {"success": False, "message": str(e), "user_id": None}
 
 
@@ -108,14 +107,15 @@ async def remove_mikrotik_user(
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(f"{_bridge_url(config)}/users/remove", json={"username": username})
-        if r.status_code != 200:
-            return {"success": False, "message": f"Bridge error: {r.text}"}
-        data = r.json()
-        logger.info(f"MikroTik user '{username}' removed via bridge")
-        return {"success": True, "message": f"Removed '{username}' from router"}
+            r = await client.post(
+                f"{_bridge_url(config)}/users/remove",
+                json={"username": username}
+            )
+            if r.status_code == 200:
+                return r.json()
+            return {"success": False, "message": r.text[:200]}
     except Exception as e:
-        logger.error(f"Error removing MikroTik user: {e}")
+        logger.error(f"Bridge error removing MikroTik user: {e}")
         return {"success": False, "message": str(e)}
 
 
@@ -128,16 +128,17 @@ async def remove_hotspot_user_by_session(
     if not config:
         return {"success": False, "message": "No MikroTik config"}
 
-    tag = f"wibill-{session_id[:8]}"
-
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(f"{_bridge_url(config)}/users/remove-by-tag", json={"tag": tag})
-        if r.status_code != 200:
-            return {"success": False, "message": f"Bridge error: {r.text}"}
-        data = r.json()
-        return {"success": True, "message": f"Removed {data.get('removed_count', 0)} user(s) by session tag"}
+            r = await client.post(
+                f"{_bridge_url(config)}/users/remove-by-tag",
+                json={"session_id": session_id}
+            )
+            if r.status_code == 200:
+                return r.json()
+            return {"success": False, "message": r.text[:200]}
     except Exception as e:
+        logger.error(f"Bridge error removing by session tag: {e}")
         return {"success": False, "message": str(e)}
 
 
@@ -145,13 +146,9 @@ async def get_active_users(tenant_id: str, db: AsyncSession) -> list:
     config = await _get_config(tenant_id, db)
     if not config:
         return []
-
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(f"{_bridge_url(config)}/users/active")
-        if r.status_code == 200:
-            data = r.json()
-            return data.get("users", [])
-        return []
+            return r.json().get("users", [])
     except Exception:
         return []

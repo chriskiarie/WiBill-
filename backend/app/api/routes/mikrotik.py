@@ -30,7 +30,9 @@ async def get_config(
     current_user: AdminUser = Depends(require_isp_admin),
 ):
     result = await db.execute(
-        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
     )
     config = result.scalar_one_or_none()
     if not config:
@@ -53,12 +55,16 @@ async def create_config(
     current_user: AdminUser = Depends(require_isp_admin),
 ):
     result = await db.execute(
-        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
     )
     existing = result.scalar_one_or_none()
     if existing:
-        raise HTTPException(status_code=400, detail="Config already exists — use PATCH to update")
-
+        raise HTTPException(
+            status_code=400,
+            detail="Config already exists — use PATCH to update"
+        )
     config = MikrotikConfig(
         id=uuid.uuid4(),
         tenant_id=current_user.tenant_id,
@@ -81,12 +87,16 @@ async def update_config(
     current_user: AdminUser = Depends(require_isp_admin),
 ):
     result = await db.execute(
-        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
     )
     config = result.scalar_one_or_none()
     if not config:
-        raise HTTPException(status_code=404, detail="No config found — use POST to create")
-
+        raise HTTPException(
+            status_code=404,
+            detail="No config found — use POST to create"
+        )
     config.router_ip = payload.router_ip
     config.api_port = payload.api_port
     config.api_username = payload.api_username
@@ -103,11 +113,13 @@ async def test_connection(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    return await check_mikrotik_connection(str(current_user.tenant_id), db)
+    return await check_mikrotik_connection(
+        str(current_user.tenant_id), db
+    )
 
 
 @router.get("/mikrotik/users")
-async def active_users(
+async def list_active_users(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
