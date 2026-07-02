@@ -418,13 +418,13 @@ export default function CampaignsPage() {
               <div>
                 <div style={{ padding: '10px 12px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 12, fontSize: 9, color: C.gold, fontFamily: "'DM Mono', monospace", lineHeight: 1.8 }}>
                   Redemption URL format:<br />
-                  <strong style={{ color: C.text }}>https://wibill-production.up.railway.app/portal/YOUR_ISP_SLUG?token=CODE</strong>
+                  <strong style={{ color: C.text }}>https://wibill-production-2e9c.up.railway.app/portal/YOUR_ISP_SLUG?token=CODE</strong>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.4fr 0.4fr 0.4fr 0.3fr', borderBottom: `0.5px solid ${C.border}`, padding: '8px 12px', fontSize: 9, color: C.dim, fontWeight: 700, textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>
                   <span>Code</span><span>Minutes</span><span>Status</span><span>Expires</span><span></span>
                 </div>
                 {viewingTokens.map(t => {
-                  const redemptionUrl = `https://wibill-production.up.railway.app/portal/YOUR_ISP_SLUG?token=${t.token_code}`
+                  const redemptionUrl = `https://wibill-production-2e9c.up.railway.app/portal/YOUR_ISP_SLUG?token=${t.token_code}`
                   return (
                     <div key={t.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.4fr 0.4fr 0.4fr 0.3fr', padding: '8px 12px', borderBottom: `0.5px solid ${C.border}`, fontSize: 10, fontFamily: "'DM Mono', monospace", color: C.text, alignItems: 'center' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

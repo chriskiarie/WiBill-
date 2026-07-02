@@ -18,7 +18,7 @@ export default function PortalPreviewPage() {
   const [portalReady, setPortalReady] = useState<boolean | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production.up.railway.app'
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production-2e9c.up.railway.app'
   const slug = user?.tenant_slug
   const portalUrl = slug ? `${backendUrl}/portal/${slug}` : null
 

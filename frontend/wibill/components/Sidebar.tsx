@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-const PORTAL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production.up.railway.app'
+const PORTAL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://wibill-production-2e9c.up.railway.app'
 
 const nav = [
   { label: 'Overview', items: [
