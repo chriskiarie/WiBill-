@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -6,14 +8,17 @@ from typing import Optional
 import uuid
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.api.routes.auth import require_isp_admin
 from app.models.admin_user import AdminUser
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import encrypt
+from app.services.cloudflare_service import create_tunnel, create_dns_record, delete_tunnel
 from app.services.mikrotik_service import check_mikrotik_connection, get_active_users
+from app.models.tenant import Tenant
+
 
 router = APIRouter()
-
 
 class MikrotikConfigPayload(BaseModel):
     router_ip: str
@@ -147,6 +152,85 @@ async def health_check(
         "connected": bool(status.get("connected")),
         "router_ip": config.router_ip,
     }
+
+
+@router.post("/mikrotik/provision")
+async def provision_bridge(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Create Cloudflare tunnel + generate bridge secret for this ISP."""
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == current_user.tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    result = await db.execute(
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
+
+    if config.tunnel_id:
+        raise HTTPException(status_code=400, detail="Tunnel already provisioned — delete and re-create if needed")
+
+    tunnel_name = f"isp-{tenant.slug}"
+    bridge_secret = secrets.token_hex(32)
+    tunnel = await create_tunnel(tunnel_name)
+    tunnel_token = tunnel.get("token", "")
+
+    subdomain = f"isp-{tenant.slug}"
+    await create_dns_record(subdomain, tunnel["id"])
+
+    config.bridge_secret_enc = encrypt(bridge_secret)
+    config.tunnel_token_enc = encrypt(tunnel_token)
+    config.tunnel_id = tunnel["id"]
+    config.router_ip = f"{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}"
+    config.status = "PROVISIONED"
+    await db.commit()
+
+    return {
+        "ok": True,
+        "tunnel_id": tunnel["id"],
+        "tunnel_name": tunnel_name,
+        "bridge_url": f"https://{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}",
+        "bridge_secret": bridge_secret,
+        "tunnel_token": tunnel_token,
+    }
+
+
+@router.post("/mikrotik/decomission")
+async def decommission_bridge(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Delete Cloudflare tunnel and reset bridge config for this ISP."""
+    result = await db.execute(
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
+    )
+    config = result.scalar_one_or_none()
+    if not config or not config.tunnel_id:
+        raise HTTPException(status_code=400, detail="No tunnel to decommission")
+
+    try:
+        await delete_tunnel(config.tunnel_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to delete tunnel: {e}")
+
+    config.bridge_secret_enc = None
+    config.tunnel_token_enc = None
+    config.tunnel_id = None
+    config.status = "DISCONNECTED"
+    await db.commit()
+
+    return {"ok": True, "message": "Tunnel deleted and config reset"}
 
 
 @router.get("/mikrotik/users")

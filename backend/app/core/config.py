@@ -81,6 +81,12 @@ class Settings(BaseSettings):
     # Version of bridge.py currently deployed (for installer endpoint)
     MIKROTIK_BRIDGE_VERSION: str = "1.0.0"
 
+    # ── Cloudflare Tunnel API ─────────────────────────
+    CLOUDFLARE_API_TOKEN: str = ""
+    CLOUDFLARE_ACCOUNT_ID: str = ""
+    CLOUDFLARE_ZONE_ID: str = ""
+    CLOUDFLARE_TUNNEL_DOMAIN: str = "wi-bill.com"
+
     # ── CORS ─────────────────────────────────────────
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
