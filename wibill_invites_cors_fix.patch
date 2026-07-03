@@ -1,0 +1,79 @@
+diff --git a/backend/app/db_migrate.py b/backend/app/db_migrate.py
+index 77571b2..81638c6 100644
+--- a/backend/app/db_migrate.py
++++ b/backend/app/db_migrate.py
+@@ -225,6 +225,40 @@ MIGRATIONS = [
+     ("network_events.status to varchar", """
+         ALTER TABLE network_events ALTER COLUMN status TYPE VARCHAR(20)
+     """),
++    # ── isp_invites table: predates this self-healing list, migration chain
++    # for it was never confirmed applied to prod -- recreate idempotently ──
++    ("invitestatus enum type", """
++        DO $$ BEGIN
++            CREATE TYPE invitestatus AS ENUM ('pending', 'used', 'expired');
++        EXCEPTION WHEN duplicate_object THEN null;
++        END $$
++    """),
++    ("isp_invites table", """
++        CREATE TABLE IF NOT EXISTS isp_invites (
++            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
++            token VARCHAR(64) NOT NULL UNIQUE,
++            created_by UUID NOT NULL REFERENCES admin_users(id),
++            isp_name TEXT,
++            status invitestatus NOT NULL DEFAULT 'pending',
++            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
++            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
++            used_by_tenant_id UUID REFERENCES tenants(id),
++            used_by_tenant_name TEXT,
++            used_at TIMESTAMP WITH TIME ZONE
++        )
++    """),
++    ("isp_invites.token index", """
++        CREATE INDEX IF NOT EXISTS ix_isp_invites_token ON isp_invites(token)
++    """),
++    ("isp_invites.created_by index", """
++        CREATE INDEX IF NOT EXISTS ix_isp_invites_created_by ON isp_invites(created_by)
++    """),
++    ("isp_invites.status index", """
++        CREATE INDEX IF NOT EXISTS ix_isp_invites_status ON isp_invites(status)
++    """),
++    ("isp_invites.expires_at index", """
++        CREATE INDEX IF NOT EXISTS ix_isp_invites_expires_at ON isp_invites(expires_at)
++    """),
+ ]
+ 
+ async def run_migrations():
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 988d73b..6d91ff9 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -107,6 +107,29 @@ app.add_middleware(
+     allow_headers=["*"],
+ )
+ 
++
++@app.exception_handler(Exception)
++async def unhandled_exception_handler(request: Request, exc: Exception):
++    """
++    Unhandled exceptions bypass CORSMiddleware's response-header injection
++    (Starlette only adds CORS headers on the way back through a successful
++    call_next -- an exception skips that path entirely). Without this, the
++    browser reports a misleading "CORS policy" error that hides the real
++    500, because the actual error response never carries an
++    Access-Control-Allow-Origin header. This handler logs the real error
++    and re-adds the header manually so the frontend gets the true status.
++    """
++    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
++    origin = request.headers.get("origin", "*")
++    return JSONResponse(
++        status_code=500,
++        content={"detail": "Internal server error"},
++        headers={
++            "Access-Control-Allow-Origin": origin,
++            "Access-Control-Allow-Credentials": "true",
++        },
++    )
++
+ # ── Routers ───────────────────────────────────────────────────────────────────
+ from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices, mikrotik
+ from app.api.routes import admin as admin_routes

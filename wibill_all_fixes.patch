@@ -1,0 +1,230 @@
+diff --git a/backend/admin_page_batcave.tsx b/backend/admin_page_batcave.tsx
+index c56bcdd..2604f8b 100644
+--- a/backend/admin_page_batcave.tsx
++++ b/backend/admin_page_batcave.tsx
+@@ -282,15 +282,13 @@ export default function AdminDashboard() {
+           }
+         };
+ 
+-        const [dash, txnData, sessionData, ispData] = await Promise.all([
+-          fetchJson(`${API}/api/tenants/dashboard`),
++        const [dash, txnData, ispData] = await Promise.all([
++          fetchJson(`${API}/api/admin/dashboard`),
+           fetchJson(`${API}/api/transactions?limit=50`),
+-          fetchJson(`${API}/api/sessions?limit=100`),
+           fetchJson(`${API}/api/`),
+         ]);
+ 
+         const txnsList: Transaction[] = Array.isArray(txnData?.value) ? txnData.value : [];
+-        const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : [];
+         const ispList: ISP[] = Array.isArray(ispData?.value) ? ispData.value : [];
+ 
+         if (!mounted) return;
+@@ -298,8 +296,8 @@ export default function AdminDashboard() {
+         setStats({
+           revenue_today: Number(dash?.revenue_today || 0),
+           revenue_month: Number(dash?.revenue_month || 0),
+-          active_sessions: sessionsList.length,
+-          total_isps: ispList.length,
++          active_sessions: Number(dash?.active_sessions || 0),
++          total_isps: Number(dash?.total_isps || ispList.length),
+         });
+ 
+         setTxns(txnsList.slice(0, 6));
+diff --git a/backend/app/api/routes/admin.py b/backend/app/api/routes/admin.py
+index e8b1595..9687dc1 100644
+--- a/backend/app/api/routes/admin.py
++++ b/backend/app/api/routes/admin.py
+@@ -25,9 +25,12 @@ from app.models.mikrotik_config import MikrotikConfig
+ from app.models.mpesa_transaction import MpesaTransaction
+ from app.models.smtp_config import SmtpConfig
+ from app.models.api_key import ApiKey
++from app.models.transaction import Transaction, TransactionStatus
++from app.models.session import Session as SessionModel, SessionStatus
+ from app.api.routes.auth import get_current_user, require_platform_admin
+ from app.services.crypto_service import encrypt, decrypt
+ from app.services.daraja_service import get_access_token
++from sqlalchemy import func
+ 
+ 
+ class CommissionUpdate(BaseModel):
+@@ -150,6 +153,53 @@ async def generate_invite(
+     )
+ 
+ 
++@router.get("/admin/dashboard")
++async def platform_dashboard(
++    current_user: AdminUser = Depends(require_platform_admin),
++    db: AsyncSession = Depends(get_db),
++):
++    """
++    Platform-wide dashboard stats (all tenants combined). platform_admin only.
++    Used by the Batcave dashboard -- distinct from /api/tenants/dashboard,
++    which is a single ISP's own scoped stats.
++    """
++    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
++    month_start = today_start - timedelta(days=30)
++
++    today_result = await db.execute(
++        select(func.coalesce(func.sum(Transaction.amount_ksh), 0)).where(
++            Transaction.status == TransactionStatus.SUCCESS.value,
++            Transaction.created_at >= today_start,
++        )
++    )
++    revenue_today = float(today_result.scalar() or 0)
++
++    month_result = await db.execute(
++        select(func.coalesce(func.sum(Transaction.amount_ksh), 0)).where(
++            Transaction.status == TransactionStatus.SUCCESS.value,
++            Transaction.created_at >= month_start,
++        )
++    )
++    revenue_month = float(month_result.scalar() or 0)
++
++    active_sessions_result = await db.execute(
++        select(func.count(SessionModel.id)).where(
++            SessionModel.status == SessionStatus.ACTIVE.value
++        )
++    )
++    active_sessions = int(active_sessions_result.scalar() or 0)
++
++    total_isps_result = await db.execute(select(func.count(Tenant.id)))
++    total_isps = int(total_isps_result.scalar() or 0)
++
++    return {
++        "revenue_today": revenue_today,
++        "revenue_month": revenue_month,
++        "active_sessions": active_sessions,
++        "total_isps": total_isps,
++    }
++
++
+ @router.get("/admin/tenants", response_model=List[TenantListResponse])
+ async def list_tenants(
+     current_user: AdminUser = Depends(require_platform_admin),
+diff --git a/backend/app/api/routes/mikrotik.py b/backend/app/api/routes/mikrotik.py
+index 818124a..095ae78 100644
+--- a/backend/app/api/routes/mikrotik.py
++++ b/backend/app/api/routes/mikrotik.py
+@@ -118,6 +118,33 @@ async def test_connection(
+     )
+ 
+ 
++@router.get("/mikrotik/health")
++async def health_check(
++    db: AsyncSession = Depends(get_db),
++    current_user: AdminUser = Depends(require_isp_admin),
++):
++    """
++    Lightweight health check polled by the dashboard. Returns configured/
++    connected status without requiring a POST test call each time.
++    """
++    result = await db.execute(
++        select(MikrotikConfig).where(
++            MikrotikConfig.tenant_id == current_user.tenant_id
++        )
++    )
++    config = result.scalar_one_or_none()
++    if not config:
++        return {"configured": False, "connected": False}
++
++    from app.services.mikrotik_service import test_connection as tcp_check
++    reachable = await tcp_check(config)
++    return {
++        "configured": True,
++        "connected": reachable,
++        "router_ip": config.router_ip,
++    }
++
++
+ @router.get("/mikrotik/users")
+ async def list_active_users(
+     db: AsyncSession = Depends(get_db),
+diff --git a/backend/app/api/routes/tenants.py b/backend/app/api/routes/tenants.py
+index f8b7362..dca9fa6 100644
+--- a/backend/app/api/routes/tenants.py
++++ b/backend/app/api/routes/tenants.py
+@@ -5,7 +5,7 @@ from pydantic import BaseModel
+ import uuid
+ 
+ from app.core.database import get_db
+-from app.api.routes.auth import require_platform_admin, require_isp_admin
++from app.api.routes.auth import require_platform_admin, require_isp_admin, get_current_user
+ from app.models.admin_user import AdminUser
+ from app.models.tenant import Tenant
+ from app.models.package import Package  # CRITICAL: Added import
+@@ -595,4 +595,38 @@ async def test_mikrotik_connection(
+     ok = await test_connection(cfg)
+     if ok:
+         return {"ok": True, "message": f"Connected to {cfg.router_ip}:{cfg.api_port}"}
+-    raise HTTPException(status_code=502, detail=f"Router unreachable at {cfg.router_ip}:{cfg.api_port}")
+\ No newline at end of file
++    raise HTTPException(status_code=502, detail=f"Router unreachable at {cfg.router_ip}:{cfg.api_port}")
++
++@router.get("/tenants/{tenant_id}")
++async def get_tenant_by_id(
++    tenant_id: str,
++    current_user: AdminUser = Depends(get_current_user),
++    db: AsyncSession = Depends(get_db),
++):
++    """
++    Fetch a single tenant's public profile info. ISP admins may only fetch
++    their own tenant; platform admins may fetch any tenant.
++    Registered LAST among /tenants/* GET routes so it never shadows the
++    more specific paths above (status, mikrotik, dashboard, portal-config).
++    """
++    try:
++        tid = uuid.UUID(tenant_id)
++    except ValueError:
++        raise HTTPException(status_code=400, detail="Invalid tenant_id")
++
++    if current_user.role != "platform_admin" and current_user.tenant_id != tid:
++        raise HTTPException(status_code=403, detail="Cannot access another tenant")
++
++    result = await db.execute(select(Tenant).where(Tenant.id == tid))
++    tenant = result.scalar_one_or_none()
++    if not tenant:
++        raise HTTPException(status_code=404, detail="Tenant not found")
++
++    return {
++        "id": str(tenant.id),
++        "slug": tenant.slug,
++        "name": tenant.name,
++        "is_active": tenant.is_active,
++        "commission_rate": float(tenant.commission_rate),
++        "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
++    }
+diff --git a/backend/app/core/database.py b/backend/app/core/database.py
+index 5da61ff..d09467b 100644
+--- a/backend/app/core/database.py
++++ b/backend/app/core/database.py
+@@ -6,10 +6,19 @@ from app.core.config import settings
+ 
+ logger = logging.getLogger("honestbill")
+ 
++# ── Ensure async driver scheme ─────────────────────────────────────────────
++# Railway (and most providers) hand back plain postgresql:// or postgres://.
++# create_async_engine() requires an async-capable driver in the scheme --
++# without this conversion every connection attempt fails immediately.
++_db_url = settings.DATABASE_URL
++if _db_url.startswith("postgresql://"):
++    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
++elif _db_url.startswith("postgres://"):
++    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+ 
+ # ── Engine ────────────────────────────────────────────────────────────────────
+ engine = create_async_engine(
+-    settings.DATABASE_URL,
++    _db_url,
+     echo=settings.is_development,   # logs SQL in dev, silent in prod
+     pool_pre_ping=True,             # verify connection before use
+     pool_size=20,
+@@ -56,6 +65,6 @@ async def check_db_connection() -> bool:
+         # "Cannot connect to database" undebuggable from Railway logs alone.
+         logger.error(
+             f"DB connection check failed: {type(e).__name__}: {e}. "
+-            f"URL host being used: {settings.DATABASE_URL.split('@')[-1].split('/')[0] if '@' in settings.DATABASE_URL else '(unparseable)'}"
++            f"URL host being used: {_db_url.split('@')[-1].split('/')[0] if '@' in _db_url else '(unparseable)'}"
+         )
+         return False
+\ No newline at end of file

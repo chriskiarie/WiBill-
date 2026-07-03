@@ -61,7 +61,6 @@ function renderNavItem(n: { href: string; label: string; exact?: boolean }, path
 }
 
 import { useAuth } from '@/lib/auth'
-import Alfred from '@/components/Alfred'
 
 export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -232,7 +231,6 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
       </div>
-      <Alfred />
     </div>
   );
 }
