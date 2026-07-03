@@ -247,6 +247,23 @@ MIGRATIONS = [
             used_at TIMESTAMP WITH TIME ZONE
         )
     """),
+    # The table above may already exist from an older, partial migration --
+    # CREATE TABLE IF NOT EXISTS is then a no-op and stale columns stay
+    # missing. Cover every column added across the table's migration
+    # history individually so this self-heals regardless of which version
+    # of the table currently exists in prod.
+    ("isp_invites.isp_name column", """
+        ALTER TABLE isp_invites ADD COLUMN IF NOT EXISTS isp_name VARCHAR(255)
+    """),
+    ("isp_invites.used_by_tenant_id column", """
+        ALTER TABLE isp_invites ADD COLUMN IF NOT EXISTS used_by_tenant_id UUID REFERENCES tenants(id)
+    """),
+    ("isp_invites.used_by_tenant_name column", """
+        ALTER TABLE isp_invites ADD COLUMN IF NOT EXISTS used_by_tenant_name TEXT
+    """),
+    ("isp_invites.used_at column", """
+        ALTER TABLE isp_invites ADD COLUMN IF NOT EXISTS used_at TIMESTAMP WITH TIME ZONE
+    """),
     ("isp_invites.token index", """
         CREATE INDEX IF NOT EXISTS ix_isp_invites_token ON isp_invites(token)
     """),
