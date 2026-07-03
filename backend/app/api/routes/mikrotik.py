@@ -126,6 +126,11 @@ async def health_check(
     """
     Lightweight health check polled by the dashboard. Returns configured/
     connected status without requiring a POST test call each time.
+
+    Uses check_mikrotik_connection() (the same bridge-based check as
+    POST /mikrotik/test) rather than a raw TCP socket check -- router_ip
+    may hold a full bridge URL (see _bridge_url in mikrotik_service.py),
+    which a raw socket connect can't parse correctly.
     """
     result = await db.execute(
         select(MikrotikConfig).where(
@@ -136,11 +141,10 @@ async def health_check(
     if not config:
         return {"configured": False, "connected": False}
 
-    from app.services.mikrotik_service import test_connection as tcp_check
-    reachable = await tcp_check(config)
+    status = await check_mikrotik_connection(str(current_user.tenant_id), db)
     return {
         "configured": True,
-        "connected": reachable,
+        "connected": bool(status.get("connected")),
         "router_ip": config.router_ip,
     }
 
