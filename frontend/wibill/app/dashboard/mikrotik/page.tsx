@@ -296,7 +296,7 @@ export default function MikrotikPage() {
                   {[
                     { id: 'config', label: 'Dashboard' },
                     { id: 'users', label: `Active Users (${activeUsers.length})` },
-                    { id: 'script', label: 'Init Script' },
+                    { id: 'script', label: 'Install Script' },
                   ].map(t => (
                     <button key={t.id} onClick={() => setTab(t.id as any)}
                       style={{
@@ -518,7 +518,7 @@ export default function MikrotikPage() {
                 {!config && (
                   <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}33`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
                     Enter your MikroTik router details below. You must have API access enabled on the router.<br />
-                    <strong>Need help?</strong> Use the Init Script tab after saving to generate a setup script.
+                    <strong>Need help?</strong> Provision the bridge and download the install script.
                   </div>
                 )}
 
@@ -528,7 +528,7 @@ export default function MikrotikPage() {
                     <Input label="API Port" value={form.api_port} onChange={f('api_port')} placeholder="8728" mono />
                     <Input label="Hotspot Interface" value={form.hotspot_server} onChange={f('hotspot_server')} placeholder="ether5" mono />
                   </div>
-                  <Input label="API Username *" value={form.api_username} onChange={f('api_username')} placeholder="wibill_api" mono />
+                  <Input label="API Username *" value={form.api_username} onChange={f('api_username')} placeholder="honestbill" mono />
                   <Input label="API Password" value={form.api_password} onChange={f('api_password')} placeholder={config ? 'Leave blank to keep' : ''} type="password" />
                   <Input label="Hotspot Profile" value={form.hotspot_profile_name} onChange={f('hotspot_profile_name')} placeholder="XwB_Profile" />
                   <Input label="NAS IP (optional)" value={form.nas_ip_address} onChange={f('nas_ip_address')} placeholder={config?.router_ip || 'Same as router IP'} />
