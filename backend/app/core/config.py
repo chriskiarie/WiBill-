@@ -77,6 +77,9 @@ class Settings(BaseSettings):
         "196.201.212.138",
     ]
 
+    # ── Public URL (used for bridge download in install scripts) ──
+    PUBLIC_BASE_URL: str = "http://localhost:8000"
+
     # ── MikroTik Bridge ──────────────────────────────
     # Version of bridge.py currently deployed (for installer endpoint)
     MIKROTIK_BRIDGE_VERSION: str = "1.0.0"
