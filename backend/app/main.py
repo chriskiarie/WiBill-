@@ -107,6 +107,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Unhandled exceptions bypass CORSMiddleware's response-header injection
+    (Starlette only adds CORS headers on the way back through a successful
+    call_next -- an exception skips that path entirely). Without this, the
+    browser reports a misleading "CORS policy" error that hides the real
+    500, because the actual error response never carries an
+    Access-Control-Allow-Origin header. This handler logs the real error
+    and re-adds the header manually so the frontend gets the true status.
+    """
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
 # ── Routers ───────────────────────────────────────────────────────────────────
 from app.api.routes import auth, portal, packages, sessions, tenants, mpesa, transactions, invoices, mikrotik
 from app.api.routes import admin as admin_routes

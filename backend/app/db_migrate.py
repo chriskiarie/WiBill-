@@ -225,6 +225,40 @@ MIGRATIONS = [
     ("network_events.status to varchar", """
         ALTER TABLE network_events ALTER COLUMN status TYPE VARCHAR(20)
     """),
+    # ── isp_invites table: predates this self-healing list, migration chain
+    # for it was never confirmed applied to prod -- recreate idempotently ──
+    ("invitestatus enum type", """
+        DO $$ BEGIN
+            CREATE TYPE invitestatus AS ENUM ('pending', 'used', 'expired');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$
+    """),
+    ("isp_invites table", """
+        CREATE TABLE IF NOT EXISTS isp_invites (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            token VARCHAR(64) NOT NULL UNIQUE,
+            created_by UUID NOT NULL REFERENCES admin_users(id),
+            isp_name TEXT,
+            status invitestatus NOT NULL DEFAULT 'pending',
+            expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+            used_by_tenant_id UUID REFERENCES tenants(id),
+            used_by_tenant_name TEXT,
+            used_at TIMESTAMP WITH TIME ZONE
+        )
+    """),
+    ("isp_invites.token index", """
+        CREATE INDEX IF NOT EXISTS ix_isp_invites_token ON isp_invites(token)
+    """),
+    ("isp_invites.created_by index", """
+        CREATE INDEX IF NOT EXISTS ix_isp_invites_created_by ON isp_invites(created_by)
+    """),
+    ("isp_invites.status index", """
+        CREATE INDEX IF NOT EXISTS ix_isp_invites_status ON isp_invites(status)
+    """),
+    ("isp_invites.expires_at index", """
+        CREATE INDEX IF NOT EXISTS ix_isp_invites_expires_at ON isp_invites(expires_at)
+    """),
 ]
 
 async def run_migrations():
