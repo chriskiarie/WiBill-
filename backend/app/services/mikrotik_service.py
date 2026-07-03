@@ -1,9 +1,14 @@
 """
-mikrotik_service.py — calls the WiBill local bridge at 
-https://mikrotik.wi-bill.com which proxies to the router via librouteros.
+mikrotik_service.py — calls the WiBill per-ISP bridge at
+https://{router_ip}/ which proxies to the router via librouteros.
+
+router_ip can be one of three shapes depending on the ISP's setup:
+  1. Full URL starting with http → used as-is (legacy bridge URL)
+  2. Valid IP address (192.168.88.1) → direct http://ip:port (no bridge)
+  3. Hostname (isp-{slug}.wi-bill.com) → https://hostname (tunnel)
 """
-import asyncio
 import httpx
+import ipaddress
 import uuid
 import logging
 from datetime import datetime
@@ -16,28 +21,6 @@ from app.models.mikrotik_config import MikrotikConfig
 logger = logging.getLogger("wibill.mikrotik")
 
 
-async def test_connection(cfg, timeout: float = 5.0) -> bool:
-    """
-    Real reachability + RouterOS API port check for a MikrotikConfig row.
-    Opens a raw TCP connection to router_ip:api_port -- confirms the router
-    is up and the API service is actually listening (not just that the
-    host responds to ICMP, which many networks block anyway).
-    """
-    try:
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(cfg.router_ip, cfg.api_port),
-            timeout=timeout,
-        )
-        writer.close()
-        try:
-            await writer.wait_closed()
-        except Exception:
-            pass
-        return True
-    except (OSError, asyncio.TimeoutError):
-        return False
-
-
 async def _get_config(tenant_id: str, db: AsyncSession) -> Optional[MikrotikConfig]:
     result = await db.execute(
         select(MikrotikConfig).where(MikrotikConfig.tenant_id == uuid.UUID(tenant_id))
@@ -46,10 +29,22 @@ async def _get_config(tenant_id: str, db: AsyncSession) -> Optional[MikrotikConf
 
 
 def _bridge_url(config: MikrotikConfig) -> str:
+    """
+    Build the correct base URL for a MikroTik router bridge.
+
+    Three cases:
+    - Full URL (starts with http) → use as-is (legacy/override)
+    - Raw IP address → direct http://ip:port bypassing tunnel (no bridge)
+    - Hostname (tunnel subdomain) → https://hostname (goes through Cloudflare)
+    """
     host = config.router_ip
     if host.startswith("http"):
         return host.rstrip("/")
-    return f"http://{host}:{config.api_port}"
+    try:
+        ipaddress.ip_address(host)
+        return f"http://{host}:{config.api_port}"
+    except ValueError:
+        return f"https://{host}"
 
 
 def _duration_str(expires_at: datetime) -> str:
