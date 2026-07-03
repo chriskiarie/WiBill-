@@ -77,6 +77,10 @@ class Settings(BaseSettings):
         "196.201.212.138",
     ]
 
+    # ── MikroTik Bridge ──────────────────────────────
+    # Version of bridge.py currently deployed (for installer endpoint)
+    MIKROTIK_BRIDGE_VERSION: str = "1.0.0"
+
     # ── CORS ─────────────────────────────────────────
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
