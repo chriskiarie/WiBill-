@@ -72,7 +72,6 @@ export default function AdminDashboard() {
   const [txns, setTxns] = useState<any[]>([]);
   const [syncedAt, setSyncedAt] = useState('');
   const [allTxns, setAllTxns] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -88,26 +87,23 @@ export default function AdminDashboard() {
       const h = { Authorization: `Bearer ${token}` };
       const f = async (url: string) => { const r = await fetch(url, { headers: h }); try { return await r.json(); } catch { return null; } };
 
-      const [dash, txnData, sessionData, ispData] = await Promise.all([
-        f(`${API}/api/tenants/dashboard`),
+      const [dash, txnData, ispData] = await Promise.all([
+        f(`${API}/api/admin/dashboard`),
         f(`${API}/api/mpesa/admin/transactions?limit=50`),
-        f(`${API}/api/sessions?limit=100`),
         f(`${API}/api/admin/tenants`),
       ]);
 
       const txnsList = Array.isArray(txnData?.value) ? txnData.value : Array.isArray(txnData) ? txnData : [];
-      const sessionsList = Array.isArray(sessionData?.value) ? sessionData.value : Array.isArray(sessionData) ? sessionData : [];
       const ispList = Array.isArray(ispData?.value) ? ispData.value : Array.isArray(ispData) ? ispData : [];
 
       setStats({
         revenue_today: Number(dash?.revenue_today || 0),
         revenue_month: Number(dash?.revenue_month || 0),
-        active_sessions: sessionsList.filter((s: any) => s.status === 'active').length,
-        total_isps: ispList.length,
+        active_sessions: Number(dash?.active_sessions || 0),
+        total_isps: Number(dash?.total_isps || ispList.length),
       });
 
       setAllTxns(txnsList);
-      setSessions(sessionsList);
       setTxns(txnsList.slice(0, 5));
       setIsps(ispList);
       setSyncedAt(formatTime(now));

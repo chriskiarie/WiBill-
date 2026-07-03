@@ -342,6 +342,9 @@ export const api = {
     getRevenueStats: () => request<any>('/api/admin/revenue/stats'),
     getRevenueByTenant: () => request<any>('/api/admin/revenue/by-tenant'),
 
+    // Dashboard
+    getDashboard: () => request<any>('/api/admin/dashboard'),
+
     // System
     getSystemStats: () => request<any>('/api/admin/system/stats'),
     getSystemHealth: () => request<any>('/api/admin/system/health'),
