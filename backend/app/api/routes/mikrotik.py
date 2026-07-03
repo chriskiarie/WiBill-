@@ -51,7 +51,13 @@ async def get_config(
         "api_username": config.api_username,
         "api_password": "••••••••",
         "hotspot_server": config.hotspot_server,
+        "hotspot_profile_name": config.hotspot_profile_name,
         "nas_ip_address": config.nas_ip_address,
+        "status": config.status,
+        "tunnel_id": config.tunnel_id,
+        "notes": config.notes,
+        "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
+        "last_error_message": config.last_error_message,
     }
 
 
@@ -131,14 +137,11 @@ async def health_check(
     current_user: AdminUser = Depends(require_isp_admin),
 ):
     """
-    Lightweight health check polled by the dashboard. Returns configured/
-    connected status without requiring a POST test call each time.
-
-    Uses check_mikrotik_connection() (the same bridge-based check as
-    POST /mikrotik/test) rather than a raw TCP socket check -- router_ip
-    may hold a full bridge URL (see _bridge_url in mikrotik_service.py),
-    which a raw socket connect can't parse correctly.
+    Health check polled by the dashboard. Returns 4-state connection status
+    and persists the detected state to the DB for caching.
     """
+    from datetime import datetime, timezone as tz
+
     result = await db.execute(
         select(MikrotikConfig).where(
             MikrotikConfig.tenant_id == current_user.tenant_id
@@ -146,13 +149,34 @@ async def health_check(
     )
     config = result.scalar_one_or_none()
     if not config:
-        return {"configured": False, "connected": False}
+        return {"configured": False, "status": "DISCONNECTED", "connected": False}
 
-    status = await check_mikrotik_connection(str(current_user.tenant_id), db)
+    bridge_result = await check_mikrotik_connection(str(current_user.tenant_id), db)
+    bridge_connected = bool(bridge_result.get("connected"))
+    router_reachable = bool(bridge_result.get("router_reachable", bridge_connected))
+
+    if not bridge_connected:
+        new_status = "ERROR"
+        config.last_error_message = bridge_result.get("error", "Bridge unreachable")
+    elif not router_reachable:
+        new_status = "ERROR"
+        config.last_error_message = bridge_result.get("error", "Router unreachable via bridge")
+    else:
+        new_status = "CONNECTED"
+        config.last_connected_at = datetime.utcnow().replace(tzinfo=tz.utc)
+        config.last_error_message = None
+
+    config.status = new_status
+    await db.commit()
+
     return {
         "configured": True,
-        "connected": bool(status.get("connected")),
+        "status": new_status,
+        "connected": bridge_connected,
+        "router_reachable": router_reachable,
         "router_ip": config.router_ip,
+        "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
+        "last_error": config.last_error_message,
     }
 
 

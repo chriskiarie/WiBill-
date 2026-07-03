@@ -174,8 +174,14 @@ export const api = {
      request(`/api/mikrotik/users/${encodeURIComponent(mac)}/disconnect`, { method: 'POST' }),
    getMikrotikExplore: () =>
      request<any>('/api/mikrotik/explore'),
+   provisionMikrotik: () =>
+      request<any>('/api/mikrotik/provision', { method: 'POST' }),
+   decommissionMikrotik: () =>
+      request<any>('/api/mikrotik/decomission', { method: 'POST' }),
+   getMikrotikInstallScript: () =>
+      request<any>('/api/mikrotik/install-script'),
    getMikrotikInitScript: () =>
-     request<any>('/api/mikrotik/init-script'),
+      request<any>('/api/mikrotik/init-script'),
 
     // ========================================================================
     // INVOICES

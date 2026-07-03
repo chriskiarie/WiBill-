@@ -32,8 +32,9 @@ export default function MikrotikPage() {
   const [testResult, setTestResult] = useState<any>(null)
   const [health, setHealth] = useState<any>(null)
   const [activeUsers, setActiveUsers] = useState<any[]>([])
-  const [initScript, setInitScript] = useState<any>(null)
+  const [installScript, setInstallScript] = useState<string | null>(null)
   const [showScript, setShowScript] = useState(false)
+  const [provisioning, setProvisioning] = useState(false)
   const [tab, setTab] = useState<'config' | 'users' | 'script'>('config')
   const [form, setForm] = useState({
     router_ip: '',
@@ -167,29 +168,40 @@ export default function MikrotikPage() {
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setSaving(false) }
   }
 
-  const handleInitScript = async () => {
+  const handleProvision = async () => {
+    setProvisioning(true)
     try {
-      const data = await api.getMikrotikInitScript()
-      setInitScript(data)
+      await api.provisionMikrotik()
+      showToast('Bridge provisioned successfully', { type: 'success' })
+      fetchConfig()
+    } catch (e: any) {
+      showToast(e.message || 'Provisioning failed', { type: 'error' })
+    } finally { setProvisioning(false) }
+  }
+
+  const handleInstallScript = async () => {
+    try {
+      const data = await api.getMikrotikInstallScript()
+      setInstallScript(data)
       setShowScript(true)
     } catch (e: any) {
       showToast(e.message || 'Failed to generate script', { type: 'error' })
     }
   }
 
-  const copyScript = () => {
-    if (!initScript) return
-    navigator.clipboard.writeText(initScript.script)
+  const copyInstallScript = () => {
+    if (!installScript) return
+    navigator.clipboard.writeText(installScript)
     showToast('Script copied to clipboard', { type: 'success' })
   }
 
-  const downloadScript = () => {
-    if (!initScript) return
-    const blob = new Blob([initScript.script], { type: 'text/plain' })
+  const downloadInstallScript = () => {
+    if (!installScript) return
+    const blob = new Blob([installScript], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = initScript.filename || 'wibill_init.rsc'
+    a.download = 'install.ps1'
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -226,7 +238,17 @@ export default function MikrotikPage() {
     </div>
   )
 
-  const statusColor = (s: string) => s === 'CONNECTED' ? C.green : s === 'ERROR' ? C.red : C.dim
+  const statusColor = (s: string) => s === 'CONNECTED' ? C.green : s === 'ERROR' ? C.red : s === 'PROVISIONED' ? C.gold : C.dim
+
+  const statusLabel = (s: string) => {
+    switch (s) {
+      case 'CONNECTED': return 'Connected';
+      case 'ERROR': return 'Error';
+      case 'PROVISIONED': return 'Waiting for Bridge';
+      case 'DISCONNECTED': return 'Not Configured';
+      default: return s || 'Unknown';
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -292,32 +314,57 @@ export default function MikrotikPage() {
                   <>
                     {/* Health Cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-                      <StatCard icon={<Server size={14} color={C.gold} />} label="Router" value={health?.stats?.identity || config.router_ip} />
-                      <StatCard icon={<Cpu size={14} color="#3b82f6" />} label="CPU Load" value={health?.stats?.cpu_load != null ? `${health.stats.cpu_load}%` : '—'} color={health?.stats?.cpu_load > 80 ? C.red : C.text} />
-                      <StatCard icon={<Activity size={14} color={C.green} />} label="Memory" value={health?.stats?.memory_usage_pct != null ? `${health.stats.memory_usage_pct}%` : '—'} />
-                      <StatCard icon={<Users size={14} color={C.gold} />} label="Active Users" value={health?.stats?.active_users_count != null ? String(health.stats.active_users_count) : '—'} color={C.gold} />
+                      <StatCard icon={<Server size={14} color={C.gold} />} label="Router" value={health?.router_identity || health?.router_ip || config.router_ip} />
+                      <StatCard icon={<Activity size={14} color={C.green} />} label="RouterOS" value={health?.router_os_version || health?.version || '—'} color={C.text} />
+                      <StatCard icon={<HardDrive size={14} color={C.gold} />} label="Board" value={health?.board_name || '—'} color={C.text} />
+                      <StatCard icon={<Clock size={14} color={C.gold} />} label="Uptime" value={health?.uptime || '—'} color={C.text} />
                     </div>
 
-                    {/* Connection Status */}
+                    {/* Connection Status Card */}
                     <Card style={{ marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                        {health?.connected ? <CheckCircle size={18} color={C.green} /> : <XCircle size={18} color={C.red} />}
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                            {health?.connected ? 'Router Connected' : 'Router Unreachable'}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+                        {health?.status === 'CONNECTED' ? <CheckCircle size={18} color={C.green} /> :
+                         health?.status === 'ERROR' ? <XCircle size={18} color={C.red} /> :
+                         health?.status === 'PROVISIONED' ? <Activity size={18} color={C.gold} /> :
+                         <XCircle size={18} color={C.dim} />}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{statusLabel(health?.status)}</span>
+                            <span style={{
+                              padding: '2px 8px', borderRadius: 20, fontSize: 9, fontWeight: 700,
+                              fontFamily: 'DM Mono, monospace', textTransform: 'uppercase',
+                              background: statusColor(health?.status) + '22',
+                              color: statusColor(health?.status),
+                              border: `0.5px solid ${statusColor(health?.status)}44`,
+                            }}>
+                              {health?.status || 'UNKNOWN'}
+                            </span>
                           </div>
-                          <div style={{ fontSize: 11, color: C.dim }}>
-                            {health?.stats?.version ? `v${health.stats.version} · ${health.stats.board_name}` : config.router_ip}:{config.api_port}
-                          </div>
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                          {health?.stats?.uptime && (
-                            <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                              <Clock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                              Uptime: {health.stats.uptime}
+                          {health?.status === 'CONNECTED' && (
+                            <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>
+                              {health?.router_os_version ? `v${health.router_os_version}` : ''}{health?.board_name ? ` · ${health.board_name}` : ''}
+                            </div>
+                          )}
+                          {health?.status === 'ERROR' && (
+                            <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{health?.last_error || health?.error || 'Unknown error'}</div>
+                          )}
+                          {health?.status === 'PROVISIONED' && (
+                            <div style={{ fontSize: 10, color: C.gold, marginTop: 2 }}>
+                              Bridge tunnel created. Download and run the installer script on the on-prem PC.
+                            </div>
+                          )}
+                          {health?.last_connected_at && (
+                            <div style={{ fontSize: 9, color: C.dim, marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
+                              Last connected: {new Date(health.last_connected_at).toLocaleString()}
                             </div>
                           )}
                         </div>
+                        {health?.uptime && (
+                          <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
+                            <Clock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                            {health.uptime}
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -330,27 +377,46 @@ export default function MikrotikPage() {
                           <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_profile_name || 'XwB_Profile'}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Username</div>
-                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.api_username}</div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Bridge URL</div>
+                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.router_ip || '—'}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>NAS/IP</div>
-                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.nas_ip_address || config.router_ip}</div>
+                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Tunnel ID</div>
+                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.tunnel_id ? config.tunnel_id.substring(0, 12) + '…' : '—'}</div>
                         </div>
                       </div>
                     </Card>
 
+                    {/* Provisioning Status (not yet provisioned) */}
+                    {!config.tunnel_id && (
+                      <Card style={{ marginBottom: 16 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connect Router via Tunnel</div>
+                        <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, marginBottom: 14 }}>
+                          Takes 2 minutes:<br />
+                          1. <strong>Provision</strong> — creates a Cloudflare Tunnel and generates a unique bridge secret<br />
+                          2. <strong>Install</strong> — run the generated PowerShell script on the always-on PC at the ISP site<br />
+                          3. <strong>Verify</strong> — the dashboard shows CONNECTED when bridge + tunnel are live
+                        </div>
+                        <button onClick={handleProvision} disabled={provisioning}
+                          style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 11, fontWeight: 700, cursor: provisioning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: provisioning ? 0.6 : 1 }}>
+                          <Zap size={14} /> {provisioning ? 'Provisioning...' : 'Provision Bridge'}
+                        </button>
+                      </Card>
+                    )}
+
                     {/* Actions */}
                     <Card>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</div>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {config.tunnel_id && (
+                          <button onClick={handleInstallScript}
+                            style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Download size={14} /> Download Install Script
+                          </button>
+                        )}
                         <button onClick={handleTest} disabled={testing}
                           style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Zap size={14} /> {testing ? 'Testing...' : 'Test Connection'}
-                        </button>
-                        <button onClick={handleInitScript}
-                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Terminal size={14} /> Init Script
                         </button>
                       </div>
                     </Card>
@@ -392,51 +458,49 @@ export default function MikrotikPage() {
                   </Card>
                 )}
 
-                {/* Init Script Tab */}
+                {/* Install Script Tab */}
                 {tab === 'script' && (
                   <Card>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Init Script</div>
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Run this on your MikroTik to configure hotspot</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Install Script</div>
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Run this PowerShell script on the always-on PC at the ISP site</div>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {initScript && (
+                        {installScript && (
                           <>
-                            <button onClick={copyScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Copy</button>
-                            <button onClick={downloadScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={copyInstallScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Copy</button>
+                            <button onClick={downloadInstallScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Download size={12} /> Download
                             </button>
                           </>
                         )}
-                        <button onClick={handleInitScript} style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
-                          Generate
+                        <button onClick={handleInstallScript} style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                          {installScript ? 'Regenerate' : 'Generate'}
                         </button>
                       </div>
                     </div>
 
-                    {initScript?.instructions && (
-                      <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 14, fontSize: 10, color: '#5a9fd4', lineHeight: 1.8 }}>
-                        {initScript.instructions.map((inst: string, i: number) => (
-                          <div key={i}>{inst}</div>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 14, fontSize: 10, color: '#5a9fd4', lineHeight: 1.8 }}>
+                      <div>ⓘ Run as Administrator on the ISP's always-on Windows PC</div>
+                      <div>ⓘ Requires: Python 3, internet connection (for cloudflared + pip downloads)</div>
+                      <div>ⓘ Installs: bridge.py service, cloudflared tunnel, NSSM service manager</div>
+                    </div>
 
-                    {initScript && (
+                    {installScript && (
                       <pre style={{
                         background: '#050505', border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
                         fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
                         overflowX: 'auto', whiteSpace: 'pre', maxHeight: 400, overflowY: 'auto',
                       }}>
-                        {initScript.script}
+                        {installScript}
                       </pre>
                     )}
 
-                    {!initScript && (
+                    {!installScript && (
                       <div style={{ padding: '30px 0', textAlign: 'center', color: C.dim, fontSize: 11 }}>
                         <Terminal size={24} color={C.mute} style={{ marginBottom: 8 }} />
-                        <div>Click Generate to create the initialization script</div>
+                        <div>Provision the bridge first, then generate the install script</div>
                       </div>
                     )}
                   </Card>
