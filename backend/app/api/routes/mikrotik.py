@@ -31,6 +31,15 @@ class MikrotikConfigPayload(BaseModel):
     nas_ip_address: Optional[str] = None
 
 
+class MikrotikConfigUpdatePayload(BaseModel):
+    router_ip: str
+    api_port: int = 8728
+    api_username: str
+    api_password: Optional[str] = None
+    hotspot_server: str = "hotspot1"
+    nas_ip_address: Optional[str] = None
+
+
 @router.get("/mikrotik/config")
 async def get_config(
     db: AsyncSession = Depends(get_db),
@@ -95,7 +104,7 @@ async def create_config(
 
 @router.patch("/mikrotik/config")
 async def update_config(
-    payload: MikrotikConfigPayload,
+    payload: MikrotikConfigUpdatePayload,
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
@@ -113,7 +122,7 @@ async def update_config(
     config.router_ip = payload.router_ip
     config.api_port = payload.api_port
     config.api_username = payload.api_username
-    if payload.api_password and payload.api_password != "••••••••":
+    if payload.api_password is not None and payload.api_password != "••••••••":
         config.api_password_enc = encrypt(payload.api_password)
     config.hotspot_server = payload.hotspot_server
     config.nas_ip_address = payload.nas_ip_address

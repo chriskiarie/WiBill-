@@ -91,7 +91,7 @@ export default function IspDashboard() {
   const [mkForm, setMkForm] = useState({ router_ip: '', api_port: 8728, api_username: '', api_password: '' });
   const [mkTesting, setMkTesting] = useState(false);
   const [mkSaving, setMkSaving] = useState(false);
-  const [mkStatus, setMkStatus] = useState<{ ok?: boolean; message?: string }>({});
+  const [mkStatus, setMkStatus] = useState<{ connected?: boolean; error?: string; router_identity?: string }>({});
   const [mpForm, setMpForm] = useState({ consumer_key: '', consumer_secret: '', shortcode: '', passkey: '', account_reference: '', payout_phone: '', payout_account_name: '' });
   const [mpTesting, setMpTesting] = useState(false);
   const [mpSaving, setMpSaving] = useState(false);
@@ -274,14 +274,14 @@ export default function IspDashboard() {
     setMkTesting(true);
     setMkStatus({});
     try {
-      const res = await api.testMikrotikRaw(mkForm);
+      const res = await api.testMikrotikConnection();
       setMkStatus(res);
     } catch (e: any) {
-      setMkStatus({ ok: false, message: e?.detail || 'Could not reach router' });
+      setMkStatus({ connected: false, error: e?.detail || 'Could not reach router' });
     } finally {
       setMkTesting(false);
     }
-  }, [mkForm]);
+  }, []);
 
   const handleSaveMikrotik = useCallback(async () => {
     setMkSaving(true);
@@ -1029,19 +1029,19 @@ export default function IspDashboard() {
           </div>
         </div>
 
-        {mkStatus.message && (
+        {(mkStatus.connected || mkStatus.error) && (
           <div style={{
             padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 11, fontFamily: 'Inter, sans-serif',
-            background: mkStatus.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-            border: `0.5px solid ${mkStatus.ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-            color: mkStatus.ok ? C.green : C.red,
+            background: mkStatus.connected ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+            border: `0.5px solid ${mkStatus.connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: mkStatus.connected ? C.green : C.red,
           }}>
-            {mkStatus.ok ? '✓ ' : '✕ '}{mkStatus.message}
+            {mkStatus.connected ? '✓ ' + (mkStatus.router_identity || 'Connected') : '✕ ' + (mkStatus.error || 'Failed')}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={handleTestMikrotik} disabled={mkTesting || !mkForm.router_ip || !mkForm.api_username}
+          <button onClick={handleTestMikrotik} disabled={mkTesting}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
               background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
@@ -1049,11 +1049,11 @@ export default function IspDashboard() {
             }}>
             {mkTesting ? 'Testing...' : 'Test Connection'}
           </button>
-          <button onClick={handleSaveMikrotik} disabled={mkSaving || !mkStatus.ok}
+          <button onClick={handleSaveMikrotik} disabled={mkSaving || !mkStatus.connected}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
               background: C.gold, border: 'none', color: C.void, fontFamily: 'Inter, sans-serif',
-              opacity: mkSaving || !mkStatus.ok ? 0.5 : 1,
+              opacity: mkSaving || !mkStatus.connected ? 0.5 : 1,
             }}>
             {mkSaving ? 'Saving...' : 'Save & Connect'}
           </button>

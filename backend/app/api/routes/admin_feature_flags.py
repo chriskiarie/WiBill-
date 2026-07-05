@@ -118,12 +118,12 @@ async def update_tier(
 
 @router.get("/tenants/feature-flags")
 async def get_my_feature_flags(
-    current_user: AdminUser = Depends(require_isp_admin),
+    current_user: AdminUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get feature flags for the current ISP admin's tenant."""
+    """Get feature flags for the current admin's tenant. Returns all-false for platform admins (no tenant)."""
     if not current_user.tenant_id:
-        raise HTTPException(status_code=400, detail="No tenant associated")
+        return {"vouchers": False, "campaigns": False, "loyalty": False, "mikrotik": False, "portal_customization": False}
     result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
     tenant = result.scalar_one_or_none()
     if not tenant:
