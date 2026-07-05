@@ -268,6 +268,34 @@ async def download_bridge():
     return FileResponse(bridge_path, filename="bridge.py", media_type="text/plain")
 
 
+@router.get("/mikrotik/login-html")
+async def generate_login_html(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Generate login.html with the ISP's slug pre-filled, ready to upload to Winbox."""
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == current_user.tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    base_url = settings.PUBLIC_BASE_URL
+    slug = tenant.slug
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0;url={base_url}/portal/{slug}?mac=$(mac)&ip=$(ip)&link=$(link-login-only)&error=$(error)">
+</head>
+<body style="background:#000;color:#fff;font-family:monospace;text-align:center;padding-top:40vh;font-size:14px">
+  Connecting to WiFi...
+</body>
+</html>"""
+    return PlainTextResponse(content=html, media_type="text/html")
+
+
 @router.get("/mikrotik/install-script")
 async def generate_install_script(
     db: AsyncSession = Depends(get_db),

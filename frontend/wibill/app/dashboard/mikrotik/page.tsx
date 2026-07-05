@@ -206,6 +206,22 @@ export default function MikrotikPage() {
     URL.revokeObjectURL(url)
   }
 
+  const downloadLoginHtml = async () => {
+    try {
+      const html = await api.getMikrotikLoginHtml()
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'login.html'
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast('login.html downloaded — upload to Winbox Files > hotspot folder', { type: 'success' })
+    } catch (e: any) {
+      showToast(e.message || 'Failed to generate login.html', { type: 'error' })
+    }
+  }
+
   const f = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
   const Input = ({ label, value, onChange, placeholder, type, mono }: {
@@ -414,6 +430,10 @@ export default function MikrotikPage() {
                             <Download size={14} /> Download Install Script
                           </button>
                         )}
+                        <button onClick={downloadLoginHtml}
+                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Download size={14} /> login.html
+                        </button>
                         <button onClick={handleTest} disabled={testing}
                           style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Zap size={14} /> {testing ? 'Testing...' : 'Test Connection'}

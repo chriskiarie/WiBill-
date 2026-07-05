@@ -179,9 +179,15 @@ export const api = {
    decommissionMikrotik: () =>
       request<any>('/api/mikrotik/decomission', { method: 'POST' }),
    getMikrotikInstallScript: () =>
-      request<any>('/api/mikrotik/install-script'),
-   getMikrotikInitScript: () =>
-      request<any>('/api/mikrotik/init-script'),
+       request<any>('/api/mikrotik/install-script'),
+   getMikrotikLoginHtml: async () => {
+       const token = getToken()
+       const res = await fetch(`${BASE}/api/mikrotik/login-html`, {
+         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+       })
+       if (!res.ok) throw new Error('Failed to generate login.html')
+       return res.text()
+     },
 
     // ========================================================================
     // INVOICES
