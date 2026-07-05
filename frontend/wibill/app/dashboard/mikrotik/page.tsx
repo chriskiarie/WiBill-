@@ -94,37 +94,17 @@ export default function MikrotikPage() {
     return () => clearInterval(interval)
   }, [config])
 
-  const handleTestRaw = async () => {
-    if (!form.router_ip || !form.api_username) {
-      showToast('Router IP and username required', { type: 'error' })
-      return
-    }
-    setTesting(true)
-    setTestResult(null)
-    try {
-      const result = await api.testMikrotikRaw({
-        router_ip: form.router_ip,
-        api_port: parseInt(form.api_port) || 8728,
-        api_username: form.api_username,
-        api_password: form.api_password || 'test',
-        hotspot_server: form.hotspot_server,
-        hotspot_profile_name: form.hotspot_profile_name,
-      })
-      setTestResult(result)
-      showToast(`Connected: ${result.message}`, { type: 'success' })
-    } catch (e: any) {
-      setTestResult({ ok: false, message: e.message || 'Connection failed' })
-      showToast(e.message || 'Connection failed', { type: 'error' })
-    } finally { setTesting(false) }
-  }
-
   const handleTest = async () => {
     setTesting(true)
     setTestResult(null)
     try {
       const result = await api.testMikrotikConnection()
       setTestResult(result)
-      showToast(`Router: ${result.message}`, { type: 'success' })
+      if (result.connected) {
+        showToast(`Connected to ${result.router_identity} v${result.router_os_version?.split(' ')[0] || ''}`, { type: 'success' })
+      } else {
+        showToast(result.error || 'Connection failed', { type: 'error' })
+      }
       fetchHealth()
     } catch (e: any) {
       setTestResult({ ok: false, message: e.message || 'Connection failed' })
@@ -558,21 +538,22 @@ export default function MikrotikPage() {
                 {testResult && (
                   <div style={{
                     padding: 12, marginBottom: 12, borderRadius: 7, fontSize: 11, lineHeight: 1.5,
-                    background: testResult.ok ? '#030d06' : '#0d0303',
-                    border: `0.5px solid ${testResult.ok ? '#0a2214' : '#220a0a'}`,
-                    color: testResult.ok ? C.green : C.red,
+                    background: testResult.connected ? '#030d06' : '#0d0303',
+                    border: `0.5px solid ${testResult.connected ? '#0a2214' : '#220a0a'}`,
+                    color: testResult.connected ? C.green : C.red,
                   }}>
-                    {testResult.ok ? (
+                    {testResult.connected ? (
                       <>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>✅ {testResult.message}</div>
-                        {testResult.info && (
-                          <div style={{ fontSize: 10, color: C.dim }}>
-                            Router: {testResult.info.identity} · {testResult.info.board_name} · v{testResult.info.version} · Uptime: {testResult.info.uptime}
-                          </div>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>✅ Connected to {testResult.router_identity || testResult.router_ip}</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>
+                          {testResult.router_os_version ? `v${testResult.router_os_version.split(' ')[0]}` : ''}{testResult.board_name ? ` · ${testResult.board_name}` : ''}{testResult.uptime ? ` · ${testResult.uptime}` : ''}
+                        </div>
+                        {testResult.hotspot_found === false && (
+                          <div style={{ fontSize: 10, color: C.gold, marginTop: 4 }}>⚠ Hotspot server not found — check the interface name</div>
                         )}
                       </>
                     ) : (
-                      <div>❌ {testResult.message}</div>
+                      <div>❌ {testResult.error || 'Connection failed'}</div>
                     )}
                   </div>
                 )}
@@ -582,7 +563,7 @@ export default function MikrotikPage() {
                     style={{ padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Download size={14} /> login.html
                   </button>
-                  <button onClick={handleTestRaw} disabled={testing}
+                  <button onClick={handleTest} disabled={testing}
                     style={{
                       padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7,
                       color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1,
