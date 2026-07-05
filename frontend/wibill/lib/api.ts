@@ -162,9 +162,9 @@ export const api = {
    updateMikrotikConfig: (data: any) =>
      request('/api/mikrotik/config', { method: 'PATCH', body: JSON.stringify(data) }),
    testMikrotikConnection: () =>
-     request<{ ok: boolean; message: string; info?: any }>('/api/mikrotik/test'),
+      request<{ connected: boolean; error?: string; router_identity?: string; router_os_version?: string; board_name?: string; uptime?: string; hotspot_found?: boolean }>('/api/mikrotik/test'),
    testMikrotikRaw: (data: any) =>
-     request<{ ok: boolean; message: string; info?: any }>('/api/mikrotik/test-raw', { method: 'POST', body: JSON.stringify(data) }),
+      request<any>('/api/mikrotik/test-raw', { method: 'POST', body: JSON.stringify(data) }),
    getMikrotikHealth: () =>
      request<any>('/api/mikrotik/health'),
    getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),

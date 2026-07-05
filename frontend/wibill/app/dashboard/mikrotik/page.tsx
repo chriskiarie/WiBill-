@@ -107,7 +107,7 @@ export default function MikrotikPage() {
       }
       fetchHealth()
     } catch (e: any) {
-      setTestResult({ ok: false, message: e.message || 'Connection failed' })
+      setTestResult({ connected: false, error: e.message || 'Connection failed' })
       showToast(e.message || 'Connection failed', { type: 'error' })
     } finally { setTesting(false) }
   }

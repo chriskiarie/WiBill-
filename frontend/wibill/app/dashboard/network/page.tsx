@@ -45,7 +45,7 @@ export default function NetworkPage() {
     setTestResult(null)
     try {
       const res = await api.testMikrotikConnection()
-      setTestResult(res.message || 'Connected')
+      setTestResult(res.connected ? (res.router_identity || 'Connected') : (res.error || 'Connection failed'))
     } catch (e: any) {
       setTestResult(e.message || 'Connection failed')
     } finally {
