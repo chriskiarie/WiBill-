@@ -577,7 +577,11 @@ export default function MikrotikPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                  <button onClick={downloadLoginHtml}
+                    style={{ padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Download size={14} /> login.html
+                  </button>
                   <button onClick={handleTestRaw} disabled={testing}
                     style={{
                       padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7,
