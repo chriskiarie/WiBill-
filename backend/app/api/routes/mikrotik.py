@@ -282,9 +282,10 @@ async def generate_login_html(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    # Use request's origin to get the real public URL (handles Railway/Vercel)
-    base_url = str(request.base_url).rstrip("/")
-    if "localhost" in base_url or "127.0.0.1" in base_url:
+    # Use forwarded proto/scheme (handles Railway TLS termination)
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    base_url = f"{scheme}://{request.url.hostname}"
+    if "localhost" in request.url.hostname or "127.0.0.1" in request.url.hostname:
         base_url = settings.PUBLIC_BASE_URL.rstrip("/")
     slug = tenant.slug
     html = f"""<!DOCTYPE html>
