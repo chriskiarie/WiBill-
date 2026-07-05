@@ -190,6 +190,15 @@ MIGRATIONS = [
     ("mikrotik_configs.notes", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS notes TEXT
     """),
+    ("mikrotik_configs.bridge_secret_enc", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS bridge_secret_enc TEXT
+    """),
+    ("mikrotik_configs.tunnel_token_enc", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS tunnel_token_enc TEXT
+    """),
+    ("mikrotik_configs.tunnel_id", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS tunnel_id VARCHAR(255)
+    """),
     ("mikrotik_active_users table", """
         CREATE TABLE IF NOT EXISTS mikrotik_active_users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
