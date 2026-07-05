@@ -1,7 +1,7 @@
 import secrets
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -270,6 +270,7 @@ async def download_bridge():
 
 @router.get("/mikrotik/login-html")
 async def generate_login_html(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
@@ -281,7 +282,10 @@ async def generate_login_html(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    base_url = settings.PUBLIC_BASE_URL
+    # Use request's origin to get the real public URL (handles Railway/Vercel)
+    base_url = str(request.base_url).rstrip("/")
+    if "localhost" in base_url or "127.0.0.1" in base_url:
+        base_url = settings.PUBLIC_BASE_URL.rstrip("/")
     slug = tenant.slug
     html = f"""<!DOCTYPE html>
 <html>
