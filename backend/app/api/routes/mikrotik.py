@@ -28,7 +28,9 @@ class MikrotikConfigPayload(BaseModel):
     api_username: str
     api_password: str
     hotspot_server: str = "hotspot1"
+    hotspot_profile_name: Optional[str] = None
     nas_ip_address: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class MikrotikConfigUpdatePayload(BaseModel):
@@ -37,7 +39,9 @@ class MikrotikConfigUpdatePayload(BaseModel):
     api_username: str
     api_password: Optional[str] = None
     hotspot_server: str = "hotspot1"
+    hotspot_profile_name: Optional[str] = None
     nas_ip_address: Optional[str] = None
+    notes: Optional[str] = None
 
 
 @router.get("/mikrotik/config")
@@ -95,7 +99,9 @@ async def create_config(
         api_username=payload.api_username,
         api_password_enc=encrypt(payload.api_password),
         hotspot_server=payload.hotspot_server,
+        hotspot_profile_name=payload.hotspot_profile_name,
         nas_ip_address=payload.nas_ip_address,
+        notes=payload.notes,
     )
     db.add(config)
     await db.commit()
@@ -125,12 +131,14 @@ async def update_config(
     if payload.api_password is not None and payload.api_password != "••••••••":
         config.api_password_enc = encrypt(payload.api_password)
     config.hotspot_server = payload.hotspot_server
+    config.hotspot_profile_name = payload.hotspot_profile_name
     config.nas_ip_address = payload.nas_ip_address
+    config.notes = payload.notes
     await db.commit()
     return {"ok": True}
 
 
-@router.post("/mikrotik/test")
+@router.get("/mikrotik/test")
 async def test_connection(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
