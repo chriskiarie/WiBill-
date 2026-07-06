@@ -139,6 +139,7 @@ async def update_config(
 
 
 @router.get("/mikrotik/test")
+@router.post("/mikrotik/test")
 async def test_connection(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
