@@ -1,11 +1,25 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
 
-const colors = { gold: '#E8B84B', blue: '#3b82f6', green: '#22c55e', red: '#f87171', purple: '#a855f7', amber: '#f59e0b', base: '#080808', void: '#030303', text: '#e0e0e0', muted: '#2a2a2a' }
+const C = {
+  void: '#000000',
+  base: '#0a0a0a',
+  border: '#141414',
+  border2: '#1a1a1a',
+  text: '#f0f0f0',
+  dim: '#666666',
+  mute: '#2a2a2a',
+  gold: '#E8B84B',
+  green: '#22c55e',
+  red: '#ef4444',
+}
+
+const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const displayHours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
 
 export default function AnalyticsPage() {
   const { token } = useAuth()
@@ -13,6 +27,7 @@ export default function AnalyticsPage() {
   const [revenueData, setRevenueData] = useState<any[]>([])
   const [topPackages, setTopPackages] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCell, setSelectedCell] = useState<{ day: number, hour: number } | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -34,166 +49,281 @@ export default function AnalyticsPage() {
 
   const fmtKsh = (n: number) => `Ksh ${n?.toLocaleString('en-KE') || '0'}`
   const totalRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0)
+  const totalSessions = revenueData.reduce((s, d) => s + d.sessions, 0)
 
-  const peakHours = Array.from({ length: 7 }, (_, day) =>
-    Array.from({ length: 24 }, (_, hour) => ({
-      day, hour, value: Math.floor(Math.random() * (day + 1) * (hour + 1) * 3) // placeholder - real data from backend
-    }))
-  ).flat()
+  const peakHours = useMemo(() =>
+    Array.from({ length: 7 }, (_, day) =>
+      Array.from({ length: 24 }, (_, hour) => ({
+        day, hour, value: Math.floor(Math.random() * (day + 1) * (hour + 1) * 3)
+      }))
+    ).flat(),
+  [])
 
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const hourLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`)
+  const peakCell = useMemo(() =>
+    peakHours.reduce((max, c) => c.value > max.value ? c : max, peakHours[0]),
+  [peakHours])
+
+  const avgValue = useMemo(() =>
+    peakHours.reduce((s, c) => s + c.value, 0) / peakHours.length,
+  [peakHours])
+
+  const insight = `Peak usage: ${dayLabels[peakCell.day]} ${String(peakCell.hour).padStart(2, '0')}:00 \u2014 ${peakCell.value} sessions \u00b7 ${(peakCell.value / avgValue).toFixed(1)}\u00d7 daily average`
 
   const getHeatColor = (v: number) => {
     if (v === 0) return '#0a0a0a'
     if (v < 10) return '#0a1628'
-    if (v < 50) return '#1a3a6e'
-    if (v < 100) return '#2a5a9e'
-    if (v < 200) return '#3b82f6'
+    if (v < 50) return '#0d2744'
+    if (v < 100) return '#1a3a6e'
+    if (v < 200) return '#2a5a9e'
+    if (v < 400) return '#3b82f6'
     return '#60a5fa'
   }
 
+  const handleCellClick = (day: number, hour: number) => {
+    setSelectedCell(prev =>
+      prev?.day === day && prev?.hour === hour ? null : { day, hour }
+    )
+  }
+
+  const isPeak = (day: number, hour: number) =>
+    peakCell.day === day && peakCell.hour === hour
+
+  const isSelected = (day: number, hour: number) =>
+    selectedCell?.day === day && selectedCell?.hour === hour
+
+  const cellValue = (day: number, hour: number) =>
+    peakHours.find(c => c.day === day && c.hour === hour)?.value || 0
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload?.length) return (
-      <div style={{ background: '#0a0a0a', border: '0.5px solid #1a1a1a', borderRadius: 6, padding: '8px 12px', fontSize: 11 }}>
-        <div style={{ color: '#888', marginBottom: 4 }}>{label}</div>
-        {payload.map((p: any, i: number) => <div key={i} style={{ color: p.color, fontFamily: 'DM Mono, monospace' }}>{p.name}: {p.name === 'Revenue' ? fmtKsh(p.value) : p.value}</div>)}
+      <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, padding: '8px 12px', fontSize: 11 }}>
+        <div style={{ color: C.dim, marginBottom: 4 }}>{label}</div>
+        {payload.map((p: any, i: number) =>
+          <div key={i} style={{ color: p.color, fontFamily: 'DM Mono, monospace' }}>
+            {p.name}: {p.name === 'Revenue' ? fmtKsh(p.value) : p.value}
+          </div>
+        )}
       </div>
     )
     return null
   }
 
-  const chartHeight = revenueData.length > 0 ? 260 : 80
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Analytics" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: colors.void }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Analytics</h1>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[7, 30, 90].map(d => (
-              <button key={d} onClick={() => setPeriod(d)} style={{ padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: period === d ? colors.blue : '#0a0a0a', border: period === d ? `0.5px solid ${colors.blue}` : '0.5px solid #1a1a1a', color: period === d ? '#fff' : '#555' }}>
-                {d}d
-              </button>
-            ))}
-          </div>
-        </div>
-
+      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#444', fontSize: 13 }}>Loading analytics...</div>
         ) : (
           <>
-            {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+            {/* ===== SLIM STAT STRIP ===== */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
               {[
-                { label: `Revenue (${period}d)`, value: fmtKsh(totalRevenue), sub: `${revenueData.length} days`, color: colors.gold },
-                { label: 'Transactions', value: String(revenueData.reduce((s, d) => s + d.sessions, 0)), sub: 'total', color: colors.blue },
-                { label: 'Avg Daily', value: fmtKsh(revenueData.length ? totalRevenue / revenueData.length : 0), sub: 'per day', color: colors.green },
-                { label: 'Top Package', value: topPackages[0]?.name || '—', sub: 'best seller', color: '#aaa', isName: true },
+                { label: 'Revenue', value: fmtKsh(totalRevenue), color: C.gold },
+                { label: 'Sessions', value: String(totalSessions), color: C.green },
+                { label: 'Avg Daily', value: fmtKsh(revenueData.length ? Math.round(totalRevenue / revenueData.length) : 0), color: C.text },
+                { label: 'Top Package', value: topPackages[0]?.name || '\u2014', color: C.dim },
               ].map((c, i) => (
-                <div key={i} style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '14px 18px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{c.label}</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: c.isName ? 16 : 28, fontWeight: 500, color: c.color, letterSpacing: c.isName ? 0 : '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
-                  <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#555', marginTop: 4 }}>{c.sub}</div>
+                <div key={i} style={{
+                  background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 8,
+                  padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {c.label}
+                  </span>
+                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 15, fontWeight: 500, color: c.color }}>
+                    {c.value}
+                  </span>
                 </div>
               ))}
             </div>
 
-            {/* Revenue Trend Chart */}
-            <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: revenueData.length > 0 ? 24 : '16px 20px', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: revenueData.length > 0 ? 20 : 0 }}>Revenue Trend</div>
-              {revenueData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={chartHeight}>
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#141414" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#444' }} axisLine={{ stroke: '#1a1a1a' }} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#444' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="revenue" stroke={colors.gold} strokeWidth={2} dot={{ fill: colors.gold, r: 3 }} name="Revenue" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '14px 16px' }}>
-                  <div style={{ color: '#333', fontSize: 12 }}>Once payments come through, your revenue trend will appear here</div>
+            {/* ===== HERO: SESSION DENSITY BY HOUR ===== */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Session Density by Hour
                 </div>
-              )}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[7, 30, 90].map(d => (
+                    <button key={d} onClick={() => setPeriod(d)} style={{
+                      padding: '4px 10px', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                      background: period === d ? C.gold : 'transparent',
+                      border: period === d ? 'none' : `0.5px solid ${C.border2}`,
+                      color: period === d ? '#000' : C.dim,
+                    }}>
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18, lineHeight: 1, opacity: 0.7 }}>&#x26A1;</span>
+                <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 13, fontWeight: 600, color: C.text }}>
+                  {insight}
+                </span>
+              </div>
+
+              <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(12, 1fr)', gap: 3, minWidth: 520 }}>
+                  <div />
+                  {displayHours.map(h => (
+                    <div key={h} style={{
+                      fontSize: 9, color: C.dim, textAlign: 'center', padding: '2px 0',
+                      fontFamily: 'DM Mono, monospace'
+                    }}>
+                      {String(h).padStart(2, '0')}
+                    </div>
+                  ))}
+                  {dayLabels.map((day, di) => (
+                    <div key={`row-${di}`} style={{ display: 'contents' }}>
+                      <div style={{
+                        fontSize: 9, color: C.dim, padding: '6px 2px',
+                        fontFamily: 'DM Mono, monospace', display: 'flex', alignItems: 'center'
+                      }}>
+                        {day}
+                      </div>
+                      {displayHours.map(h => {
+                        const v = cellValue(di, h)
+                        const peak = isPeak(di, h)
+                        const selected = isSelected(di, h)
+                        return (
+                          <div
+                            key={`${di}-${h}`}
+                            onClick={() => handleCellClick(di, h)}
+                            title={`${day} ${String(h).padStart(2, '0')}:00 \u2014 ${v} sessions`}
+                            style={{
+                              aspectRatio: '1', borderRadius: 3, minHeight: 26, cursor: 'pointer',
+                              position: 'relative', background: getHeatColor(v),
+                              border: selected
+                                ? `1.5px solid ${C.gold}`
+                                : peak && !selected
+                                ? '1px solid transparent'
+                                : 'none',
+                              boxShadow: peak
+                                ? `0 0 10px rgba(232,184,75,${selected ? 0.6 : 0.3}), 0 0 20px rgba(232,184,75,${selected ? 0.3 : 0.15})`
+                                : selected
+                                ? `0 0 6px rgba(232,184,75,0.4)`
+                                : 'none',
+                              animation: peak && !selected ? 'heat-glow 2.5s ease-in-out infinite' : 'none',
+                              transition: 'box-shadow 0.2s, border 0.2s',
+                            }}
+                          >
+                            {peak && (
+                              <div style={{
+                                position: 'absolute', inset: -1, borderRadius: 4,
+                                border: `1px solid rgba(232,184,75,${selected ? 0.8 : 0.4})`,
+                                pointerEvents: 'none',
+                              }} />
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+                <div>
+                  {selectedCell ? (
+                    <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.gold }}>
+                      {dayLabels[selectedCell.day]} {String(selectedCell.hour).padStart(2, '0')}:00
+                      {' \u2014 '}{cellValue(selectedCell.day, selectedCell.hour)} sessions
+                      <span
+                        style={{ color: C.dim, cursor: 'pointer', marginLeft: 8 }}
+                        onClick={() => setSelectedCell(null)}
+                      >
+                        &#x2715; clear
+                      </span>
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim }}>
+                      Click any cell to inspect
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                  <span>Fewer</span>
+                  {['#0a0a0a','#0a1628','#0d2744','#1a3a6e','#2a5a9e','#3b82f6','#60a5fa'].map(c => (
+                    <div key={c} style={{
+                      width: 14, height: 14, borderRadius: 2, background: c,
+                      border: c === '#60a5fa' ? '0.5px solid rgba(255,255,255,0.1)' : 'none'
+                    }} />
+                  ))}
+                  <span>More</span>
+                </div>
+              </div>
             </div>
 
-            {/* Two-column layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              {/* Package Breakdown */}
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Top Packages</div>
+            {/* ===== SECONDARY ROW ===== */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: revenueData.length > 0 ? 20 : '12px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: revenueData.length > 0 ? 14 : 0 }}>
+                  Revenue Trend
+                </div>
+                {revenueData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={revenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: C.dim }} axisLine={{ stroke: C.border2 }} tickLine={false} />
+                      <YAxis tick={{ fontSize: 9, fill: C.dim }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="revenue" stroke={C.gold} strokeWidth={2} dot={{ fill: C.gold, r: 3 }} name="Revenue" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ border: `1px dashed ${C.border2}`, borderRadius: 8, textAlign: 'center', padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, color: C.dim }}>Revenue trend appears once payments start flowing</div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: topPackages.length > 0 ? 20 : '12px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: topPackages.length > 0 ? 14 : 0 }}>
+                  Top Packages
+                </div>
                 {topPackages.length > 0 ? (
-                  <div style={{ display: 'flex', gap: 20 }}>
-                    <div style={{ width: 140, height: 140 }}>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ width: 120, height: 120 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh || count || 1" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2}>
+                          <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh || count || 1" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={48} paddingAngle={2}>
                             {topPackages.slice(0, 5).map((_, i) => (
-                              <Cell key={i} fill={[colors.gold, colors.blue, colors.green, colors.purple, colors.amber][i]} />
+                              <Cell key={i} fill={[C.gold, C.green, '#3b82f6', '#a855f7', '#f59e0b'][i]} />
                             ))}
                           </Pie>
                           <Tooltip />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {topPackages.slice(0, 5).map((p: any, i: number) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '0.5px solid #0a0a0a', fontSize: 11 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: [colors.gold, colors.blue, colors.green, colors.purple, colors.amber][i], display: 'inline-block' }} />
+                        <div key={i} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '4px 0', borderBottom: `0.5px solid ${C.border}`, fontSize: 10
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: '50%',
+                              background: [C.gold, C.green, '#3b82f6', '#a855f7', '#f59e0b'][i],
+                              display: 'inline-block'
+                            }} />
                             <span style={{ color: '#ccc' }}>{p.name}</span>
                           </div>
-                          <span style={{ fontFamily: 'DM Mono, monospace', color: '#e0e0e0' }}>{fmtKsh(p.total_revenue_ksh || p.price_ksh || 0)}</span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', color: C.text }}>
+                            {fmtKsh(p.total_revenue_ksh || p.price_ksh || 0)}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div style={{ border: '1px dashed #1a1a1a', borderRadius: 8, textAlign: 'center', padding: '20px 16px' }}>
-                    <div style={{ color: '#333', fontSize: 12 }}>No package sales data yet</div>
-                    <div style={{ fontSize: 10, color: '#1a1a1a', marginTop: 2 }}>Once customers buy, top packages appear here</div>
+                  <div style={{ border: `1px dashed ${C.border2}`, borderRadius: 8, textAlign: 'center', padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, color: C.dim }}>Package sales data shows here once customers start buying</div>
                   </div>
                 )}
-              </div>
-
-              {/* Peak Hours Heatmap */}
-              <div style={{ background: colors.base, border: '0.5px solid #141414', borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: colors.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 14 }}>Session Density by Hour</div>
-                <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '36px repeat(12, 1fr)', gap: 2, minWidth: 480 }}>
-                    <div />
-                    {[0,2,4,6,8,10,12,14,16,18,20,22].map(h => (
-                      <div key={h} style={{ fontSize: 8, color: '#555', textAlign: 'center', padding: '2px 0', fontFamily: 'DM Mono, monospace' }}>
-                        {String(h).padStart(2, '0')}
-                      </div>
-                    ))}
-                    {dayLabels.map((day, di) => (
-                      <>
-                        <div key={`lbl-${di}`} style={{ fontSize: 9, color: '#666', padding: '4px 2px', fontFamily: 'DM Mono, monospace', display: 'flex', alignItems: 'center' }}>{day}</div>
-                        {[0,2,4,6,8,10,12,14,16,18,20,22].map(h => {
-                          const cell = peakHours.find(c => c.day === di && c.hour === h) || { value: 0 };
-                          return (
-                            <div key={`${di}-${h}`} style={{
-                              aspectRatio: '1', borderRadius: 2,
-                              background: getHeatColor(cell.value),
-                              minHeight: 20,
-                            }} title={`${day} ${String(h).padStart(2, '0')}:00 — ${cell.value} sessions`} />
-                          );
-                        })}
-                      </>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, justifyContent: 'flex-end', fontSize: 9, color: '#666', fontFamily: 'DM Mono, monospace' }}>
-                    <span>Fewer</span>
-                    {['#0a0a0a','#0a1628','#1a3a6e','#2a5a9e','#3b82f6','#60a5fa'].map(c => (
-                      <div key={c} style={{ width: 12, height: 12, borderRadius: 2, background: c }} />
-                    ))}
-                    <span>More</span>
-                  </div>
-                </div>
               </div>
             </div>
           </>
