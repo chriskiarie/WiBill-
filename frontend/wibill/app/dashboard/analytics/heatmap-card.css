@@ -1,0 +1,109 @@
+/* ── Glass card base — use for stat strip, heatmap card, secondary panels ── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── Hero heatmap card ── */
+.heatmap-hero {
+  padding: 20px 24px 18px;
+  max-width: 100%;
+}
+
+.heatmap-hero .grid-wrap {
+  max-height: 400px;
+  overflow: visible;
+}
+
+/* ── Insight line pill ── */
+.heatmap-insight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(79, 141, 255, 0.08);
+  border: 1px solid rgba(79, 141, 255, 0.18);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #cfe0ff;
+}
+
+.heatmap-insight .value {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  color: #eaf1ff;
+}
+
+/* ── Labels ── */
+.heatmap-hour-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.02em;
+}
+
+.heatmap-day-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Peak glow pulse ── */
+@keyframes heat-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.07),
+      inset 0 -1px 0 rgba(0,0,0,0.25),
+      0 0 0 1px rgba(122,178,255,0.5),
+      0 0 14px 2px rgba(79,141,255,0.4);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.07),
+      inset 0 -1px 0 rgba(0,0,0,0.25),
+      0 0 0 1px rgba(122,178,255,0.75),
+      0 0 20px 5px rgba(79,141,255,0.65);
+  }
+}
+
+.heat-peak {
+  animation: heat-pulse 2.4s ease-in-out infinite;
+}
+
+/* ── Selected cell footer chip ── */
+.cell-selection-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(250, 193, 7, 0.1);
+  border: 1px solid rgba(250, 193, 7, 0.3);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #ffd980;
+}
+
+.cell-selection-chip button {
+  background: none;
+  border: none;
+  color: #ffd980;
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.cell-selection-chip button:hover {
+  opacity: 1;
+}

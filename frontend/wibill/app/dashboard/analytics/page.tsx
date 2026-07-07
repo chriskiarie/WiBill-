@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
+import { HeatmapCell, type CellData } from '@/components/HeatmapCell'
+import './heatmap-card.css'
 
 const C = {
   void: '#000000',
@@ -67,32 +69,21 @@ export default function AnalyticsPage() {
     peakHours.reduce((s, c) => s + c.value, 0) / peakHours.length,
   [peakHours])
 
-  const insight = `Peak usage: ${dayLabels[peakCell.day]} ${String(peakCell.hour).padStart(2, '0')}:00 \u2014 ${peakCell.value} sessions \u00b7 ${(peakCell.value / avgValue).toFixed(1)}\u00d7 daily average`
+  const maxSessions = useMemo(() =>
+    peakHours.reduce((max, c) => Math.max(max, c.value), 0),
+  [peakHours])
 
-  const getHeatColor = (v: number) => {
-    if (v === 0) return '#0a0a0a'
-    if (v < 10) return '#0a1628'
-    if (v < 50) return '#0d2744'
-    if (v < 100) return '#1a3a6e'
-    if (v < 200) return '#2a5a9e'
-    if (v < 400) return '#3b82f6'
-    return '#60a5fa'
-  }
+  const insight = `Peak usage: ${dayLabels[peakCell.day]} ${String(peakCell.hour).padStart(2, '0')}:00`
+  const isPeak = (day: number, hour: number) => peakCell.day === day && peakCell.hour === hour
+  const isSelected = (day: number, hour: number) => selectedCell?.day === day && selectedCell?.hour === hour
+  const cellValue = (day: number, hour: number) => peakHours.find(c => c.day === day && c.hour === hour)?.value || 0
 
-  const handleCellClick = (day: number, hour: number) => {
+  const handleCellSelect = (data: CellData) => {
+    const dayIndex = dayLabels.indexOf(data.day)
     setSelectedCell(prev =>
-      prev?.day === day && prev?.hour === hour ? null : { day, hour }
+      prev?.day === dayIndex && prev?.hour === data.hour ? null : { day: dayIndex, hour: data.hour }
     )
   }
-
-  const isPeak = (day: number, hour: number) =>
-    peakCell.day === day && peakCell.hour === hour
-
-  const isSelected = (day: number, hour: number) =>
-    selectedCell?.day === day && selectedCell?.hour === hour
-
-  const cellValue = (day: number, hour: number) =>
-    peakHours.find(c => c.day === day && c.hour === hour)?.value || 0
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload?.length) return (
@@ -124,8 +115,7 @@ export default function AnalyticsPage() {
                 { label: 'Avg Daily', value: fmtKsh(revenueData.length ? Math.round(totalRevenue / revenueData.length) : 0), color: C.text },
                 { label: 'Top Package', value: topPackages[0]?.name || '\u2014', color: C.dim },
               ].map((c, i) => (
-                <div key={i} style={{
-                  background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 8,
+                <div key={i} className="glass-card" style={{
                   padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -139,8 +129,8 @@ export default function AnalyticsPage() {
             </div>
 
             {/* ===== HERO: SESSION DENSITY BY HOUR ===== */}
-            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div className="glass-card heatmap-hero" style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                   Session Density by Hour
                 </div>
@@ -158,68 +148,42 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18, lineHeight: 1, opacity: 0.7 }}>&#x26A1;</span>
-                <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 13, fontWeight: 600, color: C.text }}>
+              <div className="heatmap-insight">
+                <span>&#x26A1;</span>
+                <span>
                   {insight}
+                  {' \u2014 '}<span className="value">{peakCell.value}</span> sessions
+                  {' \u00b7 '}{(peakCell.value / avgValue).toFixed(1)}&times; daily average
                 </span>
               </div>
 
               <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '40px repeat(12, 1fr)', gap: 3, minWidth: 520 }}>
+                <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(12, 1fr)', gap: 3, minWidth: 520 }}>
                   <div />
                   {displayHours.map(h => (
-                    <div key={h} style={{
-                      fontSize: 9, color: C.dim, textAlign: 'center', padding: '2px 0',
-                      fontFamily: 'DM Mono, monospace'
-                    }}>
+                    <div key={h} className="heatmap-hour-label" style={{ textAlign: 'center', padding: '2px 0' }}>
                       {String(h).padStart(2, '0')}
                     </div>
                   ))}
                   {dayLabels.map((day, di) => (
                     <div key={`row-${di}`} style={{ display: 'contents' }}>
-                      <div style={{
-                        fontSize: 9, color: C.dim, padding: '6px 2px',
-                        fontFamily: 'DM Mono, monospace', display: 'flex', alignItems: 'center'
-                      }}>
+                      <div className="heatmap-day-label" style={{ padding: '6px 2px', display: 'flex', alignItems: 'center' }}>
                         {day}
                       </div>
-                      {displayHours.map(h => {
-                        const v = cellValue(di, h)
-                        const peak = isPeak(di, h)
-                        const selected = isSelected(di, h)
-                        return (
-                          <div
-                            key={`${di}-${h}`}
-                            onClick={() => handleCellClick(di, h)}
-                            title={`${day} ${String(h).padStart(2, '0')}:00 \u2014 ${v} sessions`}
-                            style={{
-                              aspectRatio: '1', borderRadius: 3, minHeight: 26, cursor: 'pointer',
-                              position: 'relative', background: getHeatColor(v),
-                              border: selected
-                                ? `1.5px solid ${C.gold}`
-                                : peak && !selected
-                                ? '1px solid transparent'
-                                : 'none',
-                              boxShadow: peak
-                                ? `0 0 10px rgba(232,184,75,${selected ? 0.6 : 0.3}), 0 0 20px rgba(232,184,75,${selected ? 0.3 : 0.15})`
-                                : selected
-                                ? `0 0 6px rgba(232,184,75,0.4)`
-                                : 'none',
-                              animation: peak && !selected ? 'heat-glow 2.5s ease-in-out infinite' : 'none',
-                              transition: 'box-shadow 0.2s, border 0.2s',
-                            }}
-                          >
-                            {peak && (
-                              <div style={{
-                                position: 'absolute', inset: -1, borderRadius: 4,
-                                border: `1px solid rgba(232,184,75,${selected ? 0.8 : 0.4})`,
-                                pointerEvents: 'none',
-                              }} />
-                            )}
-                          </div>
-                        )
-                      })}
+                      {displayHours.map(h => (
+                        <HeatmapCell
+                          key={`${di}-${h}`}
+                          data={{
+                            day,
+                            hour: h,
+                            sessions: cellValue(di, h),
+                            maxSessions,
+                            isPeak: isPeak(di, h),
+                          }}
+                          selected={isSelected(di, h)}
+                          onSelect={handleCellSelect}
+                        />
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -228,20 +192,13 @@ export default function AnalyticsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <div>
                   {selectedCell ? (
-                    <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.gold }}>
+                    <div className="cell-selection-chip">
                       {dayLabels[selectedCell.day]} {String(selectedCell.hour).padStart(2, '0')}:00
                       {' \u2014 '}{cellValue(selectedCell.day, selectedCell.hour)} sessions
-                      <span
-                        style={{ color: C.dim, cursor: 'pointer', marginLeft: 8 }}
-                        onClick={() => setSelectedCell(null)}
-                      >
-                        &#x2715; clear
-                      </span>
-                    </span>
+                      <button onClick={() => setSelectedCell(null)}>&#x2715; clear</button>
+                    </div>
                   ) : (
-                    <span style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim }}>
-                      Click any cell to inspect
-                    </span>
+                    <span className="heatmap-hour-label">Click any cell to inspect</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
@@ -259,7 +216,7 @@ export default function AnalyticsPage() {
 
             {/* ===== SECONDARY ROW ===== */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: revenueData.length > 0 ? 20 : '12px 16px' }}>
+              <div className="glass-card" style={{ padding: revenueData.length > 0 ? 20 : '12px 16px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: revenueData.length > 0 ? 14 : 0 }}>
                   Revenue Trend
                 </div>
@@ -280,7 +237,7 @@ export default function AnalyticsPage() {
                 )}
               </div>
 
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: topPackages.length > 0 ? 20 : '12px 16px' }}>
+              <div className="glass-card" style={{ padding: topPackages.length > 0 ? 20 : '12px 16px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: topPackages.length > 0 ? 14 : 0 }}>
                   Top Packages
                 </div>
