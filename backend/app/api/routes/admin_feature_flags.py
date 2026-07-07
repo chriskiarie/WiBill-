@@ -115,23 +115,3 @@ async def update_tier(
     await db.commit()
     return {"ok": True, "tier": "premium" if new_premium else "free"}
 
-
-@router.get("/tenants/feature-flags")
-async def get_my_feature_flags(
-    current_user: AdminUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Get feature flags for the current admin's tenant. Returns all-false for platform admins (no tenant)."""
-    if not current_user.tenant_id:
-        return {"vouchers": False, "campaigns": False, "loyalty": False, "mikrotik": False, "portal_customization": False}
-    result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-    return {
-        "vouchers": tenant.has_vouchers,
-        "campaigns": tenant.has_campaigns,
-        "loyalty": tenant.has_loyalty,
-        "mikrotik": tenant.has_mikrotik,
-        "portal_customization": tenant.has_portal_customization,
-    }
