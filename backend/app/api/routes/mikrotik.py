@@ -193,6 +193,11 @@ async def health_check(
         "connected": bridge_connected,
         "router_reachable": router_reachable,
         "router_ip": config.router_ip,
+        "router_identity": bridge_result.get("router_identity"),
+        "router_os_version": bridge_result.get("router_os_version"),
+        "board_name": bridge_result.get("board_name"),
+        "uptime": bridge_result.get("uptime"),
+        "hotspot_found": bridge_result.get("hotspot_found"),
         "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
         "last_error": config.last_error_message,
     }
