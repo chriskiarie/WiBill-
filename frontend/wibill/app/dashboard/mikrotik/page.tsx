@@ -76,8 +76,8 @@ export default function MikrotikPage() {
 
   const fetchActiveUsers = async () => {
     try {
-      const u = await api.getMikrotikUsers()
-      setActiveUsers(u || [])
+      const data = await api.getMikrotikUsers()
+      setActiveUsers(data.users || [])
     } catch { setActiveUsers([]) }
   }
 

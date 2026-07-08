@@ -165,7 +165,7 @@ export const api = {
       request<{ connected: boolean; error?: string; router_identity?: string; router_os_version?: string; board_name?: string; uptime?: string; hotspot_found?: boolean }>('/api/mikrotik/test'),
    getMikrotikHealth: () =>
      request<any>('/api/mikrotik/health'),
-   getMikrotikUsers: () => request<any[]>('/api/mikrotik/users'),
+    getMikrotikUsers: () => request<{ users: any[]; count: number }>('/api/mikrotik/users'),
    provisionMikrotik: () =>
       request<any>('/api/mikrotik/provision', { method: 'POST' }),
    decommissionMikrotik: () =>
