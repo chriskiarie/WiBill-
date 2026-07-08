@@ -121,6 +121,28 @@ def test():
         raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
 
 
+@app.get("/hotspot")
+def hotspot_config():
+    try:
+        api = get_api()
+        hotspots = list(api("/ip/hotspot/print"))
+        active = list(api("/ip/hotspot/active/print"))
+        files_raw = list(api("/file/print"))
+        api.close()
+        hotspot_files = [f for f in files_raw if "hotspot" in f.get("name","").lower() or f.get("name","").startswith("login")]
+        return {
+            "servers": hotspots,
+            "active_sessions": len(active),
+            "hotspot_files": hotspot_files[:20],
+        }
+    except FatalError as e:
+        raise HTTPException(status_code=401, detail=f"Auth failed: {e}")
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
+    except Exception as e:
+        return {"error": str(e)}
+
+
 class UserPayload(BaseModel):
     username: str
     password: str
