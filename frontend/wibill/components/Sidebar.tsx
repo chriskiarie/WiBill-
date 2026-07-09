@@ -40,13 +40,15 @@ const W = 228
 const W_COLLAPSED = 60
 
 const C = {
-  bg: '#050505',
-  border: '#131313',
-  gold: '#E8B84B',
-  text: '#EDEBE6',
-  dim: '#6B6964',
-  green: '#6FCF73',
-  cardBg: '#111110',
+  bg: 'var(--sidebar-bg)',
+  border: 'var(--sidebar-border)',
+  gold: 'var(--theme-gold)',
+  text: 'var(--sidebar-text)',
+  dim: 'var(--sidebar-dim)',
+  green: 'var(--theme-green)',
+  cardBg: 'var(--sidebar-card-bg)',
+  icon: 'var(--sidebar-icon)',
+  activeBg: 'var(--sidebar-active-bg)',
 }
 
 export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: number }) {
@@ -131,7 +133,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         padding: collapsed ? '0' : '0 16px',
         display: 'flex', alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
-        borderBottom: '0.5px solid #0f0f0f',
+        borderBottom: '0.5px solid var(--sidebar-border)',
       }}>
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
@@ -152,7 +154,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           </span>
           <span style={{
             position: 'absolute', bottom: -18, left: 0,
-            background: '#1A1A18', borderRadius: 4,
+            background: 'var(--sidebar-card-bg)', borderRadius: 4,
             padding: '2px 8px', fontSize: 11, fontFamily: 'Inter, sans-serif',
             color: C.dim, whiteSpace: 'nowrap',
             opacity: brandHover ? 1 : 0,
@@ -195,7 +197,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           <div key={section.label} style={{ marginBottom: collapsed ? 12 : 20 }}>
             {!collapsed && (
               <div style={{
-                fontSize: 9, color: '#1e1e1e', textTransform: 'uppercase',
+                fontSize: 9, color: 'var(--sidebar-dim)', textTransform: 'uppercase',
                 letterSpacing: '1.2px', padding: '0 10px', marginBottom: 6, fontWeight: 700,
                 fontFamily: "'Space Grotesk', sans-serif",
               }}>
@@ -220,8 +222,8 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     <div style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       width: 36, height: 36, borderRadius: 8,
-                      background: active ? 'rgba(232,184,75,0.08)' : 'transparent',
-                      color: active ? C.gold : '#252525',
+                      background: active ? 'var(--sidebar-active-bg)' : 'transparent',
+                      color: active ? C.gold : 'var(--sidebar-icon)',
                       transition: 'all 0.15s',
                     }}>
                       <item.icon size={16} />
@@ -231,8 +233,8 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     <div style={{
                       position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
                       marginLeft: 8, padding: '4px 10px', borderRadius: 6,
-                      background: '#111', border: '0.5px solid #222',
-                      color: '#ccc', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                      background: 'var(--sidebar-card-bg)', border: '0.5px solid var(--sidebar-border)',
+                      color: 'var(--sidebar-text)', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                       fontFamily: 'Inter, sans-serif', zIndex: 20,
                       pointerEvents: 'none',
                     }}>
@@ -245,13 +247,13 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '7px 10px', borderRadius: 8, marginBottom: 1,
-                    background: active ? 'rgba(232,184,75,0.06)' : 'transparent',
-                    color: active ? C.gold : '#2e2e2e',
+                    background: active ? 'var(--sidebar-active-bg)' : 'transparent',
+                    color: active ? C.gold : 'var(--sidebar-icon)',
                     fontWeight: active ? 700 : 400, fontSize: 12,
                     cursor: 'pointer', position: 'relative',
                     transition: 'all 0.15s',
                   }}>
-                    <item.icon size={14} color={active ? C.gold : '#252525'} />
+                    <item.icon size={14} color={active ? C.gold : 'var(--sidebar-icon)'} />
                     <span>{item.label}</span>
 
                     {item.label === 'Sessions' && liveData.sessions > 0 && (
@@ -287,7 +289,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         <div style={{
           margin: '0 8px 4px', padding: '10px 12px',
           background: C.cardBg, borderRadius: 8,
-          borderTop: '0.5px solid #1E1E1B',
+          borderTop: '0.5px solid var(--sidebar-border)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
@@ -319,13 +321,13 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       )}
 
       {/* ── FOOTER ── */}
-      <div style={{ padding: collapsed ? '8px 0' : '10px 10px', borderTop: '0.5px solid #0d0d0d' }}>
+      <div style={{ padding: collapsed ? '8px 0' : '10px 10px', borderTop: '0.5px solid var(--sidebar-border)' }}>
         {collapsed ? (
           <>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: '#1e1e1e', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: 'var(--sidebar-icon)', cursor: 'pointer' }}>
               <HelpCircle size={15} />
             </div>
-            <div onClick={logout} style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: '#1e1e1e', cursor: 'pointer' }}>
+            <div onClick={logout} style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: 'var(--sidebar-icon)', cursor: 'pointer' }}>
               <LogOut size={15} />
             </div>
           </>
@@ -334,7 +336,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 10px', borderRadius: 8,
-              color: '#1e1e1e', fontSize: 12, cursor: 'pointer',
+              color: 'var(--sidebar-icon)', fontSize: 12, cursor: 'pointer',
             }}>
               <HelpCircle size={14} />
               <span>Support</span>
@@ -342,7 +344,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
             <div onClick={logout} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '9px 10px', borderRadius: 8,
-              color: '#1e1e1e', fontSize: 12, cursor: 'pointer',
+              color: 'var(--sidebar-icon)', fontSize: 12, cursor: 'pointer',
             }}>
               <LogOut size={14} />
               <span>Sign out</span>

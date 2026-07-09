@@ -44,51 +44,65 @@
 /* ── Theme system tokens ── */
 :root,
 [data-theme="dark"] {
-  --theme-bg: #050810;
-  --theme-surface: rgba(255,255,255,0.035);
-  --theme-border: rgba(255,255,255,0.08);
-  --theme-border-card: rgba(255,255,255,0.06);
-  --theme-text: #eaf1ff;
-  --theme-text-muted: rgba(255,255,255,0.4);
-  --theme-gold: #f5c563;
+  --theme-bg: #000000;
+  --theme-surface: #080808;
+  --theme-border: #141414;
+  --theme-border-card: #1a1a1a;
+  --theme-text: #f0f0f0;
+  --theme-text-muted: #555;
+  --theme-gold: #E8B84B;
   --theme-green: #22c55e;
   --theme-red: #ef4444;
   --theme-card-base: #0a0a0a;
-  --theme-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  --theme-dim: #6b7ba3;
-  --theme-mute: #1e2a3a;
-  --theme-border2: #1a2535;
-}
+  --theme-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --theme-dim: #666;
+  --theme-mute: #222;
+  --theme-border2: #1a1a1a;
 
-[data-theme="dark"] {
-  --topbar-bg: #0B0B0A;
-  --topbar-border: #1E1E1B;
-  --topbar-text: #EDEBE6;
-  --topbar-dim: #6B6964;
-  --topbar-pill-bg: #161614;
+  --topbar-bg: #0a0a0a;
+  --topbar-border: #181818;
+  --topbar-text: #f0f0f0;
+  --topbar-dim: #666;
+  --topbar-pill-bg: #111;
+
+  --sidebar-bg: #050505;
+  --sidebar-border: #0f0f0f;
+  --sidebar-text: #ddd;
+  --sidebar-dim: #333;
+  --sidebar-icon: #2a2a2a;
+  --sidebar-active-bg: rgba(232,184,75,0.06);
+  --sidebar-card-bg: #0d0d0d;
 }
 
 [data-theme="light"] {
-  --theme-bg: #f7f8fb;
-  --theme-surface: rgba(10,14,24,0.03);
-  --theme-border: rgba(10,14,24,0.08);
-  --theme-border-card: rgba(10,14,24,0.06);
-  --theme-text: #0d1420;
-  --theme-text-muted: rgba(13,20,32,0.45);
+  --theme-bg: #f5f5f0;
+  --theme-surface: #ffffff;
+  --theme-border: #e0dfda;
+  --theme-border-card: #e8e7e2;
+  --theme-text: #1a1a18;
+  --theme-text-muted: #888;
   --theme-gold: #c98a1f;
   --theme-green: #16a34a;
   --theme-red: #dc2626;
-  --theme-card-base: rgba(255,255,255,0.85);
-  --theme-shadow: 0 4px 16px rgba(13,20,32,0.06);
-  --theme-dim: #6b7280;
-  --theme-mute: #e5e7eb;
-  --theme-border2: #d1d5db;
+  --theme-card-base: #ffffff;
+  --theme-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --theme-dim: #777;
+  --theme-mute: #e0e0e0;
+  --theme-border2: #d4d4d4;
 
-  --topbar-bg: #f0f1f3;
-  --topbar-border: #ddd;
-  --topbar-text: #1a1a1a;
-  --topbar-dim: #777;
-  --topbar-pill-bg: rgba(0,0,0,0.04);
+  --topbar-bg: #ffffff;
+  --topbar-border: #e0dfda;
+  --topbar-text: #1a1a18;
+  --topbar-dim: #888;
+  --topbar-pill-bg: #f0efea;
+
+  --sidebar-bg: #fafaf5;
+  --sidebar-border: #e0dfda;
+  --sidebar-text: #1a1a18;
+  --sidebar-dim: #999;
+  --sidebar-icon: #ccc;
+  --sidebar-active-bg: rgba(201,138,31,0.06);
+  --sidebar-card-bg: #ffffff;
 }
 
 /* ── Apply theme variables to the page ── */

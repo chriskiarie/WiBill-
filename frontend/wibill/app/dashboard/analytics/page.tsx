@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
       <Topbar title="Analytics" />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#444', fontSize: 13 }}>Loading analytics...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--theme-text-muted)', fontSize: 13 }}>Loading analytics...</div>
         ) : (
           <>
             {/* ===== SLIM STAT STRIP ===== */}
@@ -268,7 +268,7 @@ export default function AnalyticsPage() {
                               background: [C.gold, C.green, '#3b82f6', '#a855f7', '#f59e0b'][i],
                               display: 'inline-block'
                             }} />
-                            <span style={{ color: '#ccc' }}>{p.name}</span>
+                            <span style={{ color: 'var(--theme-text)' }}>{p.name}</span>
                           </div>
                           <span style={{ fontFamily: 'DM Mono, monospace', color: C.text }}>
                             {fmtKsh(p.total_revenue_ksh || p.price_ksh || 0)}

@@ -295,7 +295,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <DashboardProvider>
       <style>{`@keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } } @keyframes slideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
-      <div style={{ display: 'flex', minHeight: '100vh', background: '#030303' }}>
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--theme-bg)' }}>
         <Sidebar activeSessions={0} />
 
         <main style={{
