@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 export type CellData = {
   day: string
@@ -12,11 +12,11 @@ export type CellData = {
 
 function intensityColor(t: number): { from: string; to: string } {
   const stops = [
-    { t: 0.0, from: '#0a0e1a', to: '#0d1220' },
-    { t: 0.3, from: '#131c33', to: '#182241' },
-    { t: 0.55, from: '#1d3467', to: '#234085' },
-    { t: 0.8, from: '#2b5bd6', to: '#3568ea' },
-    { t: 1.0, from: '#4f8dff', to: '#7ab2ff' },
+    { t: 0.0, from: '#0d1420', to: '#111a2c' },
+    { t: 0.3, from: '#16203a', to: '#1c2a4a' },
+    { t: 0.55, from: '#1f4f7a', to: '#2a6b9e' },
+    { t: 0.8, from: '#b8862e', to: '#d9a441' },
+    { t: 1.0, from: '#d9a441', to: '#f5c563' },
   ]
   let lo = stops[0], hi = stops[stops.length - 1]
   for (let i = 0; i < stops.length - 1; i++) {
@@ -111,7 +111,7 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(data)}
         style={{
           position: 'relative',
-          height: 24,
+          aspectRatio: '1',
           borderRadius: 5,
           cursor: 'pointer',
           background: `linear-gradient(135deg, ${from}, ${to})`,
@@ -119,7 +119,7 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
             'inset 0 1px 0 rgba(255,255,255,0.07)',
             'inset 0 -1px 0 rgba(0,0,0,0.25)',
             data.isPeak
-              ? '0 0 0 1px rgba(122,178,255,0.6), 0 0 16px 3px rgba(79,141,255,0.55)'
+              ? '0 0 0 1px rgba(245,197,99,0.5), 0 0 16px 3px rgba(245,197,99,0.45)'
               : 'none',
             selected ? '0 0 0 2px rgba(250,193,7,0.9)' : 'none',
           ].join(', '),

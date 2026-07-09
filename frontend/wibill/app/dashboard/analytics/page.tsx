@@ -21,7 +21,8 @@ const C = {
 }
 
 const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const displayHours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+const displayHours = Array.from({ length: 24 }, (_, i) => i)
+const labelHours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
 
 export default function AnalyticsPage() {
   const { token } = useAuth()
@@ -113,7 +114,7 @@ export default function AnalyticsPage() {
                 { label: 'Revenue', value: fmtKsh(totalRevenue), color: C.gold },
                 { label: 'Sessions', value: String(totalSessions), color: C.green },
                 { label: 'Avg Daily', value: fmtKsh(revenueData.length ? Math.round(totalRevenue / revenueData.length) : 0), color: C.text },
-                { label: 'Top Package', value: topPackages[0]?.name || '\u2014', color: C.dim },
+                { label: 'Top Package', value: topPackages[0]?.name, color: C.dim },
               ].map((c, i) => (
                 <div key={i} className="glass-card" style={{
                   padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
@@ -121,9 +122,13 @@ export default function AnalyticsPage() {
                   <span style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     {c.label}
                   </span>
-                  <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 15, fontWeight: 500, color: c.color }}>
-                    {c.value}
-                  </span>
+                  {c.label === 'Top Package' && !c.value ? (
+                    <span style={{ color: C.dim, fontSize: 10 }}>No sales yet</span>
+                  ) : (
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 15, fontWeight: 500, color: c.color }}>
+                      {c.value}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -158,11 +163,11 @@ export default function AnalyticsPage() {
               </div>
 
               <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-                <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(12, 1fr)', gap: 3, minWidth: 520 }}>
+                <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 4, minWidth: 800 }}>
                   <div />
                   {displayHours.map(h => (
                     <div key={h} className="heatmap-hour-label" style={{ textAlign: 'center', padding: '2px 0' }}>
-                      {String(h).padStart(2, '0')}
+                      {labelHours.includes(h) ? String(h).padStart(2, '0') : ''}
                     </div>
                   ))}
                   {dayLabels.map((day, di) => (
@@ -203,10 +208,10 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
                   <span>Fewer</span>
-                  {['#0a0a0a','#0a1628','#0d2744','#1a3a6e','#2a5a9e','#3b82f6','#60a5fa'].map(c => (
+                  {['#0d1420','#16203a','#1f4f7a','#b8862e','#d9a441'].map(c => (
                     <div key={c} style={{
                       width: 14, height: 14, borderRadius: 2, background: c,
-                      border: c === '#60a5fa' ? '0.5px solid rgba(255,255,255,0.1)' : 'none'
+                      border: c === '#d9a441' ? '0.5px solid rgba(245,197,99,0.3)' : '0.5px solid rgba(255,255,255,0.05)'
                     }} />
                   ))}
                   <span>More</span>
@@ -216,8 +221,8 @@ export default function AnalyticsPage() {
 
             {/* ===== SECONDARY ROW ===== */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div className="glass-card" style={{ padding: revenueData.length > 0 ? 20 : '12px 16px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: revenueData.length > 0 ? 14 : 0 }}>
+              <div className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
                   Revenue Trend
                 </div>
                 {revenueData.length > 0 ? (
@@ -237,8 +242,8 @@ export default function AnalyticsPage() {
                 )}
               </div>
 
-              <div className="glass-card" style={{ padding: topPackages.length > 0 ? 20 : '12px 16px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: topPackages.length > 0 ? 14 : 0 }}>
+              <div className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
                   Top Packages
                 </div>
                 {topPackages.length > 0 ? (

@@ -13,7 +13,8 @@
 /* ── Hero heatmap card ── */
 .heatmap-hero {
   padding: 20px 24px 18px;
-  max-width: 100%;
+  max-width: 900px;
+  margin-left: 0;
 }
 
 .heatmap-hero .grid-wrap {
@@ -29,11 +30,11 @@
   margin: 10px 0 16px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(79, 141, 255, 0.08);
-  border: 1px solid rgba(79, 141, 255, 0.18);
+  background: rgba(245, 197, 99, 0.08);
+  border: 1px solid rgba(245, 197, 99, 0.2);
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #cfe0ff;
+  color: #e8d5a0;
 }
 
 .heatmap-insight .value {
@@ -63,15 +64,15 @@
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.07),
       inset 0 -1px 0 rgba(0,0,0,0.25),
-      0 0 0 1px rgba(122,178,255,0.5),
-      0 0 14px 2px rgba(79,141,255,0.4);
+      0 0 0 1px rgba(245,197,99,0.4),
+      0 0 14px 2px rgba(245,197,99,0.35);
   }
   50% {
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.07),
       inset 0 -1px 0 rgba(0,0,0,0.25),
-      0 0 0 1px rgba(122,178,255,0.75),
-      0 0 20px 5px rgba(79,141,255,0.65);
+      0 0 0 1px rgba(245,197,99,0.7),
+      0 0 20px 5px rgba(245,197,99,0.55);
   }
 }
 
