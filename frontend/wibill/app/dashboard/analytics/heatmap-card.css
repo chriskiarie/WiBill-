@@ -13,8 +13,7 @@
 /* ── Hero heatmap card ── */
 .heatmap-hero {
   padding: 20px 24px 18px;
-  max-width: 900px;
-  margin-left: 0;
+  max-width: 100%;
 }
 
 .heatmap-hero .grid-wrap {
