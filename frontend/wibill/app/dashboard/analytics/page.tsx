@@ -160,8 +160,7 @@ export default function AnalyticsPage() {
                 </span>
               </div>
 
-              <div style={{ overflowX: 'auto', overflowY: 'visible' }}>
-                <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 4, minWidth: 800 }}>
+              <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 4 }}>
                   <div />
                   {displayHours.map(h => (
                     <div key={h} className="heatmap-hour-label" style={{ textAlign: 'center', padding: '2px 0' }}>
@@ -190,7 +189,6 @@ export default function AnalyticsPage() {
                     </div>
                   ))}
                 </div>
-              </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <div>
@@ -206,10 +204,10 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
                   <span>Fewer</span>
-                  {['#0d1420','#16203a','#1f4f7a','#b8862e','#d9a441'].map(c => (
+                  {['#0c121e','#433c29','#7a6535','#b18f40','#e8b84b'].map(c => (
                     <div key={c} style={{
                       width: 14, height: 14, borderRadius: 2, background: c,
-                      border: c === '#d9a441' ? '0.5px solid rgba(245,197,99,0.3)' : '0.5px solid rgba(255,255,255,0.05)'
+                      border: c === '#e8b84b' ? '0.5px solid rgba(232,184,75,0.3)' : '0.5px solid rgba(255,255,255,0.05)'
                     }} />
                   ))}
                   <span>More</span>

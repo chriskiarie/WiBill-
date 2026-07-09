@@ -10,40 +10,6 @@ export type CellData = {
   isPeak: boolean
 }
 
-function intensityColor(t: number): { from: string; to: string } {
-  const stops = [
-    { t: 0.0, from: '#0d1420', to: '#111a2c' },
-    { t: 0.3, from: '#16203a', to: '#1c2a4a' },
-    { t: 0.55, from: '#1f4f7a', to: '#2a6b9e' },
-    { t: 0.8, from: '#b8862e', to: '#d9a441' },
-    { t: 1.0, from: '#d9a441', to: '#f5c563' },
-  ]
-  let lo = stops[0], hi = stops[stops.length - 1]
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (t >= stops[i].t && t <= stops[i + 1].t) {
-      lo = stops[i]
-      hi = stops[i + 1]
-      break
-    }
-  }
-  return { from: lerpHex(lo.from, hi.from, norm(t, lo.t, hi.t)), to: lerpHex(lo.to, hi.to, norm(t, lo.t, hi.t)) }
-}
-
-function norm(t: number, a: number, b: number) {
-  return b === a ? 0 : (t - a) / (b - a)
-}
-
-function lerpHex(a: string, b: string, t: number) {
-  const pa = parseInt(a.slice(1), 16)
-  const pb = parseInt(b.slice(1), 16)
-  const ar = (pa >> 16) & 255, ag = (pa >> 8) & 255, ab = pa & 255
-  const br = (pb >> 16) & 255, bg = (pb >> 8) & 255, bb = pb & 255
-  const r = Math.round(ar + (br - ar) * t)
-  const g = Math.round(ag + (bg - ag) * t)
-  const bl = Math.round(ab + (bb - ab) * t)
-  return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`
-}
-
 function CellTooltip({ x, y, day, hour, sessions }: { x: number; y: number; day: string; hour: number; sessions: number }) {
   return (
     <div
@@ -91,8 +57,7 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
   const [hovered, setHovered] = useState(false)
   const [tipPos, setTipPos] = useState({ x: 0, y: 0 })
 
-  const t = data.maxSessions === 0 ? 0 : data.sessions / data.maxSessions
-  const { from, to } = intensityColor(t)
+  const intensity = data.maxSessions === 0 ? 0 : data.sessions / data.maxSessions
 
   const handleMouseMove = (e: React.MouseEvent) => {
     setTipPos({ x: e.clientX, y: e.clientY })
@@ -109,12 +74,13 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
         onMouseMove={handleMouseMove}
         onClick={() => onSelect(data)}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(data)}
+        className={`heat-cell${data.isPeak ? ' heat-peak' : ''}`}
         style={{
-          position: 'relative',
+          '--intensity': intensity,
+          width: '100%',
           aspectRatio: '1',
           borderRadius: 5,
           cursor: 'pointer',
-          background: `linear-gradient(135deg, ${from}, ${to})`,
           boxShadow: [
             'inset 0 1px 0 rgba(255,255,255,0.07)',
             'inset 0 -1px 0 rgba(0,0,0,0.25)',
@@ -127,7 +93,7 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
           zIndex: hovered ? 10 : data.isPeak ? 5 : 1,
           transition: 'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 140ms ease',
           outline: 'none',
-        }}
+        } as React.CSSProperties & { '--intensity': number }}
       />
       {hovered && (
         <CellTooltip x={tipPos.x} y={tipPos.y} day={data.day} hour={data.hour} sessions={data.sessions} />

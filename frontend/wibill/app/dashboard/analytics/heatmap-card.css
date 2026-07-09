@@ -17,8 +17,17 @@
 }
 
 .heatmap-hero .grid-wrap {
-  max-height: 400px;
   overflow: visible;
+}
+
+/* ── Cell color from --intensity (navy → gold) ── */
+.heat-cell {
+  --r: calc(12 + 220 * var(--intensity, 0));
+  --g: calc(18 + 166 * var(--intensity, 0));
+  --b: calc(30 + 45 * var(--intensity, 0));
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.10), transparent 50%, rgba(0,0,0,0.18)),
+    rgb(var(--r), var(--g), var(--b));
 }
 
 /* ── Insight line pill ── */
