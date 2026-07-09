@@ -8,16 +8,16 @@ import { HeatmapCell, type CellData } from '@/components/HeatmapCell'
 import './heatmap-card.css'
 
 const C = {
-  void: '#000000',
-  base: '#0a0a0a',
-  border: '#141414',
-  border2: '#1a1a1a',
-  text: '#f0f0f0',
-  dim: '#666666',
-  mute: '#2a2a2a',
-  gold: '#E8B84B',
-  green: '#22c55e',
-  red: '#ef4444',
+  void: 'var(--theme-bg)',
+  base: 'var(--theme-card-base)',
+  border: 'var(--theme-border)',
+  border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)',
+  dim: 'var(--theme-dim)',
+  mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)',
+  green: 'var(--theme-green)',
+  red: 'var(--theme-red)',
 }
 
 const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']

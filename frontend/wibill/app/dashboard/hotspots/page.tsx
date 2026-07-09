@@ -109,17 +109,20 @@ export default function HotspotsPage() {
 
         {/* Hotspot cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {hotspots.map(h => (
+          {hotspots.map(h => {
+            const isSelected = selected?.id === h.id
+            return (
             <div key={h.id} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'var(--theme-surface)', backdropFilter: 'blur(20px)',
-              borderRadius: 10, border: '1px solid var(--theme-border-card)',
+              background: 'var(--theme-card-base)',
+              borderRadius: 10, border: isSelected ? '1.5px solid var(--theme-gold)' : '1px solid var(--theme-border)',
               padding: '14px 20px', cursor: 'pointer',
-              transition: 'border-color 0.15s',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+              boxShadow: isSelected ? '0 0 0 1px rgba(232,184,75,0.15), 0 0 20px rgba(232,184,75,0.06)' : 'none',
             }}
               onClick={() => setSelected(h)}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--theme-border)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--theme-border-card)'}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = 'var(--theme-border2)' }}
+              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = 'var(--theme-border)' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{
@@ -159,20 +162,27 @@ export default function HotspotsPage() {
                   {h.status === 'online' ? <Power size={10} /> : h.status === 'disabled' ? <PowerOff size={10} /> : <PowerOff size={10} />}
                   {statusLabel(h.status)}
                 </div>
-                <Eye size={14} color={C.dim} style={{ opacity: 0.5 }} />
+                <Eye size={14} color={selected?.id === h.id ? C.gold : C.dim} style={{ opacity: selected?.id === h.id ? 0.9 : 0.5 }} />
               </div>
             </div>
-          ))}
+          )})}
         </div>
 
         {/* Detail panel */}
         {selected && (
           <div style={{
-            marginTop: 16,
-            background: 'var(--theme-surface)', backdropFilter: 'blur(20px)',
+            marginTop: 16, position: 'relative', overflow: 'hidden',
+            background: 'var(--theme-card-base)',
             borderRadius: 12, border: '1px solid var(--theme-border)',
             padding: 20, animation: 'fade-in 0.2s ease',
           }}>
+            {/* Status ribbon */}
+            <div style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 5,
+              background: statusColor(selected.status),
+              transition: 'background 0.3s',
+            }} />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -180,7 +190,7 @@ export default function HotspotsPage() {
                   <span style={{
                     padding: '2px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
                     background: selected.status === 'online' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                    color: statusColor(selected.status), fontFamily: 'Inter, sans-serif',
+                    color: statusColor(selected.status),
                   }}>
                     {statusLabel(selected.status)}
                   </span>
@@ -194,7 +204,6 @@ export default function HotspotsPage() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 14px', borderRadius: 6, border: '1px solid var(--theme-border)',
                   background: 'transparent', color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'Inter, sans-serif',
                 }}>
                   {selected.status === 'online' ? <PowerOff size={13} /> : <Power size={13} />}
                   {selected.status === 'online' ? 'Disable' : 'Enable'}
@@ -238,19 +247,8 @@ export default function HotspotsPage() {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '8px 16px', borderRadius: 7, border: '1px solid var(--theme-border)',
                 background: 'transparent', color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
               }}>
                 <RefreshCw size={13} /> Refresh
-              </button>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', borderRadius: 7, border: 'none',
-                background: selected.status === 'online' ? C.red : C.green,
-                color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                fontFamily: "'Space Grotesk', sans-serif",
-              }}>
-                {selected.status === 'online' ? <PowerOff size={13} /> : <Power size={13} />}
-                {selected.status === 'online' ? 'Take Offline' : 'Bring Online'}
               </button>
             </div>
           </div>
