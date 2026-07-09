@@ -16,6 +16,7 @@ const nav = [
   { label: 'Overview', items: [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics' },
+    { href: '/dashboard/hotspots', icon: Wifi, label: 'Hotspots' },
     { href: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
     { href: '/dashboard/portal-preview', icon: Smartphone, label: 'Portal Preview' },
     { href: '/dashboard/network', icon: Activity, label: 'Network' },
