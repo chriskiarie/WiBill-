@@ -135,17 +135,19 @@ export default function AnalyticsPage() {
 
             {/* ===== HERO: SESSION DENSITY BY HOUR ===== */}
             <div className="glass-card heatmap-hero" style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Session Density by Hour
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Session Density
+                </span>
+                <span style={{ width: 1, height: 10, background: C.mute, opacity: 0.25, margin: '0 10px' }} />
+                <div style={{ display: 'flex', gap: 2 }}>
                   {[7, 30, 90].map(d => (
                     <button key={d} onClick={() => setPeriod(d)} style={{
-                      padding: '4px 10px', borderRadius: 5, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                      padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 600, cursor: 'pointer',
                       background: period === d ? C.gold : 'transparent',
                       border: period === d ? 'none' : `0.5px solid ${C.border2}`,
                       color: period === d ? '#000' : C.dim,
+                      fontFamily: 'DM Mono, monospace',
                     }}>
                       {d}d
                     </button>

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth'
-import { Settings, LogOut } from 'lucide-react'
+import { Settings, LogOut, Sun, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -27,7 +27,20 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
   const router = useRouter()
   const [clock, setClock] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  const [dark, setDark] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('wb_theme')
+    if (saved === 'light' || saved === 'dark') {
+      setDark(saved === 'dark')
+    }
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+    localStorage.setItem('wb_theme', dark ? 'dark' : 'light')
+  }, [dark])
 
   const initials = user?.tenant_name
     ? user.tenant_name.split(/\s+/).map((s: string) => s[0]).join('').slice(0, 2).toUpperCase()
@@ -119,6 +132,24 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
             </span>
           </div>
         </div>
+
+        {/* Theme toggle */}
+        <button
+          onClick={() => setDark(!dark)}
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28, borderRadius: 6,
+            border: '0.5px solid transparent',
+            background: 'transparent',
+            color: C.dim, cursor: 'pointer', marginRight: 10,
+            transition: 'background 0.2s, color 0.2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#161614'; e.currentTarget.style.color = C.text }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.dim }}
+        >
+          {dark ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
 
         <div style={{ width: 1, height: 24, background: C.divider }} />
 

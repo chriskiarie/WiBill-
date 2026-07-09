@@ -41,6 +41,42 @@
   /* Section bottom margin: 20px                 */
 }
 
+/* ── Theme system tokens ── */
+:root,
+[data-theme="dark"] {
+  --theme-bg: #050810;
+  --theme-surface: rgba(255,255,255,0.035);
+  --theme-border: rgba(255,255,255,0.08);
+  --theme-border-card: rgba(255,255,255,0.06);
+  --theme-text: #eaf1ff;
+  --theme-text-muted: rgba(255,255,255,0.4);
+  --theme-gold: #f5c563;
+  --theme-green: #22c55e;
+  --theme-red: #ef4444;
+  --theme-card-base: #0a0a0a;
+  --theme-shadow: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+[data-theme="light"] {
+  --theme-bg: #f7f8fb;
+  --theme-surface: rgba(10,14,24,0.03);
+  --theme-border: rgba(10,14,24,0.08);
+  --theme-border-card: rgba(10,14,24,0.06);
+  --theme-text: #0d1420;
+  --theme-text-muted: rgba(13,20,32,0.45);
+  --theme-gold: #c98a1f;
+  --theme-green: #16a34a;
+  --theme-red: #dc2626;
+  --theme-card-base: rgba(255,255,255,0.85);
+  --theme-shadow: 0 4px 16px rgba(13,20,32,0.06);
+}
+
+/* ── Apply theme variables to the page ── */
+.theme-bg { background: var(--theme-bg); }
+.theme-surface { background: var(--theme-surface); }
+.theme-text { color: var(--theme-text); }
+.theme-muted { color: var(--theme-text-muted); }
+
 * { box-sizing: border-box; }
 html, body {
   background: var(--bg);

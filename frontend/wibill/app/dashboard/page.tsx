@@ -5,7 +5,7 @@ import { api, maskPhone } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import Topbar from '@/components/Topbar';
 import { useToast } from '@/context/ToastContext';
-import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, X, Settings, RefreshCw } from 'lucide-react';
+import { Wifi, DollarSign, AlertTriangle, XCircle, Package, Router, CreditCard, Link, Printer, ChevronRight, Check, Smartphone, Receipt, TrendingUp, X, Settings, RefreshCw, Users, Download } from 'lucide-react';
 
 const C = {
   void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
@@ -69,7 +69,7 @@ function Drawer({ open, onClose, children }: { open: boolean; onClose: () => voi
 }
 
 export default function IspDashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { showToast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -88,6 +88,10 @@ export default function IspDashboard() {
   const [showSetup, setShowSetup] = useState(false);
   const [showMikrotikDrawer, setShowMikrotikDrawer] = useState(false);
   const [showMpesaDrawer, setShowMpesaDrawer] = useState(false);
+  const [showRouterDrawer, setShowRouterDrawer] = useState(false);
+  const [routerHealth, setRouterHealth] = useState<any>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [syncAge, setSyncAge] = useState(0);
   const [mkForm, setMkForm] = useState({ router_ip: '', api_port: 8728, api_username: '', api_password: '' });
   const [mkTesting, setMkTesting] = useState(false);
   const [mkSaving, setMkSaving] = useState(false);
@@ -101,6 +105,12 @@ export default function IspDashboard() {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!lastSync) return;
+    const t = setInterval(() => setSyncAge(Math.floor((Date.now() - lastSync.getTime()) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [lastSync]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -145,7 +155,7 @@ export default function IspDashboard() {
       });
     } catch (e: any) {
       showToast(e.message || 'Failed to load dashboard', { type: 'error' });
-    } finally { setLoading(false); setRefreshing(false); }
+    } finally { setLoading(false); setRefreshing(false); setLastSync(new Date()); }
   }, [token, showToast]);
 
   useEffect(() => {
@@ -180,9 +190,10 @@ export default function IspDashboard() {
     if (!api.getMikrotikHealth) return;
     const ping = async () => {
       try {
-        await api.getMikrotikHealth();
+        const h = await api.getMikrotikHealth();
+        setRouterHealth(h);
       } catch {
-        /* router unreachable — UI already reflects configs.mikrotik state */
+        setRouterHealth(null);
       }
     };
     ping();
@@ -263,8 +274,10 @@ export default function IspDashboard() {
 
   const maxWeekly = Math.max(...weekly, 1);
 
+  const ispName = user?.tenant_name || user?.isp_name || 'ISP';
   const timeOfDay = time.getHours();
-  const greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = timeOfDay < 12 ? 'Good morning' : timeOfDay < 18 ? 'Good afternoon' : timeOfDay < 21 ? 'Good evening' : 'Good night';
+  const statusClause = activeCount > 0 ? ` · ${activeCount} session${activeCount !== 1 ? 's' : ''} active` : '';
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) setShowSetup(false);
@@ -469,10 +482,10 @@ export default function IspDashboard() {
               fontFamily: '"Space Grotesk", sans-serif',
               fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.02em',
             }}>
-              {greeting}
+              {greeting}, {ispName}
             </div>
             <div style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', color: C.dim, marginTop: 2 }}>
-              {dateStr} · {timeStr}
+              {dateStr} · {timeStr}{statusClause}
             </div>
           </div>
 
@@ -489,20 +502,21 @@ export default function IspDashboard() {
               <RefreshCw size={12} />
             </button>
             {!isNetworkUp && (
-              <div style={{
+              <button onClick={() => configs.mikrotik && setShowRouterDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 12px', borderRadius: 20,
                 background: configs.mikrotik ? 'rgba(239,68,68,0.08)' : '#0a0a0a',
                 border: `0.5px solid ${configs.mikrotik ? 'rgba(239,68,68,0.2)' : C.border}`,
                 fontSize: 10, fontFamily: 'DM Mono, monospace',
                 fontWeight: 600, color: configs.mikrotik ? C.red : C.dim,
+                cursor: configs.mikrotik ? 'pointer' : 'default',
               }}>
                 <span style={{
                   width: 5, height: 5, borderRadius: '50%',
                   background: configs.mikrotik ? C.red : C.dim, display: 'inline-block',
                 }} />
                 {configs.mikrotik ? 'Router unreachable' : 'Router not connected'}
-              </div>
+              </button>
             )}
             {isNetworkUp && (
               <div style={{
@@ -607,43 +621,53 @@ export default function IspDashboard() {
           }}>
             Cash Flow This Week
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 40 }}>
-            {weeklyDays.map((day, i) => {
-              const val = weekly[i] || 0;
-              const pct = (val / maxWeekly) * 100;
-              const isToday = i === weekStart;
-              return (
-                <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <div style={{
-                    width: '100%', height: `${Math.max(pct, 6)}%`,
-                    background: isToday ? C.gold : C.mute,
-                    borderRadius: '2px 2px 0 0',
-                    minHeight: 6,
-                    opacity: isToday ? 1 : 0.4,
-                    transition: 'height 0.3s ease',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                  }}>
-                    {val > 0 && (
-                      <span style={{
-                        fontSize: 6, fontFamily: 'DM Mono, monospace',
-                        color: isToday ? C.void : C.dim,
-                        fontWeight: 700, marginBottom: 1,
-                      }}>
-                        {ksh(val)}
-                      </span>
-                    )}
+          {weekly.length === 0 || weekly.every(v => v === 0) ? (
+            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+              <TrendingUp size={16} color={C.mute} style={{ marginBottom: 6 }} />
+              <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, fontWeight: 600 }}>No data this week</div>
+              <div style={{ fontSize: 10, fontFamily: 'Inter, sans-serif', color: C.mute, marginTop: 2 }}>
+                Revenue data will appear here once payments start flowing
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 40 }}>
+              {weeklyDays.map((day, i) => {
+                const val = weekly[i] || 0;
+                const pct = (val / maxWeekly) * 100;
+                const isToday = i === weekStart;
+                return (
+                  <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    <div style={{
+                      width: '100%', height: `${Math.max(pct, 6)}%`,
+                      background: isToday ? C.gold : C.mute,
+                      borderRadius: '2px 2px 0 0',
+                      minHeight: 6,
+                      opacity: isToday ? 1 : 0.4,
+                      transition: 'height 0.3s ease',
+                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                    }}>
+                      {val > 0 && (
+                        <span style={{
+                          fontSize: 6, fontFamily: 'DM Mono, monospace',
+                          color: isToday ? C.void : C.dim,
+                          fontWeight: 700, marginBottom: 1,
+                        }}>
+                          {ksh(val)}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 8, fontFamily: 'DM Mono, monospace',
+                      color: isToday ? C.gold : C.mute,
+                      fontWeight: isToday ? 700 : 500,
+                    }}>
+                      {day}
+                    </span>
                   </div>
-                  <span style={{
-                    fontSize: 8, fontFamily: 'DM Mono, monospace',
-                    color: isToday ? C.gold : C.mute,
-                    fontWeight: isToday ? 700 : 500,
-                  }}>
-                    {day}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ═══ SUPPORTING CARDS ═══ */}
@@ -754,7 +778,18 @@ export default function IspDashboard() {
               }}>
                 Recent Payments
               </span>
-              <Receipt size={13} color={C.dim} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {txns.length > 0 && (
+                  <button onClick={() => {}} title="Export CSV" style={{
+                    width: 22, height: 22, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'transparent', border: 'none', color: C.dim, cursor: 'pointer', padding: 0,
+                  }}>
+                    <Download size={12} />
+                  </button>
+                )}
+                <Receipt size={13} color={C.dim} />
+              </div>
             </div>
             {txns.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '16px' }}>
@@ -841,6 +876,26 @@ export default function IspDashboard() {
                 <CreditCard size={13} /> Set up M-Pesa <ChevronRight size={11} color={C.gold} />
               </button>
             )}
+            {configs.mpesa && (
+              <button onClick={() => {}} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: C.base, border: `0.5px solid ${C.border}`,
+                color: C.dim, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+              }}>
+                <Users size={13} color={C.dim} /> Invite Staff <ChevronRight size={11} color={C.mute} />
+              </button>
+            )}
+            {configs.mpesa && (
+              <button onClick={() => {}} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                background: C.base, border: `0.5px solid ${C.border}`,
+                color: C.dim, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+              }}>
+                <Download size={13} color={C.dim} /> Export Report <ChevronRight size={11} color={C.mute} />
+              </button>
+            )}
             {configs.packages === 0 && (
               <a href="/dashboard/packages" style={{
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -853,6 +908,12 @@ export default function IspDashboard() {
             )}
           </div>
         </div>
+
+        {lastSync && (
+          <div style={{ textAlign: 'right', marginTop: 12, fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.mute }}>
+            Synced {syncAge}s ago
+          </div>
+        )}
       </div>
 
       {/* ════════════════════════════════════════════ */}
@@ -983,6 +1044,63 @@ export default function IspDashboard() {
           </div>
         </div>
       )}
+
+      {/* ════════════════════════════════════════════ */}
+      {/* ROUTER STATUS DRAWER                        */}
+      {/* ════════════════════════════════════════════ */}
+      <Drawer open={showRouterDrawer} onClose={() => setShowRouterDrawer(false)}>
+        <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 4 }}>
+          <Router size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} color={C.red} />
+          Router Status
+        </div>
+        <div style={{ fontSize: 12, color: C.dim, marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+          Your MikroTik router is currently unreachable
+        </div>
+
+        <div style={{ background: '#0d0d0d', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif' }}>Status</span>
+            <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.red, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.red, display: 'inline-block' }} />
+              Unreachable
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif' }}>Router Identity</span>
+            <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: routerHealth?.router_identity || C.dim }}>
+              {routerHealth?.router_identity || '\u2014'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif' }}>Bridge Tunnel</span>
+            <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: routerHealth?.bridge_uptime ? C.green : C.dim }}>
+              {routerHealth?.bridge_uptime || 'Unavailable'}
+            </span>
+          </div>
+        </div>
+
+        {lastSync && (
+          <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginBottom: 16 }}>
+            Last reachable: {lastSync.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => { setShowRouterDrawer(false); setShowMikrotikDrawer(true) }} style={{
+            flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            background: C.gold, border: 'none', color: C.void, fontFamily: 'Inter, sans-serif',
+          }}>
+            Reconnect Router
+          </button>
+          <button onClick={() => { setShowRouterDrawer(false) }} style={{
+            flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+            color: C.gold, fontFamily: 'Inter, sans-serif',
+          }}>
+            Dismiss
+          </button>
+        </div>
+      </Drawer>
 
       {/* ════════════════════════════════════════════ */}
       {/* MIKROTIK CONNECTION DRAWER                  */}
