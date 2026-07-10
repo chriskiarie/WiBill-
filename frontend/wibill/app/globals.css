@@ -80,11 +80,13 @@
   --topbar-dim: #666;
   --topbar-pill-bg: #111;
 
+  --brand-gradient: linear-gradient(135deg, #E8B84B 0%, #22c55e 100%);
+
   --sidebar-bg: #050505;
   --sidebar-border: #0f0f0f;
   --sidebar-text: #ddd;
-  --sidebar-dim: #333;
-  --sidebar-icon: #2a2a2a;
+  --sidebar-dim: #777;
+  --sidebar-icon: #666;
   --sidebar-active-bg: rgba(232,184,75,0.06);
   --sidebar-card-bg: #0d0d0d;
 }
@@ -126,11 +128,13 @@
   --topbar-dim: #888;
   --topbar-pill-bg: #f0efea;
 
+  --brand-gradient: linear-gradient(135deg, #c98a1f 0%, #16a34a 100%);
+
   --sidebar-bg: #fafaf5;
   --sidebar-border: #e0dfda;
   --sidebar-text: #1a1a18;
-  --sidebar-dim: #999;
-  --sidebar-icon: #ccc;
+  --sidebar-dim: #666;
+  --sidebar-icon: #888;
   --sidebar-active-bg: rgba(201,138,31,0.06);
   --sidebar-card-bg: #ffffff;
 }
