@@ -145,8 +145,8 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         position: 'sticky', top: 0, zIndex: 10,
       }}
     >
-      {/* ── Title zone ── */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      {/* ── Title zone (absolutely centered via left-offset) ── */}
+      <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <h1
           className="page-title"
           style={{
@@ -171,7 +171,14 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       {/* ── Right zone ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {/* Flip clock */}
-        <div className={`flip-clock${flipping ? ' flip' : ''}`}>
+        <div className={`flip-clock${flipping ? ' flip' : ''}`} style={{
+          fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 500,
+          color: 'var(--topbar-text)', letterSpacing: '0.04em',
+          padding: '4px 10px', border: '1px solid var(--theme-border)',
+          borderRadius: 6, background: 'var(--topbar-pill-bg)',
+          perspective: 400, transformStyle: 'preserve-3d',
+          transition: 'transform 0.25s ease',
+        }}>
           {clock || '--:--'}
         </div>
 

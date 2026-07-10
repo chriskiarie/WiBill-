@@ -179,17 +179,9 @@ body {
   margin: 0 8px;
 }
 
-/* Flip clock */
+/* Flip clock (inline styles handle sizing; class only for animation) */
 .flip-clock {
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--topbar-text);
-  letter-spacing: 0.02em;
-  padding: 0 8px;
-  perspective: 400px;
-  transform-style: preserve-3d;
-  transition: transform 0.25s ease;
+  user-select: none;
 }
 .flip-clock.flip {
   animation: flip-tick 0.35s ease;
