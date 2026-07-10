@@ -47,12 +47,15 @@ const cardCSS = `
   #gcard>.cl1{top:35%;animation:cp 4s ease-in-out infinite}
   #gcard>.cl2{top:62%;animation:cp 4s ease-in-out 2s infinite}
   @keyframes cp{0%,100%{opacity:.1;transform:scaleX(.8)}50%{opacity:.4;transform:scaleX(1)}}
-  #gcard>.pt{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(232,184,75,0.35);pointer-events:none;animation:pf 5s ease-in-out infinite;z-index:2}
+  #gcard>.pt{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(232,184,75,0.4);pointer-events:none;animation:pf 5s ease-in-out infinite;z-index:2}
   #gcard>.pt2{top:20%;left:12%;animation-delay:0s}
   #gcard>.pt3{top:72%;right:15%;animation-delay:1.7s}
   #gcard>.pt4{top:42%;left:72%;animation-delay:3.3s}
-  @keyframes pf{0%,100%{transform:translateY(0) scale(1);opacity:.3}50%{transform:translateY(-8px) scale(1.8);opacity:.6}}
-  #gcard>.cc{position:relative;z-index:1;padding:24px 32px}
+  #gcard>.pt5{top:55%;left:85%;animation-delay:.8s}
+  #gcard>.pt6{top:85%;left:42%;animation-delay:2.5s}
+  #gcard>.pt7{top:10%;right:35%;animation-delay:4s}
+  @keyframes pf{0%,100%{transform:translateY(0) scale(1);opacity:.3}50%{transform:translateY(-10px) scale(2);opacity:.7}}
+  #gcard>.cc{position:relative;z-index:1;padding:28px 36px;text-align:center}
 `
 
 function LoginContent() {
@@ -460,17 +463,18 @@ function LoginContent() {
             ref={cardRef}
             onMouseMove={handleCardMove}
             onMouseLeave={handleCardLeave}
-            style={{ transform: cardTransform, ...glowStyle }}
+            style={{ transform: cardTransform, ...glowStyle, margin: '0 auto', width: 'fit-content', maxWidth: 500 }}
           >
             <div className="gl" />
             <div className="cl cl1" /><div className="cl cl2" />
             <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
+            <div className="pt pt5" /><div className="pt pt6" /><div className="pt pt7" />
 
             <div className="cc">
               <div style={{
                 fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
                 color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
-                textTransform: 'uppercase',
+                textTransform: 'uppercase', textAlign: 'center',
               }}>
                 Built for ISPs
               </div>
@@ -482,13 +486,14 @@ function LoginContent() {
                 letterSpacing: '0.2px',
                 lineHeight: 1.5,
                 marginBottom: 16,
+                textAlign: 'center',
               }}>
                 Billing infrastructure for Kenyan ISPs.
               </div>
 
-              <div style={{ display: 'flex', gap: 24 }}>
+              <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
                 {stats.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
                     <span style={{
                       fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
                       color: '#E8B84B',
@@ -506,6 +511,7 @@ function LoginContent() {
                 borderTop: '0.5px solid rgba(232,184,75,0.08)',
                 fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
                 color: '#444', letterSpacing: '0.8px',
+                textAlign: 'center',
               }}>
                 TRUSTED · RELIABLE · KENYAN
               </div>
