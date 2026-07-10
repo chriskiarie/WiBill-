@@ -165,11 +165,10 @@ function LoginContent() {
     focusField === name ? inpFocus : inp
 
   const wordmarkSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      <div style={{
+    <div style={{ textAlign: 'center' }}>
+      <span style={{
         fontFamily: '"Instrument Serif", serif',
-        fontStyle: 'italic',
-        fontSize: 76,
+        fontSize: 88,
         fontWeight: 400,
         letterSpacing: '-0.03em',
         color: '#EDEBE6',
@@ -177,7 +176,7 @@ function LoginContent() {
         lineHeight: 1,
       }}>
         WiBill
-      </div>
+      </span>
       <div style={{
         fontFamily: '"Space Grotesk", sans-serif',
         fontSize: 11,
@@ -429,7 +428,7 @@ function LoginContent() {
         display: 'flex', flexDirection: 'column',
         padding: '60px 40px 40px', position: 'relative', zIndex: 2,
       }}>
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 48 }}>
+        <div style={{ marginBottom: 48 }}>
           {wordmarkSection}
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
