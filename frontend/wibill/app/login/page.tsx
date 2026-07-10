@@ -165,7 +165,7 @@ function LoginContent() {
     focusField === name ? inpFocus : inp
 
   const wordmarkSection = (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <span style={{
         fontFamily: '"Instrument Serif", serif',
         fontSize: 88,
@@ -428,7 +428,7 @@ function LoginContent() {
         display: 'flex', flexDirection: 'column',
         padding: '60px 40px 40px', position: 'relative', zIndex: 2,
       }}>
-        <div style={{ marginBottom: 48 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 48 }}>
           {wordmarkSection}
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
