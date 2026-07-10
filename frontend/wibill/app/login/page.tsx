@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent, useEffect, Suspense } from 'react'
+import { useState, FormEvent, useEffect, Suspense, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 
@@ -39,26 +39,10 @@ const stats = [
   { label: 'Active Users', value: '109' },
 ]
 
-// ── 3D hover glass card CSS (tracker grid perspective tilt) ──
-const trackerHoverCSS = Array.from({ length: 25 }, (_, i) => {
-  const row = Math.floor(i / 5); const col = i % 5
-  const xRot = 2 * (4 - row) - 4; const yRot = 2 * col - 4
-  return `.trk:nth-child(${i + 1}):hover~#gcard{transform:rotateX(${xRot}deg) rotateY(${yRot}deg)}`
-}).join('')
-
+// ── 3D hover glass card CSS ──
 const cardCSS = `
-  .cvs{perspective:800px;width:100%;position:relative}
-  .trkg{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);position:absolute;inset:0;z-index:5}
-  .trk{z-index:6;cursor:pointer;position:relative}
-  #gcard{background:linear-gradient(135deg,rgba(16,16,16,0.94),rgba(28,28,28,0.82));border:.5px solid rgba(232,184,75,0.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:16px;position:relative;transition:transform .125s ease;transform-style:preserve-3d;overflow:hidden}
+  #gcard{background:linear-gradient(135deg,rgba(16,16,16,0.94),rgba(28,28,28,0.82));border:.5px solid rgba(232,184,75,0.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:16px;position:relative;transition:transform .12s ease-out;transform-style:preserve-3d;overflow:hidden;will-change:transform}
   #gcard>.gl{position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,184,75,0.05),transparent 50%);pointer-events:none;border-radius:16px;z-index:1}
-  #gcard>.sl{position:absolute;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,rgba(232,184,75,0.2),transparent);animation:slm 3s linear infinite;pointer-events:none;z-index:2}
-  @keyframes slm{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
-  #gcard>.ct{position:absolute;width:14px;height:14px;z-index:2}
-  #gcard>.ct1{top:10px;left:10px;border-top:1px solid rgba(232,184,75,0.15);border-left:1px solid rgba(232,184,75,0.15)}
-  #gcard>.ct2{top:10px;right:10px;border-top:1px solid rgba(232,184,75,0.15);border-right:1px solid rgba(232,184,75,0.15)}
-  #gcard>.ct3{bottom:10px;left:10px;border-bottom:1px solid rgba(232,184,75,0.15);border-left:1px solid rgba(232,184,75,0.15)}
-  #gcard>.ct4{bottom:10px;right:10px;border-bottom:1px solid rgba(232,184,75,0.15);border-right:1px solid rgba(232,184,75,0.15)}
   #gcard>.cl{position:absolute;height:.5px;width:60%;left:20%;background:linear-gradient(90deg,transparent,rgba(232,184,75,0.1),transparent);pointer-events:none;z-index:2}
   #gcard>.cl1{top:35%;animation:cp 4s ease-in-out infinite}
   #gcard>.cl2{top:62%;animation:cp 4s ease-in-out 2s infinite}
@@ -69,7 +53,6 @@ const cardCSS = `
   #gcard>.pt4{top:42%;left:72%;animation-delay:3.3s}
   @keyframes pf{0%,100%{transform:translateY(0) scale(1);opacity:.3}50%{transform:translateY(-8px) scale(1.8);opacity:.6}}
   #gcard>.cc{position:relative;z-index:1;padding:24px 32px}
-  ${trackerHoverCSS}
 `
 
 function LoginContent() {
@@ -91,6 +74,24 @@ function LoginContent() {
   const [regEmail, setRegEmail] = useState('')
   const [regPass, setRegPass] = useState('')
   const [phone, setPhone] = useState('')
+
+  const [cardTransform, setCardTransform] = useState('')
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const handleCardMove = useCallback((e: React.MouseEvent) => {
+    const el = cardRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width
+    const y = (e.clientY - rect.top) / rect.height
+    const rotateY = (x - 0.5) * 12
+    const rotateX = (0.5 - y) * 12
+    setCardTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`)
+  }, [])
+
+  const handleCardLeave = useCallback(() => {
+    setCardTransform('')
+  }, [])
 
   useEffect(() => {
     const token = searchParams?.get('ref') || searchParams?.get('token')
@@ -443,116 +444,78 @@ function LoginContent() {
           pointerEvents: 'none',
         }} />
 
-        {/* ── Abstract image area (user uploads later) ── */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 40px',
-        }}>
-          {/*
-            ────────────────────────────────────────────────────────────
-            USER: Replace this placeholder with your abstract image:
-            <img src="/path/to/your-image.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ────────────────────────────────────────────────────────────
-          */}
-          <div style={{
-            width: '100%', maxWidth: '85%',
-            aspectRatio: '4 / 3',
-            borderRadius: 20,
-            background: `
-              linear-gradient(135deg, rgba(232,184,75,0.04), rgba(34,197,94,0.02)),
-              repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 20px,
-                rgba(232,184,75,0.02) 20px,
-                rgba(232,184,75,0.02) 21px
-              )
-            `,
-            border: '0.5px solid rgba(232,184,75,0.06)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{
-              fontFamily: '"Inter", sans-serif', fontSize: 11, fontWeight: 500,
-              color: '#444', letterSpacing: '0.5px',
-            }}>
-              UPLOAD YOUR IMAGE HERE
-            </span>
-          </div>
-        </div>
+        {/* ── Abstract image ── */}
+        <img
+          src="/login-bg.jpg"
+          alt=""
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            opacity: 0.5,
+          }}
+        />
 
         {/* ── 3D Glass card (bottom overlay) ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           padding: '20px 40px 36px',
           zIndex: 3,
+          perspective: 800,
         }}>
-          <div className="cvs">
-            {/* Tracker grid (5×5, absolutely positioned over card) */}
-            <div className="trkg">
-              {Array.from({ length: 25 }, (_, i) => (
-                <div key={i} className="trk" />
-              ))}
-            </div>
+          <div
+            id="gcard"
+            ref={cardRef}
+            onMouseMove={handleCardMove}
+            onMouseLeave={handleCardLeave}
+            style={{ transform: cardTransform }}
+          >
+            <div className="gl" />
+            <div className="cl cl1" /><div className="cl cl2" />
+            <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
 
-            {/* The glass card */}
-            <div id="gcard">
-              {/* Decorative overlays */}
-              <div className="gl" />
-              <div className="sl" />
-              <div className="ct ct1" /><div className="ct ct2" />
-              <div className="ct ct3" /><div className="ct ct4" />
-              <div className="cl cl1" /><div className="cl cl2" />
-              <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
+            <div className="cc">
+              <div style={{
+                fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
+                color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
+                textTransform: 'uppercase',
+              }}>
+                Built for ISPs
+              </div>
 
-              {/* Card content */}
-              <div className="cc">
-                {/* Eyebrow */}
-                <div style={{
-                  fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
-                  color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
-                  textTransform: 'uppercase',
-                }}>
-                  Built for ISPs
-                </div>
+              <div style={{
+                fontFamily: '"Syne", sans-serif',
+                fontSize: 16, fontWeight: 600,
+                color: '#999',
+                letterSpacing: '0.2px',
+                lineHeight: 1.5,
+                marginBottom: 16,
+              }}>
+                Billing infrastructure for Kenyan ISPs.
+              </div>
 
-                {/* Tagline */}
-                <div style={{
-                  fontFamily: '"Syne", sans-serif',
-                  fontSize: 16, fontWeight: 600,
-                  color: '#999',
-                  letterSpacing: '0.2px',
-                  lineHeight: 1.5,
-                  marginBottom: 16,
-                }}>
-                  Billing infrastructure for Kenyan ISPs.
-                </div>
+              <div style={{ display: 'flex', gap: 24 }}>
+                {stats.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{
+                      fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
+                      color: '#E8B84B',
+                    }}>{s.value}</span>
+                    <span style={{
+                      fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 600,
+                      color: '#555', textTransform: 'uppercase', letterSpacing: '0.4px',
+                    }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
 
-                {/* Stats row */}
-                <div style={{ display: 'flex', gap: 24 }}>
-                  {stats.map((s, i) => (
-                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{
-                        fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
-                        color: '#E8B84B',
-                      }}>{s.value}</span>
-                      <span style={{
-                        fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 600,
-                        color: '#555', textTransform: 'uppercase', letterSpacing: '0.4px',
-                      }}>{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Bottom subtitle */}
-                <div style={{
-                  marginTop: 14, paddingTop: 12,
-                  borderTop: '0.5px solid rgba(232,184,75,0.08)',
-                  fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
-                  color: '#444', letterSpacing: '0.8px',
-                }}>
-                  TRUSTED · RELIABLE · KENYAN
-                </div>
+              <div style={{
+                marginTop: 14, paddingTop: 12,
+                borderTop: '0.5px solid rgba(232,184,75,0.08)',
+                fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
+                color: '#444', letterSpacing: '0.8px',
+              }}>
+                TRUSTED · RELIABLE · KENYAN
               </div>
             </div>
           </div>
