@@ -33,28 +33,44 @@ const lbl: React.CSSProperties = {
   textTransform: 'uppercase',
 }
 
-function SignalArc({ radius, stroke, opacity, rotate }: { radius: number; stroke: string; opacity: number; rotate?: number }) {
-  const size = radius * 2 + 40
-  const cx = size / 2
-  const cy = size / 2
-  return (
-    <svg width={size} height={size} style={{ position: 'absolute', top: '50%', left: '50%', transform: `translate(-50%, -50%) rotate(${rotate || 0}deg)`, opacity }}>
-      <path
-        d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="1"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
 const stats = [
   { label: 'Hotspots', value: '5' },
   { label: 'Processed', value: 'Ksh 141,700' },
   { label: 'Active Users', value: '109' },
 ]
+
+// ── 3D hover glass card CSS (tracker grid perspective tilt) ──
+const trackerHoverCSS = Array.from({ length: 25 }, (_, i) => {
+  const row = Math.floor(i / 5); const col = i % 5
+  const xRot = 2 * (4 - row) - 4; const yRot = 2 * col - 4
+  return `.trk:nth-child(${i + 1}):hover~#gcard{transform:rotateX(${xRot}deg) rotateY(${yRot}deg)}`
+}).join('')
+
+const cardCSS = `
+  .cvs{perspective:800px;width:100%;position:relative}
+  .trkg{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(5,1fr);position:absolute;inset:0;z-index:5}
+  .trk{z-index:6;cursor:pointer;position:relative}
+  #gcard{background:linear-gradient(135deg,rgba(16,16,16,0.94),rgba(28,28,28,0.82));border:.5px solid rgba(232,184,75,0.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:16px;position:relative;transition:transform .125s ease;transform-style:preserve-3d;overflow:hidden}
+  #gcard>.gl{position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,184,75,0.05),transparent 50%);pointer-events:none;border-radius:16px;z-index:1}
+  #gcard>.sl{position:absolute;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,rgba(232,184,75,0.2),transparent);animation:slm 3s linear infinite;pointer-events:none;z-index:2}
+  @keyframes slm{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+  #gcard>.ct{position:absolute;width:14px;height:14px;z-index:2}
+  #gcard>.ct1{top:10px;left:10px;border-top:1px solid rgba(232,184,75,0.15);border-left:1px solid rgba(232,184,75,0.15)}
+  #gcard>.ct2{top:10px;right:10px;border-top:1px solid rgba(232,184,75,0.15);border-right:1px solid rgba(232,184,75,0.15)}
+  #gcard>.ct3{bottom:10px;left:10px;border-bottom:1px solid rgba(232,184,75,0.15);border-left:1px solid rgba(232,184,75,0.15)}
+  #gcard>.ct4{bottom:10px;right:10px;border-bottom:1px solid rgba(232,184,75,0.15);border-right:1px solid rgba(232,184,75,0.15)}
+  #gcard>.cl{position:absolute;height:.5px;width:60%;left:20%;background:linear-gradient(90deg,transparent,rgba(232,184,75,0.1),transparent);pointer-events:none;z-index:2}
+  #gcard>.cl1{top:35%;animation:cp 4s ease-in-out infinite}
+  #gcard>.cl2{top:62%;animation:cp 4s ease-in-out 2s infinite}
+  @keyframes cp{0%,100%{opacity:.1;transform:scaleX(.8)}50%{opacity:.4;transform:scaleX(1)}}
+  #gcard>.pt{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(232,184,75,0.35);pointer-events:none;animation:pf 5s ease-in-out infinite;z-index:2}
+  #gcard>.pt2{top:20%;left:12%;animation-delay:0s}
+  #gcard>.pt3{top:72%;right:15%;animation-delay:1.7s}
+  #gcard>.pt4{top:42%;left:72%;animation-delay:3.3s}
+  @keyframes pf{0%,100%{transform:translateY(0) scale(1);opacity:.3}50%{transform:translateY(-8px) scale(1.8);opacity:.6}}
+  #gcard>.cc{position:relative;z-index:1;padding:24px 32px}
+  ${trackerHoverCSS}
+`
 
 function LoginContent() {
   const router = useRouter()
@@ -379,7 +395,17 @@ function LoginContent() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 40, position: 'relative',
       }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
+        {/* Gradient mesh behind form */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: `
+            radial-gradient(ellipse 65% 55% at 30% 25%, rgba(232,184,75,0.06) 0%, transparent 60%),
+            radial-gradient(ellipse 45% 45% at 70% 80%, rgba(34,197,94,0.04) 0%, transparent 55%),
+            radial-gradient(ellipse 50% 35% at 50% 50%, rgba(232,184,75,0.03) 0%, transparent 50%)
+          `,
+          pointerEvents: 'none',
+        }} />
+        <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
           {formSection}
         </div>
       </div>
@@ -387,21 +413,21 @@ function LoginContent() {
       {/* ── RIGHT: Brand panel (55%) ── */}
       <div style={{
         flex: 1,
-        display: 'flex', flexDirection: 'column',
         position: 'relative', overflow: 'hidden',
         background: '#030303',
       }}>
-        {/* Background dot-grid mesh */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.15 }} pointerEvents="none">
+        <style>{cardCSS}</style>
+
+        {/* Background dot-grid */}
+        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12 }} pointerEvents="none">
           <defs>
             <pattern id="dotgrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
               <circle cx="20" cy="20" r="1" fill="rgba(232,184,75,0.3)" />
-              <line x1="20" y1="20" x2="60" y2="20" stroke="rgba(232,184,75,0.06)" strokeWidth="0.5" />
-              <line x1="20" y1="20" x2="20" y2="60" stroke="rgba(232,184,75,0.06)" strokeWidth="0.5" />
+              <line x1="20" y1="20" x2="60" y2="20" stroke="rgba(232,184,75,0.05)" strokeWidth="0.5" />
+              <line x1="20" y1="20" x2="20" y2="60" stroke="rgba(232,184,75,0.05)" strokeWidth="0.5" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#dotgrid)" />
-          {/* Extra sparse long lines */}
           <line x1="20%" y1="0" x2="80%" y2="40%" stroke="rgba(232,184,75,0.03)" strokeWidth="0.5" />
           <line x1="60%" y1="20%" x2="95%" y2="80%" stroke="rgba(34,197,94,0.03)" strokeWidth="0.5" />
         </svg>
@@ -417,73 +443,118 @@ function LoginContent() {
           pointerEvents: 'none',
         }} />
 
-        {/* Content container — anchored toward bottom-right */}
+        {/* ── Abstract image area (user uploads later) ── */}
         <div style={{
-          position: 'absolute', bottom: 0, right: 0,
-          width: '90%', height: '90%',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'flex-end', justifyContent: 'flex-end',
-          padding: '0 60px 60px 0',
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 40px',
         }}>
-          {/* Signal-wave arcs — bleeding off bottom-right corner */}
-          <div style={{ position: 'relative', width: 400, height: 400, marginBottom: 20, marginRight: -60 }}>
-            <SignalArc radius={60} stroke="rgba(232,184,75,0.06)" opacity={1} />
-            <SignalArc radius={90} stroke="rgba(232,184,75,0.1)" opacity={1} />
-            <SignalArc radius={120} stroke="rgba(232,184,75,0.15)" opacity={1} />
-            <SignalArc radius={160} stroke="rgba(34,197,94,0.1)" opacity={1} rotate={180} />
-            <SignalArc radius={80} stroke="rgba(34,197,94,0.06)" opacity={1} rotate={180} />
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 5, height: 5, borderRadius: '50%',
-              background: '#E8B84B', opacity: 0.5,
-            }} />
-          </div>
-
-          {/* Eyebrow label */}
+          {/*
+            ────────────────────────────────────────────────────────────
+            USER: Replace this placeholder with your abstract image:
+            <img src="/path/to/your-image.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ────────────────────────────────────────────────────────────
+          */}
           <div style={{
-            fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
-            color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 10,
-            textTransform: 'uppercase',
+            width: '100%', maxWidth: '85%',
+            aspectRatio: '4 / 3',
+            borderRadius: 20,
+            background: `
+              linear-gradient(135deg, rgba(232,184,75,0.04), rgba(34,197,94,0.02)),
+              repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 20px,
+                rgba(232,184,75,0.02) 20px,
+                rgba(232,184,75,0.02) 21px
+              )
+            `,
+            border: '0.5px solid rgba(232,184,75,0.06)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            Built for ISPs
+            <span style={{
+              fontFamily: '"Inter", sans-serif', fontSize: 11, fontWeight: 500,
+              color: '#444', letterSpacing: '0.5px',
+            }}>
+              UPLOAD YOUR IMAGE HERE
+            </span>
           </div>
+        </div>
 
-          {/* Tagline */}
-          <div style={{
-            fontFamily: '"Syne", sans-serif',
-            fontSize: 17,
-            fontWeight: 600,
-            color: '#999',
-            textAlign: 'right',
-            letterSpacing: '0.2px',
-            maxWidth: 340,
-            lineHeight: 1.5,
-            marginBottom: 28,
-          }}>
-            Billing infrastructure for Kenyan ISPs.
-          </div>
+        {/* ── 3D Glass card (bottom overlay) ── */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          padding: '20px 40px 36px',
+          zIndex: 3,
+        }}>
+          <div className="cvs">
+            {/* Tracker grid (5×5, absolutely positioned over card) */}
+            <div className="trkg">
+              {Array.from({ length: 25 }, (_, i) => (
+                <div key={i} className="trk" />
+              ))}
+            </div>
 
-          {/* Stat chips */}
-          <div style={{ display: 'flex', gap: 14 }}>
-            {stats.map((s, i) => (
-              <div key={i} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                padding: '8px 14px', borderRadius: 8,
-                border: '0.5px solid rgba(232,184,75,0.1)',
-                background: 'rgba(255,255,255,0.015)',
-              }}>
-                <span style={{
-                  fontFamily: '"DM Mono", monospace', fontSize: 10, fontWeight: 600,
-                  color: '#E8B84B',
-                }}>{s.value}</span>
-                <span style={{
+            {/* The glass card */}
+            <div id="gcard">
+              {/* Decorative overlays */}
+              <div className="gl" />
+              <div className="sl" />
+              <div className="ct ct1" /><div className="ct ct2" />
+              <div className="ct ct3" /><div className="ct ct4" />
+              <div className="cl cl1" /><div className="cl cl2" />
+              <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
+
+              {/* Card content */}
+              <div className="cc">
+                {/* Eyebrow */}
+                <div style={{
+                  fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
+                  color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
+                  textTransform: 'uppercase',
+                }}>
+                  Built for ISPs
+                </div>
+
+                {/* Tagline */}
+                <div style={{
+                  fontFamily: '"Syne", sans-serif',
+                  fontSize: 16, fontWeight: 600,
+                  color: '#999',
+                  letterSpacing: '0.2px',
+                  lineHeight: 1.5,
+                  marginBottom: 16,
+                }}>
+                  Billing infrastructure for Kenyan ISPs.
+                </div>
+
+                {/* Stats row */}
+                <div style={{ display: 'flex', gap: 24 }}>
+                  {stats.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{
+                        fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
+                        color: '#E8B84B',
+                      }}>{s.value}</span>
+                      <span style={{
+                        fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 600,
+                        color: '#555', textTransform: 'uppercase', letterSpacing: '0.4px',
+                      }}>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom subtitle */}
+                <div style={{
+                  marginTop: 14, paddingTop: 12,
+                  borderTop: '0.5px solid rgba(232,184,75,0.08)',
                   fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
-                  color: '#555', marginTop: 2, textTransform: 'uppercase',
-                  letterSpacing: '0.4px',
-                }}>{s.label}</span>
+                  color: '#444', letterSpacing: '0.8px',
+                }}>
+                  TRUSTED · RELIABLE · KENYAN
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -491,7 +562,7 @@ function LoginContent() {
       {/* ── MOBILE FALLBACK (<768px): single centered form ── */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        display: 'none', /* hidden by default, shown via media query */
+        display: 'none',
         background: '#030303', overflow: 'auto',
       }} className="login-mobile-fallback">
         <style>{`
