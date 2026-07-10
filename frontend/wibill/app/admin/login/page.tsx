@@ -146,7 +146,7 @@ export default function BatcaveLoginPage() {
               margin: '0 auto 16px',
             }}>X</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.03em', marginBottom: 4 }}>
-              XwB{' '}
+              WiBill{' '}
               <span style={{ animation: 'bat-pulse 3s ease-in-out infinite' }}>B</span>
               atcave
             </div>
@@ -171,7 +171,7 @@ export default function BatcaveLoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               type="email"
-              placeholder="admin@xwbill.co.ke"
+              placeholder="admin@wibill.co.ke"
               onKeyDown={e => e.key === 'Enter' && login()}
               style={inputStyle}
               onFocus={e => { e.target.style.borderColor = '#fbbf24'; }}

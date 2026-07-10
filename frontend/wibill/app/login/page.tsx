@@ -151,17 +151,12 @@ function LoginContent() {
             fontWeight: 800,
             letterSpacing: '-0.02em',
           }}>
+            <span style={{ color: '#fff' }}>Wi</span>
             <span style={{
               background: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-            }}>X</span>
-            <span style={{ color: '#fff' }}>w</span>
-            <span style={{
-              background: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>B</span>
+            }}>Bill</span>
           </span>
           <div style={{
             fontFamily: '"Space Grotesk", sans-serif',
@@ -178,12 +173,12 @@ function LoginContent() {
         {/* Invite banner */}
         {inviteToken && (
           <div style={{
-            background: 'rgba(232,184,75,0.08)',
-            border: '0.5px solid rgba(232,184,75,0.25)',
+            background: 'rgba(34,197,94,0.08)',
+            border: '0.5px solid rgba(34,197,94,0.2)',
             borderRadius: 10,
             padding: '12px 16px',
             marginBottom: 20,
-            color: '#E8B84B',
+            color: '#22c55e',
             fontSize: 12,
             textAlign: 'center',
             fontFamily: '"Space Grotesk", sans-serif',
@@ -281,7 +276,7 @@ function LoginContent() {
                 {loading ? 'Signing in...' : 'SIGN IN'}
               </button>
               <div style={{ textAlign: 'center', fontSize: 10, color: '#555', fontFamily: '"DM Mono", monospace', marginTop: 2 }}>
-                Demo: admin@xwbill.co.ke / admin1234
+                Demo: admin@wibill.co.ke / admin1234
               </div>
             </form>
           ) : (

@@ -213,7 +213,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
         }}>
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>XwB</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>WiBill</span>
             <span style={{ color: '#3A3A37', fontSize: 12 }}>›</span>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 500, color: '#EDEBE6' }}>{pageName}</span>
           </div>

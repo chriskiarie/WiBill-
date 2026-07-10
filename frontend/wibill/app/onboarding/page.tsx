@@ -1007,7 +1007,7 @@ export default function XbillPortalWizard() {
               <span style={{ color: '#E8B84B' }}>X</span><span style={{ color: '#fff' }}>w</span><span style={{ color: '#E8B84B' }}>B</span>
             </div>
             <div>
-              <div className="xbill-logo-text">XwB</div>
+              <div className="xbill-logo-text">WiBill</div>
               <div className="xbill-logo-sub">Portal Wizard</div>
             </div>
           </div>
@@ -1398,7 +1398,7 @@ export default function XbillPortalWizard() {
                   <div className="exp-card" onClick={copyConfig}>
                     <div className="exp-icon">📋</div>
                     <h3>Copy Config JSON</h3>
-                    <p>Use in XwB backend for dynamic server-side rendering</p>
+                    <p>Use in WiBill backend for dynamic server-side rendering</p>
                   </div>
                 </div>
               </>
@@ -1447,7 +1447,7 @@ export default function XbillPortalWizard() {
       {/* SHARE MODAL */}
       <div className={`modal-bg ${showModal ? 'open' : ''}`} onClick={() => setShowModal(false)}>
         <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <h2>Share XwB Wizard with ISPs</h2>
+          <h2>Share WiBill Wizard with ISPs</h2>
           <p>Any ISP can open this link, design their portal in minutes, and download a production-ready HTML file.</p>
           <div style={{ marginBottom: '1.25rem' }}>
             <div className="modal-step">
@@ -1467,7 +1467,7 @@ export default function XbillPortalWizard() {
             <div className="modal-step">
               <div className="modal-step-num">3</div>
               <div className="modal-step-info">
-                <strong>Option C — XwB Cloud (coming soon)</strong>
+                <strong>Option C — WiBill Cloud (coming soon)</strong>
                 <span>One click → hosted link at wibill.co.ke/wizard.</span>
               </div>
             </div>
