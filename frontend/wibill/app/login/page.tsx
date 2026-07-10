@@ -150,9 +150,7 @@ function LoginContent() {
           fontSize: 38,
           fontWeight: 800,
           letterSpacing: '-0.02em',
-          background: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          color: '#E8B84B',
         }}>
           WiBill
         </span>
