@@ -164,30 +164,34 @@ function LoginContent() {
   const inputStyle = (name: string): React.CSSProperties =>
     focusField === name ? inpFocus : inp
 
+  const wordmarkSection = (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        fontFamily: '"Syne", sans-serif',
+        fontSize: 56,
+        fontWeight: 800,
+        letterSpacing: '-0.03em',
+        color: '#E8B84B',
+        textShadow: '0 0 40px rgba(232,184,75,0.15)',
+        lineHeight: 1,
+      }}>
+        WiBill
+      </div>
+      <div style={{
+        fontFamily: '"Space Grotesk", sans-serif',
+        fontSize: 11,
+        color: '#555',
+        marginTop: 8,
+        letterSpacing: '2px',
+        fontWeight: 600,
+      }}>
+        ISP MANAGEMENT PORTAL
+      </div>
+    </div>
+  )
+
   const formSection = (
     <>
-      {/* Wordmark */}
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <span style={{
-          fontFamily: '"Syne", sans-serif',
-          fontSize: 38,
-          fontWeight: 800,
-          letterSpacing: '-0.02em',
-          color: '#E8B84B',
-        }}>
-          WiBill
-        </span>
-        <div style={{
-          fontFamily: '"Space Grotesk", sans-serif',
-          fontSize: 13,
-          color: '#666',
-          marginTop: 4,
-          letterSpacing: '0.8px',
-          fontWeight: 500,
-        }}>
-          ISP MANAGEMENT PORTAL
-        </div>
-      </div>
 
       {/* Invite banner */}
       {inviteToken && (
@@ -418,14 +422,19 @@ function LoginContent() {
         zIndex: 1,
       }} />
 
-      {/* ── LEFT: Form panel (45%) ── */}
+      {/* ── LEFT: Form + wordmark panel (45%) ── */}
       <div style={{
         flex: '0 0 45%', maxWidth: '45%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 40, position: 'relative', zIndex: 2,
+        display: 'flex', flexDirection: 'column',
+        padding: '60px 40px 40px', position: 'relative', zIndex: 2,
       }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          {formSection}
+        <div style={{ flex: '0 0 auto', marginBottom: 48 }}>
+          {wordmarkSection}
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 420 }}>
+            {formSection}
+          </div>
         </div>
       </div>
 
@@ -532,6 +541,7 @@ function LoginContent() {
           }
         `}</style>
         <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ marginBottom: 40 }}>{wordmarkSection}</div>
           {formSection}
         </div>
       </div>
