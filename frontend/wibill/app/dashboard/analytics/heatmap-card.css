@@ -15,11 +15,11 @@
   overflow: visible;
 }
 
-/* ── Cell color from --intensity (navy → gold) ── */
+/* ── Cell color from --intensity (floor → gold) ── */
 .heat-cell {
-  --r: calc(12 + 220 * var(--intensity, 0));
-  --g: calc(18 + 166 * var(--intensity, 0));
-  --b: calc(30 + 45 * var(--intensity, 0));
+  --r: calc(var(--hfr, 12) + (232 - var(--hfr, 12)) * var(--intensity, 0));
+  --g: calc(var(--hfg, 18) + (184 - var(--hfg, 18)) * var(--intensity, 0));
+  --b: calc(var(--hfb, 30) + (75 - var(--hfb, 30)) * var(--intensity, 0));
   background:
     linear-gradient(135deg, rgba(255,255,255,0.10), transparent 50%, rgba(0,0,0,0.18)),
     rgb(var(--r), var(--g), var(--b));
@@ -33,29 +33,24 @@
   margin: 10px 0 16px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(245, 197, 99, 0.08);
-  border: 1px solid rgba(245, 197, 99, 0.2);
+  background: var(--heat-insight-bg, rgba(232, 184, 75, 0.08));
+  border: 1px solid var(--heat-insight-border, rgba(232, 184, 75, 0.2));
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #e8d5a0;
-}
-
-.heatmap-insight {
-  background: rgba(232, 184, 75, 0.08);
-  border-color: rgba(232, 184, 75, 0.2);
+  color: var(--heat-insight-text, #e8d5a0);
 }
 
 .heatmap-insight .value {
   font-family: 'DM Mono', monospace;
   font-weight: 500;
-  color: #eaf1ff;
+  color: var(--heat-insight-value, #eaf1ff);
 }
 
 /* ── Labels ── */
 .heatmap-hour-label {
   font-family: 'DM Mono', monospace;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--heat-label-hour, rgba(255, 255, 255, 0.35));
   letter-spacing: 0.02em;
 }
 
@@ -63,7 +58,7 @@
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--heat-label-day, rgba(255, 255, 255, 0.55));
 }
 
 /* ── Peak glow pulse ── */
@@ -96,17 +91,17 @@
   margin-top: 14px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(250, 193, 7, 0.1);
-  border: 1px solid rgba(250, 193, 7, 0.3);
+  background: var(--heat-chip-bg, rgba(232, 184, 75, 0.1));
+  border: 1px solid var(--heat-chip-border, rgba(232, 184, 75, 0.3));
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #ffd980;
+  color: var(--heat-chip-text, #ffd980);
 }
 
 .cell-selection-chip button {
   background: none;
   border: none;
-  color: #ffd980;
+  color: var(--heat-chip-text, #ffd980);
   opacity: 0.6;
   cursor: pointer;
   font-size: 12px;

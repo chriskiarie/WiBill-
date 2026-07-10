@@ -6,6 +6,13 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
 import { api } from '@/lib/api'
 
+const C = {
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
+  border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)', faint: 'var(--theme-faint)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
+}
+
 export default function BillingPage() {
   const { token } = useAuth()
   const { showToast } = useToast()
@@ -72,61 +79,61 @@ export default function BillingPage() {
     
     if (isLocked || status === 'overdue') {
       return {
-        bg: '#3a1a1a',
-        border: '#5a2d2d',
-        textColor: '#ff6b6b',
+        bg: 'rgba(239,68,68,0.08)',
+        border: 'rgba(239,68,68,0.2)',
+        textColor: C.red,
         icon: '🔴',
         title: 'ACCOUNT LOCKED',
         message: 'Payment overdue. Account is locked. Please pay immediately to restore service.',
         buttonText: 'Pay Now',
-        buttonColor: '#ff6b6b'
+        buttonColor: C.red
       }
     }
     
     if (status === 'due' && invoice.days_left === 1) {
       return {
-        bg: '#3a2a1a',
-        border: '#5a4d2d',
-        textColor: '#f59e0b',
+        bg: 'rgba(232,184,75,0.08)',
+        border: 'rgba(232,184,75,0.2)',
+        textColor: C.gold,
         icon: '⚠️',
         title: 'PAYMENT DUE TODAY',
         message: `Invoice is due today. Amount: Ksh ${invoice.amount_due?.toLocaleString()}`,
         buttonText: 'Pay Now',
-        buttonColor: '#f59e0b'
+        buttonColor: C.gold
       }
     }
     
     if (status === 'due') {
       return {
-        bg: '#2a3a1a',
-        border: '#4a5a2d',
-        textColor: '#fbbf24',
+        bg: 'rgba(232,184,75,0.08)',
+        border: 'rgba(232,184,75,0.2)',
+        textColor: C.gold,
         icon: '⚠️',
         title: `PAYMENT DUE IN ${invoice.days_left} DAY${invoice.days_left > 1 ? 'S' : ''}`,
         message: `Invoice ${invoice.invoice_number} due on ${new Date(invoice.due_date).toLocaleDateString()}`,
         buttonText: 'Pay Now',
-        buttonColor: '#fbbf24'
+        buttonColor: C.gold
       }
     }
     
     if (status === 'paid') {
       return {
-        bg: '#1a3a1a',
-        border: '#2d5a2d',
-        textColor: '#22c55e',
+        bg: 'rgba(34,197,94,0.08)',
+        border: 'rgba(34,197,94,0.2)',
+        textColor: C.green,
         icon: '✅',
         title: 'ACCOUNT ACTIVE',
         message: `Last payment: ${invoice.paid_date ? new Date(invoice.paid_date).toLocaleDateString() : 'N/A'}`,
         buttonText: null,
-        buttonColor: '#22c55e'
+        buttonColor: C.green
       }
     }
     
     if (status === 'none') {
       return {
-        bg: '#1a1a2a',
-        border: '#2a2a4a',
-        textColor: '#6b7280',
+        bg: 'var(--theme-surface)',
+        border: C.border2,
+        textColor: C.dim,
         icon: '✓',
         title: 'NO ACTIVE INVOICE',
         message: 'Invoices are created monthly on the 26th',
@@ -144,7 +151,7 @@ export default function BillingPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Billing" />
       
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: '#030303' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
         
         {/* Loading State */}
         {loading && (
@@ -155,10 +162,10 @@ export default function BillingPage() {
         {error && !loading && (
           <div style={{
             padding: 16,
-            background: '#3a1a1a',
-            border: '1px solid #5a2d2d',
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 8,
-            color: '#ff6b6b',
+            color: C.red,
             marginBottom: 16,
             display: 'flex',
             justifyContent: 'space-between',
@@ -170,7 +177,7 @@ export default function BillingPage() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#ff8787',
+                color: C.red,
                 cursor: 'pointer',
                 padding: '4px 12px'
               }}
@@ -194,7 +201,7 @@ export default function BillingPage() {
             {invoice.status !== 'paid' && invoice.status !== 'none' && (
               <button
                 onClick={() => { localStorage.setItem(BANNER_DISMISS_KEY, String(Date.now())); setBannerDismissed(true) }}
-                style={{ position: 'absolute', top: 10, right: 14, background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+                style={{ position: 'absolute', top: 10, right: 14, background: 'none', border: 'none', color: C.dim, cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
               >✕</button>
             )}
             <div style={{ fontSize: 32, marginBottom: 12 }}>{banner.icon}</div>
@@ -210,7 +217,7 @@ export default function BillingPage() {
             </div>
             <div style={{
               fontSize: 13,
-              color: '#9ca3af',
+              color: C.dim,
               marginBottom: 16
             }}>
               {banner.message}
@@ -220,8 +227,8 @@ export default function BillingPage() {
               <button
                 onClick={() => setShowPaymentDialog(true)}
                 style={{
-                  background: '#E8B84B',
-                  color: '#030303',
+                  background: C.gold,
+                  color: '#000',
                   border: 'none',
                   borderRadius: 6,
                   padding: '10px 24px',
@@ -241,8 +248,8 @@ export default function BillingPage() {
         {/* Invoice Details Card */}
         {!loading && invoice && invoice.status !== 'none' && (
           <div style={{
-            background: '#080808',
-            border: '0.5px solid #141414',
+            background: C.surface,
+            border: `0.5px solid ${C.border}`,
             borderRadius: 11,
             padding: '18px',
             marginBottom: 16
@@ -257,7 +264,7 @@ export default function BillingPage() {
               <div>
                 <div style={{
                   fontSize: 10,
-                  color: '#2a2a2a',
+                  color: C.mute,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -268,7 +275,7 @@ export default function BillingPage() {
                 <div style={{
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 14,
-                  color: '#f0f0f0',
+                  color: C.text,
                   fontWeight: 500
                 }}>
                   {invoice.invoice_number || 'N/A'}
@@ -279,7 +286,7 @@ export default function BillingPage() {
               <div>
                 <div style={{
                   fontSize: 10,
-                  color: '#2a2a2a',
+                  color: C.mute,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -290,7 +297,7 @@ export default function BillingPage() {
                 <div style={{
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 14,
-                  color: '#f0f0f0',
+                  color: C.text,
                   fontWeight: 500
                 }}>
                   {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
@@ -301,7 +308,7 @@ export default function BillingPage() {
               <div>
                 <div style={{
                   fontSize: 10,
-                  color: '#2a2a2a',
+                  color: C.mute,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -313,7 +320,7 @@ export default function BillingPage() {
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 16,
                   fontWeight: 700,
-                  color: '#E8B84B'
+                  color: C.gold
                 }}>
                   Ksh {invoice.amount_due?.toLocaleString() || '0'}
                 </div>
@@ -323,7 +330,7 @@ export default function BillingPage() {
               <div>
                 <div style={{
                   fontSize: 10,
-                  color: '#2a2a2a',
+                  color: C.mute,
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -334,7 +341,7 @@ export default function BillingPage() {
                 <div style={{
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 12,
-                  color: invoice.status === 'paid' ? '#22c55e' : invoice.status === 'overdue' ? '#ef4444' : '#E8B84B',
+                  color: invoice.status === 'paid' ? C.green : invoice.status === 'overdue' ? C.red : C.gold,
                   textTransform: 'uppercase',
                   fontWeight: 500
                 }}>
@@ -356,10 +363,10 @@ export default function BillingPage() {
               style={{
                 flex: 1,
                 padding: '11px',
-                background: '#0a0a0a',
-                border: '0.5px solid #1a1a1a',
+                background: C.base,
+                border: `0.5px solid ${C.border2}`,
                 borderRadius: 7,
-                color: '#E8B84B',
+                color: C.gold,
                 fontSize: 11,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -374,10 +381,10 @@ export default function BillingPage() {
               style={{
                 flex: 1,
                 padding: '11px',
-                background: '#E8B84B',
+                background: C.gold,
                 border: 'none',
                 borderRadius: 7,
-                color: '#030303',
+                color: '#000',
                 fontSize: 11,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -394,11 +401,11 @@ export default function BillingPage() {
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
-            color: '#444'
+            color: C.dim
           }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>📄</div>
             <div style={{ fontSize: 14, marginBottom: 8 }}>No Active Invoice</div>
-            <div style={{ fontSize: 12, color: '#666' }}>
+            <div style={{ fontSize: 12, color: C.dim }}>
               Invoices are created monthly on the 26th
             </div>
           </div>
@@ -408,16 +415,16 @@ export default function BillingPage() {
         {!loading && bannerDismissed && invoice && invoice.status !== 'none' && invoice.status !== 'paid' && (
           <div style={{
             textAlign: 'center', padding: '20px', marginBottom: 16,
-            background: '#0a0a0a', border: '0.5px solid #1a1a1a', borderRadius: 8,
+            background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 8,
           }}>
-            <div style={{ fontSize: 11, color: '#666', marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: C.dim, marginBottom: 8 }}>
               Invoice reminder dismissed. You can view it in Notifications.
             </div>
             <button
               onClick={() => window.location.href = '/dashboard/notifications'}
               style={{
-                background: 'none', border: '0.5px solid #E8B84B', borderRadius: 6,
-                padding: '6px 14px', color: '#E8B84B', fontSize: 11, cursor: 'pointer',
+                background: 'none', border: `0.5px solid ${C.gold}`, borderRadius: 6,
+                padding: '6px 14px', color: C.gold, fontSize: 11, cursor: 'pointer',
               }}
             >
               View Notifications →
@@ -438,41 +445,41 @@ export default function BillingPage() {
            zIndex: 1000
          }}>
            <div style={{
-             background: '#0a0a0a',
-             border: '0.5px solid #141414',
-             borderRadius: 11,
-             padding: '28px',
-             maxWidth: 400,
-             width: '90%'
-           }}>
-             <div style={{
-               display: 'flex',
-               justifyContent: 'space-between',
-               alignItems: 'center',
-               marginBottom: 16
-             }}>
-               <div style={{ fontSize: 14, fontWeight: 700, color: '#E8B84B' }}>Make Payment</div>
-               <button
-                 onClick={() => { setShowPaymentDialog(false); setPaymentPhone(''); }}
-                 style={{
-                   background: 'none',
-                   border: 'none',
-                   fontSize: 20,
-                   color: '#666',
-                   cursor: 'pointer'
-                 }}
-               >
-                 ×
-               </button>
-             </div>
-             
-             <div style={{
-               padding: '16px',
-               background: '#080808',
-               borderRadius: 6,
-               marginBottom: 16,
-               fontSize: 12,
-               color: '#999'
+            background: C.base,
+            border: `0.5px solid ${C.border}`,
+            borderRadius: 11,
+            padding: '28px',
+            maxWidth: 400,
+            width: '90%'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.gold }}>Make Payment</div>
+              <button
+                onClick={() => { setShowPaymentDialog(false); setPaymentPhone(''); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 20,
+                  color: C.dim,
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{
+              padding: '16px',
+              background: C.surface,
+              borderRadius: 6,
+              marginBottom: 16,
+              fontSize: 12,
+              color: C.dim
              }}>
                <div>Invoice: <strong>{invoice?.invoice_number}</strong></div>
                <div style={{ marginTop: 4 }}>Amount: <strong>Ksh {invoice?.amount_due?.toLocaleString()}</strong></div>
@@ -480,7 +487,7 @@ export default function BillingPage() {
              </div>
 
              <div style={{ marginBottom: 16 }}>
-               <label style={{ display: 'block', fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
+               <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>
                  Phone Number (2547XXXXXXXX)
                </label>
                <input
@@ -490,15 +497,15 @@ export default function BillingPage() {
                  placeholder="254712345678"
                  disabled={paying}
                  style={{
-                   width: '100%', padding: '10px 12px', background: '#080808',
-                   border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
+                    width: '100%', padding: '10px 12px', background: C.surface,
+                    border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text,
                    fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none'
                  }}
                />
              </div>
 
              {paying && (
-               <div style={{ padding: '12px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 12, fontSize: 11, color: '#5a9fd4' }}>
+               <div style={{ padding: '12px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 12, fontSize: 11, color: C.dim }}>
                  ⏳ STK Push sent! Check your phone and enter M-Pesa PIN.
                </div>
              )}
@@ -531,8 +538,8 @@ export default function BillingPage() {
                  }}
                  disabled={paying || !paymentPhone}
                  style={{
-                    flex: 1, padding: '11px', background: paying ? '#444' : '#E8B84B', border: 'none',
-                    borderRadius: 6, color: '#030303', fontSize: 11, fontWeight: 700,
+                     flex: 1, padding: '11px', background: paying ? C.faint : C.gold, border: 'none',
+                     borderRadius: 6, color: '#000', fontSize: 11, fontWeight: 700,
                    cursor: paying || !paymentPhone ? 'not-allowed' : 'pointer', opacity: paying ? 0.7 : 1
                  }}
                >
@@ -541,8 +548,8 @@ export default function BillingPage() {
                <button
                  onClick={() => { setShowPaymentDialog(false); setPaymentPhone(''); }}
                  style={{
-                   flex: 1, padding: '11px', background: '#1a1a1a', border: '0.5px solid #2a2a2a',
-                   borderRadius: 6, color: '#9ca3af', fontSize: 11, fontWeight: 700, cursor: 'pointer'
+                    flex: 1, padding: '11px', background: C.surface, border: `0.5px solid ${C.border2}`,
+                    borderRadius: 6, color: C.dim, fontSize: 11, fontWeight: 700, cursor: 'pointer'
                  }}
                >
                  Close

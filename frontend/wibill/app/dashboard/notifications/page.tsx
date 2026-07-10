@@ -21,11 +21,11 @@ const C = {
 }
 
 const typeConfig: Record<string, { icon: any; color: string; label: string }> = {
-  broadcast:       { icon: Megaphone, color: '#E8B84B', label: 'Platform Announcement' },
-  direct:          { icon: Mail, color: '#3b82f6', label: 'Direct Message' },
-  invoice_due:     { icon: DollarSign, color: '#f59e0b', label: 'Invoice Due' },
-  payment_received:{ icon: CheckCheck, color: '#22c55e', label: 'Payment Received' },
-  network_alert:   { icon: AlertTriangle, color: '#ef4444', label: 'Network Alert' },
+  broadcast:       { icon: Megaphone, color: C.gold, label: 'Platform Announcement' },
+  direct:          { icon: Mail, color: C.gold, label: 'Direct Message' },
+  invoice_due:     { icon: DollarSign, color: C.gold, label: 'Invoice Due' },
+  payment_received:{ icon: CheckCheck, color: C.green, label: 'Payment Received' },
+  network_alert:   { icon: AlertTriangle, color: C.red, label: 'Network Alert' },
 }
 
 function formatTime(iso: string) {

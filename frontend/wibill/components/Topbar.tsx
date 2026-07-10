@@ -150,7 +150,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         <h1
           className="page-title"
           style={{
-            fontFamily: "'Space Grotesk', sans-serif", fontSize: 25, fontWeight: 700,
+            fontFamily: "'Syne', sans-serif", fontSize: 25, fontWeight: 700,
             background: style.gradient, WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             margin: 0, letterSpacing: '-0.4px',

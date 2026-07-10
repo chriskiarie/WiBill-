@@ -204,12 +204,11 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
                   <span>Fewer</span>
-                  {['#0c121e','#433c29','#7a6535','#b18f40','#e8b84b'].map(c => (
-                    <div key={c} style={{
-                      width: 14, height: 14, borderRadius: 2, background: c,
-                      border: c === '#e8b84b' ? '0.5px solid rgba(232,184,75,0.3)' : '0.5px solid rgba(255,255,255,0.05)'
-                    }} />
-                  ))}
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgb(var(--hfr),var(--hfg),var(--hfb))', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#3a2f13', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#665521', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#997c30', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#e8b84b', border: '0.5px solid rgba(232,184,75,0.3)' }} />
                   <span>More</span>
                 </div>
               </div>
@@ -249,7 +248,7 @@ export default function AnalyticsPage() {
                         <PieChart>
                           <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh || count || 1" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={48} paddingAngle={2}>
                             {topPackages.slice(0, 5).map((_, i) => (
-                              <Cell key={i} fill={[C.gold, C.green, '#3b82f6', '#a855f7', '#f59e0b'][i]} />
+                              <Cell key={i} fill={[C.gold, C.green, 'rgba(232,184,75,0.6)', 'rgba(232,184,75,0.3)', 'rgba(232,184,75,0.15)'][i]} />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -265,7 +264,7 @@ export default function AnalyticsPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{
                               width: 6, height: 6, borderRadius: '50%',
-                              background: [C.gold, C.green, '#3b82f6', '#a855f7', '#f59e0b'][i],
+                              background: [C.gold, C.green, 'rgba(232,184,75,0.6)', 'rgba(232,184,75,0.3)', 'rgba(232,184,75,0.15)'][i],
                               display: 'inline-block'
                             }} />
                             <span style={{ color: 'var(--theme-text)' }}>{p.name}</span>

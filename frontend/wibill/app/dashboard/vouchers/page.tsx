@@ -7,13 +7,13 @@ import { useToast } from '@/context/ToastContext'
 import { Plus, Download, X, Search } from 'lucide-react'
 
 const C = {
-  void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
-  text: '#f0f0f0', dim: '#666666', mute: '#2a2a2a',
-  gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
 const inputSx: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', background: '#080808',
+  width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.text,
   fontSize: 12, boxSizing: 'border-box', outline: 'none',
 }
@@ -155,7 +155,7 @@ export default function VouchersPage() {
         {/* Voucher Table */}
         {!loading && data.vouchers?.length > 0 && (
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', borderBottom: `0.5px solid #101010`, background: '#080808' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
               {['Code', 'Status', 'Type', 'Batch', 'Created', 'Suspended', 'Actions'].map(h => (
                 <div key={h} style={{ padding: '11px 16px', fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif' }}>{h}</div>
               ))}
@@ -183,11 +183,11 @@ export default function VouchersPage() {
                   <div style={{ padding: '8px 14px', display: 'flex', gap: 4 }}>
                     {v.status === 'unused' && (
                       <>
-                        <button onClick={() => handleSuspend(v.id, v.is_suspended)} style={{ padding: '4px 10px', background: '#1a1a1a', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: v.is_suspended ? C.green : C.gold, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
+                        <button onClick={() => handleSuspend(v.id, v.is_suspended)} style={{ padding: '4px 10px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: v.is_suspended ? C.green : C.gold, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
                           {v.is_suspended ? 'Unsuspend' : 'Suspend'}
                         </button>
                         {!v.is_suspended && (
-                          <button onClick={() => handleVoid(v.id)} style={{ padding: '4px 10px', background: '#1a1a1a', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: C.red, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
+                          <button onClick={() => handleVoid(v.id)} style={{ padding: '4px 10px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: C.red, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
                             Void
                           </button>
                         )}
@@ -226,7 +226,7 @@ export default function VouchersPage() {
                   <button key={p.minutes} onClick={() => { setSelectedPreset(p.minutes); if (p.minutes > 0) setGenForm(f => ({ ...f, duration_minutes: p.minutes })) }}
                     style={{
                       padding: '8px 14px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                      background: selectedPreset === p.minutes ? C.gold : '#080808',
+                      background: selectedPreset === p.minutes ? C.gold : 'var(--theme-surface)',
                       border: `0.5px solid ${selectedPreset === p.minutes ? C.gold : C.border2}`,
                       color: selectedPreset === p.minutes ? '#000' : C.dim,
                     }}>
@@ -256,7 +256,7 @@ export default function VouchersPage() {
               <input type="number" min={1} value={genForm.expires_in_days} onChange={e => setGenForm(p => ({ ...p, expires_in_days: parseInt(e.target.value) || 365 }))} style={inputSx} />
             </div>
 
-            <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 16, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--theme-bg)', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 16, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
               {genForm.quantity} time-based codes ({selectedPreset || genForm.duration_minutes || '?'} min each). No package needed — works as standalone access codes.
             </div>
 

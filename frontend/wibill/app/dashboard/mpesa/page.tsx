@@ -5,6 +5,12 @@ import { useToast } from '@/context/ToastContext'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
+const C = {
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)', faint: 'var(--theme-faint)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
+}
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface MpesaConfig {
@@ -60,8 +66,8 @@ async function apiCall(path: string, token: string, method = 'GET', body?: any) 
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 10, color: '#444', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 13, color: '#ccc', fontFamily: mono ? 'DM Mono, monospace' : undefined }}>{value || '—'}</div>
+      <div style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>{label}</div>
+      <div style={{ fontSize: 13, color: C.text, fontFamily: mono ? 'DM Mono, monospace' : undefined }}>{value || '—'}</div>
     </div>
   )
 }
@@ -72,7 +78,7 @@ function Input({ label, value, onChange, type = 'text', placeholder = '', hint =
 }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>
+      <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>
         {label}
       </label>
       <input
@@ -81,13 +87,13 @@ function Input({ label, value, onChange, type = 'text', placeholder = '', hint =
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         style={{
-          width: '100%', padding: '10px 12px', background: '#080808',
-          border: '0.5px solid #1e1e1e', borderRadius: 7, color: '#e0e0e0',
+          width: '100%', padding: '10px 12px', background: 'var(--theme-surface)',
+          border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text,
           fontSize: 12, fontFamily: type === 'password' ? 'DM Mono, monospace' : undefined,
           boxSizing: 'border-box', outline: 'none'
         }}
       />
-      {hint && <div style={{ fontSize: 10, color: '#333', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 10, color: 'var(--theme-faint)', marginTop: 4 }}>{hint}</div>}
     </div>
   )
 }
@@ -162,25 +168,25 @@ export default function MpesaPage() {
   }
 
   const statusBadge = (status: string, verified: boolean) => {
-    if (verified) return { label: 'Verified', bg: '#1a3a1a', color: '#22c55e' }
-    if (status === 'configured') return { label: 'Configured', bg: '#1a2a3a', color: '#3b82f6' }
-    return { label: status || 'Not configured', bg: '#1a1a1a', color: '#666' }
+    if (verified) return { label: 'Verified', bg: 'rgba(34,197,94,0.1)', color: C.green }
+    if (status === 'configured') return { label: 'Configured', bg: 'rgba(232,184,75,0.1)', color: C.gold }
+    return { label: status || 'Not configured', bg: 'var(--theme-surface)', color: C.dim }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="M-Pesa Configuration" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: '#030303' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: C.void }}>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f0f0f0' }}>M-Pesa / Daraja</h1>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>M-Pesa / Daraja</h1>
             <div style={{ fontSize: 11, color: '#444', marginTop: 4 }}>Safaricom STK Push integration</div>
           </div>
           {config && !showForm && (
             <button
               onClick={() => setShowForm(true)}
-              style={{ padding: '8px 16px', background: '#141414', border: '0.5px solid #2a2a2a', borderRadius: 7, color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              style={{ padding: '8px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
             >
               Edit Config
             </button>
@@ -195,9 +201,9 @@ export default function MpesaPage() {
             {/* Current config display */}
             {config && !showForm && (
               <>
-                <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 20, marginBottom: 16 }}>
+                <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#888' }}>DARAJA CONFIG</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.dim }}>DARAJA CONFIG</div>
                     {(() => { const b = statusBadge(config.status, config.is_verified); return (
                       <div style={{ padding: '4px 10px', background: b.bg, borderRadius: 5, fontSize: 10, fontWeight: 700, color: b.color, textTransform: 'uppercase' }}>
                         {b.label}
@@ -220,9 +226,9 @@ export default function MpesaPage() {
                   onClick={handleTest}
                   disabled={testing}
                   style={{
-                    width: '100%', padding: '12px', background: config.is_verified ? '#1a3a1a' : '#3b82f6',
-                    border: config.is_verified ? '0.5px solid #2d5a2d' : 'none',
-                    borderRadius: 7, color: config.is_verified ? '#22c55e' : '#030303',
+                    width: '100%', padding: '12px', background: config.is_verified ? 'rgba(34,197,94,0.08)' : C.gold,
+                    border: config.is_verified ? '0.5px solid rgba(34,197,94,0.2)' : 'none',
+                    borderRadius: 7, color: config.is_verified ? C.green : '#000',
                     fontSize: 12, fontWeight: 700, cursor: testing ? 'not-allowed' : 'pointer',
                     opacity: testing ? 0.7 : 1, marginBottom: 8
                   }}
@@ -234,12 +240,12 @@ export default function MpesaPage() {
 
             {/* Setup / Edit form */}
             {showForm && (
-              <div style={{ background: '#080808', border: '0.5px solid #141414', borderRadius: 11, padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 20 }}>
+              <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 20 }}>
                   {config ? 'UPDATE DARAJA CREDENTIALS' : 'FIRST-TIME SETUP'}
                 </div>
 
-                <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 20, fontSize: 11, color: '#5a9fd4', lineHeight: 1.6 }}>
+                <div style={{ padding: '12px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
                   Get these from <strong>developer.safaricom.co.ke</strong> → My Apps → your app → Test Credentials tab for shortcode & passkey.
                 </div>
 
@@ -251,9 +257,9 @@ export default function MpesaPage() {
                       <button key={env} onClick={() => setForm(p => ({ ...p, environment: env }))}
                         style={{
                           flex: 1, padding: '9px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                          background: form.environment === env ? (env === 'production' ? '#3a1a1a' : '#1a2a3a') : '#0a0a0a',
-                          border: form.environment === env ? `0.5px solid ${env === 'production' ? '#5a2d2d' : '#2a4a6a'}` : '0.5px solid #1a1a1a',
-                          color: form.environment === env ? (env === 'production' ? '#ff6b6b' : '#3b82f6') : '#555',
+                          background: form.environment === env ? (env === 'production' ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)') : 'var(--theme-surface)',
+                          border: form.environment === env ? `0.5px solid ${env === 'production' ? 'rgba(239,68,68,0.2)' : 'rgba(232,184,75,0.2)'}` : `0.5px solid ${C.border2}`,
+                          color: form.environment === env ? (env === 'production' ? C.red : C.gold) : C.dim,
                           textTransform: 'uppercase'
                         }}>
                         {env}
@@ -276,8 +282,8 @@ export default function MpesaPage() {
                     onClick={handleSave}
                     disabled={saving}
                     style={{
-                      flex: 1, padding: '12px', background: '#3b82f6', border: 'none',
-                      borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700,
+                      flex: 1, padding: '12px', background: C.gold, border: 'none',
+                      borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700,
                       cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1
                     }}
                   >
@@ -287,7 +293,7 @@ export default function MpesaPage() {
                     <button
                       onClick={() => setShowForm(false)}
                       style={{
-                        padding: '12px 16px', background: '#1a1a1a', border: '0.5px solid #2a2a2a',
+                        padding: '12px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`,
                         borderRadius: 7, color: '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer'
                       }}
                     >

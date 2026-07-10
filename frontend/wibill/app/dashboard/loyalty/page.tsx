@@ -7,9 +7,9 @@ import { useToast } from '@/context/ToastContext'
 import { Search, Users, Gift, Award, TrendingUp, Send, X, Crown, ExternalLink } from 'lucide-react'
 
 const C = {
-  void: '#000000', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
-  text: '#f0f0f0', dim: '#666666', mute: '#2a2a2a',
-  gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
 interface Account {
@@ -164,13 +164,13 @@ export default function LoyaltyPage() {
         {!loading && leaderboard.length > 0 && (
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', borderBottom: `0.5px solid ${C.border}`, background: '#070707' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
               {['Rank', 'Customer', 'Points', 'Lifetime Spend', 'Last Seen', ''].map(h => (
                 <div key={h} style={{ padding: '11px 16px', fontSize: 9, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.8px', fontFamily: 'Inter, sans-serif' }}>{h}</div>
               ))}
             </div>
             {leaderboard.map((a, i) => (
-              <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', alignItems: 'center', borderBottom: i < leaderboard.length - 1 ? `0.5px solid #0d0d0d` : 'none' }}>
+              <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', alignItems: 'center', borderBottom: i < leaderboard.length - 1 ? `0.5px solid ${C.border}` : 'none' }}>
                 <div style={{ padding: '12px 16px', fontFamily: "'DM Mono', monospace", fontSize: 11, color: i < 3 ? C.gold : C.dim, fontWeight: i < 3 ? 700 : 400 }}>
                   #{i + 1}
                 </div>
@@ -252,7 +252,7 @@ export default function LoyaltyPage() {
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Minutes *</label>
                   <input type="number" min={5} max={1440} value={rewardMinutes} onChange={e => setRewardMinutes(parseInt(e.target.value) || 5)}
-                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+                    style={{ width: '100%', padding: '10px 12px', background: 'var(--theme-bg)', border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
                   <div style={{ fontSize: 9, color: sendTarget.points_balance >= rewardMinutes ? C.dim : C.red, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>
                     Will deduct {rewardMinutes} points {sendTarget.points_balance >= rewardMinutes ? `(${fmt(sendTarget.points_balance - rewardMinutes)} remaining)` : '(insufficient!)'}
                   </div>
@@ -261,7 +261,7 @@ export default function LoyaltyPage() {
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Reason (optional)</label>
                   <input type="text" value={rewardReason} onChange={e => setRewardReason(e.target.value)} placeholder="e.g. Customer of the month"
-                    style={{ width: '100%', padding: '10px 12px', background: '#050505', border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text, fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

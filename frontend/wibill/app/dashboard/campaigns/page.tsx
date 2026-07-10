@@ -7,13 +7,13 @@ import { useToast } from '@/context/ToastContext'
 import { Plus, X, Rocket, Play, Users, TrendingUp, Ticket, Clock, Eye, MessageSquare, ChevronLeft, ChevronRight, Copy, Check, Megaphone, type LucideIcon } from 'lucide-react'
 
 const C = {
-  void: '#030303', base: '#0a0a0a', border: '#141414', border2: '#1a1a1a',
-  text: '#f0f0f0', dim: '#666666', mute: '#2a2a2a',
-  gold: '#E8B84B', green: '#22c55e', red: '#ef4444',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
 const inputSx: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', background: '#080808',
+  width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.text,
   fontSize: 12, boxSizing: 'border-box', outline: 'none',
 }
@@ -310,7 +310,7 @@ export default function CampaignsPage() {
                     const Icon = opt.icon
                     return (
                       <button key={opt.value} type="button" onClick={() => setForm(p => ({ ...p, audience: opt.value }))}
-                        style={{ padding: '10px 12px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'left', background: active ? C.gold : '#080808', border: `0.5px solid ${active ? C.gold : C.border2}`, color: active ? '#000' : C.dim }}>
+                        style={{ padding: '10px 12px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer', textAlign: 'left', background: active ? C.gold : 'var(--theme-surface)', border: `0.5px solid ${active ? C.gold : C.border2}`, color: active ? '#000' : C.dim }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                           <Icon size={13} />
                           <span>{opt.label}</span>
@@ -345,7 +345,7 @@ export default function CampaignsPage() {
                   <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Quantity Cap (0 = unlimited)</label>
                   <input type="number" min={0} max={10000} value={form.quantity_cap} onChange={e => setForm(p => ({ ...p, quantity_cap: parseInt(e.target.value) || 0 }))} style={inputSx} />
                 </div>
-                <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, fontSize: 10, color: C.gold, lineHeight: 1.6 }}>
+                <div style={{ padding: '12px 14px', background: 'var(--theme-bg)', border: `0.5px solid ${C.gold}30`, borderRadius: 7, fontSize: 10, color: C.gold, lineHeight: 1.6 }}>
                   Each customer gets <strong>{form.reward_minutes} minutes</strong> of free internet. Tokens expire <strong>{form.expiry_hours} hours</strong> after sending — the FOMO window. {form.quantity_cap > 0 ? `Capped at ${form.quantity_cap} tokens total.` : 'No quantity cap — send to everyone in the segment.'}
                 </div>
               </div>
@@ -366,12 +366,12 @@ export default function CampaignsPage() {
                 <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
                   {['{name}', '{minutes}', '{expiry_time}', '{portal_link}'].map(v => (
                     <button key={v} type="button" onClick={() => setForm(p => ({ ...p, sms_body: p.sms_body + v }))}
-                      style={{ padding: '4px 8px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 4, color: C.gold, fontSize: 9, fontFamily: "'DM Mono', monospace", cursor: 'pointer' }}>
+                      style={{ padding: '4px 8px', background: 'var(--theme-bg)', border: `0.5px solid ${C.gold}30`, borderRadius: 4, color: C.gold, fontSize: 9, fontFamily: "'DM Mono', monospace", cursor: 'pointer' }}>
                       {v}
                     </button>
                   ))}
                 </div>
-                <div style={{ padding: '12px 14px', background: '#080808', border: `0.5px solid ${C.border}`, borderRadius: 7 }}>
+                <div style={{ padding: '12px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7 }}>
                   <div style={{ fontSize: 9, color: C.dim, marginBottom: 4, fontWeight: 700 }}>Preview</div>
                   <div style={{ fontSize: 11, color: C.text, lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
                     {form.sms_body.replace('{name}', 'John').replace('{minutes}', String(form.reward_minutes)).replace('{expiry_time}', `${form.expiry_hours}h`).replace('{portal_link}', 'wi-bill.vercel.app/portal?token=abc123')}
@@ -416,7 +416,7 @@ export default function CampaignsPage() {
               <div style={{ textAlign: 'center', padding: 30, color: C.dim, fontSize: 11 }}>No tokens generated yet. Launch the campaign to generate tokens.</div>
             ) : (
               <div>
-                <div style={{ padding: '10px 12px', background: '#0d0d00', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 12, fontSize: 9, color: C.gold, fontFamily: "'DM Mono', monospace", lineHeight: 1.8 }}>
+                <div style={{ padding: '10px 12px', background: 'var(--theme-bg)', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 12, fontSize: 9, color: C.gold, fontFamily: "'DM Mono', monospace", lineHeight: 1.8 }}>
                   Redemption URL format:<br />
                   <strong style={{ color: C.text }}>https://wibill-production-2e9c.up.railway.app/portal/YOUR_ISP_SLUG?token=CODE</strong>
                 </div>

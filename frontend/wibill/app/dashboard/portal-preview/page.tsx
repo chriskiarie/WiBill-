@@ -6,9 +6,9 @@ import Topbar from '@/components/Topbar'
 import { Smartphone, Copy, Check, ExternalLink, Package, Palette, QrCode, Settings } from 'lucide-react'
 
 const C = {
-  void: '#000000', base: '#0a0a0a', border: '#141414',
-  text: '#f0f0f0', dim: '#666', mute: '#2a2a2a',
-  gold: '#E8B84B', green: '#22c55e', blue: '#3b82f6',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)',
 }
 
 export default function PortalPreviewPage() {
@@ -79,26 +79,26 @@ export default function PortalPreviewPage() {
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
               width: 320, height: 650,
-              border: '2px solid #222',
+              border: '2px solid var(--theme-border)',
               borderRadius: 36,
               overflow: 'hidden',
-              background: '#111',
-              boxShadow: '0 0 40px rgba(0,0,0,0.6)',
+              background: 'var(--theme-surface)',
+              boxShadow: 'var(--theme-shadow)',
               position: 'relative',
             }}>
               <div style={{
                 position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-                width: 100, height: 20, background: '#111',
+                width: 100, height: 20, background: 'var(--theme-surface)',
                 borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
                 zIndex: 2,
               }} />
               <div style={{
                 position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
-                width: 8, height: 8, borderRadius: '50%', background: '#222', zIndex: 3,
+                width: 8, height: 8, borderRadius: '50%', background: 'var(--theme-border)', zIndex: 3,
               }} />
 
               {portalReady === null ? (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: 12 }}>
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--theme-faint)', fontSize: 12 }}>
                   Checking portal configuration...
                 </div>
               ) : portalReady ? (
@@ -115,16 +115,16 @@ export default function PortalPreviewPage() {
               ) : (
                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
                   <Settings size={32} color={C.dim} style={{ marginBottom: 16 }} />
-                  <div style={{ color: '#888', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                  <div style={{ color: 'var(--theme-text)', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
                     Portal Not Configured
                   </div>
-                  <div style={{ color: '#555', fontSize: 11, maxWidth: 220, lineHeight: 1.5, marginBottom: 20 }}>
+                  <div style={{ color: 'var(--theme-dim)', fontSize: 11, maxWidth: 220, lineHeight: 1.5, marginBottom: 20 }}>
                     Set up your portal theme, colors, and packages to see a live preview of what your customers will see.
                   </div>
                   <a href="/dashboard/settings" style={{
                     display: 'flex', alignItems: 'center', gap: 6,
                     padding: '10px 20px', borderRadius: 8,
-                    background: C.blue, color: '#fff', fontSize: 12,
+                    background: C.gold, color: '#000', fontSize: 12,
                     textDecoration: 'none', fontWeight: 600,
                   }}>
                     <Settings size={14} />
@@ -146,28 +146,28 @@ export default function PortalPreviewPage() {
                   background: portalReady ? C.green : C.dim,
                   boxShadow: portalReady ? `0 0 6px ${C.green}` : 'none',
                 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: portalReady ? C.green : '#666' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: portalReady ? C.green : C.dim }}>
                   {portalReady ? 'Live and accepting payments' : portalReady === null ? 'Checking...' : 'Not configured'}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 10, color: C.dim }}>Portal URL:</span>
                 <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
-                  fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.blue,
+                  fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.gold,
                   wordBreak: 'break-all', textDecoration: 'none',
                 }}>{portalUrl}</a>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={handleCopy} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.dim, fontSize: 11, cursor: 'pointer',
-                }}>
-                  {copied ? <Check size={13} color={C.green} /> : <Copy size={13} />}
-                  {copied ? 'Copied' : 'Copy URL'}
-                </button>
-                <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
-                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: portalReady ? C.dim : '#444', fontSize: 11, cursor: portalReady ? 'pointer' : 'not-allowed',
+                  <button onClick={handleCopy} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+                    background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border)', color: C.dim, fontSize: 11, cursor: 'pointer',
+                  }}>
+                    {copied ? <Check size={13} color={C.green} /> : <Copy size={13} />}
+                    {copied ? 'Copied' : 'Copy URL'}
+                  </button>
+                  <a href={portalUrl!} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+                    background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border)', color: portalReady ? C.dim : 'var(--theme-faint)', fontSize: 11, cursor: portalReady ? 'pointer' : 'not-allowed',
                   textDecoration: 'none', opacity: portalReady ? 1 : 0.5, pointerEvents: portalReady ? 'auto' : ('none' as const),
                 }}>
                   <ExternalLink size={13} />
@@ -175,8 +175,8 @@ export default function PortalPreviewPage() {
                 </a>
               </div>
               {portalReady === false && (
-                <div style={{ marginTop: 12, fontSize: 10, color: '#555', lineHeight: 1.4 }}>
-                  Go to <a href="/dashboard/settings" style={{ color: C.blue, textDecoration: 'none' }}>Settings</a> to configure your portal first.
+                <div style={{ marginTop: 12, fontSize: 10, color: 'var(--theme-faint)', lineHeight: 1.4 }}>
+                  Go to <a href="/dashboard/settings" style={{ color: C.gold, textDecoration: 'none' }}>Settings</a> to configure your portal first.
                 </div>
               )}
             </div>
@@ -193,7 +193,7 @@ export default function PortalPreviewPage() {
                   <div style={{ fontSize: 9, color: C.dim, marginTop: 8, fontFamily: 'DM Mono, monospace' }}>
                     Print this and place at your hotspot
                   </div>
-                  <div style={{ fontSize: 9, color: '#333', marginTop: 4, wordBreak: 'break-all', fontFamily: 'DM Mono, monospace' }}>
+                  <div style={{ fontSize: 9, color: 'var(--theme-faint)', marginTop: 4, wordBreak: 'break-all', fontFamily: 'DM Mono, monospace' }}>
                     {portalUrl}
                   </div>
                 </div>
@@ -217,14 +217,14 @@ export default function PortalPreviewPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <a href="/dashboard/packages" style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
-                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.blue, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
+                  background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border)', color: C.gold, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
                 }}>
                   <Package size={12} />
                   Edit Packages
                 </a>
                 <a href="/dashboard/settings" style={{
                   display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
-                  background: '#0d0d0d', border: '0.5px solid #1a1a1a', color: C.blue, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
+                  background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border)', color: C.gold, fontSize: 11, cursor: 'pointer', textDecoration: 'none',
                 }}>
                   <Palette size={12} />
                   Change Theme

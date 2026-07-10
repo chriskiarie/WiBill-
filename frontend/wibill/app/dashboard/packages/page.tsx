@@ -7,9 +7,9 @@ import { useToast } from '@/context/ToastContext'
 import { Plus, Edit2, Trash2, X, Package, AlertTriangle } from 'lucide-react'
 
 const C = {
-  void: '#030303', base: '#0F0F0E', border: '#1E1E1B',
-  text: '#EDEBE6', dim: '#6B6964', mute: '#3A3A37',
-  gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
 interface PackageT {
@@ -23,7 +23,7 @@ interface PackageForm {
 }
 
 const inputSx: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', background: '#050505',
+  width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text,
   fontSize: 13, boxSizing: 'border-box', outline: 'none',
 }
@@ -144,7 +144,7 @@ export default function PackagesPage() {
               </>
             )}
             <button onClick={openCreate}
-              style={{ padding: '7px 14px', background: C.gold, color: '#3D2A06', border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
+              style={{ padding: '7px 14px', background: C.gold, color: '#000', border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
               <Plus size={15} /> New Package
             </button>
           </div>
@@ -159,7 +159,7 @@ export default function PackagesPage() {
             <Package size={32} color={C.mute} />
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim }}>No packages yet</div>
             <div style={{ fontSize: 11, color: C.mute, textAlign: 'center', maxWidth: 280 }}>Create your first internet package so users can buy access on the portal.</div>
-            <button onClick={openCreate} style={{ marginTop: 8, padding: '8px 14px', background: C.gold, color: '#3D2A06', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={openCreate} style={{ marginTop: 8, padding: '8px 14px', background: C.gold, color: '#000', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Plus size={14} /> Create Package
             </button>
           </div>
@@ -285,7 +285,7 @@ export default function PackagesPage() {
                 <button type="button" onClick={() => { setShowModal(false); setEditingPackage(null) }} disabled={submitting}
                   style={{ padding: '10px 16px', background: 'transparent', border: `0.5px solid ${C.mute}`, borderRadius: 6, color: C.dim, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                 <button type="submit" disabled={submitting}
-                  style={{ padding: '10px 16px', background: submitting ? C.mute : C.gold, border: 'none', borderRadius: 6, color: '#3D2A06', fontSize: 11, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                  style={{ padding: '10px 16px', background: submitting ? C.mute : C.gold, border: 'none', borderRadius: 6, color: '#000', fontSize: 11, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
                   {submitting ? 'Saving\u2026' : (editingPackage ? 'Update' : 'Create')}
                 </button>
               </div>

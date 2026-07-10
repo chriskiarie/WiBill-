@@ -55,9 +55,24 @@
   --theme-red: #ef4444;
   --theme-card-base: #0a0a0a;
   --theme-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  --theme-dim: #666;
+  --theme-dim: #888;
+  --theme-faint: #444;
   --theme-mute: #222;
   --theme-border2: #1a1a1a;
+
+  /* ── Heatmap floor (navy / dark) ── */
+  --hfr: 12;
+  --hfg: 18;
+  --hfb: 30;
+  --heat-label-hour: rgba(255,255,255,0.35);
+  --heat-label-day: rgba(255,255,255,0.55);
+  --heat-insight-bg: rgba(232,184,75,0.08);
+  --heat-insight-border: rgba(232,184,75,0.2);
+  --heat-insight-text: #e8d5a0;
+  --heat-insight-value: #eaf1ff;
+  --heat-chip-bg: rgba(232,184,75,0.1);
+  --heat-chip-border: rgba(232,184,75,0.3);
+  --heat-chip-text: #ffd980;
 
   --topbar-bg: #0a0a0a;
   --topbar-border: #181818;
@@ -86,9 +101,24 @@
   --theme-red: #dc2626;
   --theme-card-base: #ffffff;
   --theme-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  --theme-dim: #777;
+  --theme-dim: #666;
+  --theme-faint: #999;
   --theme-mute: #e0e0e0;
   --theme-border2: #d4d4d4;
+
+  /* ── Heatmap floor (warm cream / light) ── */
+  --hfr: 232;
+  --hfg: 230;
+  --hfb: 223;
+  --heat-label-hour: rgba(0,0,0,0.35);
+  --heat-label-day: rgba(0,0,0,0.55);
+  --heat-insight-bg: rgba(232,184,75,0.06);
+  --heat-insight-border: rgba(232,184,75,0.15);
+  --heat-insight-text: #7a6535;
+  --heat-insight-value: #5a4a28;
+  --heat-chip-bg: rgba(232,184,75,0.08);
+  --heat-chip-border: rgba(201,138,31,0.25);
+  --heat-chip-text: #8a7030;
 
   --topbar-bg: #ffffff;
   --topbar-border: #e0dfda;

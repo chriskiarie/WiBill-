@@ -8,16 +8,10 @@ import { useToast } from '@/context/ToastContext'
 import { Router, CheckCircle, XCircle, Activity, Users, Wifi, HardDrive, Terminal, Download, RefreshCw, Server, Cpu, Clock, Zap } from 'lucide-react'
 
 const C = {
-  void: 'var(--theme-bg)',
-  base: 'var(--theme-card-base)',
-  border: 'var(--theme-border)',
-  border2: 'var(--theme-border2)',
-  text: 'var(--theme-text)',
-  dim: 'var(--theme-dim)',
-  mute: 'var(--theme-mute)',
-  gold: 'var(--theme-gold)',
-  green: 'var(--theme-green)',
-  red: 'var(--theme-red)',
+  void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
+  border: 'var(--theme-border)', border2: 'var(--theme-border2)',
+  text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)', faint: 'var(--theme-faint)',
+  gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
 export default function MikrotikPage() {
@@ -211,8 +205,8 @@ export default function MikrotikPage() {
       <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'}
         style={{
-          width: '100%', padding: '10px 12px', background: '#030303', border: '0.5px solid #1e1e1e', borderRadius: 7,
-          color: '#e0e0e0', fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
+          width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7,
+          color: C.text, fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
           boxSizing: 'border-box', outline: 'none',
         }} />
     </div>
@@ -225,7 +219,7 @@ export default function MikrotikPage() {
   )
 
   const StatCard = ({ icon, label, value, color }: { icon: any; label: string; value: string; color?: string }) => (
-    <div style={{ background: '#0a0a0a', borderRadius: 8, padding: 14 }}>
+    <div style={{ background: C.base, borderRadius: 8, padding: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon}
         <span style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>{label}</span>
@@ -258,7 +252,7 @@ export default function MikrotikPage() {
                 <span style={{
                   padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 700, fontFamily: 'DM Mono, monospace',
                   textTransform: 'uppercase', letterSpacing: '0.5px',
-                  background: config.status === 'CONNECTED' ? '#030d06' : config.status === 'ERROR' ? '#0d0303' : '#0a0a0a',
+                  background: config.status === 'CONNECTED' ? 'rgba(34,197,94,0.08)' : config.status === 'ERROR' ? 'rgba(239,68,68,0.08)' : C.base,
                   color: statusColor(config.status), border: `0.5px solid ${statusColor(config.status)}22`,
                 }}>
                   {config.status || 'DISCONNECTED'}
@@ -296,7 +290,7 @@ export default function MikrotikPage() {
                   ].map(t => (
                     <button key={t.id} onClick={() => setTab(t.id as any)}
                       style={{
-                        padding: '8px 16px', background: tab === t.id ? '#141414' : 'transparent',
+                        padding: '8px 16px', background: tab === t.id ? C.border : 'transparent',
                         border: `0.5px solid ${tab === t.id ? C.border2 : 'transparent'}`, borderRadius: 7,
                         color: tab === t.id ? C.text : C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                       }}>
@@ -394,7 +388,7 @@ export default function MikrotikPage() {
                           3. <strong>Verify</strong> — the dashboard shows CONNECTED when bridge + tunnel are live
                         </div>
                         <button onClick={handleProvision} disabled={provisioning}
-                          style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 11, fontWeight: 700, cursor: provisioning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: provisioning ? 0.6 : 1 }}>
+                          style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, cursor: provisioning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: provisioning ? 0.6 : 1 }}>
                           <Zap size={14} /> {provisioning ? 'Provisioning...' : 'Provision Bridge'}
                         </button>
                       </Card>
@@ -406,7 +400,7 @@ export default function MikrotikPage() {
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {config.tunnel_id && (
                           <button onClick={handleInstallScript}
-                            style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Download size={14} /> Download Install Script
                           </button>
                         )}
@@ -442,7 +436,7 @@ export default function MikrotikPage() {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {activeUsers.map((u: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#0a0a0a', borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.base, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
                             <div>
                               <div style={{ fontSize: 11, fontWeight: 600, color: C.text, fontFamily: 'DM Mono, monospace' }}>{u.mac_address || u.user}</div>
                               <div style={{ fontSize: 10, color: C.dim }}>{u.address} · {u.uptime}</div>
@@ -481,7 +475,7 @@ export default function MikrotikPage() {
                       </div>
                     </div>
 
-                    <div style={{ padding: '12px 14px', background: '#0a1628', border: '0.5px solid #1a3a5a', borderRadius: 7, marginBottom: 14, fontSize: 10, color: '#5a9fd4', lineHeight: 1.8 }}>
+                    <div style={{ padding: '12px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 14, fontSize: 10, color: C.dim, lineHeight: 1.8 }}>
                       <div>ⓘ Run as Administrator on the ISP's always-on Windows PC</div>
                       <div>ⓘ Requires: Python 3, internet connection (for cloudflared + pip downloads)</div>
                       <div>ⓘ Installs: bridge.py service, cloudflared tunnel, NSSM service manager</div>
@@ -489,7 +483,7 @@ export default function MikrotikPage() {
 
                     {installScript && (
                       <pre style={{
-                        background: '#050505', border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                        background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
                         fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
                         overflowX: 'auto', whiteSpace: 'pre', maxHeight: 400, overflowY: 'auto',
                       }}>
@@ -516,7 +510,7 @@ export default function MikrotikPage() {
                 </div>
 
                 {!config && (
-                  <div style={{ padding: '12px 14px', background: '#0d0d00', border: `0.5px solid ${C.gold}33`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
+                  <div style={{ padding: '12px 14px', background: C.surface, border: `0.5px solid ${C.gold}33`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
                     Enter your MikroTik router details below. You must have API access enabled on the router.<br />
                     <strong>Need help?</strong> Provision the bridge and download the install script.
                   </div>
@@ -538,8 +532,8 @@ export default function MikrotikPage() {
                 {testResult && (
                   <div style={{
                     padding: 12, marginBottom: 12, borderRadius: 7, fontSize: 11, lineHeight: 1.5,
-                    background: testResult.connected ? '#030d06' : '#0d0303',
-                    border: `0.5px solid ${testResult.connected ? '#0a2214' : '#220a0a'}`,
+                    background: testResult.connected ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                    border: `0.5px solid ${testResult.connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
                     color: testResult.connected ? C.green : C.red,
                   }}>
                     {testResult.connected ? (
@@ -560,20 +554,20 @@ export default function MikrotikPage() {
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
                   <button onClick={downloadLoginHtml}
-                    style={{ padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    style={{ padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Download size={14} /> login.html
                   </button>
                   <button onClick={handleTest} disabled={testing}
                     style={{
                       padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7,
-                      color: '#9ca3af', fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1,
+                      color: C.dim, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1,
                     }}>
                     {testing ? 'Testing...' : 'Test Connection'}
                   </button>
                   <button onClick={handleSave} disabled={saving}
                     style={{
                       flex: 1, padding: '12px', background: saving ? C.dim : C.gold, border: 'none', borderRadius: 7,
-                      color: saving ? '#666' : '#030303', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1,
+                      color: saving ? C.dim : '#000', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1,
                     }}>
                     {saving ? 'Saving...' : config ? 'Update Configuration' : 'Save Configuration'}
                   </button>
@@ -593,7 +587,7 @@ export default function MikrotikPage() {
                 <div style={{ fontSize: 14, marginBottom: 8, color: C.text }}>No Router Configured</div>
                 <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Connect your MikroTik to provision hotspots and manage users automatically</div>
                 <button onClick={() => setShowForm(true)}
-                  style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#030303', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   Add Router
                 </button>
               </div>

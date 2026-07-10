@@ -415,7 +415,7 @@ export default function IspDashboard() {
               <div key={col} style={skelCard}>
                 <div style={skeletonBlock('50%', 11, 4, delays[0])} />
                 {[1, 2, 3].map((row) => (
-                  <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '0.5px solid #0d0d0d' }}>
+                  <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: `0.5px solid ${C.border}` }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.mute, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${delays[0] + row * 0.1}s` }} />
                     <div style={{ flex: 1 }}>
                       <div style={skeletonBlock('40%', 11, 4, delays[0] + row * 0.1)} />
@@ -447,8 +447,8 @@ export default function IspDashboard() {
 
         {invStatus === 'overdue' && invoice && (
           <div style={{
-            background: 'linear-gradient(135deg, #3d0a0a, #4a1010)',
-            border: '0.5px solid #7f1d1d', borderRadius: 11,
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.12))',
+            border: '0.5px solid rgba(239,68,68,0.2)', borderRadius: 11,
             padding: '14px 20px', marginBottom: 24,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
@@ -458,7 +458,7 @@ export default function IspDashboard() {
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
                   Account overdue — {invoice.amount_due ? ksh(invoice.amount_due) : ''} due
                 </div>
-                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: '#fca5a5', marginTop: 2 }}>
+                <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.red, marginTop: 2 }}>
                   {invoice.days_overdue || invoice.days_left || '?'} days overdue
                   {invoice.is_locked ? ' · Portal suspended' : ''}
                 </div>
@@ -505,7 +505,7 @@ export default function IspDashboard() {
               <button onClick={() => configs.mikrotik && setShowRouterDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 12px', borderRadius: 20,
-                background: configs.mikrotik ? 'rgba(239,68,68,0.08)' : '#0a0a0a',
+                background: configs.mikrotik ? 'rgba(239,68,68,0.08)' : 'var(--theme-surface)',
                 border: `0.5px solid ${configs.mikrotik ? 'rgba(239,68,68,0.2)' : C.border}`,
                 fontSize: 10, fontFamily: 'DM Mono, monospace',
                 fontWeight: 600, color: configs.mikrotik ? C.red : C.dim,
@@ -556,10 +556,11 @@ export default function IspDashboard() {
 
         {/* ═══ TODAY'S REVENUE (hero) ═══ */}
         <div style={{
-          background: 'linear-gradient(135deg, #0a0800 0%, #0a0a0a 100%)',
-          border: '0.5px solid rgba(232,184,75,0.12)',
+          background: 'var(--theme-card-base)',
+          border: '0.5px solid var(--theme-border)',
           borderRadius: 11, padding: 20,
           marginBottom: 20,
+          borderTop: '2px solid var(--theme-gold)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -572,7 +573,7 @@ export default function IspDashboard() {
               </div>
               <div style={{
                 fontFamily: 'DM Mono, monospace',
-                fontSize: 40, fontWeight: 500, color: C.text,
+                fontSize: 40, fontWeight: 500, color: C.gold,
                 letterSpacing: '-0.04em', lineHeight: 1,
               }}>
                 {ksh(today.gross_ksh)}
@@ -715,8 +716,8 @@ export default function IspDashboard() {
               </span>
               <span style={{
                 padding: '2px 8px', borderRadius: 10, fontSize: 9, fontWeight: 700,
-                background: sessions.length > 0 ? 'rgba(34,197,94,0.1)' : '#0d0d0d',
-                color: sessions.length > 0 ? C.green : '#333',
+                background: sessions.length > 0 ? 'rgba(34,197,94,0.1)' : 'var(--theme-surface)',
+                color: sessions.length > 0 ? C.green : C.dim,
                 fontFamily: 'DM Mono, monospace',
               }}>
                 {sessions.length} online
@@ -742,7 +743,7 @@ export default function IspDashboard() {
                   return (
                     <div key={s.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '6px 0', borderBottom: '0.5px solid #0d0d0d',
+                      padding: '6px 0', borderBottom: `0.5px solid ${C.border}`,
                     }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: remaining > 0 ? C.green : C.red, flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -755,9 +756,9 @@ export default function IspDashboard() {
                       </div>
                       <button onClick={() => handleKick(s.id)} disabled={isKicking} style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 9, fontWeight: 600,
-                        background: isKicking ? '#0d0d0d' : 'rgba(239,68,68,0.06)',
-                        color: isKicking ? '#333' : C.red,
-                        border: isKicking ? '0.5px solid #1a1a1a' : '0.5px solid rgba(239,68,68,0.12)',
+                        background: isKicking ? 'var(--theme-surface)' : 'rgba(239,68,68,0.06)',
+                        color: isKicking ? C.dim : C.red,
+                        border: isKicking ? `0.5px solid ${C.border}` : '0.5px solid rgba(239,68,68,0.12)',
                         cursor: isKicking ? 'not-allowed' : 'pointer', fontFamily: 'DM Mono, monospace',
                       }}>
                         {isKicking ? '...' : 'Kick'}
@@ -808,7 +809,7 @@ export default function IspDashboard() {
                   return (
                     <div key={t.id} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '6px 0', borderBottom: '0.5px solid #0d0d0d',
+                      padding: '6px 0', borderBottom: `0.5px solid ${C.border}`,
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: '#888' }}>
@@ -992,7 +993,7 @@ export default function IspDashboard() {
                       {done ? <Check size={14} color={C.void} /> : isCurrent ? (
                         <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.gold }} />
                       ) : (
-                        <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#1a1a1a' }} />
+                        <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.mute }} />
                       )}
                     </div>
 
@@ -1057,7 +1058,7 @@ export default function IspDashboard() {
           Your MikroTik router is currently unreachable
         </div>
 
-        <div style={{ background: '#0d0d0d', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ background: 'var(--theme-surface)', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif' }}>Status</span>
             <span style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.red, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -1119,7 +1120,7 @@ export default function IspDashboard() {
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Router IP Address</div>
             <input value={mkForm.router_ip} onChange={(e) => setMkForm({ ...mkForm, router_ip: e.target.value })}
               placeholder="192.168.88.1"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -1127,14 +1128,14 @@ export default function IspDashboard() {
             <input value={mkForm.api_port} onChange={(e) => setMkForm({ ...mkForm, api_port: Number(e.target.value) })}
               placeholder="8728"
               type="number" min={1} max={65535}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Username</div>
             <input value={mkForm.api_username} onChange={(e) => setMkForm({ ...mkForm, api_username: e.target.value })}
               placeholder="admin"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -1142,7 +1143,7 @@ export default function IspDashboard() {
             <input value={mkForm.api_password} onChange={(e) => setMkForm({ ...mkForm, api_password: e.target.value })}
               placeholder="••••••••"
               type="password"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
         </div>
@@ -1195,7 +1196,7 @@ export default function IspDashboard() {
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Consumer Key</div>
             <input value={mpForm.consumer_key} onChange={(e) => setMpForm({ ...mpForm, consumer_key: e.target.value })}
               placeholder="••••••••••••••••"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -1203,7 +1204,7 @@ export default function IspDashboard() {
             <input value={mpForm.consumer_secret} onChange={(e) => setMpForm({ ...mpForm, consumer_secret: e.target.value })}
               placeholder="••••••••••••••••"
               type="password"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1211,7 +1212,7 @@ export default function IspDashboard() {
               <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Shortcode</div>
               <input value={mpForm.shortcode} onChange={(e) => setMpForm({ ...mpForm, shortcode: e.target.value })}
                 placeholder="174379"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
             <div>
@@ -1219,7 +1220,7 @@ export default function IspDashboard() {
               <input value={mpForm.passkey} onChange={(e) => setMpForm({ ...mpForm, passkey: e.target.value })}
                 placeholder="••••••••••••••••"
                 type="password"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
           </div>
@@ -1227,7 +1228,7 @@ export default function IspDashboard() {
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 4, fontFamily: 'Inter, sans-serif' }}>Account Reference (appears on customer statement)</div>
             <input value={mpForm.account_reference} onChange={(e) => setMpForm({ ...mpForm, account_reference: e.target.value })}
               placeholder="WiBill"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: '0.5px solid #1a1a1a', color: C.text, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: C.void, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: 'Inter, sans-serif', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
         </div>
