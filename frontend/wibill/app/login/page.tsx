@@ -165,14 +165,15 @@ function LoginContent() {
     focusField === name ? inpFocus : inp
 
   const wordmarkSection = (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div style={{
-        fontFamily: '"Syne", sans-serif',
-        fontSize: 56,
-        fontWeight: 800,
-        letterSpacing: '-0.03em',
+        fontFamily: '"Instrument Serif", serif',
+        fontStyle: 'italic',
+        fontSize: 60,
+        fontWeight: 400,
+        letterSpacing: '-0.02em',
         color: '#E8B84B',
-        textShadow: '0 0 40px rgba(232,184,75,0.15)',
+        textShadow: '0 0 50px rgba(232,184,75,0.18)',
         lineHeight: 1,
       }}>
         WiBill
@@ -181,8 +182,8 @@ function LoginContent() {
         fontFamily: '"Space Grotesk", sans-serif',
         fontSize: 11,
         color: '#555',
-        marginTop: 8,
-        letterSpacing: '2px',
+        marginTop: 6,
+        letterSpacing: '2.5px',
         fontWeight: 600,
       }}>
         ISP MANAGEMENT PORTAL
