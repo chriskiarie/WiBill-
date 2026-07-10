@@ -75,6 +75,7 @@ function LoginContent() {
   const [regPass, setRegPass] = useState('')
   const [phone, setPhone] = useState('')
 
+  const [cardHovered, setCardHovered] = useState(false)
   const [cardTransform, setCardTransform] = useState('')
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -87,10 +88,12 @@ function LoginContent() {
     const rotateY = (x - 0.5) * 12
     const rotateX = (0.5 - y) * 12
     setCardTransform(`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`)
-  }, [])
+    if (!cardHovered) setCardHovered(true)
+  }, [cardHovered])
 
   const handleCardLeave = useCallback(() => {
     setCardTransform('')
+    setCardHovered(false)
   }, [])
 
   useEffect(() => {
@@ -383,6 +386,10 @@ function LoginContent() {
     </>
   )
 
+  const glowStyle: React.CSSProperties = cardHovered
+    ? { boxShadow: '0 0 30px rgba(232,184,75,0.15), 0 0 80px rgba(232,184,75,0.06)' }
+    : {}
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -390,23 +397,31 @@ function LoginContent() {
       display: 'flex',
       overflow: 'hidden',
     }}>
+      {/* ── Full-screen background image with left fade ── */}
+      <img
+        src="/login-bg.jpg"
+        alt=""
+        style={{
+          position: 'fixed', inset: 0,
+          width: '100%', height: '100%',
+          objectFit: 'cover',
+          opacity: 0.45,
+        }}
+      />
+      <div style={{
+        position: 'fixed', inset: 0,
+        background: 'linear-gradient(90deg, #030303 25%, transparent 55%)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }} />
+
       {/* ── LEFT: Form panel (45%) ── */}
       <div style={{
         flex: '0 0 45%', maxWidth: '45%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 40, position: 'relative',
+        padding: 40, position: 'relative', zIndex: 2,
       }}>
-        {/* Gradient mesh behind form */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `
-            radial-gradient(ellipse 65% 55% at 30% 25%, rgba(232,184,75,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 45% 45% at 70% 80%, rgba(34,197,94,0.04) 0%, transparent 55%),
-            radial-gradient(ellipse 50% 35% at 50% 50%, rgba(232,184,75,0.03) 0%, transparent 50%)
-          `,
-          pointerEvents: 'none',
-        }} />
-        <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
           {formSection}
         </div>
       </div>
@@ -415,11 +430,11 @@ function LoginContent() {
       <div style={{
         flex: 1,
         position: 'relative', overflow: 'hidden',
-        background: '#030303',
+        zIndex: 2,
       }}>
         <style>{cardCSS}</style>
 
-        {/* Background dot-grid */}
+        {/* Dot-grid overlay */}
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12 }} pointerEvents="none">
           <defs>
             <pattern id="dotgrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -433,29 +448,6 @@ function LoginContent() {
           <line x1="60%" y1="20%" x2="95%" y2="80%" stroke="rgba(34,197,94,0.03)" strokeWidth="0.5" />
         </svg>
 
-        {/* Gradient mesh */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `
-            radial-gradient(ellipse 70% 60% at 20% 30%, rgba(232,184,75,0.05) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 50% at 80% 70%, rgba(34,197,94,0.04) 0%, transparent 55%),
-            radial-gradient(ellipse 60% 40% at 50% 90%, rgba(232,184,75,0.03) 0%, transparent 50%)
-          `,
-          pointerEvents: 'none',
-        }} />
-
-        {/* ── Abstract image ── */}
-        <img
-          src="/login-bg.jpg"
-          alt=""
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            opacity: 0.5,
-          }}
-        />
-
         {/* ── 3D Glass card (bottom overlay) ── */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -468,7 +460,7 @@ function LoginContent() {
             ref={cardRef}
             onMouseMove={handleCardMove}
             onMouseLeave={handleCardLeave}
-            style={{ transform: cardTransform }}
+            style={{ transform: cardTransform, ...glowStyle }}
           >
             <div className="gl" />
             <div className="cl cl1" /><div className="cl cl2" />
