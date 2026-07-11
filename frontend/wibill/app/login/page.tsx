@@ -165,10 +165,10 @@ function LoginContent() {
     focusField === name ? inpFocus : inp
 
   const wordmarkSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <span style={{
+    <div className="text-center">
+      <div style={{
         fontFamily: '"Instrument Serif", serif',
-        fontSize: 88,
+        fontSize: 98,
         fontWeight: 400,
         letterSpacing: '-0.03em',
         color: '#EDEBE6',
@@ -176,7 +176,7 @@ function LoginContent() {
         lineHeight: 1,
       }}>
         WiBill
-      </span>
+      </div>
       <div style={{
         fontFamily: '"Space Grotesk", sans-serif',
         fontSize: 11,
@@ -402,9 +402,14 @@ function LoginContent() {
       minHeight: '100vh',
       background: '#030303',
       display: 'flex',
-      overflow: 'hidden',
+      flexDirection: 'column',
+      alignItems: 'center',
+      position: 'relative',
+      overflow: 'auto',
     }}>
-      {/* ── Full-screen background image with left fade ── */}
+      <style>{cardCSS}</style>
+
+      {/* ── Full-screen background image ── */}
       <img
         src="/login-bg.jpg"
         alt=""
@@ -412,118 +417,119 @@ function LoginContent() {
           position: 'fixed', inset: 0,
           width: '100%', height: '100%',
           objectFit: 'cover',
-          opacity: 0.45,
+          opacity: 0.3,
         }}
       />
       <div style={{
         position: 'fixed', inset: 0,
-        background: 'linear-gradient(90deg, #030303 25%, transparent 55%)',
+        background: 'linear-gradient(180deg, #030303 0%, transparent 40%, transparent 70%, #030303 100%)',
         pointerEvents: 'none',
         zIndex: 1,
       }} />
 
-      {/* ── LEFT: Form + wordmark panel (45%) ── */}
+      {/* ── WiBill wordmark - centered across full screen ── */}
       <div style={{
-        flex: '0 0 45%', maxWidth: '45%',
-        display: 'flex', flexDirection: 'column',
-        padding: '60px 40px 40px', position: 'relative', zIndex: 2,
+        position: 'relative', zIndex: 2,
+        textAlign: 'center',
+        paddingTop: 80,
+        paddingBottom: 40,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 48 }}>
-          {wordmarkSection}
+        <div style={{
+          fontFamily: '"Instrument Serif", serif',
+          fontSize: 96,
+          fontWeight: 400,
+          letterSpacing: '-0.03em',
+          color: '#EDEBE6',
+          textShadow: '0 0 60px rgba(237,235,230,0.1)',
+          lineHeight: 1,
+        }}>
+          WiBill
         </div>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 420 }}>
-            {formSection}
-          </div>
+        <div style={{
+          fontFamily: '"Space Grotesk", sans-serif',
+          fontSize: 11,
+          color: '#555',
+          marginTop: 6,
+          letterSpacing: '2.5px',
+          fontWeight: 600,
+        }}>
+          ISP MANAGEMENT PORTAL
         </div>
       </div>
 
-      {/* ── RIGHT: Brand panel (55%) ── */}
+      {/* ── Form ── */}
       <div style={{
-        flex: 1,
-        position: 'relative', overflow: 'hidden',
-        zIndex: 2,
+        position: 'relative', zIndex: 2,
+        width: '100%',
+        maxWidth: 420,
+        padding: '0 20px',
       }}>
-        <style>{cardCSS}</style>
+        {formSection}
+      </div>
 
-        {/* Dot-grid overlay */}
-        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12 }} pointerEvents="none">
-          <defs>
-            <pattern id="dotgrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-              <circle cx="20" cy="20" r="1" fill="rgba(232,184,75,0.3)" />
-              <line x1="20" y1="20" x2="60" y2="20" stroke="rgba(232,184,75,0.05)" strokeWidth="0.5" />
-              <line x1="20" y1="20" x2="20" y2="60" stroke="rgba(232,184,75,0.05)" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#dotgrid)" />
-          <line x1="20%" y1="0" x2="80%" y2="40%" stroke="rgba(232,184,75,0.03)" strokeWidth="0.5" />
-          <line x1="60%" y1="20%" x2="95%" y2="80%" stroke="rgba(34,197,94,0.03)" strokeWidth="0.5" />
-        </svg>
+      {/* ── 3D Glass card ── */}
+      <div style={{
+        position: 'relative', zIndex: 2,
+        width: '100%',
+        maxWidth: 500,
+        padding: '32px 20px 48px',
+      }}>
+        <div
+          id="gcard"
+          ref={cardRef}
+          onMouseMove={handleCardMove}
+          onMouseLeave={handleCardLeave}
+          style={{ transform: cardTransform, ...glowStyle }}
+        >
+          <div className="gl" />
+          <div className="cl cl1" /><div className="cl cl2" />
+          <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
+          <div className="pt pt5" /><div className="pt pt6" /><div className="pt pt7" />
 
-        {/* ── 3D Glass card (bottom overlay) ── */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '20px 40px 36px',
-          zIndex: 3,
-          perspective: 800,
-        }}>
-          <div
-            id="gcard"
-            ref={cardRef}
-            onMouseMove={handleCardMove}
-            onMouseLeave={handleCardLeave}
-            style={{ transform: cardTransform, ...glowStyle, margin: '0 auto', width: 'fit-content', maxWidth: 500 }}
-          >
-            <div className="gl" />
-            <div className="cl cl1" /><div className="cl cl2" />
-            <div className="pt pt2" /><div className="pt pt3" /><div className="pt pt4" />
-            <div className="pt pt5" /><div className="pt pt6" /><div className="pt pt7" />
+          <div className="cc">
+            <div style={{
+              fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
+              color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
+              textTransform: 'uppercase', textAlign: 'center',
+            }}>
+              Built for ISPs
+            </div>
 
-            <div className="cc">
-              <div style={{
-                fontFamily: '"Inter", sans-serif', fontSize: 10, fontWeight: 700,
-                color: '#E8B84B', letterSpacing: '1.5px', marginBottom: 8,
-                textTransform: 'uppercase', textAlign: 'center',
-              }}>
-                Built for ISPs
-              </div>
+            <div style={{
+              fontFamily: '"Syne", sans-serif',
+              fontSize: 16, fontWeight: 600,
+              color: '#999',
+              letterSpacing: '0.2px',
+              lineHeight: 1.5,
+              marginBottom: 16,
+              textAlign: 'center',
+            }}>
+              Billing infrastructure for Kenyan ISPs.
+            </div>
 
-              <div style={{
-                fontFamily: '"Syne", sans-serif',
-                fontSize: 16, fontWeight: 600,
-                color: '#999',
-                letterSpacing: '0.2px',
-                lineHeight: 1.5,
-                marginBottom: 16,
-                textAlign: 'center',
-              }}>
-                Billing infrastructure for Kenyan ISPs.
-              </div>
+            <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
+              {stats.map((s, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                  <span style={{
+                    fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
+                    color: '#E8B84B',
+                  }}>{s.value}</span>
+                  <span style={{
+                    fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 600,
+                    color: '#555', textTransform: 'uppercase', letterSpacing: '0.4px',
+                  }}>{s.label}</span>
+                </div>
+              ))}
+            </div>
 
-              <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
-                {stats.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-                    <span style={{
-                      fontFamily: '"DM Mono", monospace', fontSize: 14, fontWeight: 600,
-                      color: '#E8B84B',
-                    }}>{s.value}</span>
-                    <span style={{
-                      fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 600,
-                      color: '#555', textTransform: 'uppercase', letterSpacing: '0.4px',
-                    }}>{s.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{
-                marginTop: 14, paddingTop: 12,
-                borderTop: '0.5px solid rgba(232,184,75,0.08)',
-                fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
-                color: '#444', letterSpacing: '0.8px',
-                textAlign: 'center',
-              }}>
-                TRUSTED · RELIABLE · KENYAN
-              </div>
+            <div style={{
+              marginTop: 14, paddingTop: 12,
+              borderTop: '0.5px solid rgba(232,184,75,0.08)',
+              fontFamily: '"Inter", sans-serif', fontSize: 9, fontWeight: 500,
+              color: '#444', letterSpacing: '0.8px',
+              textAlign: 'center',
+            }}>
+              TRUSTED · RELIABLE · KENYAN
             </div>
           </div>
         </div>
