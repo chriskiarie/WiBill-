@@ -246,7 +246,7 @@ function LoginContent() {
                     transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer',
                     padding: 4, display: 'flex',
-                    color: showPassword ? '#E8B84B' : 'rgba(255,255,255,0.2)',
+                    color: showPassword ? '#E8B84B' : 'rgba(255,255,255,0.5)',
                     transition: 'color 200ms',
                   }}
                 >
