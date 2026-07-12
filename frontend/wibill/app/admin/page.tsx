@@ -12,13 +12,13 @@ const C = {
   cyan: '#38bdf8', violet: '#a78bfa', greenLight: '#4ade80', redLight: '#f87171',
 };
 
-const accentMap: Record<string, { icon: React.ReactNode; bg: string; color: string }> = {
-  revenue: { icon: <DollarSign size={14} />, bg: 'rgba(232,184,75,0.15)', color: C.gold },
-  system: { icon: <Server size={14} />, bg: 'rgba(56,189,248,0.15)', color: C.cyan },
-  network: { icon: <Wifi size={14} />, bg: 'rgba(167,139,250,0.15)', color: C.violet },
-  transaction: { icon: <ArrowRightLeft size={14} />, bg: 'rgba(74,222,128,0.15)', color: C.greenLight },
-  chart: { icon: <BarChart3 size={14} />, bg: 'rgba(232,184,75,0.15)', color: C.gold },
-  isp: { icon: <Radio size={14} />, bg: 'rgba(167,139,250,0.15)', color: C.violet },
+const accentMap: Record<string, { icon: React.ReactNode; bg: string; color: string; border: string }> = {
+  revenue: { icon: <DollarSign size={14} />, bg: 'rgba(232,184,75,0.20)', color: C.gold, border: 'rgba(232,184,75,0.35)' },
+  system: { icon: <Server size={14} />, bg: 'rgba(56,189,248,0.20)', color: C.cyan, border: 'rgba(56,189,248,0.35)' },
+  network: { icon: <Wifi size={14} />, bg: 'rgba(167,139,250,0.20)', color: C.violet, border: 'rgba(167,139,250,0.35)' },
+  transaction: { icon: <ArrowRightLeft size={14} />, bg: 'rgba(74,222,128,0.20)', color: C.greenLight, border: 'rgba(74,222,128,0.35)' },
+  chart: { icon: <BarChart3 size={14} />, bg: 'rgba(232,184,75,0.20)', color: C.gold, border: 'rgba(232,184,75,0.35)' },
+  isp: { icon: <Radio size={14} />, bg: 'rgba(167,139,250,0.20)', color: C.violet, border: 'rgba(167,139,250,0.35)' },
 };
 
 function PanelHeader({ accent, title }: { accent: keyof typeof accentMap; title: string }) {
@@ -28,6 +28,7 @@ function PanelHeader({ accent, title }: { accent: keyof typeof accentMap; title:
       <div style={{
         width: 28, height: 28, borderRadius: '50%', background: a.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color, flexShrink: 0,
+        border: `1px solid ${a.border}`,
       }}>{a.icon}</div>
       <span style={{
         fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
@@ -39,15 +40,16 @@ function PanelHeader({ accent, title }: { accent: keyof typeof accentMap; title:
 
 function TrendChip({ value }: { value?: number }) {
   if (value === undefined || value === null || value === 0) {
-    return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.mute, padding: '1px 6px', borderRadius: 4, background: C.faint }}>&mdash; flat</span>;
+    return null;
   }
   const isUp = value > 0;
   return (
     <span style={{
-      fontFamily: '"DM Mono", monospace', fontSize: 10, fontWeight: 600,
-      color: isUp ? C.green : C.red,
-      padding: '1px 6px', borderRadius: 4,
-      background: isUp ? 'rgba(111,207,115,0.1)' : 'rgba(229,112,122,0.1)',
+      fontFamily: '"DM Mono", monospace', fontSize: 10, fontWeight: 700,
+      color: isUp ? '#22c55e' : '#ef4444',
+      padding: '2px 8px', borderRadius: 4,
+      background: isUp ? 'rgba(74,222,128,0.15)' : 'rgba(239,68,68,0.15)',
+      border: isUp ? '0.5px solid rgba(74,222,128,0.35)' : '0.5px solid rgba(239,68,68,0.35)',
     }}>
       {isUp ? '\u25B2' : '\u25BC'} {Math.abs(value)}%
     </span>
@@ -345,7 +347,7 @@ export default function AdminDashboard() {
             trend: trendValues,
             accent: 'revenue' as const,
             trendPct: stats.revenue_today > 0 ? 12 : undefined,
-            emptyMsg: undefined,
+            emptyMsg: stats.revenue_today === 0 ? 'No payments collected today yet' : undefined,
           },
           {
             label: 'Monthly Revenue',
@@ -355,7 +357,7 @@ export default function AdminDashboard() {
             trend: trendValues,
             accent: 'revenue' as const,
             trendPct: stats.revenue_month > 0 ? 8 : undefined,
-            emptyMsg: undefined,
+            emptyMsg: stats.revenue_month === 0 ? 'No monthly revenue recorded yet' : undefined,
           },
           {
             label: 'Active Sessions',
@@ -380,29 +382,34 @@ export default function AdminDashboard() {
         ].map((card) => (
           <div key={card.label} style={{
             background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 'var(--radius-card)', padding: 'var(--space-lg)',
-            boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column', position: 'relative',
+            boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column',
           }}>
-            {/* Icon badge top-left */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            {/* Icon badge + trend chip row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', background: accentMap[card.accent].bg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentMap[card.accent].color,
+                border: `1px solid ${accentMap[card.accent].border}`,
               }}>{accentMap[card.accent].icon}</div>
-              {/* Trend chip */}
               <TrendChip value={card.trendPct} />
             </div>
+            {/* Label caption */}
+            <div style={{
+              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+              letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4,
+            }}>{card.label}</div>
             {/* Number */}
             <div style={{
-              fontFamily: '"DM Mono", monospace', fontSize: 28, fontWeight: 500,
+              fontFamily: '"DM Mono", monospace', fontSize: 26, fontWeight: 500,
               color: C.text, marginBottom: 4, lineHeight: 1.1,
             }}>{card.display}</div>
             {card.sub && (
               <div style={{
-                fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute, marginBottom: 8,
+                fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute, marginBottom: 6,
               }}>{card.sub}</div>
             )}
             {/* Bottom: sparkline or empty state */}
-            <div style={{ marginTop: 'auto', minHeight: 24 }}>
+            <div style={{ minHeight: 20 }}>
               {card.emptyMsg ? (
                 <div style={{ fontSize: 10, color: C.faint, fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
                   <MiniSparkline data={[]} color={C.gold} dashed />
@@ -413,8 +420,13 @@ export default function AdminDashboard() {
                   <MiniSparkline data={card.trend} color={C.gold} />
                   <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.faint }}>7d</span>
                 </div>
+              ) : card.value === 0 ? (
+                <div style={{ fontSize: 10, color: C.faint, fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
+                  <MiniSparkline data={[]} color={C.gold} dashed />
+                  <span style={{ display: 'block', marginTop: 4 }}>No revenue recorded yet</span>
+                </div>
               ) : (
-                <div style={{ height: 20 }} />
+                <div style={{ height: 4 }} />
               )}
             </div>
           </div>
@@ -458,11 +470,17 @@ export default function AdminDashboard() {
           {/* Y-axis labels + chart */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 240, paddingBottom: 24 }}>
-              {[4, 3, 2, 1, 0].map(i => (
-                <span key={i} style={{ fontFamily: '"DM Mono", monospace', fontSize: 9, color: C.faint, textAlign: 'right', lineHeight: 1 }}>
-                  {money(trendMax * i / 4)}
-                </span>
-              ))}
+              {(() => {
+                if (trendMax <= 1) {
+                  return <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 9, color: C.faint, textAlign: 'right', lineHeight: 1 }}>{money(0)}</span>;
+                }
+                const step = trendMax / 4;
+                return [4, 3, 2, 1, 0].map(i => (
+                  <span key={i} style={{ fontFamily: '"DM Mono", monospace', fontSize: 9, color: C.faint, textAlign: 'right', lineHeight: 1 }}>
+                    {money(Math.round(trendMax * i / 4 / 100) * 100)}
+                  </span>
+                ));
+              })()}
             </div>
             <div style={{ flex: 1, position: 'relative' }}>
               {/* Gradient definition */}
