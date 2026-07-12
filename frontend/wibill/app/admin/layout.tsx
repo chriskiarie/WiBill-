@@ -222,7 +222,10 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: '#3A3A37' }}>v0.1.0</span>
             <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: '#6B6964' }}>{clock}</span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>● ALL SYSTEMS GO</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73', display: 'inline-block', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+              ALL SYSTEMS GO
+            </span>
           </div>
         </header>
 

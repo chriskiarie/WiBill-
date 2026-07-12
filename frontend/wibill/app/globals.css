@@ -35,10 +35,15 @@
   --font-body: 'Inter', sans-serif;             /* labels, body text, supporting copy */
 
   /* ── Spacing scale (all cards/paddings/gaps) ── */
-  /* 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48        */
-  /* Card internal padding: 16px (hero: 20px)    */
-  /* Grid gap between cards: 12px                */
-  /* Section bottom margin: 20px                 */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 20px;
+  --space-lg: 32px;
+  --space-xl: 48px;
+  --radius-card: 12px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 /* ── Theme system tokens ── */
