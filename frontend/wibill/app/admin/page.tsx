@@ -56,6 +56,46 @@ function TrendChip({ value }: { value?: number }) {
   );
 }
 
+function HeroSparkline({ data, color }: { data: number[]; color: string }) {
+  const w = '100%'; const h = 72;
+  if (data.length < 2) {
+    return (
+      <svg width={w} height={h} viewBox={`0 0 200 ${h}`} style={{ display: 'block', opacity: 0.3 }}>
+        <defs>
+          <linearGradient id="heroEmptyFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M0,60 L40,50 L80,65 L120,45 L160,55 L200,50" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="3 3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M0,60 L40,50 L80,65 L120,45 L160,55 L200,50 L200,72 L0,72 Z" fill="url(#heroEmptyFill)" />
+      </svg>
+    );
+  }
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * 196 + 2;
+    const y = h - 8 - ((v - min) / range) * (h - 16);
+    return `${x},${y}`;
+  });
+  const area = [...pts, `196,${h - 4}`, `2,${h - 4}`].join(' ');
+  const line = pts.join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 200 ${h}`} style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="heroFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill="url(#heroFill)" />
+      <polyline points={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function MiniSparkline({ data, color, dashed }: { data: number[]; color: string; dashed?: boolean }) {
   const w = 60; const h = 20;
   if (data.length < 2 || dashed) {
@@ -338,99 +378,155 @@ export default function AdminDashboard() {
       )}
 
       {/* ── KPI CARDS ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-        {[
-          {
-            label: 'KES Collected Today',
-            value: stats.revenue_today,
-            display: money(stats.revenue_today),
-            trend: trendValues,
-            accent: 'revenue' as const,
-            trendPct: stats.revenue_today > 0 ? 12 : undefined,
-            emptyMsg: stats.revenue_today === 0 ? 'No payments collected today yet' : undefined,
-          },
-          {
-            label: 'Monthly Revenue',
-            value: stats.revenue_month,
-            display: money(stats.revenue_month),
-            sub: `${monthLabel} ${yearLabel}`,
-            trend: trendValues,
-            accent: 'revenue' as const,
-            trendPct: stats.revenue_month > 0 ? 8 : undefined,
-            emptyMsg: stats.revenue_month === 0 ? 'No monthly revenue recorded yet' : undefined,
-          },
-          {
-            label: 'Active Sessions',
-            value: stats.active_sessions,
-            display: String(stats.active_sessions),
-            sub: `across ${activeCount} ISP${activeCount !== 1 ? 's' : ''}`,
-            trend: [],
-            accent: 'system' as const,
-            trendPct: undefined,
-            emptyMsg: stats.active_sessions === 0 ? 'No active sessions — first connection will appear here.' : undefined,
-          },
-          {
-            label: 'Active ISPs',
-            value: activeCount,
-            display: `${activeCount} / ${stats.total_isps}`,
-            sub: `${pendingCount} pending`,
-            trend: [],
-            accent: 'network' as const,
-            trendPct: undefined,
-            emptyMsg: activeCount === 0 ? 'No active ISPs — first approval will appear here.' : undefined,
-          },
-        ].map((card) => (
-          <div key={card.label} style={{
-            background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 'var(--radius-card)', padding: 'var(--space-lg)',
-            boxShadow: 'var(--shadow-card)', display: 'flex', flexDirection: 'column',
-          }}>
-            {/* Icon badge + trend chip row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%', background: accentMap[card.accent].bg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentMap[card.accent].color,
-                border: `1px solid ${accentMap[card.accent].border}`,
-              }}>{accentMap[card.accent].icon}</div>
-              <TrendChip value={card.trendPct} />
-            </div>
-            {/* Label caption */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
+        {/* ── LEFT: HERO CARD (KES Collected Today) ── */}
+        {(() => {
+          const accent = 'revenue';
+          const a = accentMap[accent];
+          const glow = `radial-gradient(circle at 0 0, ${C.gold}12, transparent 70%)`;
+          const isZero = stats.revenue_today === 0;
+          const heroTrend = trendValues.length >= 2 ? trendValues : [];
+          return (
             <div style={{
-              fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
-              letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4,
-            }}>{card.label}</div>
-            {/* Number */}
-            <div style={{
-              fontFamily: '"DM Mono", monospace', fontSize: 26, fontWeight: 500,
-              color: C.text, marginBottom: 4, lineHeight: 1.1,
-            }}>{card.display}</div>
-            {card.sub && (
+              background: `${glow}, ${C.card}`,
+              border: `0.5px solid ${C.border}`,
+              borderLeft: `3px solid ${C.gold}`,
+              borderRadius: 'var(--radius-card)',
+              padding: 'var(--space-xl)',
+              boxShadow: 'var(--shadow-card)',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              {/* Badge + trend row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: `radial-gradient(circle, ${C.gold}30, transparent 70%), ${a.bg}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: C.gold, flexShrink: 0,
+                  border: `1px solid ${a.border}`,
+                  boxShadow: `0 0 12px ${C.gold}20`,
+                }}><DollarSign size={18} /></div>
+                <TrendChip value={stats.revenue_today > 0 ? 12 : undefined} />
+              </div>
+              {/* Label */}
               <div style={{
-                fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute, marginBottom: 6,
-              }}>{card.sub}</div>
-            )}
-            {/* Bottom: sparkline or empty state */}
-            <div style={{ minHeight: 20 }}>
-              {card.emptyMsg ? (
-                <div style={{ fontSize: 10, color: C.faint, fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
-                  <MiniSparkline data={[]} color={C.gold} dashed />
-                  <span style={{ display: 'block', marginTop: 4 }}>{card.emptyMsg}</span>
-                </div>
-              ) : card.trend.length >= 2 ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MiniSparkline data={card.trend} color={C.gold} />
-                  <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.faint }}>7d</span>
-                </div>
-              ) : card.value === 0 ? (
-                <div style={{ fontSize: 10, color: C.faint, fontFamily: 'Inter, sans-serif', lineHeight: 1.4 }}>
-                  <MiniSparkline data={[]} color={C.gold} dashed />
-                  <span style={{ display: 'block', marginTop: 4 }}>No revenue recorded yet</span>
-                </div>
-              ) : (
-                <div style={{ height: 4 }} />
-              )}
+                fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
+                letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4,
+              }}>KES Collected Today</div>
+              {/* Big number */}
+              <div style={{
+                fontFamily: '"DM Mono", monospace', fontSize: 48, fontWeight: 500,
+                color: C.text, lineHeight: 1, marginBottom: 12,
+              }}>{money(stats.revenue_today)}</div>
+              {/* Full-width area chart */}
+              <div style={{ marginBottom: 12 }}>
+                <HeroSparkline data={heroTrend} color={C.gold} />
+              </div>
+              {/* Footer: comparison vs yesterday */}
+              <div style={{
+                fontFamily: '"DM Mono", monospace', fontSize: 11, color: isZero ? C.mute : C.green,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {isZero ? (
+                  <><span style={{ color: C.mute }}>&mdash;</span> vs yesterday</>
+                ) : (
+                  <><span style={{ color: C.green }}>▲ 12%</span> vs yesterday</>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })()}
+
+        {/* ── RIGHT: COMPACT CARDS STACK ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+          {[
+            {
+              label: 'Monthly Revenue',
+              value: stats.revenue_month,
+              display: money(stats.revenue_month),
+              sub: `${monthLabel} ${yearLabel}`,
+              trend: trendValues,
+              accent: 'revenue' as const,
+              trendPct: stats.revenue_month > 0 ? 8 : undefined,
+              emptyMsg: stats.revenue_month === 0 ? 'No monthly revenue yet' : undefined,
+            },
+            {
+              label: 'Active Sessions',
+              value: stats.active_sessions,
+              display: String(stats.active_sessions),
+              sub: `across ${activeCount} ISP${activeCount !== 1 ? 's' : ''}`,
+              trend: [],
+              accent: 'system' as const,
+              trendPct: undefined,
+              emptyMsg: stats.active_sessions === 0 ? 'No active sessions yet' : undefined,
+            },
+            {
+              label: 'Active ISPs',
+              value: activeCount,
+              display: `${activeCount} / ${stats.total_isps}`,
+              sub: `${pendingCount} pending`,
+              trend: [],
+              accent: 'network' as const,
+              trendPct: undefined,
+              emptyMsg: activeCount === 0 ? 'No active ISPs yet' : undefined,
+            },
+          ].map((card) => {
+            const a = accentMap[card.accent];
+            const glow = `radial-gradient(circle at 0 0, ${a.color}0A, transparent 70%)`;
+            return (
+              <div key={card.label} style={{
+                background: `${glow}, ${C.card}`,
+                border: `0.5px solid ${C.border}`,
+                borderLeft: `3px solid ${a.color}`,
+                borderRadius: 'var(--radius-card)',
+                padding: 'var(--space-md)',
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center',
+              }}>
+                {/* Row: badge left, content middle, trend right */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: `radial-gradient(circle, ${a.color}25, transparent 70%), ${a.bg}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: a.color, flexShrink: 0,
+                    border: `1px solid ${a.border}`,
+                  }}>{a.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Label */}
+                    <div style={{
+                      fontFamily: 'Inter, sans-serif', fontSize: 10, fontWeight: 700, color: C.dim,
+                      letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 2,
+                    }}>{card.label}</div>
+                    {/* Number + sub */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{
+                        fontFamily: '"DM Mono", monospace', fontSize: 22, fontWeight: 500,
+                        color: C.text, lineHeight: 1.2,
+                      }}>{card.display}</span>
+                      {card.sub && (
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: C.mute }}>{card.sub}</span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Trend chip + tiny sparkline */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                    <TrendChip value={card.trendPct} />
+                    {card.trend.length >= 2 && (
+                      <MiniSparkline data={card.trend} color={C.gold} />
+                    )}
+                  </div>
+                </div>
+                {/* Empty state caption */}
+                {card.value === 0 && card.emptyMsg && (
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: C.faint, marginTop: 4, paddingLeft: 34 }}>
+                    {card.emptyMsg}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── MONTH P&L STRIP ── */}
