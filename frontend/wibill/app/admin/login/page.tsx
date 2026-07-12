@@ -260,7 +260,7 @@ export default function BatcaveLoginPage() {
               <span style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
-                Enter the Batcave
+                Enter MyDash
                 <span style={{
                   display: 'inline-block',
                   transition: 'transform 150ms ease',

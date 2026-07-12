@@ -3,25 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { LayoutDashboard, Radio, Receipt, ArrowRightLeft, Flag, FileText, MessageSquare, History, Settings, LogOut } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const NAV_OPERATIONS = [
-  { href: '/admin', label: 'Dashboard', exact: true },
-  { href: '/admin/isps', label: 'ISP Network' },
-  { href: '/admin/billing', label: 'Billing' },
-  { href: '/admin/transactions', label: 'Transactions' },
+  { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={16} />, exact: true },
+  { href: '/admin/isps', label: 'ISP Network', icon: <Radio size={16} /> },
+  { href: '/admin/billing', label: 'Billing', icon: <Receipt size={16} /> },
+  { href: '/admin/transactions', label: 'Transactions', icon: <ArrowRightLeft size={16} /> },
 ];
 
 const NAV_PLATFORM = [
-  { href: '/admin/feature-flags', label: 'Feature Flags' },
-  { href: '/admin/invoices', label: 'Invoices' },
-  { href: '/admin/comms', label: 'Comms' },
-  { href: '/admin/audit-log', label: 'Audit Log' },
+  { href: '/admin/feature-flags', label: 'Feature Flags', icon: <Flag size={16} /> },
+  { href: '/admin/invoices', label: 'Invoices', icon: <FileText size={16} /> },
+  { href: '/admin/comms', label: 'Comms', icon: <MessageSquare size={16} /> },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: <History size={16} /> },
 ];
 
 const NAV_SYSTEM = [
-  { href: '/admin/system', label: 'Settings' },
+  { href: '/admin/system', label: 'Settings', icon: <Settings size={16} /> },
 ];
 
 const pageNames: Record<string, string> = {
@@ -36,11 +37,11 @@ const pageNames: Record<string, string> = {
   '/admin/system': 'Settings',
 };
 
-function renderNavItem(n: { href: string; label: string; exact?: boolean }, path: string) {
+function renderNavItem(n: { href: string; label: string; icon: React.ReactNode; exact?: boolean }, path: string) {
   const active = n.exact ? path === n.href : path.startsWith(n.href);
   return (
     <Link key={n.href} href={n.href} style={{
-      display: 'flex', alignItems: 'center', height: 38,
+      display: 'flex', alignItems: 'center', height: 38, gap: 10,
       padding: '0 10px', borderRadius: 6,
       textDecoration: 'none', position: 'relative',
       fontFamily: 'Inter, sans-serif', fontSize: 13,
@@ -51,6 +52,7 @@ function renderNavItem(n: { href: string; label: string; exact?: boolean }, path
       onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#111110'; e.currentTarget.style.color = '#EDEBE6'; }}}
       onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8C8A84'; }}}
     >
+      <span style={{ opacity: active ? 1 : 0.5, flexShrink: 0, display: 'flex' }}>{n.icon}</span>
       {active && <div style={{
         position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
         width: 4, height: 16, borderRadius: '0 3px 3px 0', background: '#E8B84B',
@@ -62,7 +64,7 @@ function renderNavItem(n: { href: string; label: string; exact?: boolean }, path
 
 import { useAuth } from '@/lib/auth'
 
-export default function BatcaveLayout({ children }: { children: React.ReactNode }) {
+export default function MyDashLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const { logout } = useAuth();
@@ -114,7 +116,7 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
             <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-1s', color: '#EDEBE6' }}>w</span>
             <span style={{ position: 'absolute', top: '50%', left: '50%', width: 24, height: 24, margin: -12, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 20, textAlign: 'center', lineHeight: '24px', animation: 'orb 3s linear infinite', animationDelay: '-2s', color: '#E8B84B' }}>B</span>
           </div>
-          <div style={{ fontSize: 13, color: '#6B6964', fontFamily: 'Inter, sans-serif' }}>Loading Batcave</div>
+          <div style={{ fontSize: 13, color: '#6B6964', fontFamily: 'Inter, sans-serif' }}>Loading MyDash</div>
         </div>
       </div>
     );
@@ -155,9 +157,16 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
             <span style={{ color: '#EDEBE6' }}>w</span>
             <span style={{ color: '#E8B84B' }}>B</span>
           </span>
-          <div>
-            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 12, fontWeight: 500, color: '#6B6964', lineHeight: 1.1 }}>BATCAVE</div>
-            <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 400, color: '#3A3A37', letterSpacing: '0.15em' }}>ADMIN</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{
+              fontFamily: '"Syne", sans-serif', fontSize: 16, fontWeight: 800,
+              color: '#E8B84B', letterSpacing: '0.02em', lineHeight: 1,
+            }}>MYDASH</span>
+            <span style={{
+              fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 500,
+              color: '#3A3A37', letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '1px 6px', border: '0.5px solid #2A2A27', borderRadius: 3,
+            }}>ADMIN</span>
           </div>
         </div>
 
@@ -188,15 +197,19 @@ export default function BatcaveLayout({ children }: { children: React.ReactNode 
         {/* Bottom */}
         <div style={{ borderTop: '0.5px solid #2A2A27', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73' }} />
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6FCF73', boxShadow: '0 0 6px rgba(111,207,115,0.4)' }} />
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: '#6FCF73' }}>System operational</span>
           </div>
           <button onClick={logout}
             style={{
-              height: 32, borderRadius: 6, border: '0.5px solid #2A2A27', background: '#111110',
-              color: '#E5707A', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-            }}>
+              height: 32, borderRadius: 6, border: '0.5px solid #2A2A27', background: 'transparent',
+              color: '#6B6964', fontFamily: 'Inter, sans-serif', fontSize: 12, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'color 0.12s, border-color 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#E5707A'; e.currentTarget.style.borderColor = '#E5707A'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#6B6964'; e.currentTarget.style.borderColor = '#2A2A27'; }}>
+            <LogOut size={12} />
             Logout
           </button>
         </div>

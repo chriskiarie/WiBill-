@@ -123,8 +123,13 @@ function MiniSparkline({ data, color, dashed }: { data: number[]; color: string;
 }
 
 function money(n?: number) {
+  if (typeof n !== 'number' || Number.isNaN(n)) return '0.00';
+  return new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function moneyLabel(n?: number) {
   if (typeof n !== 'number' || Number.isNaN(n)) return 'KES 0';
-  return `KES ${new Intl.NumberFormat('en-KE').format(Math.round(n))}`;
+  return `KES ${new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 }
 
 function dateKey(d: Date) {
@@ -181,12 +186,18 @@ export default function AdminDashboard() {
   const [trend, setTrend] = useState<{ date: string; amount: number }[]>([]);
   const [isps, setIsps] = useState<any[]>([]);
   const [txns, setTxns] = useState<any[]>([]);
-  const [syncedAt, setSyncedAt] = useState('');
+  const [syncedTime, setSyncedTime] = useState(Date.now());
+  const [tick, setTick] = useState(0);
   const [allTxns, setAllTxns] = useState<any[]>([]);
 
   useEffect(() => {
-    const tick = () => setNow(new Date());
-    tick(); const id = setInterval(tick, 1000);
+    const t = () => setNow(new Date());
+    t(); const id = setInterval(t, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -217,7 +228,7 @@ export default function AdminDashboard() {
       setAllTxns(txnsList);
       setTxns(txnsList.slice(0, 5));
       setIsps(ispList);
-      setSyncedAt(formatTime(now));
+      setSyncedTime(Date.now());
 
       const byDay = new Map<string, number>();
       for (let i = 6; i >= 0; i--) {
@@ -346,21 +357,13 @@ export default function AdminDashboard() {
       <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
 
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ margin: 0, fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700, color: C.text, letterSpacing: '-0.02em' }}>
-            Batcave Dashboard
-          </h1>
-          <p style={{ margin: '4px 0 0', fontFamily: 'Inter, sans-serif', fontSize: 13, color: C.mute }}>
-            {formatDateFull(now)}
-            <span style={{ marginLeft: 12, fontFamily: '"DM Mono", monospace', fontSize: 12, color: C.faint }}>
-              {formatTime(now)}
-            </span>
-          </p>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1 style={{ margin: 0, fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700, color: C.text, letterSpacing: '-0.02em' }}>
+          MyDash
+        </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 11, color: C.faint }}>
-            synced {formatTime(new Date())}
+            Synced {Math.floor((Date.now() - syncedTime) / 1000) || 0}s ago
           </span>
           <button onClick={load} disabled={refreshing} style={{
             background: 'none', border: 'none', cursor: refreshing ? 'not-allowed' : 'pointer',
@@ -413,11 +416,17 @@ export default function AdminDashboard() {
                 fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 700, color: C.dim,
                 letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4,
               }}>KES Collected Today</div>
-              {/* Big number */}
-              <div style={{
-                fontFamily: '"DM Mono", monospace', fontSize: 48, fontWeight: 500,
-                color: C.text, lineHeight: 1, marginBottom: 12,
-              }}>{money(stats.revenue_today)}</div>
+              {/* Big number — KES prefix + value */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 12 }}>
+                <span style={{
+                  fontFamily: '"DM Mono", monospace', fontSize: 16, fontWeight: 400,
+                  color: C.gold, opacity: 0.6, lineHeight: 1,
+                }}>KES</span>
+                <span style={{
+                  fontFamily: '"DM Mono", monospace', fontSize: 56, fontWeight: 600,
+                  color: C.text, lineHeight: 1,
+                }}>{money(stats.revenue_today)}</span>
+              </div>
               {/* Full-width area chart */}
               <div style={{ marginBottom: 12 }}>
                 <HeroSparkline data={heroTrend} color={C.gold} />
