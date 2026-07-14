@@ -251,7 +251,7 @@ export default function SettingsPage() {
         <div style={{
           position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
           background: toast.ok ? '#0a2a0a' : '#2a0a0a', border: `0.5px solid ${toast.ok ? C.green : C.red}`,
-          borderRadius: 8, padding: '10px 20px', fontSize: 12, color: toast.ok ? C.green : C.red,
+          borderRadius: 'var(--radius-sm)', padding: '10px 20px', fontSize: 12, color: toast.ok ? C.green : C.red,
           fontFamily: '"DM Mono", monospace',
         }}>{toast.msg}</div>
       )}
@@ -297,14 +297,14 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Panel */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 36px', background: '#030303' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)', background: C.black }}>
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <>
             <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
               {statCards.map(s => (
                 <div key={s.label} style={{
-                  flex: 1, background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 8, padding: '14px 16px',
+                  flex: 1, background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', padding: '14px 16px',
                 }}>
                   <div style={{ fontSize: 10, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{s.label}</div>
                   <div style={{ fontSize: 20, fontWeight: 500, color: s.highlight ? C.gold : C.text, fontFamily: '"DM Mono", monospace' }}
@@ -315,7 +315,7 @@ export default function SettingsPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
-              <div style={{ flex: 1, background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, padding: 20 }}>
+              <div style={{ flex: 1, background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', padding: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc', marginBottom: 16 }}>System Status</div>
                 <div style={{ borderTop: `0.5px solid ${C.line}` }}>
                   {[
@@ -337,7 +337,7 @@ export default function SettingsPage() {
 
         {/* M-PESA */}
         {activeTab === 'mpesa' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>M-Pesa Credentials</div>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                       placeholder={f.placeholder}
                       onChange={e => setMpesaForm(fm => ({ ...fm, [f.key]: e.target.value }))}
                       style={{
-                        flex: 1, background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                        flex: 1, background: C.line, border: `0.5px solid ${C.line}`, borderRadius: 6,
                         padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
                         fontFamily: '"DM Mono", monospace',
                       }}
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ fontSize: 11, color: '#444' }}>
                   {mpesaConfig?.is_configured ? `Last saved: recently` : 'Not configured'}
@@ -430,7 +430,7 @@ export default function SettingsPage() {
 
         {/* MIKROTIK */}
         {activeTab === 'mikrotik' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>ISP Router Status</div>
               <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Connection status for all ISP MikroTik routers</div>
@@ -484,7 +484,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 11, color: '#444' }}>
                 {routers.length} total router{routers.length !== 1 ? 's' : ''}
               </div>
@@ -498,13 +498,13 @@ export default function SettingsPage() {
 
         {/* SECURITY */}
         {activeTab === 'security' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, padding: 20 }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc', marginBottom: 16 }}>Admin Credentials</div>
             {['Current Password', 'New Password', 'Confirm New Password'].map(label => (
               <div key={label} style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 11, color: '#777', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
                 <input type="password" placeholder={label} style={{
-                  width: '100%', maxWidth: 400, background: '#0d0d0d', border: `0.5px solid #1e1e1e`,
+                  width: '100%', maxWidth: 400, background: C.line, border: `0.5px solid ${C.line}`,
                   borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
                   fontFamily: '"DM Mono", monospace',
                 }} />
@@ -518,7 +518,7 @@ export default function SettingsPage() {
 
         {/* NOTIFICATIONS */}
         {activeTab === 'notifications' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>Alert Notifications</div>
               <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>System events delivered to your admin email</div>
@@ -531,7 +531,7 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <input type="email" defaultValue="admin@honestbill.co.ke" style={{
-                    width: '100%', background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                    width: '100%', background: C.line, border: `0.5px solid ${C.line}`, borderRadius: 6,
                     padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
                     fontFamily: '"DM Mono", monospace',
                   }} />
@@ -550,7 +550,7 @@ export default function SettingsPage() {
                       <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{event.desc}</div>
                     </div>
                     <div style={{
-                      width: 34, height: 19, borderRadius: 10, cursor: 'pointer',
+                      width: 34, height: 19, borderRadius: 'var(--radius-sm)', cursor: 'pointer',
                       background: C.gold, position: 'relative', flexShrink: 0,
                     }}>
                       <div style={{
@@ -562,7 +562,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
-            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 11, color: '#444' }}>Changes apply immediately</div>
               <button style={{
                 background: C.gold, color: '#000', border: 'none', borderRadius: 6,
@@ -574,7 +574,7 @@ export default function SettingsPage() {
 
         {/* EMAIL / SMTP */}
         {activeTab === 'email' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}` }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>SMTP Configuration</div>
               <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Outgoing mail server for system emails</div>
@@ -600,7 +600,7 @@ export default function SettingsPage() {
                       placeholder={f.label}
                       onChange={e => setSmtpForm(fm => ({ ...fm, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value }))}
                       style={{
-                        width: '100%', background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                        width: '100%', background: C.line, border: `0.5px solid ${C.line}`, borderRadius: 6,
                         padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
                         fontFamily: '"DM Mono", monospace',
                       }}
@@ -616,7 +616,7 @@ export default function SettingsPage() {
                 <div
                   onClick={() => setSmtpForm(fm => ({ ...fm, use_tls: !fm.use_tls }))}
                   style={{
-                    width: 34, height: 19, borderRadius: 10, cursor: 'pointer',
+                    width: 34, height: 19, borderRadius: 'var(--radius-sm)', cursor: 'pointer',
                     background: smtpForm.use_tls ? C.gold : '#222', position: 'relative', flexShrink: 0,
                   }}
                 >
@@ -628,7 +628,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ fontSize: 11, color: '#444' }}>
                   {smtpConfig?.is_configured ? 'Configured' : 'Not configured'}
@@ -653,7 +653,7 @@ export default function SettingsPage() {
 
         {/* API KEYS */}
         {activeTab === 'apikeys' && (
-          <div style={{ background: '#080808', border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ background: C.card, border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px 14px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#ccc' }}>API Keys</div>
@@ -667,7 +667,7 @@ export default function SettingsPage() {
             <div style={{ padding: '18px 20px' }}>
               {/* New key creation */}
               {showNewKeyForm && (
-                <div style={{ marginBottom: 16, padding: 14, border: `0.5px solid ${C.gold}`, borderRadius: 8, background: '#0d0a00' }}>
+                <div style={{ marginBottom: 16, padding: 14, border: `0.5px solid ${C.gold}`, borderRadius: 'var(--radius-sm)', background: '#0d0a00' }}>
                   <div style={{ fontSize: 11, color: C.gold, marginBottom: 8 }}>New API Key</div>
                   {newKeyResult ? (
                     <>
@@ -687,7 +687,7 @@ export default function SettingsPage() {
                         type="text" value={newKeyName} placeholder="e.g. CI/CD Token"
                         onChange={e => setNewKeyName(e.target.value)}
                         style={{
-                          flex: 1, background: '#0d0d0d', border: `0.5px solid #1e1e1e`, borderRadius: 6,
+                          flex: 1, background: C.line, border: `0.5px solid ${C.line}`, borderRadius: 6,
                           padding: '8px 12px', fontSize: 12, color: '#ccc', outline: 'none',
                           fontFamily: '"DM Mono", monospace',
                         }}
@@ -748,7 +748,7 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 20px', borderTop: `0.5px solid ${C.line}`, background: C.card, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 11, color: '#444' }}>{apiKeys.length} key{apiKeys.length !== 1 ? 's' : ''}</div>
               <button onClick={loadApiKeys} style={{
                 background: 'transparent', color: C.gold, border: `0.5px solid ${C.gold}`, borderRadius: 6,
@@ -760,7 +760,7 @@ export default function SettingsPage() {
 
         {/* DANGER ZONE */}
         {activeTab === 'danger' && (
-          <div style={{ border: `1px solid rgba(229,112,122,0.3)`, borderRadius: 8, padding: 24, background: C.black }}>
+          <div style={{ border: `1px solid rgba(229,112,122,0.3)`, borderRadius: 'var(--radius-sm)', padding: 24, background: C.black }}>
             {[
               { label: 'Reset all feature flags', desc: 'Disable all premium features across all ISPs' },
               { label: 'Suspend all ISPs', desc: 'Temporarily disable all partner access' },
@@ -788,7 +788,7 @@ export default function SettingsPage() {
         }} onClick={() => setShowLogs(false)}>
           <div onClick={e => e.stopPropagation()} style={{
             width: '80%', maxWidth: 800, maxHeight: '80vh', background: '#050505',
-            border: `0.5px solid ${C.line}`, borderRadius: 10, overflow: 'hidden',
+            border: `0.5px solid ${C.line}`, borderRadius: 'var(--radius-sm)', overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
           }}>
             <div style={{ padding: '14px 18px', borderBottom: `0.5px solid ${C.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

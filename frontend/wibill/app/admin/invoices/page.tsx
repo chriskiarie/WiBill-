@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const C = {
+  black: '#000', card: '#0D0D0B', line: '#1A1A18', border: '#2A2A27',
   text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
   gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 }
@@ -25,7 +26,7 @@ type Filter = 'all' | 'paid' | 'pending' | 'overdue' | 'trial'
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string; border: string }> = {
   active: { label: 'Paid', dot: '#4ade80', bg: '#071a0f', border: '#0d3d1d' },
-  pending: { label: 'Pending', dot: '#f59e0b', bg: '#1a1200', border: '#3a2800' },
+  pending: { label: 'Pending', dot: C.gold, bg: `${C.gold}14`, border: `${C.gold}33` },
   overdue: { label: 'Overdue', dot: '#ef4444', bg: '#1a0505', border: '#3d0d0d' },
   paused: { label: 'Paused', dot: '#ef4444', bg: '#1a0505', border: '#3d0d0d' },
 }
@@ -190,7 +191,7 @@ export default function AdminInvoicesPage() {
   const commission = collected * 0.1
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', color: C.text, fontSize: 13 }}>
+    <div style={{ background: C.black, color: C.text, fontSize: 13, padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -201,12 +202,8 @@ export default function AdminInvoicesPage() {
         }}>{toast.msg}</div>
       )}
 
-      {/* Top Bar */}
-      <div style={{
-        background: '#080808', borderBottom: `0.5px solid #141414`, padding: '0 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, minHeight: 52,
-      }}>
-        <h1 style={{ fontSize: 16, fontWeight: 500, color: '#e8e8e8', margin: 0, fontFamily: '"Space Grotesk", sans-serif' }}>Invoices</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+        <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>Invoices</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={exportCsv} style={{
             background: '#141414', border: `0.5px solid #1e1e1e`, borderRadius: 6, padding: '7px 12px', fontSize: 11,
@@ -231,7 +228,7 @@ export default function AdminInvoicesPage() {
       </div>
 
       {/* Summary Strip */}
-      <div style={{ display: 'flex', borderBottom: `0.5px solid #141414`, background: '#050505' }}>
+      <div style={{ display: 'flex', borderBottom: `0.5px solid ${C.border}`, background: C.card }}>
         {[
           { label: 'Outstanding', value: formatKsh(outstanding), sub: `${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length} ISP${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length !== 1 ? 's' : ''} unpaid`, cls: 'warn' },
           { label: 'Overdue', value: formatKsh(overdue), sub: `${invoices.filter(i => i.invoice_status === 'overdue' || i.invoice_status === 'paused').length} ISP >30 days`, cls: 'danger' },
@@ -240,12 +237,12 @@ export default function AdminInvoicesPage() {
         ].map((s, i) => (
           <div key={i} style={{
             flex: 1, padding: '16px 24px',
-            borderRight: i < 3 ? `0.5px solid #141414` : 'none',
+            borderRight: i < 3 ? `0.5px solid ${C.border}` : 'none',
           }}>
             <div style={{ fontSize: 10, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>{s.label}</div>
             <div style={{
               fontSize: 22, fontWeight: 500, fontFamily: '"DM Mono", monospace',
-              color: s.cls === 'warn' ? '#f59e0b' : s.cls === 'danger' ? C.red : s.cls === 'ok' ? '#4ade80' : C.gold,
+              color: s.cls === 'warn' ? C.gold : s.cls === 'danger' ? C.red : s.cls === 'ok' ? C.green : C.gold,
             }}>{s.value}</div>
             <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{s.sub}</div>
           </div>
@@ -255,7 +252,7 @@ export default function AdminInvoicesPage() {
       {/* Filter Row */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '14px 24px', borderBottom: `0.5px solid #141414`, background: '#050505',
+        padding: '14px 24px', borderBottom: `0.5px solid ${C.border}`, background: C.card,
       }}>
         <input
           type="text" placeholder="🔍  Search ISP or account…"
@@ -356,10 +353,10 @@ export default function AdminInvoicesPage() {
                               <div style={{
                                 width: `${Math.min(Math.max((30 - inv.avg_days_punctual) / 30 * 100, 5), 100)}%`,
                                 height: '100%', borderRadius: 2,
-                                background: inv.avg_days_punctual <= 3 ? '#4ade80' : inv.avg_days_punctual <= 10 ? '#f59e0b' : '#ef4444',
+                                background: inv.avg_days_punctual <= 3 ? C.green : inv.avg_days_punctual <= 10 ? C.gold : C.red,
                               }} />
                             </div>
-                            <span style={{ fontSize: 11, color: inv.avg_days_punctual <= 3 ? '#4ade80' : inv.avg_days_punctual <= 10 ? '#f59e0b' : '#ef4444' }}>
+                            <span style={{ fontSize: 11, color: inv.avg_days_punctual <= 3 ? C.green : inv.avg_days_punctual <= 10 ? C.gold : C.red }}>
                               {inv.avg_days_punctual.toFixed(0)}d
                             </span>
                           </div>

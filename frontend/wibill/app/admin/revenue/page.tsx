@@ -85,59 +85,53 @@ export default function AdminRevenue() {
     return `KES ${amount.toFixed(0)}`;
   };
 
-  const colors = {
-    void: '#000000',
-    base: '#0a0a0a',
-    raised: '#0d0d0d',
-    border: '#141414',
-    textPrimary: '#f0f0f0',
-    textSecondary: '#666666',
-    textMuted: '#2a2a2a',
-    gold: '#E8B84B',
-    green: '#22c55e',
-    red: '#ef4444',
-    amber: '#f59e0b',
-    blue: '#3b82f6',
+  const C = {
+    black: '#000', card: '#0D0D0B', line: '#1A1A18', border: '#2A2A27',
+    text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
+    gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
   };
 
   const sk = (w: string, h: number, d = 0) => ({
-    width: w, height: h, background: colors.textMuted, borderRadius: 6,
+    width: w, height: h, background: C.mute, borderRadius: 6,
     animation: 'skel-pulse 2s ease-in-out infinite',
     animationDelay: `${d}s`,
   });
 
   if (loading && txns.length === 0) {
     return (
-      <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
+      <div style={{ background: C.black, color: C.text, padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
         <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
-        <div style={sk('280px', 36, 0)} />
-        <div style={{ ...sk('320px', 13, 0.1), marginTop: 8, marginBottom: 40 }} />
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>
+            Revenue Dashboard
+          </h1>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {[0.1, 0.2, 0.3, 0.4].map(d => (
-            <div key={d} style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24 }}>
+            <div key={d} style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <div style={sk('60%', 10, d)} />
               <div style={{ ...sk('50%', 28, d + 0.05), marginTop: 12, marginBottom: 8 }} />
               <div style={sk('40%', 11, d + 0.1)} />
             </div>
           ))}
         </div>
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 24, marginBottom: 32 }}>
           <div style={sk('160px', 14, 0.15)} />
           <div style={{ ...sk('200px', 11, 0.2), marginTop: 4, marginBottom: 20 }} />
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180 }}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(i => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                <div style={{ width: '100%', height: `${30 + (i * 4) % 50}%`, background: colors.textMuted, borderRadius: 3, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + i * 0.04}s` }} />
+                <div style={{ width: '100%', height: `${30 + (i * 4) % 50}%`, background: C.mute, borderRadius: 3, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + i * 0.04}s` }} />
               </div>
             ))}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {[0.3, 0.5].map((d, col) => (
-            <div key={col} style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: 12, padding: 24 }}>
+            <div key={col} style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 24 }}>
               <div style={sk('140px', 14, d)} />
               {[1, 2, 3, 4].map(r => (
-                <div key={r} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', marginTop: 8, background: colors.raised, border: `0.5px solid ${colors.border}`, borderRadius: 8 }}>
+                <div key={r} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', marginTop: 8, background: C.line, border: `0.5px solid ${C.border}`, borderRadius: 8 }}>
                   <div>
                     <div style={sk('80px', 10, d + r * 0.04)} />
                     <div style={{ ...sk('60px', 10, d + r * 0.07), marginTop: 2 }} />
@@ -153,39 +147,31 @@ export default function AdminRevenue() {
   }
 
   return (
-    <div style={{ background: colors.void, color: colors.textPrimary, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1800px', margin: '0 auto' }}>
-      {/* HEADER */}
-      <div style={{ marginBottom: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: colors.textPrimary, fontFamily: '"Space Grotesk", sans-serif' }}>
-              Revenue Dashboard
-            </h1>
-            <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0 }}>
-              Real-time cash flow tracking and platform performance
-            </p>
-          </div>
-          <button onClick={load} disabled={refreshing} title="Refresh" style={{
-            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `0.5px solid ${colors.border}`, background: colors.base, cursor: refreshing ? 'not-allowed' : 'pointer', color: colors.textSecondary,
-            animation: refreshing ? 'spin 1s linear infinite' : 'none',
-          }}>
-            <RefreshCw size={13} />
-          </button>
-        </div>
+    <div style={{ background: C.black, color: C.text, fontFamily: 'Inter, -apple-system, sans-serif', padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+        <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>
+          Revenue Dashboard
+        </h1>
+        <button onClick={load} disabled={refreshing} title="Refresh" style={{
+          width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `0.5px solid ${C.border}`, background: C.card, cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
+          animation: refreshing ? 'spin 1s linear infinite' : 'none',
+        }}>
+          <RefreshCw size={13} />
+        </button>
       </div>
 
       {/* PRIMARY KPIs - THE BIG NUMBERS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
-          { label: 'Total Collected', value: formatCurrency(totalGMV), color: colors.blue, icon: '💰', change: '+12.5%' },
-          { label: 'Platform Fees', value: formatCurrency(totalFees), color: colors.gold, icon: '💸', change: '+8.2%' },
-          { label: 'ISP Payouts', value: formatCurrency(totalPayouts), color: colors.green, icon: '✓', change: '+14.1%' },
-          { label: 'Outstanding', value: formatCurrency(outstanding), color: colors.amber, icon: '⏳', change: 'pending' },
+          { label: 'Total Collected', value: formatCurrency(totalGMV), color: C.gold, icon: '💰', change: '+12.5%' },
+          { label: 'Platform Fees', value: formatCurrency(totalFees), color: C.gold, icon: '💸', change: '+8.2%' },
+          { label: 'ISP Payouts', value: formatCurrency(totalPayouts), color: C.green, icon: '✓', change: '+14.1%' },
+          { label: 'Outstanding', value: formatCurrency(outstanding), color: C.gold, icon: '⏳', change: 'pending' },
         ].map((metric, i) => (
           <div key={i} style={{
-            background: colors.base,
-            border: `0.5px solid ${colors.border}`,
+            background: C.card,
+            border: `0.5px solid ${C.border}`,
             borderRadius: '12px',
             padding: '24px',
             position: 'relative',
@@ -194,17 +180,17 @@ export default function AdminRevenue() {
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: metric.color }} />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute }}>
                 {metric.label}
               </div>
               <span style={{ fontSize: 18 }}>{metric.icon}</span>
             </div>
 
-            <div style={{ fontSize: 28, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace', marginBottom: '8px' }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: metric.color, fontFamily: '"DM Mono", monospace', marginBottom: '8px' }}>
               {metric.value}
             </div>
 
-            <div style={{ fontSize: 11, color: metric.change === 'pending' ? colors.amber : colors.green, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
+            <div style={{ fontSize: 11, color: metric.change === 'pending' ? C.gold : C.green, fontFamily: '"DM Mono", monospace', fontWeight: 600 }}>
               {metric.change}
             </div>
           </div>
@@ -212,18 +198,18 @@ export default function AdminRevenue() {
       </div>
 
       {/* CASH FLOW VISUALIZATION */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px', marginBottom: '32px' }}>
+      <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: '12px', padding: '24px', marginBottom: '32px' }}>
         <div style={{ marginBottom: '20px' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 4px', fontFamily: '"Space Grotesk", sans-serif' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 4px', fontFamily: '"Space Grotesk", sans-serif' }}>
             14-Day Cash Flow
           </h2>
-          <p style={{ fontSize: 11, color: colors.textMuted, margin: 0 }}>
+          <p style={{ fontSize: 11, color: C.mute, margin: 0 }}>
             Collection → Fees → Payouts
           </p>
         </div>
 
         {chartData.length === 0 ? (
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textMuted }}>
+          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.mute }}>
             No transaction data
           </div>
         ) : (
@@ -243,7 +229,7 @@ export default function AdminRevenue() {
                       <div
                         style={{
                           flex: payoutsPercent,
-                          background: colors.green,
+                          background: C.green,
                           opacity: 0.8,
                           minHeight: payoutsPercent > 5 ? '4px' : 0,
                           borderRadius: payoutsPercent > 30 ? '3px 3px 0 0' : 0,
@@ -262,7 +248,7 @@ export default function AdminRevenue() {
                       <div
                         style={{
                           flex: feesPercent,
-                          background: colors.gold,
+                          background: C.gold,
                           opacity: 0.8,
                           minHeight: feesPercent > 5 ? '4px' : 0,
                           transition: 'all 0.2s',
@@ -280,7 +266,7 @@ export default function AdminRevenue() {
                       <div
                         style={{
                           flex: 100 - feesPercent - payoutsPercent,
-                          background: colors.blue,
+                          background: C.gold,
                           opacity: 0.6,
                           minHeight: (100 - feesPercent - payoutsPercent) > 5 ? '4px' : 0,
                           borderRadius: (100 - feesPercent - payoutsPercent) > 30 ? '0 0 3px 3px' : 0,
@@ -297,7 +283,7 @@ export default function AdminRevenue() {
                       />
                     </div>
                     
-                    <div style={{ fontSize: 9, color: colors.textMuted, fontFamily: '"JetBrains Mono", monospace', textAlign: 'center', marginTop: '4px' }}>
+                    <div style={{ fontSize: 9, color: C.mute, fontFamily: '"DM Mono", monospace', textAlign: 'center', marginTop: '4px' }}>
                       {date.split(' ')[0]}
                     </div>
                   </div>
@@ -306,18 +292,18 @@ export default function AdminRevenue() {
             </div>
 
             {/* LEGEND */}
-            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', fontSize: 11, borderTop: `0.5px solid ${colors.border}`, paddingTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', fontSize: 11, borderTop: `0.5px solid ${C.border}`, paddingTop: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '12px', height: '12px', background: colors.green, borderRadius: '2px' }} />
-                <span style={{ color: colors.textSecondary }}>ISP Payouts</span>
+                <div style={{ width: '12px', height: '12px', background: C.green, borderRadius: '2px' }} />
+                <span style={{ color: C.dim }}>ISP Payouts</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '12px', height: '12px', background: colors.gold, borderRadius: '2px' }} />
-                <span style={{ color: colors.textSecondary }}>Platform Fees</span>
+                <div style={{ width: '12px', height: '12px', background: C.gold, borderRadius: '2px' }} />
+                <span style={{ color: C.dim }}>Platform Fees</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '12px', height: '12px', background: colors.blue, borderRadius: '2px', opacity: 0.6 }} />
-                <span style={{ color: colors.textSecondary }}>Outstanding/Pending</span>
+                <div style={{ width: '12px', height: '12px', background: C.gold, borderRadius: '2px', opacity: 0.6 }} />
+                <span style={{ color: C.dim }}>Outstanding/Pending</span>
               </div>
             </div>
           </div>
@@ -327,36 +313,36 @@ export default function AdminRevenue() {
       {/* SECONDARY METRICS + TOP ISPs GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
         {/* METRICS */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
             Key Metrics
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {[
-              { label: 'Take Rate', value: takeRate + '%', color: colors.gold, desc: 'Fee / Volume' },
-              { label: 'Success Rate', value: successRate + '%', color: colors.green, desc: 'Completed txns' },
-              { label: 'Total Transactions', value: txnCount.toLocaleString(), color: colors.blue, desc: 'All time' },
-              { label: 'Avg Transaction', value: formatCurrency(txns.length > 0 ? totalGMV / txns.length : 0), color: colors.amber, desc: 'Per payment' },
+              { label: 'Take Rate', value: takeRate + '%', color: C.gold, desc: 'Fee / Volume' },
+              { label: 'Success Rate', value: successRate + '%', color: C.green, desc: 'Completed txns' },
+              { label: 'Total Transactions', value: txnCount.toLocaleString(), color: C.gold, desc: 'All time' },
+              { label: 'Avg Transaction', value: formatCurrency(txns.length > 0 ? totalGMV / txns.length : 0), color: C.gold, desc: 'Per payment' },
             ].map((metric, i) => (
               <div key={i} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '12px',
-                background: colors.raised,
-                border: `0.5px solid ${colors.border}`,
+                background: C.line,
+                border: `0.5px solid ${C.border}`,
                 borderRadius: '8px',
               }}>
                 <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, marginBottom: '2px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: '2px' }}>
                     {metric.label}
                   </div>
-                  <div style={{ fontSize: 10, color: colors.textSecondary }}>
+                  <div style={{ fontSize: 10, color: C.dim }}>
                     {metric.desc}
                   </div>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: metric.color, fontFamily: '"JetBrains Mono", monospace' }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: metric.color, fontFamily: '"DM Mono", monospace' }}>
                   {metric.value}
                 </div>
               </div>
@@ -365,14 +351,14 @@ export default function AdminRevenue() {
         </div>
 
         {/* TOP ISPs */}
-        <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
             Top ISPs by Revenue
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {topISPs.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: colors.textMuted, fontSize: 12 }}>
+              <div style={{ padding: '20px', textAlign: 'center', color: C.mute, fontSize: 12 }}>
                 No ISP data
               </div>
             ) : (
@@ -382,38 +368,38 @@ export default function AdminRevenue() {
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px',
-                  background: colors.raised,
-                  border: `0.5px solid ${colors.border}`,
+                  background: C.line,
+                  border: `0.5px solid ${C.border}`,
                   borderRadius: '8px',
                 }}>
                   <div style={{
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    background: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
+                    background: [C.gold, C.green, C.gold, C.gold, C.red][idx],
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 12,
                     fontWeight: 900,
-                    color: colors.void,
+                    color: C.black,
                   }}>
                     #{idx + 1}
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: colors.textPrimary, marginBottom: '2px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginBottom: '2px' }}>
                       {id === 'unknown' ? 'Unassigned' : `ISP-${id.slice(0, 12)}`}
                     </div>
                     <div style={{
                       height: '4px',
-                      background: colors.border,
+                      background: C.border,
                       borderRadius: '2px',
                       overflow: 'hidden',
                     }}>
                       <div style={{
                         height: '100%',
-                        background: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
+                        background: [C.gold, C.green, C.gold, C.gold, C.red][idx],
                         width: `${Math.min((revenue / topISPs[0][1]) * 100, 100)}%`,
                       }} />
                     </div>
@@ -422,8 +408,8 @@ export default function AdminRevenue() {
                   <div style={{
                     fontSize: 12,
                     fontWeight: 900,
-                    color: [colors.gold, colors.green, colors.blue, colors.amber, colors.red][idx],
-                    fontFamily: '"JetBrains Mono", monospace',
+                    color: [C.gold, C.green, C.gold, C.gold, C.red][idx],
+                    fontFamily: '"DM Mono", monospace',
                     textAlign: 'right',
                     minWidth: '80px',
                   }}>
@@ -437,34 +423,34 @@ export default function AdminRevenue() {
       </div>
 
       {/* REVENUE BREAKDOWN TABLE */}
-      <div style={{ background: colors.base, border: `0.5px solid ${colors.border}`, borderRadius: '12px', padding: '24px' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
+      <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: '0 0 16px', fontFamily: '"Space Grotesk", sans-serif' }}>
           Revenue Split (All Time)
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
           {[
-            { label: 'Total Collected', value: totalGMV, percent: 100, color: colors.blue },
-            { label: 'Platform Revenue', value: totalFees, percent: (totalFees / (totalGMV || 1)) * 100, color: colors.gold },
-            { label: 'ISP Earnings', value: totalPayouts, percent: (totalPayouts / (totalGMV || 1)) * 100, color: colors.green },
+            { label: 'Total Collected', value: totalGMV, percent: 100, color: C.gold },
+            { label: 'Platform Revenue', value: totalFees, percent: (totalFees / (totalGMV || 1)) * 100, color: C.gold },
+            { label: 'ISP Earnings', value: totalPayouts, percent: (totalPayouts / (totalGMV || 1)) * 100, color: C.green },
           ].map((item, i) => (
             <div key={i} style={{
               padding: '16px',
-              background: colors.raised,
-              border: `0.5px solid ${colors.border}`,
+              background: C.line,
+              border: `0.5px solid ${C.border}`,
               borderRadius: '8px',
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: colors.textMuted, marginBottom: '8px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: '8px' }}>
                 {item.label}
               </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: item.color, fontFamily: '"JetBrains Mono", monospace', marginBottom: '8px' }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: item.color, fontFamily: '"DM Mono", monospace', marginBottom: '8px' }}>
                 {formatCurrency(item.value)}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ flex: 1, height: '4px', background: colors.border, borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ flex: 1, height: '4px', background: C.border, borderRadius: '2px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', background: item.color, width: `${item.percent}%` }} />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: '"JetBrains Mono", monospace' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: item.color, fontFamily: '"DM Mono", monospace' }}>
                   {item.percent.toFixed(1)}%
                 </div>
               </div>

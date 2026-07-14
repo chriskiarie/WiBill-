@@ -19,16 +19,9 @@ interface Partner {
 }
 
 const C = {
-  void: '#000000',
-  base: '#0a0a0a',
-  raised: '#0d0d0d',
-  border: '#141414',
-  text: '#f0f0f0',
-  dim: '#666666',
-  mute: '#2a2a2a',
-  gold: '#E8B84B',
-  green: '#22c55e',
-  red: '#ef4444',
+  black: '#000', card: '#0D0D0B', line: '#1A1A18', border: '#2A2A27',
+  text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
+  gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 };
 
 export default function PartnersPage() {
@@ -107,20 +100,23 @@ export default function PartnersPage() {
 
   if (loading && partners.length === 0) {
     return (
-      <div style={{ background: C.void, color: C.text, minHeight: '100vh', padding: '32px 36px', maxWidth: '1600px', margin: '0 auto' }}>
+      <div style={{ background: C.black, color: C.text, padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
         <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
-        <div style={skel('240px', 36, 0)} />
-        <div style={{ ...skel('300px', 13, 0.1), marginTop: 8, marginBottom: 32 }} />
+        <div style={{ marginBottom: 'var(--space-md)' }}>
+          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>
+            Partner Network
+          </h1>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 32 }}>
           {[0.1, 0.2, 0.3, 0.4].map(d => (
-            <div key={d} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+            <div key={d} style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
               <div style={skel('60%', 10, d)} />
               <div style={{ ...skel('50%', 28, d + 0.05), marginTop: 8, marginBottom: 4 }} />
               <div style={skel('50%', 11, d + 0.1)} />
             </div>
           ))}
         </div>
-        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+        <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
           <div style={skel('160px', 14, 0.2)} />
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1.5fr 1.5fr 1fr 80px', gap: 8, padding: '12px 0', borderBottom: `0.5px solid ${C.border}` }}>
             {[1, 2, 3, 4, 5, 6, 7].map(i => <div key={i} style={skel('100%', 10, 0.2 + i * 0.03)} />)}
@@ -136,26 +132,18 @@ export default function PartnersPage() {
   }
 
   return (
-    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', padding: '32px 36px', maxWidth: '1600px', margin: '0 auto' }}>
-      {/* HEADER */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 8px', color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>
-              Partner Network
-            </h1>
-            <p style={{ fontSize: 13, color: C.dim, margin: 0 }}>
-              Every ISP on the platform — their terms, their revenue, your earnings
-            </p>
-          </div>
-          <button onClick={fetchPartners} disabled={refreshing} title="Refresh" style={{
-            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `0.5px solid ${C.border}`, background: C.base, cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
-            animation: refreshing ? 'spin 1s linear infinite' : 'none',
-          }}>
-            <RefreshCw size={13} />
-          </button>
-        </div>
+    <div style={{ background: C.black, color: C.text, fontFamily: 'Inter, -apple-system, sans-serif', padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+        <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>
+          Partner Network
+        </h1>
+        <button onClick={fetchPartners} disabled={refreshing} title="Refresh" style={{
+          width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `0.5px solid ${C.border}`, background: C.card, cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
+          animation: refreshing ? 'spin 1s linear infinite' : 'none',
+        }}>
+          <RefreshCw size={13} />
+        </button>
       </div>
 
       {/* STAT CARDS */}
@@ -167,7 +155,7 @@ export default function PartnersPage() {
           { label: 'Avg Commission', value: `${avgCommission.toFixed(1)}%`, sub: 'per partner', accent: C.gold },
         ].map((card, i) => (
           <div key={i} style={{
-            background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20,
+            background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20,
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.mute, marginBottom: 8 }}>
               {card.label}
@@ -183,7 +171,7 @@ export default function PartnersPage() {
       </div>
 
       {/* PARTNER TABLE */}
-      <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
         {/* HEADER ROW */}
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1.5fr 1.5fr 1fr 80px',
@@ -210,7 +198,7 @@ export default function PartnersPage() {
               <div key={p.id} style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 1.5fr 1.5fr 1fr 80px',
                 gap: 8, padding: '14px 20px',
-                background: idx % 2 === 0 ? 'transparent' : C.raised,
+                background: idx % 2 === 0 ? 'transparent' : C.line,
                 borderBottom: `0.5px solid ${C.border}`,
                 alignItems: 'center',
                 fontSize: 13,
@@ -227,7 +215,7 @@ export default function PartnersPage() {
                   <span style={{
                     display: 'inline-block', padding: '3px 10px', borderRadius: 20,
                     fontSize: 9, fontWeight: 700, textTransform: 'uppercase', fontFamily: '"DM Mono", monospace',
-                    background: isPremium ? 'rgba(232, 184, 75, 0.12)' : C.raised,
+                    background: isPremium ? 'rgba(232, 184, 75, 0.12)' : C.line,
                     color: isPremium ? C.gold : C.dim,
                     border: `0.5px solid ${isPremium ? C.gold : C.border}`,
                   }}>
@@ -248,7 +236,7 @@ export default function PartnersPage() {
                         step={0.5}
                         style={{
                           width: 56, padding: '4px 8px', borderRadius: 6, border: `0.5px solid ${C.gold}`,
-                          background: C.void, color: C.text, fontSize: 13, fontFamily: '"DM Mono", monospace',
+                          background: C.black, color: C.text, fontSize: 13, fontFamily: '"DM Mono", monospace',
                           outline: 'none',
                         }}
                         onKeyDown={e => e.key === 'Enter' && saveRate(p.id)}
@@ -256,7 +244,7 @@ export default function PartnersPage() {
                       />
                       <span style={{ fontSize: 10, color: C.dim, fontFamily: '"DM Mono", monospace' }}>%</span>
                       <button onClick={() => saveRate(p.id)} disabled={saving} style={{
-                        background: C.gold, color: C.void, border: 'none', borderRadius: 4,
+                        background: C.gold, color: C.black, border: 'none', borderRadius: 4,
                         padding: '4px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer',
                         fontFamily: '"DM Mono", monospace', opacity: saving ? 0.5 : 1,
                       }}>

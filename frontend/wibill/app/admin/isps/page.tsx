@@ -52,25 +52,15 @@ type Tone = 'good' | 'warn' | 'bad' | 'neutral';
 // ── Design tokens ──────────────────────────────────────────────────────────────
 
 const C = {
-  bg:         '#050505',
-  panel:      '#0b0b0b',
-  panel2:     '#0f0f0f',
-  border:     'rgba(255,255,255,0.07)',
-  borderSoft: 'rgba(255,255,255,0.04)',
-  text:       '#f4f4f4',
-  muted:      '#8a8a8a',
-  dim:        '#5f5f5f',
-  gold:       '#E8B84B',
-  green:      '#22c55e',
-  red:        '#ef4444',
-  amber:      '#f59e0b',
-  blue:       '#60a5fa',
+  black: '#000', card: '#0D0D0B', line: '#1A1A18', border: '#2A2A27',
+  text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
+  gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function toneColor(t: Tone) {
-  return t === 'good' ? C.green : t === 'warn' ? C.amber : t === 'bad' ? C.red : '#EDEBE6';
+  return t === 'good' ? C.green : t === 'warn' ? C.gold : t === 'bad' ? C.red : C.mute;
 }
 function toneBg(t: Tone)     { return `${toneColor(t)}14`; }
 function toneBorder(t: Tone) { return `${toneColor(t)}33`; }
@@ -93,12 +83,12 @@ function authHeaders(): Record<string, string> {
 
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; accent?: string; children: ReactNode }) {
   return (
-    <section style={{ background: C.panel, border: `0.5px solid #2A2A27`, borderRadius: 18, overflow: 'hidden' }}>
+    <section style={{ background: C.card, border: `0.5px solid ${C.border}`, borderRadius: 'var(--radius-card)', overflow: 'hidden' }}>
       <div style={{ padding: '18px 20px 0' }}>
         <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
           {title}
         </div>
-        {subtitle && <div style={{ marginTop: 6, fontSize: 12, color: C.muted, lineHeight: 1.4 }}>{subtitle}</div>}
+        {subtitle && <div style={{ marginTop: 6, fontSize: 12, color: C.dim, lineHeight: 1.4 }}>{subtitle}</div>}
       </div>
       <div style={{ padding: 20 }}>{children}</div>
     </section>
@@ -108,10 +98,10 @@ function Panel({ title, subtitle, children }: { title: string; subtitle?: string
 function StatCard({ label, value, sub, tone = 'neutral' }: { label: string; value: string; sub: string; tone?: Tone }) {
   const c = toneColor(tone);
   return (
-    <div style={{ background: C.panel2, border: `1px solid ${toneBorder(tone)}`, borderRadius: 16, padding: 18 }}>
-      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: C.muted }}>{label}</div>
+    <div style={{ background: C.line, border: `1px solid ${toneBorder(tone)}`, borderRadius: 'var(--radius-card)', padding: 'var(--space-sm)' }}>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: C.dim }}>{label}</div>
       <div style={{ marginTop: 14, fontFamily: '"DM Mono", monospace', fontSize: 28, lineHeight: 1, color: c }}>{value}</div>
-      <div style={{ marginTop: 8, fontSize: 12, color: C.dim }}>{sub}</div>
+      <div style={{ marginTop: 8, fontSize: 12, color: C.mute }}>{sub}</div>
     </div>
   );
 }
@@ -316,64 +306,58 @@ export default function AdminISPNetwork() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div style={{ maxWidth: 1520, margin: '0 auto', padding: '0 28px 36px' }}>
-
-        {/* ── Header ── */}
-        <header style={{ height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${C.border}`, marginBottom: 24 }}>
-          <div>
-            <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 18, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-              ISP Network
-            </div>
-            <div style={{ marginTop: 4, fontSize: 12, color: C.muted }}>Onboarding · Approvals · Invite management</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={refreshAll} disabled={refreshing} title="Refresh" style={{
-              width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.muted,
-              animation: refreshing ? 'spin 1s linear infinite' : 'none',
-            }}>
-              <RefreshCw size={14} />
-            </button>
-            <button
-              onClick={() => setShowInvitePanel(true)}
-              style={{ height: 36, padding: '0 16px', borderRadius: 10, border: `1px solid rgba(232,184,75,0.3)`, background: 'rgba(232,184,75,0.08)', color: C.gold, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,184,75,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,184,75,0.08)'}
-            >
-              <Link2 size={14} />
-              Generate Invite
-            </button>
-          </div>
-        </header>
+    <div style={{ background: C.black, color: C.text, fontFamily: 'Inter, system-ui, sans-serif', padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-md)' }}>
+        <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: C.text }}>
+          ISP Network
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={refreshAll} disabled={refreshing} title="Refresh" style={{
+            width: 36, height: 36, borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: `1px solid ${C.border}`, background: 'transparent', cursor: refreshing ? 'not-allowed' : 'pointer', color: C.dim,
+            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+          }}>
+            <RefreshCw size={14} />
+          </button>
+          <button
+            onClick={() => setShowInvitePanel(true)}
+            style={{ height: 36, padding: '0 16px', borderRadius: 'var(--radius-sm)', border: `1px solid ${C.gold}4D`, background: `${C.gold}14`, color: C.gold, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.background = `${C.gold}26`}
+            onMouseLeave={e => e.currentTarget.style.background = `${C.gold}14`}
+          >
+            <Link2 size={14} />
+            Generate Invite
+          </button>
+        </div>
+      </div>
 
         {(loadingInvites && loadingISPs && invites.length === 0 && isps.length === 0) ? (
           <div>
             <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.2; } 50% { opacity: 0.5; } }`}</style>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14, marginBottom: 18 }}>
               {[0.1, 0.2, 0.3, 0.4].map(d => (
-                <div key={d} style={{ background: C.panel2, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18 }}>
-                  <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d}s` }} />
-                  <div style={{ width: '40%', height: 28, background: C.dim, borderRadius: 4, marginTop: 14, marginBottom: 8, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.05}s` }} />
-                  <div style={{ width: '50%', height: 12, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.1}s` }} />
+                <div key={d} style={{ background: C.line, border: `1px solid ${C.border}`, borderRadius: 'var(--radius-card)', padding: 18 }}>
+                  <div style={{ width: '60%', height: 10, background: C.mute, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d}s` }} />
+                  <div style={{ width: '40%', height: 28, background: C.mute, borderRadius: 4, marginTop: 14, marginBottom: 8, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.05}s` }} />
+                  <div style={{ width: '50%', height: 12, background: C.mute, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${d + 0.1}s` }} />
                 </div>
               ))}
             </div>
             {[1, 2, 3].map(p => (
-              <div key={p} style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: '2px solid #333', borderRadius: 18, overflow: 'hidden', marginBottom: 18 }}>
+              <div key={p} style={{ background: C.card, border: `1px solid ${C.border}`, borderTop: `2px solid ${C.faint}`, borderRadius: 'var(--radius-card)', overflow: 'hidden', marginBottom: 18 }}>
                 <div style={{ padding: '18px 20px 8px' }}>
-                  <div style={{ width: '180px', height: 15, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.1 + p * 0.1}s` }} />
-                  <div style={{ width: '260px', height: 12, background: C.dim, borderRadius: 4, marginTop: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.15 + p * 0.1}s` }} />
+                  <div style={{ width: '180px', height: 15, background: C.mute, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.1 + p * 0.1}s` }} />
+                  <div style={{ width: '260px', height: 12, background: C.mute, borderRadius: 4, marginTop: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.15 + p * 0.1}s` }} />
                 </div>
                 <div style={{ padding: 20 }}>
                   {[1, 2, 3].map(r => (
-                    <div key={r} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: r < 3 ? `1px solid ${C.borderSoft}` : 'none' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.dim, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
+                    <div key={r} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: r < 3 ? `1px solid ${C.line}` : 'none' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.mute, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ width: '40%', height: 13, background: C.dim, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
-                        <div style={{ width: '60%', height: 10, background: C.dim, borderRadius: 4, marginTop: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.25 + p * 0.1 + r * 0.05}s` }} />
+                        <div style={{ width: '40%', height: 13, background: C.mute, borderRadius: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.2 + p * 0.1 + r * 0.05}s` }} />
+                        <div style={{ width: '60%', height: 10, background: C.mute, borderRadius: 4, marginTop: 4, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.25 + p * 0.1 + r * 0.05}s` }} />
                       </div>
-                      <div style={{ width: 60, height: 20, background: C.dim, borderRadius: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.3 + p * 0.1 + r * 0.05}s` }} />
+                      <div style={{ width: 60, height: 20, background: C.mute, borderRadius: 6, animation: 'skel-pulse 2s ease-in-out infinite', animationDelay: `${0.3 + p * 0.1 + r * 0.05}s` }} />
                     </div>
                   ))}
                 </div>
@@ -393,7 +377,7 @@ export default function AdminISPNetwork() {
 
           {/* ── Pending approvals (only shown when there are pending ISPs) ── */}
           {(loadingISPs || pendingISPs.length > 0) && (
-            <Panel title="Pending Approvals" subtitle="ISPs who have registered and are waiting for your approval to go live." accent={C.amber}>
+            <Panel title="Pending Approvals" subtitle="ISPs who have registered and are waiting for your approval to go live." accent={C.gold}>
               {ispMsg && (
                 <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12, background: isError(ispMsg) ? toneBg('bad') : toneBg('good'), border: `1px solid ${isError(ispMsg) ? toneBorder('bad') : toneBorder('good')}`, color: isError(ispMsg) ? C.red : C.green, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   {isError(ispMsg) ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
@@ -401,23 +385,23 @@ export default function AdminISPNetwork() {
                 </div>
               )}
               {loadingISPs ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '20px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.dim, padding: '20px 0' }}>
                   <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                   Loading ISPs...
                 </div>
               ) : pendingISPs.length === 0 ? (
-                <div style={{ color: C.muted, fontSize: 13, padding: '12px 0' }}>No pending approvals.</div>
+                <div style={{ color: C.dim, fontSize: 13, padding: '12px 0' }}>No pending approvals.</div>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {pendingISPs.map(isp => (
-                    <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center', padding: '16px 18px', borderRadius: 14, background: C.panel2, border: `1px solid ${C.border}` }}>
+                    <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center', padding: '16px 18px', borderRadius: 14, background: C.line, border: `1px solid ${C.border}` }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Building2 size={14} color={C.amber} />
+                          <Building2 size={14} color={C.gold} />
                           <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{isp.name}</span>
-                          <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.muted }}>/{isp.slug}</span>
+                          <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.dim }}>/{isp.slug}</span>
                         </div>
-                        <div style={{ marginTop: 6, display: 'flex', gap: 16, fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.dim }}>
+                        <div style={{ marginTop: 6, display: 'flex', gap: 16, fontSize: 11, fontFamily: '"DM Mono", monospace', color: C.mute }}>
                           {isp.email && <span>{isp.email}</span>}
                           <span>Registered {new Date(isp.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: '2-digit' })}</span>
                           {isp.commission_rate != null && <span>Commission: {isp.commission_rate}%</span>}
@@ -427,7 +411,7 @@ export default function AdminISPNetwork() {
                         <button
                           onClick={() => approveISP(isp)}
                           disabled={approvingId === isp.id || rejectingId === isp.id}
-                          style={{ height: 38, padding: '0 16px', borderRadius: 10, border: `1px solid ${toneBorder('good')}`, background: toneBg('good'), color: C.green, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: approvingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: approvingId === isp.id ? 0.6 : 1 }}
+                          style={{ height: 38, padding: '0 16px', borderRadius: 'var(--radius-sm)', border: `1px solid ${toneBorder('good')}`, background: toneBg('good'), color: C.green, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: approvingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: approvingId === isp.id ? 0.6 : 1 }}
                         >
                           {approvingId === isp.id ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <ShieldCheck size={13} />}
                           {approvingId === isp.id ? 'Approving…' : 'Approve'}
@@ -435,7 +419,7 @@ export default function AdminISPNetwork() {
                         <button
                           onClick={() => rejectISP(isp)}
                           disabled={approvingId === isp.id || rejectingId === isp.id}
-                          style={{ height: 38, padding: '0 16px', borderRadius: 10, border: `1px solid ${toneBorder('bad')}`, background: toneBg('bad'), color: C.red, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: rejectingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: rejectingId === isp.id ? 0.6 : 1 }}
+                          style={{ height: 38, padding: '0 16px', borderRadius: 'var(--radius-sm)', border: `1px solid ${toneBorder('bad')}`, background: toneBg('bad'), color: C.red, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12, cursor: rejectingId === isp.id ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: rejectingId === isp.id ? 0.6 : 1 }}
                         >
                           {rejectingId === isp.id ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <ShieldX size={13} />}
                           {rejectingId === isp.id ? 'Rejecting…' : 'Reject'}
@@ -451,28 +435,28 @@ export default function AdminISPNetwork() {
         {/* ── Active ISPs ── */}
         <Panel title="Active Partners" subtitle="ISPs currently live on the platform." accent={C.green}>
           {loadingISPs ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.muted, padding: '20px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.dim, padding: '20px 0' }}>
               <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
               Loading ISPs...
             </div>
           ) : activeISPs.length === 0 ? (
-            <div style={{ color: C.muted, fontSize: 13, padding: '12px 0' }}>No active ISPs yet. Approve a pending registration or send an invite link.</div>
+            <div style={{ color: C.dim, fontSize: 13, padding: '12px 0' }}>No active ISPs yet. Approve a pending registration or send an invite link.</div>
           ) : (
             <div style={{ display: 'grid', gap: 2 }}>
               {/* Table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, padding: '8px 18px', fontSize: 9, fontFamily: '"DM Mono", monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: C.dim }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, padding: '8px 18px', fontSize: 9, fontFamily: '"DM Mono", monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: C.mute }}>
                 <span>ISP</span><span>Email</span><span>Commission</span><span style={{ textAlign: 'right' }}>Actions</span>
               </div>
               {activeISPs.map((isp, i) => (
-                <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, alignItems: 'center', padding: '13px 18px', borderRadius: 12, background: i % 2 === 0 ? 'transparent' : `${C.border}`, borderBottom: `1px solid ${C.borderSoft}` }}>
+                <div key={isp.id} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 140px', gap: 16, alignItems: 'center', padding: '13px 18px', borderRadius: 12, background: i % 2 === 0 ? 'transparent' : `${C.border}`, borderBottom: `1px solid ${C.line}` }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, boxShadow: `0 0 6px ${C.green}`, flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{isp.name}</span>
-                      <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.dim }}>/{isp.slug}</span>
+                      <span style={{ fontSize: 10, fontFamily: '"DM Mono", monospace', color: C.mute }}>/{isp.slug}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, fontFamily: '"DM Mono", monospace', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{isp.email || '—'}</div>
+                  <div style={{ fontSize: 12, fontFamily: '"DM Mono", monospace', color: C.dim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{isp.email || '—'}</div>
                   <div style={{ fontSize: 13, fontFamily: '"DM Mono", monospace', color: C.gold }}>{isp.commission_rate != null ? `${isp.commission_rate}%` : '—'}</div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <button
@@ -492,8 +476,8 @@ export default function AdminISPNetwork() {
           {/* ── Invite History ── */}
           <Panel title="Invite History" subtitle="All ISP onboarding tokens issued by the platform." accent={C.gold}>
             <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2 }}>
-                <Search size={14} color={C.dim} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.line }}>
+                <Search size={14} color={C.mute} />
                 <input
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -503,18 +487,18 @@ export default function AdminISPNetwork() {
               </div>
               <div style={{ display: 'grid', gap: 0 }}>
                 {loadingInvites ? (
-                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.borderSoft}`, borderRadius: 12, color: C.muted, gap: 8 }}>
+                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.line}`, borderRadius: 12, color: C.dim, gap: 8 }}>
                     <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
                     <div style={{ fontSize: 12 }}>Loading invites...</div>
                   </div>
                 ) : visibleInvites.length === 0 ? (
-                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.borderSoft}`, borderRadius: 12, color: C.muted, gap: 8 }}>
-                    <Users size={18} color={C.dim} />
+                  <div style={{ minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${C.line}`, borderRadius: 12, color: C.dim, gap: 8 }}>
+                    <Users size={18} color={C.mute} />
                     <div style={{ fontSize: 12 }}>No invite records yet.</div>
                   </div>
                 ) : (
                   <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, padding: '8px 14px', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.dim, borderBottom: `1px solid ${C.borderSoft}` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, padding: '8px 14px', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.mute, borderBottom: `1px solid ${C.line}` }}>
                     <span>ISP</span><span>Created</span><span>Expires</span><span>Status</span><span></span>
                   </div>
                   {visibleInvites.slice(0, 20).map((invite, i) => {
@@ -525,17 +509,17 @@ export default function AdminISPNetwork() {
                     const link = inviteUrl(invite);
                     const displayName = invite.used_by_tenant_name || invite.isp_name || '—';
                     return (
-                      <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, alignItems: 'center', padding: '10px 14px', borderBottom: i < Math.min(visibleInvites.length, 20) - 1 ? `1px solid ${C.borderSoft}` : 'none', fontSize: 11 }}>
+                      <div key={invite.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 80px 28px', gap: 12, alignItems: 'center', padding: '10px 14px', borderBottom: i < Math.min(visibleInvites.length, 20) - 1 ? `1px solid ${C.line}` : 'none', fontSize: 11 }}>
                         <div>
                           <div style={{ fontWeight: 600, color: C.text, fontSize: 12 }}>{displayName}</div>
-                          <div style={{ marginTop: 2, fontSize: 9, color: C.dim, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ marginTop: 2, fontSize: 9, color: C.mute, fontFamily: '"DM Mono", monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {invite.id.slice(0, 8)}…
                           </div>
                         </div>
-                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.dim, fontSize: 9 }}>
+                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.mute, fontSize: 9 }}>
                           {invite.created_at ? new Date(invite.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
                         </div>
-                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.dim, fontSize: 9 }}>
+                        <div style={{ fontFamily: '"DM Mono", monospace', color: C.mute, fontSize: 9 }}>
                           {invite.expires_at ? new Date(invite.expires_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' }) : '—'}
                         </div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '3px 8px', borderRadius: 999, border: `1px solid ${toneBorder(tone)}`, background: toneBg(tone), color: toneColor(tone), fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', fontFamily: '"DM Mono", monospace', fontWeight: 700 }}>
@@ -543,7 +527,7 @@ export default function AdminISPNetwork() {
                         </div>
                         <div style={{ display: 'flex', gap: 4 }}>
                           {link && rawStatus === 'pending' && !isExpired && (
-                            <button onClick={() => copyToClipboard(link, invite.id)} title={copied === invite.id ? 'Copied!' : 'Copy invite link'} style={{ background: 'none', border: 'none', color: copied === invite.id ? C.green : C.dim, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+                            <button onClick={() => copyToClipboard(link, invite.id)} title={copied === invite.id ? 'Copied!' : 'Copy invite link'} style={{ background: 'none', border: 'none', color: copied === invite.id ? C.green : C.mute, cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
                               <ClipboardCopy size={13} />
                             </button>
                           )}
@@ -564,17 +548,17 @@ export default function AdminISPNetwork() {
         {showInvitePanel && (
           <>
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999 }} onClick={() => setShowInvitePanel(false)} />
-            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 440, background: C.panel, borderLeft: `1px solid ${C.border}`, zIndex: 1000, padding: 28, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.4)' }}>
+            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 440, background: C.card, borderLeft: `1px solid ${C.border}`, zIndex: 1000, padding: 28, display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: '"Space Grotesk", Inter, sans-serif', fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Generate Invite</div>
-                <button onClick={() => setShowInvitePanel(false)} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                <button onClick={() => setShowInvitePanel(false)} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
                   <X size={16} />
                 </button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <label style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.muted }}>ISP Name</label>
+                  <label style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.dim }}>ISP Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Zuku Nairobi"
@@ -582,7 +566,7 @@ export default function AdminISPNetwork() {
                     onChange={e => setNewISPName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') generateInvite(); }}
                     disabled={generating}
-                    style={{ height: 48, padding: '0 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.panel2, color: C.text, outline: 'none', fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif' }}
+                    style={{ height: 48, padding: '0 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: C.line, color: C.text, outline: 'none', fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif' }}
                   />
                 </div>
 
@@ -595,9 +579,9 @@ export default function AdminISPNetwork() {
                   {generating ? 'Generating…' : 'Generate Invite Link'}
                 </button>
 
-                <div style={{ padding: 14, borderRadius: 12, border: `1px solid ${C.borderSoft}`, background: C.panel2, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ padding: 14, borderRadius: 12, border: `1px solid ${C.line}`, background: C.line, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                   <Sparkles size={14} color={C.gold} style={{ marginTop: 1, flexShrink: 0 }} />
-                  <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>The system issues a tokenised onboarding URL with a 7-day expiry. Share it with the ISP — they register, you approve.</div>
+                  <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.6 }}>The system issues a tokenised onboarding URL with a 7-day expiry. Share it with the ISP — they register, you approve.</div>
                 </div>
 
                 {statusMsg && (
@@ -608,20 +592,20 @@ export default function AdminISPNetwork() {
                 )}
 
                 {generatedLink && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 12, border: `1px solid ${toneBorder('good')}`, background: C.panel2 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 12, border: `1px solid ${toneBorder('good')}`, background: C.line }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.green }}>Invite created</span>
-                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.dim }}>{generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : ''}</span>
+                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 10, color: C.mute }}>{generatedLink.expires_at ? `Expires ${new Date(generatedLink.expires_at).toLocaleDateString()}` : ''}</span>
                     </div>
-                    <div style={{ padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, wordBreak: 'break-all', fontFamily: '"DM Mono", monospace', fontSize: 11, lineHeight: 1.6, color: C.text }}>
+                    <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', border: `1px solid ${C.border}`, background: C.black, wordBreak: 'break-all', fontFamily: '"DM Mono", monospace', fontSize: 11, lineHeight: 1.6, color: C.text }}>
                       {inviteUrl(generatedLink)}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => copyToClipboard(inviteUrl(generatedLink), 'generated')} style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: C.bg, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
+                      <button onClick={() => copyToClipboard(inviteUrl(generatedLink), 'generated')} style={{ height: 38, padding: '0 14px', borderRadius: 'var(--radius-sm)', border: `1px solid ${C.border}`, background: C.black, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"Space Grotesk", Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
                         <ClipboardCopy size={14} />
                         {copied === 'generated' ? 'Copied!' : 'Copy Link'}
                       </button>
-                      <div style={{ height: 38, padding: '0 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: toneBg('good'), color: C.green, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: '"DM Mono", monospace' }}>
+                      <div style={{ height: 38, padding: '0 14px', borderRadius: 'var(--radius-sm)', border: `1px solid ${C.border}`, background: toneBg('good'), color: C.green, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: '"DM Mono", monospace' }}>
                         <Clock3 size={13} />
                         {generatedLink.status || 'pending'}
                       </div>
@@ -632,7 +616,6 @@ export default function AdminISPNetwork() {
             </div>
           </>
         )}
-      </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
