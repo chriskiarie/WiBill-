@@ -139,34 +139,37 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
     <div style={{ display: 'flex', minHeight: '100vh', color: '#EDEBE6', background: '#000 url(/bg.jpg) fixed center/cover no-repeat' }}>
       {/* ── SIDEBAR ── */}
       <aside style={{
-        width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
+        width: 220, flexShrink: 0,
+        height: 'calc(100vh - 24px)', margin: '12px 0 12px 12px',
+        position: 'sticky', top: 12,
         background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-        borderRight: '0.5px solid rgba(255,255,255,0.06)',
+        borderRadius: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Brand row — 64px */}
         <div style={{
-          height: 64, minHeight: 64, padding: '0 16px',
-          display: 'flex', alignItems: 'center', gap: 10,
-          borderBottom: '0.5px solid #1A1A18',
+          height: 72, minHeight: 72, padding: '0 18px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
         }}>
           <span style={{
-            fontFamily: '"Space Grotesk", sans-serif', fontSize: 22, fontWeight: 700,
+            fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700,
             lineHeight: 1,
           }}>
             <span style={{ color: '#E8B84B' }}>X</span>
             <span style={{ color: '#EDEBE6' }}>w</span>
             <span style={{ color: '#E8B84B' }}>B</span>
           </span>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{
-              fontFamily: '"Syne", sans-serif', fontSize: 16, fontWeight: 800,
-              color: '#E8B84B', letterSpacing: '0.02em', lineHeight: 1,
+              fontFamily: '"Syne", sans-serif', fontSize: 20, fontWeight: 800,
+              color: '#E8B84B', letterSpacing: '0.04em', lineHeight: 1,
             }}>MYDASH</span>
             <span style={{
-              fontFamily: '"Space Grotesk", sans-serif', fontSize: 9, fontWeight: 500,
-              color: '#3A3A37', letterSpacing: '0.08em', textTransform: 'uppercase',
-              padding: '1px 6px', border: '0.5px solid #2A2A27', borderRadius: 3,
+              fontFamily: '"Space Grotesk", sans-serif', fontSize: 10, fontWeight: 600,
+              color: '#8C8A84', letterSpacing: '0.08em', textTransform: 'uppercase',
+              padding: '2px 8px', border: '0.5px solid #3A3A37', borderRadius: 4,
             }}>ADMIN</span>
           </div>
         </div>
@@ -220,17 +223,18 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Topbar — 48px */}
         <header style={{
-          height: 48, minHeight: 48, background: 'rgba(0,0,0,0.35)',
+          height: 52, minHeight: 52, background: 'rgba(0,0,0,0.45)',
           backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+          borderRadius: 12, margin: '12px 12px 0',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px',
+          padding: '0 20px',
         }}>
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 11, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.1em' }}>WiBill</span>
-            <span style={{ color: '#3A3A37', fontSize: 12 }}>›</span>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 500, color: '#EDEBE6' }}>{pageName}</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 600, color: '#E8B84B', letterSpacing: '0.05em' }}>WiBill</span>
+            <span style={{ color: '#3A3A37', fontSize: 15 }}>›</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 600, color: '#EDEBE6' }}>{pageName}</span>
           </div>
 
           {/* Right */}
@@ -245,7 +249,7 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, overflowY: 'auto', background: 'transparent', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: 'transparent', padding: '12px' }}>
           {children}
         </main>
       </div>
