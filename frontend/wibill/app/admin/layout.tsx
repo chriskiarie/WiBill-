@@ -108,7 +108,7 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
 
   if (loading && !isLoginPage) {
     return (
-      <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: '#000 url(/bg.jpg) fixed center/cover no-repeat', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ position: 'relative', width: 90, height: 90, margin: '0 auto 24px' }}>
             <style>{`@keyframes orb { from { transform: rotate(0deg) translateX(38px) rotate(0deg); } to { transform: rotate(360deg) translateX(38px) rotate(-360deg); } }`}</style>
@@ -136,11 +136,12 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
   })();
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#000', color: '#EDEBE6' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', color: '#EDEBE6', background: '#000 url(/bg.jpg) fixed center/cover no-repeat' }}>
       {/* ── SIDEBAR ── */}
       <aside style={{
         width: 220, flexShrink: 0, height: '100vh', position: 'sticky', top: 0,
-        background: '#000', borderRight: '0.5px solid #2A2A27',
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        borderRight: '0.5px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Brand row — 64px */}
@@ -219,8 +220,9 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Topbar — 48px */}
         <header style={{
-          height: 48, minHeight: 48, background: '#000',
-          borderBottom: '0.5px solid #1A1A18',
+          height: 48, minHeight: 48, background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          borderBottom: '0.5px solid rgba(255,255,255,0.06)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 24px',
         }}>
@@ -243,7 +245,7 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, overflowY: 'auto', background: '#000' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: 'transparent' }}>
           {children}
         </main>
       </div>
