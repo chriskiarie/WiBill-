@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const C = {
-  black: '#000', card: '#0D0D0B', line: '#1A1A18', border: '#2A2A27',
+  black: '#000',   card: 'rgba(13,13,11,0.55)', line: '#1A1A18', border: '#2A2A27',
   text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
   gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 }
@@ -191,7 +191,7 @@ export default function AdminInvoicesPage() {
   const commission = collected * 0.1
 
   return (
-    <div style={{ background: C.black, color: C.text, fontSize: 13, padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
+    <div style={{ background: 'transparent', color: C.text, fontSize: 13, padding: 'var(--space-lg)', width: '100%', minHeight: '100%' }}>
       {/* Toast */}
       {toast && (
         <div style={{

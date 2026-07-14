@@ -245,7 +245,7 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, overflowY: 'auto', background: 'transparent' }}>
+        <main style={{ flex: 1, overflowY: 'auto', background: 'transparent', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
           {children}
         </main>
       </div>

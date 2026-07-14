@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const C = {
-  black: '#000', card: '#0D0D0B', border: '#2A2A27', line: '#1A1A18',
+  black: '#000', card: 'rgba(13,13,11,0.55)', border: '#2A2A27', line: '#1A1A18',
   text: '#EDEBE6', dim: '#8C8A84', mute: '#6B6964', faint: '#3A3A37',
   gold: '#E8B84B', green: '#6FCF73', red: '#E5707A',
 }
@@ -297,7 +297,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Panel */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)', background: C.black }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)', background: 'transparent' }}>
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <>
