@@ -467,7 +467,9 @@ body {
   }
   .package-row {
     flex-wrap: wrap;
-    gap: 8px 16px;
+    gap: 6px 12px;
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
   }
   .package-row > .package-row-top {
     flex: 1 1 100%;
@@ -490,7 +492,7 @@ body {
   }
   .package-row > .package-row-price {
     flex: 1 1 100%;
-    font-size: 16px;
+    font-size: 13px;
   }
   .package-row > .package-row-actions {
     flex: 1 1 100%;
@@ -502,12 +504,16 @@ body {
     flex: 1;
     margin-top: 4px;
   }
+  .package-row > .package-row-actions > .pkg-status > button {
+    padding: 3px 10px !important;
+    font-size: 9px !important;
+  }
   .package-row > .package-row-actions > .pkg-buttons {
     flex: 0 0 auto;
     opacity: 1;
   }
   .packages-list {
-    gap: 10px !important;
+    gap: 8px !important;
   }
   /* ── Topbar mobile centering ── */
   .topbar {
