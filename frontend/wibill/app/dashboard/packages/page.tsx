@@ -167,7 +167,7 @@ export default function PackagesPage() {
 
         {/* Package List */}
         {!loading && packages.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="packages-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {packages.map(pkg => {
               const isDuplicate = nameCounts[pkg.name] > 1
               return (

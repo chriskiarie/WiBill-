@@ -500,10 +500,69 @@ body {
   }
   .package-row > .package-row-actions > .pkg-status {
     flex: 1;
+    margin-top: 4px;
   }
   .package-row > .package-row-actions > .pkg-buttons {
     flex: 0 0 auto;
     opacity: 1;
+  }
+  .packages-list {
+    gap: 10px !important;
+  }
+  /* ── Topbar mobile centering ── */
+  .topbar {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+  .topbar > *:first-child {
+    justify-self: end;
+    margin-right: auto;
+  }
+  .topbar > .topbar-right {
+    grid-column: 3;
+    justify-self: start;
+    margin-left: auto;
+  }
+  /* ── MoreSheet styling ── */
+  .mobile-sheet {
+    padding-top: 8px !important;
+  }
+  .mobile-sheet-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.15);
+    margin: 0 auto 12px;
+  }
+  .mobile-sheet-section {
+    margin-top: 8px;
+    padding-bottom: 2px;
+  }
+  .mobile-sheet-item {
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.04);
+  }
+  .mobile-sheet-item:last-child {
+    border-bottom: none;
+  }
+  .mobile-sheet-item .sheet-icon-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    flex-shrink: 0;
+  }
+  .mobile-sheet-item.active {
+    background: rgba(251,191,36,0.08);
+  }
+  .mobile-sheet-item.active .sheet-icon-chip {
+    background: rgba(251,191,36,0.12);
   }
   .portal-preview-layout {
     grid-template-columns: 1fr !important;
@@ -527,6 +586,40 @@ body {
     display: flex;
     justify-content: space-between;
     margin-top: 8px;
+  }
+  /* ── Dashboard home: status row stacking ── */
+  .dashboard-status-row {
+    flex-wrap: wrap;
+    gap: 10px !important;
+    justify-content: flex-start !important;
+  }
+  .dashboard-status-row > div:last-child {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .stat-card-empty {
+    padding: 16px 14px !important;
+  }
+  /* ── Analytics heatmap: larger cells, scroll mask ── */
+  .heatmap-hero .grid-wrap {
+    min-width: auto !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    padding-bottom: 4px;
+  }
+  .heatmap-hero .grid-wrap .heatmap-cell,
+  .heatmap-hero .grid-wrap [class*="heatmap"] {
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .heatmap-legend-row {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px !important;
   }
 }
 

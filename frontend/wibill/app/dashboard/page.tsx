@@ -475,7 +475,7 @@ export default function IspDashboard() {
         )}
 
         {/* ── STATUS PILL + SETUP BUTTON ── */}
-        <div className="flex-row-desktop" style={{
+        <div className="flex-row-desktop dashboard-status-row" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 28, gap: 12,
         }}>

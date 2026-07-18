@@ -192,7 +192,7 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
+              <div className="heatmap-legend-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <div>
                   {selectedCell ? (
                     <div className="cell-selection-chip">

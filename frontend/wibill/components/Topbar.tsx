@@ -171,7 +171,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       </div>
 
       {/* ── Right zone ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {/* Flip clock */}
         <div className={`flip-clock topbar-clock${flipping ? ' flip' : ''}`} style={{
           fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 500,
