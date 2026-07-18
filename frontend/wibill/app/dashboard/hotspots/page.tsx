@@ -91,7 +91,7 @@ export default function HotspotsPage() {
         </div>
 
         {/* Toolbar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--theme-dim)' }}>
             {hotspots.filter(h => h.status === 'online').length} online / {hotspots.length} total
           </div>
@@ -112,8 +112,8 @@ export default function HotspotsPage() {
           {hotspots.map(h => {
             const isSelected = selected?.id === h.id
             return (
-            <div key={h.id} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            <div key={h.id} className="hotspot-card" style={{
+              display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               background: 'var(--theme-card-base)',
               borderRadius: 10, border: isSelected ? '1.5px solid var(--theme-gold)' : '1px solid var(--theme-border)',
               padding: '14px 20px', cursor: 'pointer',

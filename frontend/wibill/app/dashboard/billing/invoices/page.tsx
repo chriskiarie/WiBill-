@@ -83,7 +83,7 @@ export default function InvoicesPage() {
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
           {['all', 'paid', 'due', 'overdue'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               style={{

@@ -153,6 +153,7 @@
 * { box-sizing: border-box; }
 html {
   font-size: 15px;
+  overflow-x: hidden;
 }
 body {
   margin: 0;
@@ -162,6 +163,7 @@ body {
   -webkit-font-smoothing: antialiased;
   font-weight: 400;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -462,6 +464,69 @@ body {
     border-radius: 0 !important;
     z-index: 500 !important;
     overflow-y: auto !important;
+  }
+  .package-row {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .package-row > .package-row-top {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .package-row > .package-row-top > .pkg-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .package-row > .package-row-top > .pkg-duration {
+    flex: 0 0 auto;
+    font-size: 12px;
+  }
+  .package-row > .package-row-price {
+    flex: 1 1 100%;
+    font-size: 16px;
+  }
+  .package-row > .package-row-actions {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .package-row > .package-row-actions > .pkg-status {
+    flex: 1;
+  }
+  .package-row > .package-row-actions > .pkg-buttons {
+    flex: 0 0 auto;
+    opacity: 1;
+  }
+  .portal-preview-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .portal-preview-phone-frame {
+    width: 100% !important;
+    max-width: 300px !important;
+    margin: 0 auto !important;
+  }
+  .portal-preview-panels {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+  .hotspot-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .hotspot-card > div:last-child {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
   }
 }
 

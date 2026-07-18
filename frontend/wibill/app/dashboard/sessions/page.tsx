@@ -102,7 +102,7 @@ export default function SessionsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Sessions" subsection={tab === 'active' ? `Active (${activeCount})` : 'History'} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void, display: 'flex', gap: 16 }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', gap: 16 }}>
         {/* Main content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -112,7 +112,6 @@ export default function SessionsPage() {
             <button onClick={() => setTab('history')} style={{ padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: tab === 'history' ? C.gold : 'var(--theme-surface)', border: tab === 'history' ? `0.5px solid ${C.gold}` : `0.5px solid ${C.border2}`, color: tab === 'history' ? '#000' : C.dim }}>
               History
             </button>
-            <div style={{ flex: 1 }} />
             <div style={{ position: 'relative', width: '100%', maxWidth: 240 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--theme-faint)' }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search MAC, IP, or phone..."

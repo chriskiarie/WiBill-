@@ -168,8 +168,10 @@ export default function BillingPage() {
             color: C.red,
             marginBottom: 16,
             display: 'flex',
+            flexWrap: 'wrap',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: 8
           }}>
             <span>{error}</span>
             <button
@@ -355,6 +357,7 @@ export default function BillingPage() {
         {!loading && invoice && invoice.status !== 'none' && (
           <div style={{
             display: 'flex',
+            flexWrap: 'wrap',
             gap: 12
           }}>
             <button

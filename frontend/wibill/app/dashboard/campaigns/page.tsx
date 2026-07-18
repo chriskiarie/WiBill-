@@ -143,7 +143,7 @@ export default function CampaignsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Campaigns" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>
             Engagement Campaigns
           </h1>
@@ -153,7 +153,7 @@ export default function CampaignsPage() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px', flex: 1, borderTop: `2px solid ${C.gold}` }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.8px', fontFamily: 'Inter, sans-serif', marginBottom: 8 }}>Total Campaigns</div>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 500, color: C.text }}>{stats.total}</div>
@@ -200,7 +200,7 @@ export default function CampaignsPage() {
               const fillRate = c.quantity > 0 ? Math.min(100, Math.round((sent / c.quantity) * 100)) : 0
               return (
                 <div key={c.id} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'start', gap: 8, marginBottom: 10 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         <span style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>{c.name}</span>

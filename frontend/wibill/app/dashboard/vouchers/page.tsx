@@ -111,11 +111,11 @@ export default function VouchersPage() {
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: C.text }}>
             Voucher Management
           </h1>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={exportCSV} style={{ padding: '8px 14px', background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.gold, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Download size={14} /> Export
             </button>
@@ -126,7 +126,7 @@ export default function VouchersPage() {
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
           <StatCard label="Total" value={data.total} color={C.gold} />
           <StatCard label="Unused" value={data.counts?.unused ?? 0} color={C.green} />
           <StatCard label="Used" value={data.counts?.used ?? 0} color={C.dim} />

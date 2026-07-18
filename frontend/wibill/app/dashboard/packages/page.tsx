@@ -128,9 +128,9 @@ export default function PackagesPage() {
       <Topbar title="Packages" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div className="packages-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Packages</h1>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             {packages.length >= 2 && (
               <>
                 <button onClick={() => bulkToggle(true)} disabled={bulkUpdating}
@@ -171,7 +171,7 @@ export default function PackagesPage() {
             {packages.map(pkg => {
               const isDuplicate = nameCounts[pkg.name] > 1
               return (
-                <div key={pkg.id} data-nav="package-row"
+                <div key={pkg.id} data-nav="package-row" className="package-row"
                   onMouseEnter={() => setHoveredRow(pkg.id)} onMouseLeave={() => setHoveredRow(null)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 16,
@@ -180,60 +180,58 @@ export default function PackagesPage() {
                     borderRadius: 10, padding: '12px 16px',
                     transition: 'border-color 0.15s',
                   }}>
-                  {/* Name */}
-                  <div style={{ flex: '0 0 180px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 500, color: C.text }}>{pkg.name}</span>
-                    {isDuplicate && (
-                      <span title="Duplicate package name" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 2,
-                        padding: '1px 5px', borderRadius: 3,
-                        background: 'rgba(232,184,75,0.12)', color: C.gold,
-                        fontSize: 8, fontWeight: 700, fontFamily: "'DM Mono', monospace",
-                      }}>
-                        <AlertTriangle size={9} /> Dup
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Separator */}
-                  <span style={{ color: C.mute, fontSize: 14 }}>·</span>
-
-                  {/* Duration */}
-                  <div style={{ flex: '0 0 100px', fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold, fontWeight: 500 }}>
-                    {pkg.duration_label || `${pkg.duration_hours}h`}
+                  {/* Top row: Name + Duration */}
+                  <div className="package-row-top" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="pkg-name" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 500, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{pkg.name}</span>
+                      {isDuplicate && (
+                        <span title="Duplicate package name" style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 2,
+                          padding: '1px 5px', borderRadius: 3,
+                          background: 'rgba(232,184,75,0.12)', color: C.gold,
+                          fontSize: 8, fontWeight: 700, fontFamily: "'DM Mono', monospace",
+                        }}>
+                          <AlertTriangle size={9} /> Dup
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ color: C.mute, fontSize: 14 }}>·</span>
+                    <div className="pkg-duration" style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold, fontWeight: 500 }}>
+                      {pkg.duration_label || `${pkg.duration_hours}h`}
+                    </div>
                   </div>
 
                   {/* Price */}
-                  <div style={{ flex: '0 0 100px', fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 500, color: C.text }}>
+                  <div className="package-row-price" style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 500, color: C.text }}>
                     Ksh {pkg.price_ksh.toLocaleString('en-KE')}
                   </div>
 
-                  {/* Status toggle */}
-                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
-                      style={{
-                        padding: '4px 14px', borderRadius: 20, fontSize: 10, fontWeight: 600,
-                        fontFamily: "'DM Mono', monospace", cursor: 'pointer', border: 'none',
-                        background: pkg.is_active ? 'rgba(111,207,115,0.12)' : 'rgba(229,112,122,0.10)',
-                        color: pkg.is_active ? C.green : C.red, letterSpacing: '0.3px',
-                      }}>
-                      {toggling === pkg.id ? '···' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
-                    </button>
-                  </div>
-
-                  {/* Actions (hover only) */}
-                  <div style={{
-                    display: 'flex', gap: 4, opacity: hoveredRow === pkg.id ? 1 : 0,
-                    transition: 'opacity 0.15s', flex: '0 0 48px',
-                  }}>
-                    <button onClick={() => openEdit(pkg)}
-                      style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim }}>
-                      <Edit2 size={13} />
-                    </button>
-                    <button onClick={() => handleDelete(pkg.id)}
-                      style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.red }}>
-                      <Trash2 size={13} />
-                    </button>
+                  {/* Actions row: Status toggle + Buttons */}
+                  <div className="package-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="pkg-status" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                      <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
+                        style={{
+                          padding: '4px 14px', borderRadius: 20, fontSize: 10, fontWeight: 600,
+                          fontFamily: "'DM Mono', monospace", cursor: 'pointer', border: 'none',
+                          background: pkg.is_active ? 'rgba(111,207,115,0.12)' : 'rgba(229,112,122,0.10)',
+                          color: pkg.is_active ? C.green : C.red, letterSpacing: '0.3px',
+                        }}>
+                        {toggling === pkg.id ? '···' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
+                      </button>
+                    </div>
+                    <div className="pkg-buttons" style={{
+                      display: 'flex', gap: 4, opacity: hoveredRow === pkg.id ? 1 : 0,
+                      transition: 'opacity 0.15s',
+                    }}>
+                      <button onClick={() => openEdit(pkg)}
+                        style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim }}>
+                        <Edit2 size={13} />
+                      </button>
+                      <button onClick={() => handleDelete(pkg.id)}
+                        style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.red }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )

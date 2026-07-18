@@ -73,11 +73,11 @@ export default function PortalPreviewPage() {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 320px', gap: 24, alignItems: 'start' }}>
+        <div className="portal-preview-layout" style={{ display: 'grid', gridTemplateColumns: 'auto 320px', gap: 24, alignItems: 'start' }}>
 
           {/* ───── PHONE FRAME ───── */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{
+            <div className="portal-preview-phone-frame" style={{
               width: 320, height: 650,
               border: '2px solid var(--theme-border)',
               borderRadius: 36,
@@ -136,7 +136,7 @@ export default function PortalPreviewPage() {
           </div>
 
           {/* ───── SIDE PANEL ───── */}
-          <div>
+          <div className="portal-preview-panels">
             {/* Status */}
             <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 14 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 14 }}>Portal Status</div>

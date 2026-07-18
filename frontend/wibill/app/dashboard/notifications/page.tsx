@@ -97,11 +97,11 @@ export default function NotificationsPage() {
 
         {/* Filter + actions bar */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '12px 28px', borderBottom: '1px solid var(--theme-border)',
+          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+          padding: '12px 16px', borderBottom: '1px solid var(--theme-border)',
           background: 'var(--theme-card-base)',
         }}>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: 'All' },
               { id: 'unread', label: `Unread` },
@@ -139,7 +139,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Notification list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 28px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: 'var(--theme-dim)', fontSize: 13 }}>Loading notifications...</div>
           ) : filtered.length === 0 ? (
@@ -207,7 +207,7 @@ export default function NotificationsPage() {
 
         {/* Footer */}
         <div style={{
-          borderTop: '1px solid var(--theme-border)', padding: '11px 28px',
+          borderTop: '1px solid var(--theme-border)', padding: '11px 16px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           fontSize: 11, color: 'var(--theme-dim)', background: 'var(--theme-card-base)',
         }}>

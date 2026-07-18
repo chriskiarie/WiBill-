@@ -100,7 +100,7 @@ export default function NetworkPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Network" subsection="Status" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, color: C.text }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Network Status</h1>
           <button onClick={fetchData} disabled={loading} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,

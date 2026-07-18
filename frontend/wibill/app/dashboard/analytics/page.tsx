@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Analytics" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--theme-text-muted)', fontSize: 13 }}>Loading analytics...</div>
         ) : (

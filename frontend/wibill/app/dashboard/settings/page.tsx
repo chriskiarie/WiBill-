@@ -82,14 +82,14 @@ export default function SettingsPage() {
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Settings" />
-      <div style={{ flex: 1, padding: '22px 28px', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim, fontSize: 13 }}>Loading...</div>
+      <div className="dashboard-content" style={{ flex: 1, background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim, fontSize: 13 }}>Loading...</div>
     </div>
   )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Settings" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, marginBottom: 24 }}>Account Settings</h1>
 
         {/* Business Info */}
@@ -133,23 +133,23 @@ export default function SettingsPage() {
         <Section title="Danger Zone">
           <div style={{ maxWidth: 480 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
-                <div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>Reset Portal Config</div>
                   <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Clear custom branding and re-run wizard</div>
                 </div>
                 <button onClick={handleResetPortal} style={{ padding: '6px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 6, color: C.gold, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Reset</button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
-                <div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>Delete All Packages</div>
                   <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Remove all packages and their data</div>
                 </div>
                 <button onClick={handleDeletePackages} style={{ padding: '6px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 6, color: C.red, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Delete All</button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'var(--theme-surface)', borderRadius: 8 }}>
                 <div>
                   <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>Request Account Deletion</div>
                   <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Submit a deletion request to the platform admin</div>

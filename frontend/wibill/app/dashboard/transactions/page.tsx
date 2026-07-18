@@ -88,10 +88,10 @@ export default function TransactionsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Transactions" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Payment Ledger</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={fetchTxns} style={{ padding: '8px 12px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: '#666', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
               <RefreshCw size={14} /> Refresh
             </button>
