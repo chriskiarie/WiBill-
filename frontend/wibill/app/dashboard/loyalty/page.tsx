@@ -95,7 +95,7 @@ export default function LoyaltyPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Loyalty" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         {/* Page header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Loyalty</h1>
@@ -163,14 +163,15 @@ export default function LoyaltyPage() {
         {/* Leaderboard table */}
         {!loading && leaderboard.length > 0 && (
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
               {['Rank', 'Customer', 'Points', 'Lifetime Spend', 'Last Seen', ''].map(h => (
                 <div key={h} style={{ padding: '11px 16px', fontSize: 9, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.8px', fontFamily: 'Inter, sans-serif' }}>{h}</div>
               ))}
             </div>
             {leaderboard.map((a, i) => (
-              <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', alignItems: 'center', borderBottom: i < leaderboard.length - 1 ? `0.5px solid ${C.border}` : 'none' }}>
+              <div key={a.id} style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 1fr 1fr 1fr 80px', minWidth: 600, alignItems: 'center', borderBottom: i < leaderboard.length - 1 ? `0.5px solid ${C.border}` : 'none' }}>
                 <div style={{ padding: '12px 16px', fontFamily: "'DM Mono', monospace", fontSize: 11, color: i < 3 ? C.gold : C.dim, fontWeight: i < 3 ? 700 : 400 }}>
                   #{i + 1}
                 </div>
@@ -202,10 +203,10 @@ export default function LoyaltyPage() {
               </div>
             ))}
           </div>
+          </div>
         )}
-      </div>
 
-      {/* Send Reward Modal */}
+        {/* Send Reward Modal */}
       {showSendModal && sendTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 11, padding: 24, maxWidth: 420, width: '90%' }}>
@@ -277,6 +278,7 @@ export default function LoyaltyPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

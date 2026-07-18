@@ -3,7 +3,10 @@ import { Suspense, useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import Sidebar from '@/components/Sidebar'
+import MobileTabBar from '@/components/MobileTabBar'
+import MobileMoreSheet from '@/components/MobileMoreSheet'
 import { DashboardProvider } from '@/context/DashboardContext'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const DISMISS_KEY = 'wb_invoice_notice_dismissed'
@@ -58,6 +61,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [daysOverdue, setDaysOverdue] = useState(0)
   const [preInvoiceDays, setPreInvoiceDays] = useState<number | null>(null)
   const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  // Mobile state
+  const isMobile = useIsMobile()
+  const [showMoreSheet, setShowMoreSheet] = useState(false)
 
   // Paused overlay state
   const [stkState, setStkState] = useState<StkState>('idle')
@@ -301,14 +308,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
           paddingTop: isOverdue ? 48 : (preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed ? 44 : 0),
+          paddingBottom: isMobile ? 64 : 0,
         }}>
           {/* ── OVERDUE BANNER ── */}
           {isOverdue && (
             <div style={{
-              position: 'fixed', top: 0, left: sidebarWidth, right: 0, zIndex: 9999,
+              position: 'fixed', top: 0, left: isMobile ? 0 : sidebarWidth, right: 0, zIndex: 9999,
               height: 48, background: 'rgba(232,184,75,0.08)',
               borderBottom: '1px solid rgba(232,184,75,0.25)',
-              display: 'flex', alignItems: 'center', padding: '0 24px', gap: 6,
+              display: 'flex', alignItems: 'center', padding: isMobile ? '0 12px' : '0 24px', gap: 6,
               fontFamily: 'Inter, sans-serif',
             }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#E8B84B' }}>⚠ Invoice overdue</span>
@@ -330,10 +338,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* ── PRE-INVOICE NOTICE BANNER ── */}
           {!isOverdue && !isPaused && preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed && (
             <div style={{
-              position: 'fixed', top: 0, left: sidebarWidth, right: 0, zIndex: 9998,
+              position: 'fixed', top: 0, left: isMobile ? 0 : sidebarWidth, right: 0, zIndex: 9998,
               height: 44, background: 'rgba(232,184,75,0.06)',
               borderBottom: '1px solid rgba(232,184,75,0.15)',
-              display: 'flex', alignItems: 'center', padding: '0 24px', gap: 8,
+              display: 'flex', alignItems: 'center', padding: isMobile ? '0 12px' : '0 24px', gap: 8,
               fontFamily: 'Inter, sans-serif',
             }}>
               <span style={{ fontSize: 12, color: '#E8B84B' }}>📄</span>
@@ -364,9 +372,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               animation: 'slideUp 0.3s ease-out',
             }}>
               <div style={{
-                width: 480, maxHeight: '90vh', overflowY: 'auto',
-                background: '#0D0D0B', border: '1px solid rgba(229,112,122,0.25)',
-                borderRadius: 14, padding: 32,
+                width: '100%', maxWidth: isMobile ? '100%' : 480,
+                maxHeight: '90vh', overflowY: 'auto',
+                background: '#0D0D0B', border: isMobile ? 'none' : '1px solid rgba(229,112,122,0.25)',
+                borderRadius: isMobile ? 0 : 14,
+                padding: isMobile ? 20 : 32,
                 fontFamily: 'Inter, sans-serif',
               }}>
                 {/* ── Header with pulsing dot ── */}
@@ -569,6 +579,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Suspense fallback={null}>
         <DashboardToast />
       </Suspense>
+      {isMobile && (
+        <>
+          <MobileTabBar onMoreClick={() => setShowMoreSheet(true)} />
+          <MobileMoreSheet open={showMoreSheet} onClose={() => setShowMoreSheet(false)} />
+        </>
+      )}
     </DashboardProvider>
   )
 }

@@ -151,7 +151,7 @@ export default function BillingPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Billing" />
       
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         
         {/* Loading State */}
         {loading && (
@@ -254,9 +254,8 @@ export default function BillingPage() {
             padding: '18px',
             marginBottom: 16
           }}>
-            <div style={{
+            <div className="grid-2" style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
               gap: 16,
               marginBottom: 16
             }}>

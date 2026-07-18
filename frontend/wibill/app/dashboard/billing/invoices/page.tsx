@@ -80,7 +80,7 @@ export default function InvoicesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Invoice History" />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -108,8 +108,9 @@ export default function InvoicesPage() {
 
         {!loading && invoices.length > 0 && (
           <div style={{ background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             {/* Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 1.4fr', borderBottom: `0.5px solid ${C.border}`, background: C.base }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 1.4fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: C.base }}>
               {['Invoice', 'Period', 'Amount', 'Status', 'Actions'].map((h, i) => (
                 <div key={i} style={{ padding: '11px 16px', fontSize: 9, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{h}</div>
               ))}
@@ -120,7 +121,7 @@ export default function InvoicesPage() {
               const s = getStatusStyle(inv.status)
               const payable = isPayable(inv.status) && inv.amount_due > 0
               return (
-                <div key={inv.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 1.4fr', borderBottom: i < invoices.length - 1 ? `0.5px solid ${C.base}` : 'none', alignItems: 'center' }}>
+                <div key={inv.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 1.4fr', minWidth: 600, borderBottom: i < invoices.length - 1 ? `0.5px solid ${C.base}` : 'none', alignItems: 'center' }}>
 
                   {/* Invoice number */}
                   <div style={{ padding: '13px 16px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.gold, fontWeight: 600 }}>
@@ -173,6 +174,7 @@ export default function InvoicesPage() {
                 </div>
               )
             })}
+          </div>
           </div>
         )}
 

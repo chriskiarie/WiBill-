@@ -108,7 +108,7 @@ export default function VouchersPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Vouchers" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -155,7 +155,8 @@ export default function VouchersPage() {
         {/* Voucher Table */}
         {!loading && data.vouchers?.length > 0 && (
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
               {['Code', 'Status', 'Type', 'Batch', 'Created', 'Suspended', 'Actions'].map(h => (
                 <div key={h} style={{ padding: '11px 16px', fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif' }}>{h}</div>
               ))}
@@ -165,7 +166,7 @@ export default function VouchersPage() {
               const d = v.duration_minutes || 60
               const typeLabel = d >= 1440 ? `${(d / 1440).toFixed(0)}d` : d >= 60 ? `${(d / 60).toFixed(0)}h` : `${d}m`
               return (
-                <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', borderBottom: i < data.vouchers.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
+                <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 600, borderBottom: i < data.vouchers.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
                   <div style={{ padding: '12px 16px', fontFamily: 'DM Mono, monospace', fontSize: 12, fontWeight: 600, color: C.text }}>{v.code}</div>
                   <div style={{ padding: '8px 12px' }}>
                     <div style={{ padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, color: statusColor, background: `${statusColor}20`, textTransform: 'uppercase', display: 'inline-block' }}>{v.status}</div>
@@ -197,6 +198,7 @@ export default function VouchersPage() {
                 </div>
               )
             })}
+          </div>
           </div>
         )}
 
@@ -243,7 +245,7 @@ export default function VouchersPage() {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div className="grid-2" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Quantity *</label>
                 <input type="number" min={1} max={500} value={genForm.quantity} onChange={e => setGenForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} style={inputSx} />

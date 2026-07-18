@@ -116,7 +116,7 @@ export function PaymentDialog({ invoiceId, amount, onClose, onSuccess, token }: 
   }
   const card: React.CSSProperties = {
     background: '#0a0a0a', border: '0.5px solid #1a1a1a', borderRadius: 14,
-    padding: 28, maxWidth: 420, width: '90%', position: 'relative'
+    padding: 28, maxWidth: 420, width: '92%', position: 'relative'
   }
   const btn = (color: string, text: string): React.CSSProperties => ({
     width: '100%', padding: '12px', background: color, color: color === '#1a1a1a' ? '#9ca3af' : '#030303',

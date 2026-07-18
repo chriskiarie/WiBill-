@@ -79,7 +79,7 @@ export default function TransactionsPage() {
   }
 
   const SumCard = ({ label, value, color }: any) => (
-    <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px', flex: 1, borderTop: `1.5px solid ${color}` }}>
+    <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px', flex: '1 1 0', minWidth: 140, borderTop: `1.5px solid ${color}` }}>
       <div style={{ fontSize: 9, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{label}</div>
       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color, letterSpacing: '-0.3px' }}>Ksh {fmtKsh(value)}</div>
     </div>
@@ -102,7 +102,7 @@ export default function TransactionsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <SumCard label={`Gross Revenue (${filtered.length} txns)`} value={gross} color={C.gold} />
           <SumCard label="Platform Fee (10%)" value={fees} color={C.gold} />
           <SumCard label="Your Earnings (90%)" value={net} color={C.green} />
@@ -138,7 +138,8 @@ export default function TransactionsPage() {
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--theme-faint)', fontSize: 13 }}>Loading...</div>
         ) : filtered.length > 0 ? (
           <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.7fr 0.7fr 0.6fr 0.6fr 0.8fr', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.7fr 0.7fr 0.6fr 0.6fr 0.8fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
               {['RECEIPT', 'PHONE', 'PACKAGE', 'AMOUNT', 'FEE', 'NET', 'TIME'].map((h, i) => (
                 <div key={i} style={{ padding: '10px 14px', fontSize: 9, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
               ))}
@@ -154,8 +155,9 @@ export default function TransactionsPage() {
                 <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 9, color: 'var(--theme-faint)' }}>{ago(t.created_at)}</div>
               </div>
             ))}
-          </div>
-        ) : (
+            </div>
+            </div>
+          ) : (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--theme-faint)' }}>
             <div style={{ fontSize: 14, marginBottom: 8, color: C.dim }}>No transactions found</div>
             <div style={{ fontSize: 12, color: 'var(--theme-faint)' }}>Transactions appear here once customers make M-Pesa payments</div>

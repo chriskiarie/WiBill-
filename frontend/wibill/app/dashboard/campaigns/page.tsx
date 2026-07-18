@@ -142,7 +142,7 @@ export default function CampaignsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Campaigns" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>
             Engagement Campaigns
@@ -304,7 +304,7 @@ export default function CampaignsPage() {
                   <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. July Win-Back" style={inputSx} required />
                 </div>
                 <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 6 }}>Audience *</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <div className="grid-2" style={{ display: 'grid', gap: 6 }}>
                   {audienceOptions.map(opt => {
                     const active = form.audience === opt.value
                     const Icon = opt.icon
@@ -331,7 +331,7 @@ export default function CampaignsPage() {
 
             {createStep === 2 && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div className="grid-2" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif', marginBottom: 5 }}>Free Internet (minutes) *</label>
                     <input type="number" min={5} max={1440} value={form.reward_minutes} onChange={e => setForm(p => ({ ...p, reward_minutes: parseInt(e.target.value) || 120 }))} style={inputSx} />

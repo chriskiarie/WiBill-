@@ -109,7 +109,7 @@ export default function AnalyticsPage() {
         ) : (
           <>
             {/* ===== SLIM STAT STRIP ===== */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
+            <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
               {[
                 { label: 'Revenue', value: fmtKsh(totalRevenue), color: C.gold },
                 { label: 'Sessions', value: String(totalSessions), color: C.green },
@@ -160,7 +160,8 @@ export default function AnalyticsPage() {
                 </span>
               </div>
 
-              <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 4 }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+              <div className="grid-wrap" style={{ display: 'grid', gridTemplateColumns: '40px repeat(24, 1fr)', gap: 4, minWidth: 600 }}>
                   <div />
                   {displayHours.map(h => (
                     <div key={h} className="heatmap-hour-label" style={{ textAlign: 'center', padding: '2px 0' }}>
@@ -189,6 +190,7 @@ export default function AnalyticsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
                 <div>
@@ -215,7 +217,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* ===== SECONDARY ROW ===== */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="glass-card" style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
                   Revenue Trend

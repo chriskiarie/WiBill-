@@ -64,7 +64,7 @@ export default function PortalPreviewPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Portal Preview" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: C.void, color: C.text }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, color: C.text }}>
 
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Portal Preview</h1>

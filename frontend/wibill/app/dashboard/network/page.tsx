@@ -99,7 +99,7 @@ export default function NetworkPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Network" subsection="Status" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void, color: C.text }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, color: C.text }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Network Status</h1>
           <button onClick={fetchData} disabled={loading} style={{
@@ -160,7 +160,7 @@ export default function NetworkPage() {
             </div>
 
             {/* ───── METRIC CARDS ───── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }}>
+            <div className="grid-3" style={{ display: 'grid', gap: 14, marginBottom: 16 }}>
               {[
                 { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', sub: 'current', icon: Activity },
                 { label: 'Active Users', value: String(activeUsers), sub: 'hotspot sessions', icon: Users },
@@ -221,7 +221,7 @@ export default function NetworkPage() {
             </div>
 
             {/* ───── TWO COLUMN: Events + Router Config ───── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="grid-2" style={{ display: 'grid', gap: 16 }}>
               {/* Events Log */}
               <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>

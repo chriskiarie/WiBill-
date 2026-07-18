@@ -119,7 +119,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const allItems = filteredNav.flatMap(s => s.items)
 
   return (
-    <aside style={{
+    <aside className="desktop-sidebar" style={{
       width: w, minWidth: w, overflow: 'hidden',
       background: isAdmin ? '#030308' : C.bg,
       borderRight: isAdmin ? '1px solid rgba(250,200,0,0.12)' : `0.5px solid ${C.border}`,

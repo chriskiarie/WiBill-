@@ -105,7 +105,7 @@ export default function SessionsPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void, display: 'flex', gap: 16 }}>
         {/* Main content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             <button onClick={() => setTab('active')} style={{ padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: tab === 'active' ? C.gold : 'var(--theme-surface)', border: tab === 'active' ? `0.5px solid ${C.gold}` : `0.5px solid ${C.border2}`, color: tab === 'active' ? '#000' : C.dim, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Wifi size={14} /> Active {activeCount > 0 && `(${activeCount})`}
             </button>
@@ -113,7 +113,7 @@ export default function SessionsPage() {
               History
             </button>
             <div style={{ flex: 1 }} />
-            <div style={{ position: 'relative', width: 240 }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 240 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--theme-faint)' }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search MAC, IP, or phone..."
                 style={{ width: '100%', padding: '7px 10px 7px 30px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 6, color: C.text, fontSize: 11, boxSizing: 'border-box', outline: 'none' }} />
@@ -130,7 +130,8 @@ export default function SessionsPage() {
             <LoadingSpinner size="md" label="Loading sessions..." />
           ) : (
             <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
                 {['MAC', 'IP', 'Phone', 'Package', tab === 'active' ? 'Remaining' : 'Duration', '', ''].map((h, i) => (
                   <div key={i} style={{ padding: '10px 14px', fontSize: 9, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
                 ))}
@@ -170,13 +171,14 @@ export default function SessionsPage() {
                   </div>
                 )
               })}
+              </div>
             </div>
           )}
         </div>
 
         {/* MAC Detail Drawer */}
         {selectedMac && (
-          <div style={{ width: 340, minWidth: 340, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, alignSelf: 'flex-start', position: 'sticky', top: 0 }}>
+          <div className="session-mac-detail" style={{ width: 340, minWidth: 340, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, alignSelf: 'flex-start', position: 'sticky', top: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: 'DM Mono, monospace' }}>{selectedMac}</div>
                   <button onClick={() => { setSelectedMac(null); setMacDetail(null) }} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}><X size={16} /></button>

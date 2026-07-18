@@ -141,7 +141,8 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       style={{
         height: 56, minHeight: 56,
         borderBottom: '1px solid var(--topbar-border)',
-        display: 'flex', alignItems: 'center', padding: '0 24px',
+        display: 'flex', alignItems: 'center',
+        padding: '0 16px',
         position: 'sticky', top: 0, zIndex: 10,
       }}
     >
@@ -150,10 +151,11 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         <h1
           className="page-title"
           style={{
-            fontFamily: "'Syne', sans-serif", fontSize: 25, fontWeight: 700,
+            fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700,
             background: style.gradient, WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             margin: 0, letterSpacing: '-0.4px',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}
         >
           {title}
@@ -171,7 +173,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       {/* ── Right zone ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {/* Flip clock */}
-        <div className={`flip-clock${flipping ? ' flip' : ''}`} style={{
+        <div className={`flip-clock topbar-clock${flipping ? ' flip' : ''}`} style={{
           fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 500,
           color: 'var(--topbar-text)', letterSpacing: '0.04em',
           padding: '4px 10px', border: '1px solid var(--theme-border)',
@@ -182,10 +184,10 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           {clock || '--:--'}
         </div>
 
-        <div className="topbar-divider" />
+        <div className="topbar-divider topbar-divider-el" />
 
         {/* Network status pill */}
-        <div style={{
+        <div className="topbar-network-pill" style={{
           display: 'flex', alignItems: 'center', gap: 6,
           background: 'var(--topbar-pill-bg)', borderRadius: 6, padding: '5px 10px',
         }}>
@@ -202,7 +204,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           </span>
         </div>
 
-        <div className="topbar-divider" />
+        <div className="topbar-divider topbar-divider-el" />
 
         {/* Theme toggle */}
         <button
@@ -219,7 +221,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           {dark ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
-        <div className="topbar-divider" />
+        <div className="topbar-divider topbar-divider-el" />
 
         {/* Profile avatar + dropdown */}
         <div ref={dropdownRef} style={{ position: 'relative' }}>

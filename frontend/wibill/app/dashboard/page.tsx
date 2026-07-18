@@ -38,14 +38,16 @@ const steps = [
 ];
 
 function Drawer({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
   return (
     <>
       {open && <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />}
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201,
-        width: '100%', maxWidth: 420, background: C.base,
-        borderLeft: '0.5px solid rgba(232,184,75,0.08)',
-        boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
+        width: '100%', maxWidth: isMobile ? '100%' : 420,
+        background: C.base,
+        borderLeft: isMobile ? 'none' : '0.5px solid rgba(232,184,75,0.08)',
+        boxShadow: isMobile ? 'none' : '-10px 0 40px rgba(0,0,0,0.4)',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex', flexDirection: 'column',
@@ -373,7 +375,7 @@ export default function IspDashboard() {
       <div style={skelOuter}>
         <style>{`@keyframes skel-pulse { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }`}</style>
         <Topbar title="Dashboard" />
-        <div style={skelPage}>
+        <div className="dashboard-content" style={skelPage}>
           {/* header skeleton */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
@@ -400,7 +402,7 @@ export default function IspDashboard() {
             </div>
           </div>
           {/* 4-card row skeleton */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[0.1, 0.2, 0.3, 0.4].map((d, i) => (
               <div key={i} style={skelCard}>
                 <div style={skeletonBlock('60%', 11, 4, d)} />
@@ -410,7 +412,7 @@ export default function IspDashboard() {
             ))}
           </div>
           {/* 2-column panels skeleton */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[[0.1, 0.2], [0.3, 0.4]].map((delays, col) => (
               <div key={col} style={skelCard}>
                 <div style={skeletonBlock('50%', 11, 4, delays[0])} />
@@ -440,7 +442,7 @@ export default function IspDashboard() {
     }}>
       <Topbar title="Dashboard" />
 
-      <div style={{
+      <div className="dashboard-content" style={{
         flex: 1, overflowY: 'auto', padding: '28px 32px',
         maxWidth: 1240, margin: '0 auto', width: '100%',
       }}>
@@ -473,9 +475,9 @@ export default function IspDashboard() {
         )}
 
         {/* ── STATUS PILL + SETUP BUTTON ── */}
-        <div style={{
+        <div className="flex-row-desktop" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 28,
+          marginBottom: 28, gap: 12,
         }}>
           <div>
             <div style={{
@@ -571,7 +573,7 @@ export default function IspDashboard() {
               }}>
                 Today's Revenue
               </div>
-              <div style={{
+              <div className="hero-value" style={{
                 fontFamily: 'DM Mono, monospace',
                 fontSize: 40, fontWeight: 500, color: C.gold,
                 letterSpacing: '-0.04em', lineHeight: 1,
@@ -672,7 +674,7 @@ export default function IspDashboard() {
         </div>
 
         {/* ═══ SUPPORTING CARDS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Yesterday', value: ksh(yesterday), sub: 'Net earnings', color: C.dim },
             { label: 'This Month', value: ksh(month.isp_earnings_ksh), sub: `${month.count} transactions`, color: C.gold },
@@ -704,7 +706,7 @@ export default function IspDashboard() {
         </div>
 
         {/* ═══ LIVE SESSIONS + RECENT PAYMENTS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <span style={{
@@ -848,7 +850,7 @@ export default function IspDashboard() {
           }}>
             Quick Actions
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
             <a href="/dashboard/portal-preview" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
@@ -936,9 +938,10 @@ export default function IspDashboard() {
             WebkitBackdropFilter: 'blur(24px)',
             border: '0.5px solid rgba(232,184,75,0.15)',
             borderRadius: 16,
-            padding: '32px 28px 28px',
+            padding: '24px 20px 20px',
             boxShadow: '0 0 60px rgba(232,184,75,0.04), 0 0 0 1px rgba(232,184,75,0.03) inset',
             position: 'relative',
+            maxHeight: '90vh', overflowY: 'auto',
           }}>
             <button onClick={() => setShowSetup(false)} style={{
               position: 'absolute', top: 14, right: 14,

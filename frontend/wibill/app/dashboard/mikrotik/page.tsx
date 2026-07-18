@@ -243,7 +243,7 @@ export default function MikrotikPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="MikroTik" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -303,7 +303,7 @@ export default function MikrotikPage() {
                 {tab === 'config' && (
                   <>
                     {/* Health Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+                    <div className="grid-4" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
                       <StatCard icon={<Server size={14} color={C.gold} />} label="Router" value={health?.router_identity || health?.router_ip || config.router_ip} />
                       <StatCard icon={<Activity size={14} color={C.green} />} label="RouterOS" value={health?.router_os_version || health?.version || '—'} color={C.text} />
                       <StatCard icon={<HardDrive size={14} color={C.gold} />} label="Board" value={health?.board_name || '—'} color={C.text} />
@@ -357,7 +357,7 @@ export default function MikrotikPage() {
                         )}
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
                         <div>
                           <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Server</div>
                           <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_server || 'hotspot1'}</div>
@@ -516,9 +516,9 @@ export default function MikrotikPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
                   <Input label="Router IP / Hostname *" value={form.router_ip} onChange={f('router_ip')} placeholder="192.168.88.1" mono />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
                     <Input label="API Port" value={form.api_port} onChange={f('api_port')} placeholder="8728" mono />
                     <Input label="Hotspot Interface" value={form.hotspot_server} onChange={f('hotspot_server')} placeholder="ether5" mono />
                   </div>

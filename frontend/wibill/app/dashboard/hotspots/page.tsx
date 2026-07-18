@@ -67,9 +67,9 @@ export default function HotspotsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Hotspots" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 28px', background: C.void }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         {/* Quick stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div className="grid-4" style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
           {[
             { label: 'Total Hotspots', value: String(hotspots.length), color: C.text, icon: Wifi },
             { label: 'Online', value: String(onlineCount), color: C.green, icon: Activity },
@@ -226,7 +226,7 @@ export default function HotspotsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div className="grid-4" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
               {[
                 { label: 'Server', value: selected.serverName || '—' },
                 { label: 'Router IP', value: selected.ip || '—' },

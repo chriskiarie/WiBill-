@@ -93,7 +93,7 @@ export default function NotificationsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Notifications" />
-      <div style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', flexDirection: 'column' }}>
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', flexDirection: 'column' }}>
 
         {/* Filter + actions bar */}
         <div style={{
