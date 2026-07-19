@@ -344,79 +344,100 @@ export default function PortalWizard() {
   }
 
   const broadcastTimer = useRef<any>(null)
+  const iframeLoaded = useRef(false)
+
   function scheduleBroadcast(cfg: any) {
     if (broadcastTimer.current) clearTimeout(broadcastTimer.current)
-    broadcastTimer.current = setTimeout(() => broadcastToPreview(cfg), 50)
+    broadcastTimer.current = setTimeout(() => broadcastToPreview(cfg), 80)
+  }
+
+  function templateToBaseId(templateId: string): string {
+    const dash = ['executive-dark', 'executive-light', 'modern-isp', 'corporate-blue', 'ocean-deep', 'streaming-portal', 'glass-morphism', 'material-design', 'kenyan-gold', 'nairobi-night', 'cherry-blossom']
+    const spot = ['premium-hotel', 'gaming-neon', 'rgb-wave', 'apple-style', 'clean-white', 'safari', 'sunset-vibes', 'coffee-shop']
+    if (dash.includes(templateId)) return 'dashboard'
+    if (spot.includes(templateId)) return 'spotlight'
+    return 'stories'
+  }
+
+  function computePalette(cfg: any) {
+    const t = cfg.theme
+    const isLight = ['executive-light', 'apple-style', 'clean-white'].includes(cfg.template_id)
+    return {
+      bgStart: t.gradient ? t.background_value : t.background_value,
+      bgEnd: t.gradient ? t.background_value : t.background_value,
+      card: t.secondary_color || (isLight ? '#f0f0f0' : '#1a1a2e'),
+      text: isLight ? '#1d1d1f' : '#f0f0f0',
+      textDim: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.45)',
+      primary: t.primary_color,
+      primaryDark: t.primary_color,
+      accent: t.accent_color,
+      accentLight: t.accent_color + '33',
+      cardBorder: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+      cardHl: t.accent_color + '22',
+    }
   }
 
   function broadcastToPreview(cfg: any) {
-    if (!iframeRef.current?.contentWindow) return
+    const w = iframeRef.current?.contentWindow
+    if (!w) return
     const t = cfg.theme
+    const pal = computePalette(cfg)
     try {
-      iframeRef.current.contentWindow.postMessage({
+      w.postMessage({
         type: 'UPDATE_PALETTE',
-        palette: {
-          primary: t.primary_color,
-          secondary: t.secondary_color,
-          accent: t.accent_color,
-          bg: t.background_value,
-          overlay: t.overlay_color,
-          overlayOpacity: t.overlay_opacity,
-        },
+        colors: pal,
       }, '*')
-      iframeRef.current.contentWindow.postMessage({
+      w.postMessage({
         type: 'UPDATE_BRAND_NAME',
-        brandName: cfg.brand.name || 'Your ISP',
+        name: cfg.brand.name || 'Your ISP',
       }, '*')
-      iframeRef.current.contentWindow.postMessage({
+      w.postMessage({
         type: 'UPDATE_TYPOGRAPHY',
-        fontFamily: cfg.typography.font_family,
-        headingSize: cfg.typography.heading_size,
-        bodySize: cfg.typography.body_size,
-        fontWeight: cfg.typography.font_weight,
-        letterSpacing: cfg.typography.letter_spacing,
+        font: cfg.typography.font_family,
       }, '*')
-      iframeRef.current.contentWindow.postMessage({
+      w.postMessage({
         type: 'UPDATE_CARD_STYLE',
         radius: cfg.card.radius + 'px',
-        size: cfg.card.size,
-        style: cfg.card.style,
-      }, '*')
-      iframeRef.current.contentWindow.postMessage({
-        type: 'SET_CSS_VARS',
-        vars: {
-          '--primary': t.primary_color,
-          '--secondary': t.secondary_color,
-          '--accent': t.accent_color,
-          '--bg': t.background_value,
-          '--bg-gradient': t.gradient || 'none',
-          '--overlay': t.overlay_color,
-          '--overlay-opacity': String(t.overlay_opacity),
-          '--font-family': cfg.typography.font_family,
-          '--heading-size': cfg.typography.heading_size + 'px',
-          '--body-size': cfg.typography.body_size + 'px',
-          '--font-weight': String(cfg.typography.font_weight),
-          '--card-radius': cfg.card.radius + 'px',
-        },
       }, '*')
     } catch {}
   }
 
-  const previewUrl = useCallback(() => {
-    const t = config.template_id
-    const baseId = ['executive-dark', 'executive-light', 'modern-isp', 'corporate-blue', 'ocean-deep', 'streaming-portal', 'glass-morphism', 'material-design', 'kenyan-gold', 'nairobi-night', 'cherry-blossom'].includes(t) ? 'dashboard' : ['premium-hotel', 'gaming-neon', 'rgb-wave', 'apple-style', 'clean-white', 'safari', 'sunset-vibes', 'coffee-shop'].includes(t) ? 'spotlight' : ['cyberpunk', 'afro-modern', 'midnight-purple'].includes(t) ? 'stories' : 'spotlight'
-    const brand = config.brand
+  function getPreviewUrl(cfg: any) {
+    const baseId = templateToBaseId(cfg.template_id)
+    const brand = cfg.brand
+    const pal = computePalette(cfg)
     const params = new URLSearchParams({
-      template_id: baseId,
-      name: brand.name || 'Your ISP',
-      tagline: brand.tagline || '',
-      location: brand.location || '',
+      name: brand.name || 'WiFi Portal',
       emoji: brand.emoji || '📶',
-      font_family: config.typography.font_family,
-      card_radius: config.card.radius + 'px',
-      layout_size: config.card.size,
+      tag: brand.tagline || '',
+      loc: brand.location || '',
+      phone: brand.support_phone || '',
+      font: cfg.typography.font_family,
+      shape: cfg.card.radius + 'px',
     })
     return `${API}/api/v1/portal-previews/${baseId}?${params.toString()}`
+  }
+
+  const [previewSrc, setPreviewSrc] = useState('')
+
+  useEffect(() => {
+    setPreviewSrc(getPreviewUrl(config))
+  }, [config.template_id])
+
+  function refreshPreview() {
+    iframeLoaded.current = false
+    setPreviewSrc(getPreviewUrl(config))
+  }
+
+  function onIframeLoad() {
+    iframeLoaded.current = true
+    broadcastToPreview(config)
+  }
+
+  useEffect(() => {
+    if (iframeLoaded.current && iframeRef.current?.contentWindow) {
+      broadcastToPreview(config)
+    }
   }, [config])
 
   async function handleSave() {
@@ -1042,8 +1063,12 @@ export default function PortalWizard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', background: '#0a0a0a' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
-              {displayName} — {TEMPLATES.find(t => t.id === config.template_id)?.name || 'Portal'}
+              {TEMPLATES.find(t => t.id === config.template_id)?.name || 'Portal'}
             </span>
+            <button onClick={refreshPreview} title="Refresh preview"
+              style={{ padding: '4px 6px', borderRadius: 4, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+              <RefreshCw size={12} />
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {([
@@ -1070,13 +1095,17 @@ export default function PortalWizard() {
             height: previewDevice === 'phone' ? 812 : previewDevice === 'tablet' ? 800 : '100%',
             maxHeight: previewDevice !== 'desktop' ? undefined : '100%',
             borderRadius: previewDevice === 'phone' ? 40 : previewDevice === 'tablet' ? 24 : 12,
-            overflow: 'hidden',
+            overflow: previewDevice === 'phone' ? 'hidden auto' : 'hidden',
             border: previewDevice !== 'desktop' ? '2px solid rgba(255,255,255,0.08)' : 'none',
             boxShadow: previewDevice !== 'desktop' ? '0 20px 60px rgba(0,0,0,0.5)' : 'none',
             transition: 'all 0.3s',
           }}>
-            <iframe ref={iframeRef} src={previewUrl()}
-              style={{ width: '100%', height: '100%', border: 'none', background: theme.background_type === 'solid' ? theme.background_value : '#000' }}
+            <iframe ref={iframeRef} src={previewSrc} onLoad={onIframeLoad}
+              style={{
+                width: '100%', height: '100%', border: 'none',
+                background: config.theme.background_type === 'solid' ? config.theme.background_value : '#000',
+                ...(previewDevice === 'phone' ? { overflow: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}),
+              }}
               title="Portal Preview" />
           </div>
         </div>
