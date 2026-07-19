@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.security import require_isp_admin
+from app.api.routes.auth import require_isp_admin
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
 from app.models.portal_config_snapshot import PortalConfigSnapshot
