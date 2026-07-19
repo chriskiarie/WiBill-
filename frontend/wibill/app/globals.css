@@ -404,6 +404,11 @@ body {
   font-family: 'Space Grotesk', sans-serif;
 }
 
+/* ── Dashboard content base padding ── */
+.dashboard-content {
+  padding: 24px 32px;
+}
+
 /* ── Responsive Breakpoints ── */
 @media (max-width: 768px) {
   .mobile-tabs {
@@ -529,6 +534,14 @@ body {
     grid-column: 3;
     justify-self: start;
     margin-left: auto;
+  }
+  /* ── MikroTik page mobile ── */
+  .mikrotik-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    gap: 4px;
+    padding-bottom: 4px;
   }
   /* ── MoreSheet styling ── */
   .mobile-sheet {

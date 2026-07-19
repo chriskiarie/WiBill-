@@ -245,8 +245,8 @@ export default function MikrotikPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="MikroTik" />
-      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 24 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>MikroTik</h1>
@@ -284,7 +284,7 @@ export default function MikrotikPage() {
             {config && !showForm && (
               <>
                 {/* Tab Navigation */}
-                <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                <div className="mikrotik-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
                   {[
                     { id: 'config', label: 'Dashboard' },
                     { id: 'users', label: `Active Users (${activeUsers.length})` },
