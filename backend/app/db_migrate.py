@@ -285,6 +285,155 @@ MIGRATIONS = [
     ("isp_invites.expires_at index", """
         CREATE INDEX IF NOT EXISTS ix_isp_invites_expires_at ON isp_invites(expires_at)
     """),
+    # ── Monthly Subscribers Module ──────────────────────────────────────────
+    ("tenants.has_monthly_subscribers", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_monthly_subscribers BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("tenants.has_tv_subscribers", """
+        ALTER TABLE tenants ADD COLUMN IF NOT EXISTS has_tv_subscribers BOOLEAN NOT NULL DEFAULT false
+    """),
+    ("subscriber_plans table", """
+        CREATE TABLE IF NOT EXISTS subscriber_plans (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            name VARCHAR(100) NOT NULL,
+            description VARCHAR(500),
+            price_ksh NUMERIC(10,2) NOT NULL,
+            bandwidth_down_mbps INTEGER NOT NULL DEFAULT 10,
+            bandwidth_up_mbps INTEGER NOT NULL DEFAULT 5,
+            client_type VARCHAR(10) NOT NULL DEFAULT 'wifi',
+            billing_cycle_days INTEGER NOT NULL DEFAULT 30,
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            display_order INTEGER NOT NULL DEFAULT 0,
+            burst_enabled BOOLEAN NOT NULL DEFAULT false,
+            burst_limit_down_mbps INTEGER,
+            burst_limit_up_mbps INTEGER,
+            priority_queue INTEGER NOT NULL DEFAULT 8,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("subscriber_plans index", """
+        CREATE INDEX IF NOT EXISTS ix_subscriber_plans_tenant_id ON subscriber_plans(tenant_id)
+    """),
+    ("subscribers table", """
+        CREATE TABLE IF NOT EXISTS subscribers (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            plan_id UUID REFERENCES subscriber_plans(id) ON DELETE SET NULL,
+            account_number VARCHAR(30) NOT NULL,
+            client_name VARCHAR(200) NOT NULL,
+            phone_number VARCHAR(20) NOT NULL,
+            id_number VARCHAR(20),
+            email VARCHAR(254),
+            installation_address VARCHAR(500),
+            installation_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+            notes VARCHAR(1000),
+            networking_ip VARCHAR(45) NOT NULL,
+            networking_mac VARCHAR(17),
+            networking_vlan INTEGER,
+            networking_interface VARCHAR(100),
+            networking_gateway VARCHAR(45),
+            billing_cycle_date INTEGER NOT NULL DEFAULT 1,
+            billing_cycle_days INTEGER NOT NULL DEFAULT 30,
+            last_billed_at TIMESTAMP WITH TIME ZONE,
+            next_billing_at TIMESTAMP WITH TIME ZONE,
+            amount_due_ksh NUMERIC(10,2) NOT NULL DEFAULT 0.0,
+            status VARCHAR(30) NOT NULL DEFAULT 'active',
+            online_status VARCHAR(20) NOT NULL DEFAULT 'offline',
+            last_seen_at TIMESTAMP WITH TIME ZONE,
+            data_cap_gb NUMERIC(10,2),
+            data_used_today_gb NUMERIC(10,2) NOT NULL DEFAULT 0.0,
+            data_used_month_gb NUMERIC(10,2) NOT NULL DEFAULT 0.0,
+            data_used_total_gb NUMERIC(12,2) NOT NULL DEFAULT 0.0,
+            last_sync_at TIMESTAMP WITH TIME ZONE,
+            last_sync_status VARCHAR(50),
+            out_of_sync BOOLEAN NOT NULL DEFAULT false,
+            out_of_sync_note VARCHAR(500),
+            mpesa_receipt_last VARCHAR(50),
+            payment_due_reminder_sent BOOLEAN NOT NULL DEFAULT false,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("subscribers index tenant", """
+        CREATE INDEX IF NOT EXISTS ix_subscribers_tenant_id ON subscribers(tenant_id)
+    """),
+    ("subscribers index status", """
+        CREATE INDEX IF NOT EXISTS ix_subscribers_status ON subscribers(status)
+    """),
+    ("subscribers index account_number", """
+        CREATE INDEX IF NOT EXISTS ix_subscribers_account_number ON subscribers(account_number)
+    """),
+    ("subscribers unique ip per tenant", """
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_subscribers_ip_per_tenant ON subscribers(tenant_id, networking_ip)
+    """),
+    ("subscribers unique account per tenant", """
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_subscribers_account_per_tenant ON subscribers(tenant_id, account_number)
+    """),
+    ("subscriber_status_logs table", """
+        CREATE TABLE IF NOT EXISTS subscriber_status_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            subscriber_id UUID NOT NULL REFERENCES subscribers(id) ON DELETE CASCADE,
+            from_status VARCHAR(30),
+            to_status VARCHAR(30) NOT NULL,
+            reason VARCHAR(100),
+            triggered_by VARCHAR(30) NOT NULL DEFAULT 'system',
+            details TEXT,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("subscriber_status_logs index", """
+        CREATE INDEX IF NOT EXISTS ix_subscriber_status_logs_subscriber_id ON subscriber_status_logs(subscriber_id)
+    """),
+    ("subscriber_data_usage table", """
+        CREATE TABLE IF NOT EXISTS subscriber_data_usage (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            subscriber_id UUID NOT NULL REFERENCES subscribers(id) ON DELETE CASCADE,
+            usage_gb NUMERIC(10,4) NOT NULL,
+            interface_name VARCHAR(100),
+            rx_bytes BIGINT,
+            tx_bytes BIGINT,
+            recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("subscriber_data_usage index", """
+        CREATE INDEX IF NOT EXISTS ix_subscriber_data_usage_subscriber_id ON subscriber_data_usage(subscriber_id)
+    """),
+    ("subscriber_data_usage recorded_at index", """
+        CREATE INDEX IF NOT EXISTS ix_subscriber_data_usage_recorded_at ON subscriber_data_usage(recorded_at DESC)
+    """),
+    ("ipam_pools table", """
+        CREATE TABLE IF NOT EXISTS ipam_pools (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            name VARCHAR(100) NOT NULL,
+            subnet_cidr VARCHAR(45) NOT NULL,
+            gateway VARCHAR(45) NOT NULL,
+            pool_type VARCHAR(10) NOT NULL DEFAULT 'wifi',
+            start_ip VARCHAR(45) NOT NULL,
+            end_ip VARCHAR(45) NOT NULL,
+            vlan_id INTEGER,
+            interface_name VARCHAR(100),
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+        )
+    """),
+    ("ipam_pools index", """
+        CREATE INDEX IF NOT EXISTS ix_ipam_pools_tenant_id ON ipam_pools(tenant_id)
+    """),
+    ("portal_config_snapshots table", """
+        CREATE TABLE IF NOT EXISTS portal_config_snapshots (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            version_tag VARCHAR(100) NOT NULL,
+            config_snapshot JSONB NOT NULL,
+            created_by UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    """),
+    ("portal_config_snapshots index", """
+        CREATE INDEX IF NOT EXISTS ix_portal_config_snapshots_tenant_id ON portal_config_snapshots(tenant_id)
+    """),
 ]
 
 async def run_migrations():

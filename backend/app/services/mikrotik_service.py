@@ -181,3 +181,197 @@ async def get_active_users(tenant_id: str, db: AsyncSession) -> list:
             return r.json().get("users", [])
     except Exception:
         return []
+
+
+# ============================================================================
+# MONTHLY SUBSCRIBER (Static IP) ENDPOINTS — bridge → MikroTik
+# ============================================================================
+
+async def provision_subscriber(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    mac_address: str,
+    plan_id: str | None = None,
+    db: AsyncSession = None,
+) -> dict:
+    """Provision a static IP subscriber on the MikroTik router via bridge."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        logger.warning(f"No MikroTik config for tenant {tenant_id} — skipping subscriber provision")
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {
+        "subscriber_id": subscriber_id,
+        "ip_address": ip_address,
+        "mac_address": mac_address,
+        "plan_id": plan_id,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/activate",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                logger.info(f"Subscriber {subscriber_id} provisioned on router")
+                return {"success": True, "message": "Provisioned on router", "data": r.json()}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge subscriber provision error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def deprovision_subscriber(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Remove a static IP subscriber from the MikroTik router."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {"subscriber_id": subscriber_id, "ip_address": ip_address}
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/deactivate",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Deprovisioned from router"}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge deprovision error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def pause_subscriber_traffic(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Block/drop traffic for a subscriber IP (pause or suspend)."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {"subscriber_id": subscriber_id, "ip_address": ip_address}
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/pause",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Traffic blocked on router"}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge pause error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def resume_subscriber_traffic(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Unblock traffic for a subscriber IP (resume from pause/suspend)."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {"subscriber_id": subscriber_id, "ip_address": ip_address}
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/resume",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Traffic unblocked on router"}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge resume error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def check_subscriber_online(
+    tenant_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Check if a subscriber's IP is online via the bridge."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"online": False, "error": "No MikroTik config"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"{_bridge_url(config)}/subscriber/status?ip={ip_address}",
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return r.json()
+            return {"online": False, "error": f"Bridge error {r.status_code}"}
+    except Exception as e:
+        return {"online": False, "error": str(e)}
+
+
+async def get_subscriber_queue_stats(
+    tenant_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Get queue/bandwidth stats for a subscriber from the router."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"{_bridge_url(config)}/subscriber/queue?ip={ip_address}",
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return r.json()
+            return {"success": False, "message": f"Bridge error {r.status_code}"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+async def reconcile_subscribers_from_router(
+    tenant_id: str,
+    db: AsyncSession = None,
+) -> list[dict] | None:
+    """Fetch all configured static IP subscribers from the router."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(
+                f"{_bridge_url(config)}/subscriber/reconcile",
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return r.json().get("subscribers", [])
+            return None
+    except Exception as e:
+        logger.error(f"Bridge reconcile error: {e}")
+        return None

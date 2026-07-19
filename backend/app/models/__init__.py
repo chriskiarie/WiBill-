@@ -18,6 +18,12 @@ from app.models.campaign import Campaign
 from app.models.feature_flag import FeatureFlag, FEATURES
 from app.models.audit_log import AuditLog
 from app.models.notification import Notification
+from app.models.subscriber_plan import SubscriberPlan, ClientType
+from app.models.subscriber import Subscriber
+from app.models.subscriber_status_log import SubscriberStatusLog
+from app.models.subscriber_data_usage import SubscriberDataUsage
+from app.models.ipam_pool import IpamPool
+from app.models.portal_config_snapshot import PortalConfigSnapshot
 
 __all__ = [
     "Tenant",
@@ -54,4 +60,11 @@ __all__ = [
     "FEATURES",
     "AuditLog",
     "Notification",
+    "SubscriberPlan",
+    "ClientType",
+    "Subscriber",
+    "SubscriberStatusLog",
+    "SubscriberDataUsage",
+    "IpamPool",
+    "PortalConfigSnapshot",
 ]

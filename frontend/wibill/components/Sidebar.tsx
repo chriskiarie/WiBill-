@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Smartphone, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink, Bell,
+  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink, Bell, Palette,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -19,10 +19,12 @@ const nav = [
     { href: '/dashboard/hotspots', icon: Wifi, label: 'Hotspots' },
     { href: '/dashboard/notifications', icon: Bell, label: 'Notifications' },
     { href: '/dashboard/portal-preview', icon: Smartphone, label: 'Portal Preview' },
+    { href: '/dashboard/wizard', icon: Palette, label: 'Portal Design' },
     { href: '/dashboard/network', icon: Activity, label: 'Network' },
   ]},
   { label: 'Billing', items: [
     { href: '/dashboard/sessions', icon: Wifi, label: 'Sessions' },
+    { href: '/dashboard/clients', icon: Users, label: 'Monthly Clients' },
     { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
     { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
     { href: '/dashboard/campaigns', icon: Megaphone, label: 'Campaigns' },
@@ -71,6 +73,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
     items: section.items.filter(item => {
       if (item.href === '/dashboard/campaigns' && !featureFlags.campaigns) return false
       if (item.href === '/dashboard/loyalty' && !featureFlags.loyalty) return false
+      if (item.href === '/dashboard/clients' && !featureFlags.monthly_subscribers) return false
       return true
     }),
   })).filter(section => section.items.length > 0)

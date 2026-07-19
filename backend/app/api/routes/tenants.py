@@ -492,6 +492,8 @@ async def get_my_feature_flags(
         "loyalty": tenant.has_loyalty,
         "mikrotik": tenant.has_mikrotik,
         "portal_customization": tenant.has_portal_customization,
+        "monthly_subscribers": tenant.has_monthly_subscribers,
+        "tv_subscribers": tenant.has_tv_subscribers,
     }
 
 

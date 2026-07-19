@@ -20,6 +20,10 @@ if TYPE_CHECKING:
     from app.models.loyalty_account import LoyaltyAccount
     from app.models.reward_token import RewardToken
     from app.models.campaign import Campaign
+    from app.models.subscriber_plan import SubscriberPlan
+from app.models.subscriber import Subscriber
+from app.models.ipam_pool import IpamPool
+from app.models.portal_config_snapshot import PortalConfigSnapshot
 
 
 class Tenant(Base):
@@ -52,6 +56,8 @@ class Tenant(Base):
     has_loyalty: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     has_mikrotik: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     has_portal_customization: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    has_monthly_subscribers: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    has_tv_subscribers: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Account lock fields
     is_locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -72,6 +78,10 @@ class Tenant(Base):
     loyalty_accounts: Mapped[list["LoyaltyAccount"]] = relationship("LoyaltyAccount", back_populates="tenant", cascade="all, delete-orphan")
     reward_tokens: Mapped[list["RewardToken"]] = relationship("RewardToken", back_populates="tenant", cascade="all, delete-orphan")
     campaigns: Mapped[list["Campaign"]] = relationship("Campaign", back_populates="tenant", cascade="all, delete-orphan")
+    subscriber_plans: Mapped[list["SubscriberPlan"]] = relationship("SubscriberPlan", back_populates="tenant", cascade="all, delete-orphan")
+    subscribers: Mapped[list["Subscriber"]] = relationship("Subscriber", back_populates="tenant", cascade="all, delete-orphan")
+    ipam_pools: Mapped[list["IpamPool"]] = relationship("IpamPool", back_populates="tenant", cascade="all, delete-orphan")
+    portal_snapshots: Mapped[list["PortalConfigSnapshot"]] = relationship("PortalConfigSnapshot", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Tenant {self.slug}>"

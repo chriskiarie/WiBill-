@@ -416,6 +416,8 @@ async def get_current_user_info(
             "loyalty": tenant_obj.has_loyalty if tenant_obj else False,
             "mikrotik": tenant_obj.has_mikrotik if tenant_obj else True,
             "portal_customization": tenant_obj.has_portal_customization if tenant_obj else True,
+            "monthly_subscribers": tenant_obj.has_monthly_subscribers if tenant_obj else False,
+            "tv_subscribers": tenant_obj.has_tv_subscribers if tenant_obj else False,
         } if tenant_obj else {},
     }
 

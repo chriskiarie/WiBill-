@@ -186,7 +186,68 @@ export const api = {
        }
        return res.text()
      },
-   getMikrotikLoginHtml: async () => {
+    // ========================================================================
+    // MONTHLY SUBSCRIBERS
+    // ========================================================================
+    getSubscribers: (params?: { status?: string; client_type?: string; search?: string; skip?: number; limit?: number }) => {
+      const q = new URLSearchParams()
+      if (params?.status) q.append('status', params.status)
+      if (params?.client_type) q.append('client_type', params.client_type)
+      if (params?.search) q.append('search', params.search)
+      if (params?.skip !== undefined) q.append('skip', params.skip.toString())
+      if (params?.limit !== undefined) q.append('limit', params.limit.toString())
+      const qs = q.toString()
+      return request<any>(`/api/subscribers${qs ? '?' + qs : ''}`)
+    },
+    getSubscriber: (id: string) => request<any>(`/api/subscribers/${id}`),
+    createSubscriber: (data: any) =>
+      request<any>('/api/subscribers', { method: 'POST', body: JSON.stringify(data) }),
+    updateSubscriber: (id: string, data: any) =>
+      request<any>(`/api/subscribers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    pauseSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/pause`, { method: 'POST' }),
+    suspendSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/suspend`, { method: 'POST' }),
+    resumeSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/resume`, { method: 'POST' }),
+    activateSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/activate`, { method: 'POST' }),
+    getSubscriberStats: () => request<any>('/api/subscribers/stats'),
+    reconcileSubscribers: () =>
+      request<any>('/api/subscribers/reconcile', { method: 'POST' }),
+    getAvailableIps: (poolType: string = 'wifi') =>
+      request<any>(`/api/subscribers/ipam/available?pool_type=${poolType}`),
+
+    // ========================================================================
+    // SUBSCRIBER PLANS
+    // ========================================================================
+    getSubscriberPlans: (params?: { client_type?: string; is_active?: boolean }) => {
+      const q = new URLSearchParams()
+      if (params?.client_type) q.append('client_type', params.client_type)
+      if (params?.is_active !== undefined) q.append('is_active', params.is_active.toString())
+      const qs = q.toString()
+      return request<any[]>(`/api/subscriber-plans${qs ? '?' + qs : ''}`)
+    },
+    createSubscriberPlan: (data: any) =>
+      request<any>('/api/subscriber-plans', { method: 'POST', body: JSON.stringify(data) }),
+    updateSubscriberPlan: (id: string, data: any) =>
+      request<any>(`/api/subscriber-plans/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    deleteSubscriberPlan: (id: string) =>
+      request(`/api/subscriber-plans/${id}`, { method: 'DELETE' }),
+
+    // ========================================================================
+    // IPAM POOLS
+    // ========================================================================
+    getIpamPools: (poolType?: string) => {
+      const q = poolType ? `?pool_type=${poolType}` : ''
+      return request<any[]>(`/api/ipam/pools${q}`)
+    },
+    createIpamPool: (data: any) =>
+      request<any>('/api/ipam/pools', { method: 'POST', body: JSON.stringify(data) }),
+    deleteIpamPool: (id: string) =>
+      request(`/api/ipam/pools/${id}`, { method: 'DELETE' }),
+
+    getMikrotikLoginHtml: async () => {
        const token = getToken()
        const res = await fetch(`${BASE}/api/mikrotik/login-html`, {
          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -223,13 +284,35 @@ export const api = {
   // PORTAL CONFIGURATION
   // ========================================================================
   savePortalConfig: (data: any) =>
-    request('/api/tenants/portal-config', {
+    request('/api/portal-config', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  getPortalConfig: () => request<any>('/api/tenants/portal-config'),
+  getPortalConfig: () => request<any>('/api/portal-config'),
   checkPortalReady: () =>
-    request<{ portal_config: any; configured: boolean }>('/api/tenants/portal-config'),
+    request<{ portal_config: any; configured: boolean }>('/api/portal-config'),
+  getTemplates: (category?: string) =>
+    request<any>(`/api/portal-templates${category ? `?category=${category}` : ''}`),
+  getTemplate: (id: string) =>
+    request<any>(`/api/portal-templates/${id}`),
+  getSnapshots: () =>
+    request<any>('/api/portal-config/snapshots'),
+  createSnapshot: (tag: string) =>
+    request('/api/portal-config/snapshots', { method: 'POST', body: JSON.stringify({ version_tag: tag }) }),
+  restoreSnapshot: (id: string) =>
+    request(`/api/portal-config/snapshots/${id}/restore`, { method: 'POST' }),
+  uploadAsset: (file: File, subfolder = 'assets') => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('subfolder', subfolder)
+    return request('/api/portal/assets/upload', { method: 'POST', body: form })
+  },
+  listAssets: (subfolder = 'assets') =>
+    request<any>(`/api/portal/assets?subfolder=${subfolder}`),
+  deleteAsset: (url: string) =>
+    request(`/api/portal/assets?url=${encodeURIComponent(url)}`, { method: 'DELETE' }),
+  exportZip: () => request('/api/portal/export/zip'),
+  exportQRPoster: () => request('/api/portal/export/qr-poster'),
 
   // ========================================================================
   // VOUCHERS

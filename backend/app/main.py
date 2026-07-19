@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
     # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
+    from app.jobs.subscriber_expiry import process_overdue_subscribers
+    from app.jobs.subscriber_reconciliation import reconcile_all_tenants
+    from app.jobs.subscriber_usage_poller import poll_subscriber_usage
     from app.jobs.invoice_scheduler import start_scheduler as start_invoice_scheduler
 
     scheduler.add_job(
@@ -66,7 +69,31 @@ async def lifespan(app: FastAPI):
         name="Session expiry checker",
         replace_existing=True,
     )
-    
+
+    # Monthly subscriber background jobs
+    from apscheduler.triggers.cron import CronTrigger
+    scheduler.add_job(
+        process_overdue_subscribers,
+        trigger=CronTrigger(hour=6, minute=0),
+        id="subscriber_expiry",
+        name="Monthly subscriber expiry/reminder",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        reconcile_all_tenants,
+        trigger=IntervalTrigger(hours=12),
+        id="subscriber_reconciliation",
+        name="Subscriber router reconciliation",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        poll_subscriber_usage,
+        trigger=IntervalTrigger(minutes=10),
+        id="subscriber_usage_poller",
+        name="Subscriber data usage poller",
+        replace_existing=True,
+    )
+
     # Start Invoice Scheduler (Phase 4B)
     try:
         start_invoice_scheduler()
@@ -136,7 +163,9 @@ from app.api.routes import admin as admin_routes
 from app.api.routes import crud_reads
 from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
 from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms, admin_invoices, payment_notifications
-# Portal preview router removed - using new portal renderer
+from app.api.routes import subscriber_plans, monthly_subscribers, ipam
+from app.api.routes import portal_wizard
+from fastapi.staticfiles import StaticFiles
 
 # ============================================================================
 # ROUTER REGISTRATION
@@ -169,6 +198,18 @@ app.include_router(admin_comms.router, prefix="/api", tags=["admin-comms"])
 app.include_router(admin_invoices.router, prefix="/api", tags=["admin-invoices"])
 app.include_router(mikrotik.router, prefix="/api", tags=["mikrotik"])
 app.include_router(payment_notifications.router, prefix="/api", tags=["payment-notifications"])
+app.include_router(subscriber_plans.router, prefix="/api/subscriber-plans", tags=["subscriber-plans"])
+app.include_router(monthly_subscribers.router, prefix="/api/subscribers", tags=["monthly-subscribers"])
+app.include_router(ipam.router, prefix="/api/ipam", tags=["ipam"])
+app.include_router(portal_wizard.router, prefix="", tags=["portal-wizard"])
+
+# Serve uploaded assets
+import os
+from pathlib import Path
+uploads_dir = Path(__file__).resolve().parent.parent / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/health", tags=["system"])
 async def health():

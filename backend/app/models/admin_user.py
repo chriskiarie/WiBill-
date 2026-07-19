@@ -9,11 +9,15 @@ Full field reference below — add only the onboarding_complete line if your fil
 """
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy import String, DateTime, Boolean, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.core.database import Base
 import enum
+
+if TYPE_CHECKING:
+    from app.models.portal_config_snapshot import PortalConfigSnapshot
 
 
 class AdminRole(str, enum.Enum):
@@ -38,6 +42,7 @@ class AdminUser(Base):
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="admin_users")
+    portal_snapshots: Mapped[list["PortalConfigSnapshot"]] = relationship("PortalConfigSnapshot", back_populates="creator", foreign_keys="PortalConfigSnapshot.created_by")
 
     def __repr__(self) -> str:
         return f"<AdminUser {self.email} ({self.role})>"
