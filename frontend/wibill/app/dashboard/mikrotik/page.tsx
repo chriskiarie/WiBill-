@@ -29,6 +29,7 @@ export default function MikrotikPage() {
   const [installScript, setInstallScript] = useState<string | null>(null)
   const [showScript, setShowScript] = useState(false)
   const [provisioning, setProvisioning] = useState(false)
+  const [generatingScript, setGeneratingScript] = useState(false)
   const [tab, setTab] = useState<'config' | 'users' | 'script'>('config')
   const [form, setForm] = useState({
     router_ip: '',
@@ -154,12 +155,15 @@ export default function MikrotikPage() {
   }
 
   const handleInstallScript = async () => {
+    setGeneratingScript(true)
     try {
       const data = await api.getMikrotikInstallScript()
       setInstallScript(data)
       setShowScript(true)
     } catch (e: any) {
       showToast(e.message || 'Failed to generate script', { type: 'error' })
+    } finally {
+      setGeneratingScript(false)
     }
   }
 
@@ -471,8 +475,9 @@ export default function MikrotikPage() {
                             </button>
                           </>
                         )}
-                        <button onClick={handleInstallScript} style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
-                          {installScript ? 'Regenerate' : 'Generate'}
+                        <button onClick={handleInstallScript} disabled={generatingScript}
+                          style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: generatingScript ? 'not-allowed' : 'pointer', opacity: generatingScript ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {generatingScript ? 'Generating...' : installScript ? 'Regenerate' : 'Generate'}
                         </button>
                       </div>
                     </div>

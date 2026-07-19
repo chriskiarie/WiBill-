@@ -36,11 +36,16 @@ async function request<T>(
         throw new Error('Access denied')
       }
       const err = await res.json().catch(() => ({ detail: 'Request failed' }))
-      throw new Error(err.detail || `HTTP ${res.status}`)
+      const e = new Error(err.detail || `HTTP ${res.status}`) as any
+      e.status = res.status
+      throw e
     }
 
     return res.json() as Promise<T>
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.status && error.status >= 400 && error.status < 500) {
+      throw error
+    }
     if (attempt < retries) {
       await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt)))
       return request<T>(path, opts, attempt + 1)
@@ -170,8 +175,17 @@ export const api = {
       request<any>('/api/mikrotik/provision', { method: 'POST' }),
    decommissionMikrotik: () =>
       request<any>('/api/mikrotik/decomission', { method: 'POST' }),
-   getMikrotikInstallScript: () =>
-       request<any>('/api/mikrotik/install-script'),
+    getMikrotikInstallScript: async () => {
+       const token = getToken()
+       const res = await fetch(`${BASE}/api/mikrotik/install-script`, {
+         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+       })
+       if (!res.ok) {
+         const err = await res.json().catch(() => ({ detail: 'Failed to generate script' }))
+         throw new Error(err.detail || `HTTP ${res.status}`)
+       }
+       return res.text()
+     },
    getMikrotikLoginHtml: async () => {
        const token = getToken()
        const res = await fetch(`${BASE}/api/mikrotik/login-html`, {
