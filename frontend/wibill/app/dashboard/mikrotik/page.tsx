@@ -97,12 +97,12 @@ export default function MikrotikPage() {
       if (result.connected) {
         showToast(`Connected to ${result.router_identity} v${result.router_os_version?.split(' ')[0] || ''}`, { type: 'success' })
       } else {
-        showToast(result.error || 'Connection failed', { type: 'error' })
+        showToast(stripHtml(result.error || 'Connection failed'), { type: 'error' })
       }
       fetchHealth()
     } catch (e: any) {
       setTestResult({ connected: false, error: e.message || 'Connection failed' })
-      showToast(e.message || 'Connection failed', { type: 'error' })
+      showToast(stripHtml(e.message || 'Connection failed'), { type: 'error' })
     } finally { setTesting(false) }
   }
 
@@ -240,6 +240,8 @@ export default function MikrotikPage() {
     }
   }
 
+  const stripHtml = (s: string) => s ? s.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ').trim() : ''
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="MikroTik" />
@@ -278,7 +280,7 @@ export default function MikrotikPage() {
         {loading ? (
           <LoadingSpinner size="md" label="Loading router config..." />
         ) : (
-          <div style={{ maxWidth: 720 }}>
+          <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
             {config && !showForm && (
               <>
                 {/* Tab Navigation */}
@@ -336,7 +338,7 @@ export default function MikrotikPage() {
                             </div>
                           )}
                           {health?.status === 'ERROR' && (
-                            <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{health?.last_error || health?.error || 'Unknown error'}</div>
+                            <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{stripHtml(health?.last_error || health?.error || 'Unknown error')}</div>
                           )}
                           {health?.status === 'PROVISIONED' && (
                             <div style={{ fontSize: 10, color: C.gold, marginTop: 2 }}>
@@ -547,7 +549,7 @@ export default function MikrotikPage() {
                         )}
                       </>
                     ) : (
-                      <div>❌ {testResult.error || 'Connection failed'}</div>
+                      <div>❌ {stripHtml(testResult.error || 'Connection failed')}</div>
                     )}
                   </div>
                 )}
