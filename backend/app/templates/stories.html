@@ -51,6 +51,9 @@
 
         body {
             background: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 0);
+            background-size: 40px 40px;
             color: var(--text-primary);
             font-family: var(--font-body);
             line-height: 1.6;
@@ -67,26 +70,28 @@
             width: 700px;
             height: 700px;
             background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
-            opacity: 0.05;
+            opacity: 0.08;
             border-radius: 50%;
             pointer-events: none;
             animation: float 10s ease-in-out infinite;
             z-index: 0;
+            filter: blur(60px);
         }
 
         body::after {
             content: '';
             position: fixed;
-            bottom: -20%;
-            left: -10%;
+            bottom: -15%;
+            left: -5%;
             width: 600px;
             height: 600px;
             background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
-            opacity: 0.04;
+            opacity: 0.06;
             border-radius: 50%;
             pointer-events: none;
             animation: float 12s ease-in-out infinite reverse;
             z-index: 0;
+            filter: blur(60px);
         }
 
         @keyframes float {
@@ -100,8 +105,10 @@
             z-index: 50;
             width: 100%;
             padding: 0.85rem var(--spacing-lg);
-            background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
-            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             color: #059669;
             text-align: center;
             font-size: 0.9rem;
@@ -187,7 +194,7 @@
             margin-bottom: var(--spacing-md);
             display: inline-block;
             animation: bounce 4s ease-in-out infinite;
-            filter: drop-shadow(0 8px 20px rgba(var(--accent-primary), 0.15));
+            filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15));
         }
 
         @keyframes bounce {
@@ -269,20 +276,22 @@
         .story-card {
             display: flex;
             flex-direction: column;
-            background: var(--bg-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: var(--shadow-md);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: var(--transition);
             min-height: 560px;
             position: relative;
         }
 
         .story-card.featured {
-            background: linear-gradient(135deg, var(--bg-secondary), rgba(var(--accent-primary), 0.05));
+            background: rgba(255, 255, 255, 0.06);
             border: 1.5px solid var(--accent-primary);
-            box-shadow: var(--shadow-lg), inset 0 0 30px rgba(var(--accent-primary), 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .story-card:hover {
@@ -701,12 +710,14 @@
         }
 
         .payment-modal-content {
-            background: var(--bg-secondary);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: var(--radius);
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             animation: slideUp 0.3s ease;
         }
 
