@@ -89,7 +89,6 @@ const COMPONENT_TOGGLES = [
   { id: 'saved_number_login', label: 'Saved Number Login', default: true },
   { id: 'session_timer', label: 'Session Timer', default: true },
   { id: 'terms_checkbox', label: 'T&C Checkbox', default: true },
-  { id: 'share_button', label: 'Share WiFi', default: false },
 ]
 
 const PAYMENT_TOGGLES = [
@@ -146,7 +145,7 @@ const INITIAL_CONFIG = {
   typography: { font_family: 'Space Grotesk', heading_size: 36, body_size: 16, font_weight: 600, letter_spacing: 0.5, heading_case: 'normal' },
   card: { style: 'glass', radius: 16, elevation: 0, size: 'compact' },
   layout: { sections: ['hero', 'logo', 'packages', 'footer'], banner_position: 'top' },
-  components: { hero: true, logo: true, welcome_text: true, packages: true, promo_banner: false, countdown: false, reviews: false, qr_code: false, social_links: false, faq: false, terms: true, footer: true, saved_number_login: true, session_timer: true, terms_checkbox: true, share_button: false },
+  components: { hero: true, logo: true, welcome_text: true, packages: true, promo_banner: false, countdown: false, reviews: false, qr_code: false, social_links: false, faq: false, terms: true, footer: true, saved_number_login: true, session_timer: true, terms_checkbox: true },
   animations: { entrance: 'fade-in', floating_logo: false, particles: false, pulse_button: false, ripple: false },
   network_awareness: { show_status_banner: false, custom_status_message: '' },
   enabled_features: { mpesa_stk: true, card_payments: false, vouchers: true, sms_receipts: false },
@@ -348,16 +347,14 @@ export default function PortalWizard() {
   }
 
   function updateComponent(key: string, value: boolean) {
-    setConfig(prev => ({
-      ...prev,
-      components: { ...prev.components, [key]: value },
-      layout: {
-        ...prev.layout,
-        sections: value
-          ? [...new Set([...prev.layout.sections, key])]
-          : prev.layout.sections.filter(s => s !== key),
-      },
-    }))
+    setConfig(prev => {
+      const next = {
+        ...prev,
+        components: { ...prev.components, [key]: value },
+      }
+      scheduleBroadcast(next)
+      return next
+    })
   }
 
   function updateAnimation(key: string, value: any) {
@@ -369,23 +366,35 @@ export default function PortalWizard() {
   }
 
   function updateNetworkAwareness(key: string, value: any) {
-    setConfig(prev => ({ ...prev, network_awareness: { ...prev.network_awareness, [key]: value } }))
+    setConfig(prev => {
+      const next = { ...prev, network_awareness: { ...prev.network_awareness, [key]: value } }
+      scheduleBroadcast(next)
+      return next
+    })
   }
 
   function updateFeature(key: string, value: boolean) {
-    setConfig(prev => ({ ...prev, enabled_features: { ...prev.enabled_features, [key]: value } }))
+    setConfig(prev => {
+      const next = { ...prev, enabled_features: { ...prev.enabled_features, [key]: value } }
+      scheduleBroadcast(next)
+      return next
+    })
   }
 
   function toggleSection(sectionId: string) {
-    setConfig(prev => ({
-      ...prev,
-      layout: {
-        ...prev.layout,
-        sections: prev.layout.sections.includes(sectionId)
-          ? prev.layout.sections.filter(s => s !== sectionId)
-          : [...prev.layout.sections, sectionId],
-      },
-    }))
+    setConfig(prev => {
+      const next = {
+        ...prev,
+        layout: {
+          ...prev.layout,
+          sections: prev.layout.sections.includes(sectionId)
+            ? prev.layout.sections.filter(s => s !== sectionId)
+            : [...prev.layout.sections, sectionId],
+        },
+      }
+      scheduleBroadcast(next)
+      return next
+    })
   }
 
   const broadcastTimer = useRef<any>(null)
@@ -397,7 +406,7 @@ export default function PortalWizard() {
   }
 
   function templateToBaseId(templateId: string): string {
-    const dash = ['executive-dark', 'executive-light', 'modern-isp', 'corporate-blue', 'ocean-deep', 'streaming-portal', 'glass-morphism', 'material-design', 'kenyan-gold', 'nairobi-night', 'cherry-blossom']
+    const dash = ['executive-dark', 'executive-light', 'modern-isp', 'corporate-blue', 'ocean-deep', 'streaming-portal', 'glass-morphism', 'material-design', 'kenyan-gold', 'nairobi-night', 'cherry-blossom', 'afro-modern', 'midnight-purple', 'cyberpunk']
     const spot = ['premium-hotel', 'gaming-neon', 'rgb-wave', 'apple-style', 'clean-white', 'safari', 'sunset-vibes', 'coffee-shop']
     if (dash.includes(templateId)) return 'dashboard'
     if (spot.includes(templateId)) return 'spotlight'
@@ -427,22 +436,75 @@ export default function PortalWizard() {
     if (!w) return
     const t = cfg.theme
     const pal = computePalette(cfg)
+    const isLight = ['executive-light', 'apple-style', 'clean-white'].includes(cfg.template_id)
     try {
       w.postMessage({
         type: 'UPDATE_PALETTE',
         colors: pal,
       }, '*')
       w.postMessage({
-        type: 'UPDATE_BRAND_NAME',
+        type: 'UPDATE_BRAND',
         name: cfg.brand.name || 'Your ISP',
+        tagline: cfg.brand.tagline || '',
+        location: cfg.brand.location || '',
+        emoji: cfg.brand.emoji || '📶',
+        phone: cfg.brand.support_phone || '',
+        logo_url: cfg.brand.logo_url || '',
       }, '*')
       w.postMessage({
         type: 'UPDATE_TYPOGRAPHY',
         font: cfg.typography.font_family,
+        heading_size: cfg.typography.heading_size + 'px',
+        body_size: cfg.typography.body_size + 'px',
+        font_weight: cfg.typography.font_weight,
+        letter_spacing: cfg.typography.letter_spacing + 'px',
+        heading_case: cfg.typography.heading_case,
       }, '*')
       w.postMessage({
         type: 'UPDATE_CARD_STYLE',
         radius: cfg.card.radius + 'px',
+        style: cfg.card.style,
+        elevation: cfg.card.elevation,
+        size: cfg.card.size,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_BUTTON_STYLE',
+        style: t.button_style || 'rounded',
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_LAYOUT',
+        sections: cfg.layout.sections,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_COMPONENTS',
+        saved_number_login: cfg.components.saved_number_login,
+        session_timer: cfg.components.session_timer,
+        terms_checkbox: cfg.components.terms_checkbox,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_ANIMATIONS',
+        entrance: cfg.animations.entrance,
+        floating_logo: cfg.animations.floating_logo,
+        particles: cfg.animations.particles,
+        pulse_button: cfg.animations.pulse_button,
+        ripple: cfg.animations.ripple,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_NETWORK',
+        show_banner: cfg.network_awareness.show_status_banner,
+        message: cfg.network_awareness.custom_status_message,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_OVERLAY',
+        opacity: t.overlay_opacity,
+        color: t.overlay_color,
+      }, '*')
+      w.postMessage({
+        type: 'UPDATE_BACKGROUND',
+        type: t.background_type,
+        value: t.background_value,
+        gradient: t.gradient || '',
+        url: t.background_url || '',
       }, '*')
     } catch {}
   }
@@ -948,12 +1010,11 @@ export default function PortalWizard() {
           {/* ── Layout Panel ── */}
           {activePanel === 'layout' && (
             <div style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>Toggle which sections appear on your portal. Drag to reorder (coming soon).</p>
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>Toggle which sections appear on your portal.</p>
               {SECTION_OPTIONS.map(s => {
                 const enabled = config.layout.sections.includes(s.id)
                 return (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
-                    <GripVertical size={14} style={{ color: C.muted, flexShrink: 0 }} />
                     <Toggle checked={enabled} onChange={() => toggleSection(s.id)} />
                     <span style={{ fontSize: 13, color: enabled ? C.text : C.muted, flex: 1 }}>{s.label}</span>
                   </div>

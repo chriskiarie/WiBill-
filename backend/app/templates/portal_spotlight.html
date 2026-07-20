@@ -29,10 +29,60 @@
             --spacing-xl: 3rem;
             --font-display: '{{ font }}', sans-serif;
             --font-body: '{{ font }}', sans-serif;
+            --heading-size: 2.5rem;
+            --body-size: 1rem;
+            --font-weight: 600;
+            --letter-spacing: 0;
+            --card-padding: 16px 20px;
+            --btn-radius: 10px;
+            --overlay-opacity: 0.3;
+            --overlay-color: #000000;
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
             --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--btn-radius);
+            padding: 0.8rem 2rem;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .package-card.card-glass {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .package-card.card-outline {
+            background: transparent;
+            border: 1.5px solid var(--accent-primary);
+            backdrop-filter: none;
+        }
+        .package-card.card-minimal {
+            background: var(--bg-secondary);
+            border: none;
+            backdrop-filter: none;
+        }
+        .package-card.card-floating {
+            background: var(--bg-secondary);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            border: none;
+            transform: translateY(-2px);
+        }
+        .package-card.card-sharp {
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.06);
+            backdrop-filter: none;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,8 +133,10 @@
         }
 
         .network-banner.offline {
-            background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
-            border-bottom-color: rgba(239, 68, 68, 0.15); color: #dc2626;
+            background: rgba(239, 68, 68, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(239, 68, 68, 0.2); color: #fca5a5;
         }
 
         .network-status-dot {
@@ -239,7 +291,7 @@
         .package-btn {
             padding: 0.8rem 1.5rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white; border: none; border-radius: calc(var(--radius) * 0.5);
+            color: var(--btn-text, #fff); border: none; border-radius: var(--btn-radius, calc(var(--radius) * 0.5));
             font-family: var(--font-display); font-size: 0.9rem; font-weight: 700;
             cursor: pointer; transition: var(--transition);
             text-transform: uppercase; letter-spacing: 0.06em;
@@ -835,9 +887,9 @@
         window.addEventListener('message', function(event) {
             if (!event.data || !event.data.type) return;
             const data = event.data;
+            const root = document.documentElement;
 
             if (data.type === 'UPDATE_PALETTE' && data.colors) {
-                const root = document.documentElement;
                 root.style.setProperty('--bg-primary', data.colors.bgStart);
                 root.style.setProperty('--bg-secondary', data.colors.card);
                 root.style.setProperty('--text-primary', data.colors.text);
@@ -845,33 +897,79 @@
                 root.style.setProperty('--accent-primary', data.colors.primary);
                 root.style.setProperty('--accent-secondary', data.colors.primaryDark);
                 root.style.setProperty('--success', data.colors.accent);
+                var hex = data.colors.primary.replace('#', '');
+                if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+                var r2 = parseInt(hex.substring(0,2),16), g2 = parseInt(hex.substring(2,4),16), b2 = parseInt(hex.substring(4,6),16);
+                var brightness = (r2*299 + g2*587 + b2*114) / 1000;
+                root.style.setProperty('--btn-text', brightness > 140 ? '#1a1a1a' : '#ffffff');
             }
 
-            if (data.type === 'UPDATE_BRAND_NAME' && data.name) {
-                const titleEl = document.querySelector('.hero-title');
-                if (titleEl) titleEl.textContent = data.name;
-                document.title = data.name + ' - WiFi Access';
+            if (data.type === 'UPDATE_BRAND') {
+                var titleEl = document.querySelector('.hero-title');
+                if (titleEl && data.name) titleEl.textContent = data.name;
+                var subEl = document.querySelector('.hero-subtitle');
+                if (subEl && data.tagline !== undefined) subEl.textContent = data.tagline || 'INTERNET ACCESS';
+                if (data.name) document.title = data.name + ' - WiFi Access';
             }
 
-            if (data.type === 'UPDATE_TYPOGRAPHY' && data.font) {
-                const root = document.documentElement;
-                root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
-                root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
-                const oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
-                const newLink = document.createElement('link');
-                newLink.rel = 'stylesheet';
-                newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700&display=swap';
-                if (oldLink) {
-                    oldLink.replaceWith(newLink);
-                } else {
-                    document.head.appendChild(newLink);
+            if (data.type === 'UPDATE_TYPOGRAPHY') {
+                if (data.font) {
+                    root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
+                    root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
+                    var oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
+                    var newLink = document.createElement('link');
+                    newLink.rel = 'stylesheet';
+                    newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700&display=swap';
+                    if (oldLink) { oldLink.replaceWith(newLink); } else { document.head.appendChild(newLink); }
+                    document.body.style.fontFamily = "'" + data.font + "', sans-serif";
                 }
-                document.body.style.fontFamily = "'" + data.font + "', sans-serif";
+                if (data.heading_size) root.style.setProperty('--heading-size', data.heading_size);
+                if (data.body_size) root.style.setProperty('--body-size', data.body_size);
+                if (data.font_weight) root.style.setProperty('--font-weight', data.font_weight);
+                if (data.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', data.letter_spacing);
+                if (data.heading_case) {
+                    document.querySelectorAll('.hero-title, .package-name, h2, h3').forEach(function(el) {
+                        el.style.textTransform = data.heading_case;
+                    });
+                }
             }
 
-            if (data.type === 'UPDATE_CARD_STYLE' && data.radius) {
-                const root = document.documentElement;
-                root.style.setProperty('--radius', data.radius);
+            if (data.type === 'UPDATE_CARD_STYLE') {
+                if (data.radius) root.style.setProperty('--radius', data.radius);
+                if (data.style) {
+                    document.querySelectorAll('.package-card').forEach(function(card) {
+                        card.classList.remove('card-glass', 'card-outline', 'card-minimal', 'card-floating', 'card-sharp');
+                        card.classList.add('card-' + data.style);
+                    });
+                }
+                if (data.size) {
+                    var sizeMap = { compact: '12px 16px', comfortable: '16px 20px', large: '24px 28px' };
+                    root.style.setProperty('--card-padding', sizeMap[data.size] || '16px 20px');
+                }
+            }
+
+            if (data.type === 'UPDATE_BUTTON_STYLE') {
+                var radiusMap = { rounded: '10px', pill: '50px', sharp: '2px' };
+                root.style.setProperty('--btn-radius', radiusMap[data.style] || '10px');
+            }
+
+            if (data.type === 'UPDATE_NETWORK') {
+                var banner = document.querySelector('.network-banner');
+                if (banner) {
+                    banner.style.display = data.show_banner ? 'flex' : 'none';
+                    if (data.message) {
+                        var msgEl = banner.querySelector('.banner-text, span');
+                        if (msgEl) msgEl.textContent = data.message;
+                    }
+                }
+            }
+
+            if (data.type === 'UPDATE_LAYOUT' && data.sections) {
+                var sectionMap = { hero: '.hero-section', packages: '.packages-grid' };
+                Object.keys(sectionMap).forEach(function(key) {
+                    var el = document.querySelector(sectionMap[key]);
+                    if (el) el.style.display = data.sections.includes(key) ? '' : 'none';
+                });
             }
         });
     </script>
