@@ -1142,10 +1142,16 @@
                 const root = document.documentElement;
                 root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
                 root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
-                const fontLink = document.querySelector('link[href*="fonts.googleapis.com"]');
-                if (fontLink) {
-                    fontLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700;800&display=swap';
+                const oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
+                const newLink = document.createElement('link');
+                newLink.rel = 'stylesheet';
+                newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700;800&display=swap';
+                if (oldLink) {
+                    oldLink.replaceWith(newLink);
+                } else {
+                    document.head.appendChild(newLink);
                 }
+                document.body.style.fontFamily = "'" + data.font + "', sans-serif";
             }
             
             if (data.type === 'UPDATE_CARD_STYLE' && data.radius) {

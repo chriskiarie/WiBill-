@@ -9,34 +9,37 @@ import {
   Globe, Eye, ChevronDown, ChevronUp, Sliders, Sun, Moon,
   Droplets, Layers, AlignLeft, Bold, Underline, Hash,
   GripVertical, Square, Maximize2, Minimize2, FileDown, QrCode,
-  Clock, Share2, Menu, Zap, RefreshCw,
+  Clock, Share2, Zap, RefreshCw, Briefcase, Building, Crown, Wifi,
+  Anchor, Waves, Gamepad2, Cpu, Film, Paintbrush, Sunset,
+  Gem, Snowflake, Apple, Box, Flower2, TreePine, Tent, Palette as PaletteIcon,
+  Moon as MoonIcon, Coffee, Star,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const TEMPLATES = [
-  { id: 'executive-dark', name: 'Executive Dark', category: 'business', desc: 'Premium dark theme for corporate ISPs', badge: 'Popular', colors: { bg: '#0f0f1a', header: '#E8B84B', card: '#1a1a2e', accent: '#f0c27a', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
-  { id: 'executive-light', name: 'Executive Light', category: 'business', desc: 'Clean light theme for professional services', badge: 'New', colors: { bg: '#ffffff', header: '#2D3436', card: '#f0f0f0', accent: '#0984e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
-  { id: 'premium-hotel', name: 'Premium Hotel', category: 'business', desc: 'Luxurious theme for hotels and resorts', badge: 'Trending', colors: { bg: '#1a1410', header: '#C9A96E', card: '#2d2318', accent: '#e8d5a3', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'modern-isp', name: 'Modern ISP', category: 'business', desc: 'Bold modern theme for tech-forward ISPs', badge: 'Popular', colors: { bg: '#0d1117', header: '#00E676', card: '#161b22', accent: '#58a6ff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
-  { id: 'corporate-blue', name: 'Corporate Blue', category: 'business', desc: 'Trustworthy blue theme for enterprise', badge: null, colors: { bg: '#1e1e2f', header: '#1a73e8', card: '#252540', accent: '#8ab4f8', text: '#e0e0e0', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'ocean-deep', name: 'Ocean Deep', category: 'business', desc: 'Deep blue ocean inspired calm theme', badge: null, colors: { bg: '#03045E', header: '#0077B6', card: '#023E8A', accent: '#00B4D8', text: '#e0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'gaming-neon', name: 'Gaming Neon', category: 'entertainment', desc: 'Cyberpunk neon theme for gaming zones', badge: 'Trending', colors: { bg: '#0a001a', header: '#ff00ff', card: '#150030', accent: '#00ffff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'cyberpunk', name: 'Cyberpunk', category: 'entertainment', desc: 'Dark futuristic theme with vibrant accents', badge: null, colors: { bg: '#0d0d0d', header: '#ff6b35', card: '#1a1a1a', accent: '#ffd700', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'streaming-portal', name: 'Streaming Portal', category: 'entertainment', desc: 'Netflix-inspired dark theme', badge: 'Popular', colors: { bg: '#141414', header: '#e50914', card: '#1f1f1f', accent: '#ffffff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
-  { id: 'rgb-wave', name: 'RGB Wave', category: 'entertainment', desc: 'Colorful RGB theme for tech events', badge: 'New', colors: { bg: '#0a0a1a', header: '#ff0080', card: '#150030', accent: '#7000ff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'sunset-vibes', name: 'Sunset Vibes', category: 'entertainment', desc: 'Warm sunset gradient theme', badge: null, colors: { bg: '#1a0a0a', header: '#FF6B6B', card: '#2d1b1b', accent: '#FFE66D', text: '#f0e8e0', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'midnight-purple', name: 'Midnight Purple', category: 'entertainment', desc: 'Deep purple theme for premium lounges', badge: null, colors: { bg: '#0d0015', header: '#9b59b6', card: '#1a0028', accent: '#f1c40f', text: '#f0e8ff', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'glass-morphism', name: 'Glass', category: 'minimal', desc: 'Modern glassmorphism design', badge: 'Popular', colors: { bg: '#0f172a', header: '#ffffff', card: 'rgba(255,255,255,0.06)', accent: '#60a5fa', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'apple-style', name: 'Apple Style', category: 'minimal', desc: 'Clean Apple-inspired minimal design', badge: null, colors: { bg: '#f5f5f7', header: '#1d1d1f', card: '#ffffff', accent: '#0071e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
-  { id: 'material-design', name: 'Material', category: 'minimal', desc: 'Google Material Design 3 inspired', badge: null, colors: { bg: '#1c1b1f', header: '#6750A4', card: '#2b2930', accent: '#D0BCFF', text: '#e6e1e5', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'clean-white', name: 'Clean White', category: 'minimal', desc: 'Bright and clean white theme', badge: null, colors: { bg: '#ffffff', header: '#333333', card: '#f5f5f5', accent: '#4A90D9', text: '#1a1a1a', textDim: 'rgba(0,0,0,0.35)' } },
-  { id: 'cherry-blossom', name: 'Cherry Blossom', category: 'minimal', desc: 'Soft pink theme with elegance', badge: 'New', colors: { bg: '#1a1014', header: '#FFB7C5', card: '#2d1a20', accent: '#d4a0a0', text: '#f0e8ec', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'kenyan-gold', name: 'Kenyan Gold', category: 'local', desc: 'Celebrate Kenya with gold and black', badge: 'Popular', colors: { bg: '#0a0a0a', header: '#DAA520', card: '#1a1400', accent: '#FFD700', text: '#f0e8c8', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'safari', name: 'Safari', category: 'local', desc: 'Earthy tones inspired by the savannah', badge: null, colors: { bg: '#2a1f14', header: '#C4873B', card: '#3a2d1e', accent: '#E8B84B', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'afro-modern', name: 'Afro Modern', category: 'local', desc: 'Bold African patterns meets modern design', badge: 'New', colors: { bg: '#1a0f0a', header: '#E85D26', card: '#2d1a10', accent: '#F5A623', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'nairobi-night', name: 'Nairobi Night', category: 'local', desc: 'City lights inspired dark theme', badge: null, colors: { bg: '#0a0a14', header: '#6C3EB8', card: '#15152a', accent: '#B388FF', text: '#e8e0f0', textDim: 'rgba(255,255,255,0.3)' } },
-  { id: 'coffee-shop', name: 'Coffee Shop', category: 'local', desc: 'Warm brown theme perfect for cafes', badge: 'New', colors: { bg: '#1C1512', header: '#D4A574', card: '#2d2018', accent: '#8B5E3C', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'executive-dark', name: 'Executive Dark', category: 'business', desc: 'Premium dark theme for corporate ISPs', badge: 'Popular', icon: Briefcase, colors: { bg: '#0f0f1a', header: '#E8B84B', card: '#1a1a2e', accent: '#f0c27a', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'executive-light', name: 'Executive Light', category: 'business', desc: 'Clean light theme for professional services', badge: 'New', icon: Building, colors: { bg: '#ffffff', header: '#2D3436', card: '#f0f0f0', accent: '#0984e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'premium-hotel', name: 'Premium Hotel', category: 'business', desc: 'Luxurious theme for hotels and resorts', badge: 'Trending', icon: Crown, colors: { bg: '#1a1410', header: '#C9A96E', card: '#2d2318', accent: '#e8d5a3', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'modern-isp', name: 'Modern ISP', category: 'business', desc: 'Bold modern theme for tech-forward ISPs', badge: 'Popular', icon: Wifi, colors: { bg: '#0d1117', header: '#00E676', card: '#161b22', accent: '#58a6ff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'corporate-blue', name: 'Corporate Blue', category: 'business', desc: 'Trustworthy blue theme for enterprise', badge: null, icon: Anchor, colors: { bg: '#1e1e2f', header: '#1a73e8', card: '#252540', accent: '#8ab4f8', text: '#e0e0e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'ocean-deep', name: 'Ocean Deep', category: 'business', desc: 'Deep blue ocean inspired calm theme', badge: null, icon: Waves, colors: { bg: '#03045E', header: '#0077B6', card: '#023E8A', accent: '#00B4D8', text: '#e0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'gaming-neon', name: 'Gaming Neon', category: 'entertainment', desc: 'Cyberpunk neon theme for gaming zones', badge: 'Trending', icon: Gamepad2, colors: { bg: '#0a001a', header: '#ff00ff', card: '#150030', accent: '#00ffff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'cyberpunk', name: 'Cyberpunk', category: 'entertainment', desc: 'Dark futuristic theme with vibrant accents', badge: null, icon: Cpu, colors: { bg: '#0d0d0d', header: '#ff6b35', card: '#1a1a1a', accent: '#ffd700', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'streaming-portal', name: 'Streaming Portal', category: 'entertainment', desc: 'Netflix-inspired dark theme', badge: 'Popular', icon: Film, colors: { bg: '#141414', header: '#e50914', card: '#1f1f1f', accent: '#ffffff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'rgb-wave', name: 'RGB Wave', category: 'entertainment', desc: 'Colorful RGB theme for tech events', badge: 'New', icon: Paintbrush, colors: { bg: '#0a0a1a', header: '#ff0080', card: '#150030', accent: '#7000ff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'sunset-vibes', name: 'Sunset Vibes', category: 'entertainment', desc: 'Warm sunset gradient theme', badge: null, icon: Sunset, colors: { bg: '#1a0a0a', header: '#FF6B6B', card: '#2d1b1b', accent: '#FFE66D', text: '#f0e8e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'midnight-purple', name: 'Midnight Purple', category: 'entertainment', desc: 'Deep purple theme for premium lounges', badge: null, icon: Gem, colors: { bg: '#0d0015', header: '#9b59b6', card: '#1a0028', accent: '#f1c40f', text: '#f0e8ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'glass-morphism', name: 'Glass', category: 'minimal', desc: 'Modern glassmorphism design', badge: 'Popular', icon: Snowflake, colors: { bg: '#0f172a', header: '#ffffff', card: 'rgba(255,255,255,0.06)', accent: '#60a5fa', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'apple-style', name: 'Apple Style', category: 'minimal', desc: 'Clean Apple-inspired minimal design', badge: null, icon: Apple, colors: { bg: '#f5f5f7', header: '#1d1d1f', card: '#ffffff', accent: '#0071e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'material-design', name: 'Material', category: 'minimal', desc: 'Google Material Design 3 inspired', badge: null, icon: Box, colors: { bg: '#1c1b1f', header: '#6750A4', card: '#2b2930', accent: '#D0BCFF', text: '#e6e1e5', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'clean-white', name: 'Clean White', category: 'minimal', desc: 'Bright and clean white theme', badge: null, icon: Square, colors: { bg: '#ffffff', header: '#333333', card: '#f5f5f5', accent: '#4A90D9', text: '#1a1a1a', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'cherry-blossom', name: 'Cherry Blossom', category: 'minimal', desc: 'Soft pink theme with elegance', badge: 'New', icon: Flower2, colors: { bg: '#1a1014', header: '#FFB7C5', card: '#2d1a20', accent: '#d4a0a0', text: '#f0e8ec', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'kenyan-gold', name: 'Kenyan Gold', category: 'local', desc: 'Celebrate Kenya with gold and black', badge: 'Popular', icon: Star, colors: { bg: '#0a0a0a', header: '#DAA520', card: '#1a1400', accent: '#FFD700', text: '#f0e8c8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'safari', name: 'Safari', category: 'local', desc: 'Earthy tones inspired by the savannah', badge: null, icon: TreePine, colors: { bg: '#2a1f14', header: '#C4873B', card: '#3a2d1e', accent: '#E8B84B', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'afro-modern', name: 'Afro Modern', category: 'local', desc: 'Bold African patterns meets modern design', badge: 'New', icon: PaletteIcon, colors: { bg: '#1a0f0a', header: '#E85D26', card: '#2d1a10', accent: '#F5A623', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'nairobi-night', name: 'Nairobi Night', category: 'local', desc: 'City lights inspired dark theme', badge: null, icon: MoonIcon, colors: { bg: '#0a0a14', header: '#6C3EB8', card: '#15152a', accent: '#B388FF', text: '#e8e0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'coffee-shop', name: 'Coffee Shop', category: 'local', desc: 'Warm brown theme perfect for cafes', badge: 'New', icon: Coffee, colors: { bg: '#1C1512', header: '#D4A574', card: '#2d2018', accent: '#8B5E3C', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
 ]
 
 const CATEGORIES = [
@@ -47,10 +50,10 @@ const CATEGORIES = [
 ]
 
 const FONT_CATEGORIES: Record<string, { name: string; fonts: string[] }> = {
-  corporate: { name: 'Corporate', fonts: ['Inter', 'Roboto', 'IBM Plex Sans', 'Open Sans', 'Lato', 'Nunito'] },
-  luxury: { name: 'Luxury', fonts: ['Playfair Display', 'Cormorant Garamond', 'DM Serif Display', 'Libre Baskerville'] },
-  modern: { name: 'Modern', fonts: ['Space Grotesk', 'Manrope', 'Sora', 'Outfit', 'Plus Jakarta Sans', 'Clash Grotesk'] },
-  tech: { name: 'Tech', fonts: ['Orbitron', 'Exo 2', 'Audiowide', 'Rajdhani', 'Syncopate'] },
+  corporate: { name: 'Clean', fonts: ['Inter', 'Roboto', 'Open Sans'] },
+  luxury: { name: 'Serif', fonts: ['Playfair Display', 'DM Serif Display', 'Libre Baskerville'] },
+  modern: { name: 'Modern', fonts: ['Space Grotesk', 'Manrope', 'Sora', 'Outfit'] },
+  tech: { name: 'Tech', fonts: ['Orbitron', 'Exo 2', 'Rajdhani'] },
 }
 
 const CARD_STYLES = [
@@ -225,13 +228,13 @@ function GradientPreview({ gradient }: { gradient: string | null }) {
   return <div style={{ height: 4, borderRadius: 2, background: gradient, marginTop: 8 }} />
 }
 
-function TemplatePreview({ colors, radius }: { colors: { bg: string; header: string; card: string; accent: string; text: string; textDim: string }; radius?: number }) {
+function TemplatePreview({ colors, radius, Icon }: { colors: { bg: string; header: string; card: string; accent: string; text: string; textDim: string }; radius?: number; Icon?: any }) {
   const r = radius || 12
   const isLight = ['#ffffff', '#f5f5f7'].includes(colors.bg)
   return (
     <div style={{ width: '100%', height: '100%', background: colors.bg, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ height: 48, background: colors.header, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, flexShrink: 0 }}>
-        <div style={{ width: 20, height: 20, borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.15)' }} />
+        {Icon ? <Icon size={18} style={{ color: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)' }} /> : <div style={{ width: 20, height: 20, borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.15)' }} />}
         <div style={{ width: 60, height: 8, borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)' }} />
       </div>
       <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
@@ -664,7 +667,7 @@ export default function PortalWizard() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = 'none' }}>
                 {/* Preview Area */}
                 <div style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
-                  <TemplatePreview colors={t.colors} radius={getTemplatePreset(t.id).card.radius} />
+                  <TemplatePreview colors={t.colors} radius={getTemplatePreset(t.id).card.radius} Icon={t.icon} />
                   {/* Hover overlay */}
                   <div style={{
                     position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -680,6 +683,7 @@ export default function PortalWizard() {
                 {/* Info */}
                 <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <t.icon size={14} style={{ color: t.colors.header, flexShrink: 0 }} />
                     <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{t.name}</span>
                     {t.badge && (
                       <span style={{
