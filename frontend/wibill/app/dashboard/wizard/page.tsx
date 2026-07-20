@@ -9,34 +9,34 @@ import {
   Globe, Eye, ChevronDown, ChevronUp, Sliders, Sun, Moon,
   Droplets, Layers, AlignLeft, Bold, Underline, Hash,
   GripVertical, Square, Maximize2, Minimize2, FileDown, QrCode,
-  Clock, Share2, Star, Menu, Zap, RefreshCw,
+  Clock, Share2, Menu, Zap, RefreshCw,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 const TEMPLATES = [
-  { id: 'executive-dark', name: 'Executive Dark', category: 'business', desc: 'Premium dark theme for corporate ISPs', badge: 'Popular', emoji: '🌟' },
-  { id: 'executive-light', name: 'Executive Light', category: 'business', desc: 'Clean light theme for professional services', badge: 'New', emoji: '💼' },
-  { id: 'premium-hotel', name: 'Premium Hotel', category: 'business', desc: 'Luxurious theme for hotels and resorts', badge: 'Trending', emoji: '🏨' },
-  { id: 'modern-isp', name: 'Modern ISP', category: 'business', desc: 'Bold modern theme for tech-forward ISPs', badge: 'Popular', emoji: '🌐' },
-  { id: 'corporate-blue', name: 'Corporate Blue', category: 'business', desc: 'Trustworthy blue theme for enterprise', badge: null, emoji: '💙' },
-  { id: 'ocean-deep', name: 'Ocean Deep', category: 'business', desc: 'Deep blue ocean inspired calm theme', badge: null, emoji: '🌊' },
-  { id: 'gaming-neon', name: 'Gaming Neon', category: 'entertainment', desc: 'Cyberpunk neon theme for gaming zones', badge: 'Trending', emoji: '🎮' },
-  { id: 'cyberpunk', name: 'Cyberpunk', category: 'entertainment', desc: 'Dark futuristic theme with vibrant accents', badge: null, emoji: '⚡' },
-  { id: 'streaming-portal', name: 'Streaming Portal', category: 'entertainment', desc: 'Netflix-inspired dark theme', badge: 'Popular', emoji: '🎬' },
-  { id: 'rgb-wave', name: 'RGB Wave', category: 'entertainment', desc: 'Colorful RGB theme for tech events', badge: 'New', emoji: '🌈' },
-  { id: 'sunset-vibes', name: 'Sunset Vibes', category: 'entertainment', desc: 'Warm sunset gradient theme', badge: null, emoji: '🌅' },
-  { id: 'midnight-purple', name: 'Midnight Purple', category: 'entertainment', desc: 'Deep purple theme for premium lounges', badge: null, emoji: '💜' },
-  { id: 'glass-morphism', name: 'Glass', category: 'minimal', desc: 'Modern glassmorphism design', badge: 'Popular', emoji: '🪟' },
-  { id: 'apple-style', name: 'Apple Style', category: 'minimal', desc: 'Clean Apple-inspired minimal design', badge: null, emoji: '🍎' },
-  { id: 'material-design', name: 'Material', category: 'minimal', desc: 'Google Material Design 3 inspired', badge: null, emoji: '📐' },
-  { id: 'clean-white', name: 'Clean White', category: 'minimal', desc: 'Bright and clean white theme', badge: null, emoji: '⬜' },
-  { id: 'cherry-blossom', name: 'Cherry Blossom', category: 'minimal', desc: 'Soft pink theme with elegance', badge: 'New', emoji: '🌸' },
-  { id: 'kenyan-gold', name: 'Kenyan Gold', category: 'local', desc: 'Celebrate Kenya with gold and black', badge: 'Popular', emoji: '🦁' },
-  { id: 'safari', name: 'Safari', category: 'local', desc: 'Earthy tones inspired by the savannah', badge: null, emoji: '🌿' },
-  { id: 'afro-modern', name: 'Afro Modern', category: 'local', desc: 'Bold African patterns meets modern design', badge: 'New', emoji: '🎨' },
-  { id: 'nairobi-night', name: 'Nairobi Night', category: 'local', desc: 'City lights inspired dark theme', badge: null, emoji: '🌃' },
-  { id: 'coffee-shop', name: 'Coffee Shop', category: 'local', desc: 'Warm brown theme perfect for cafes', badge: 'New', emoji: '☕' },
+  { id: 'executive-dark', name: 'Executive Dark', category: 'business', desc: 'Premium dark theme for corporate ISPs', badge: 'Popular', colors: { bg: '#0f0f1a', header: '#E8B84B', card: '#1a1a2e', accent: '#f0c27a', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'executive-light', name: 'Executive Light', category: 'business', desc: 'Clean light theme for professional services', badge: 'New', colors: { bg: '#ffffff', header: '#2D3436', card: '#f0f0f0', accent: '#0984e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'premium-hotel', name: 'Premium Hotel', category: 'business', desc: 'Luxurious theme for hotels and resorts', badge: 'Trending', colors: { bg: '#1a1410', header: '#C9A96E', card: '#2d2318', accent: '#e8d5a3', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'modern-isp', name: 'Modern ISP', category: 'business', desc: 'Bold modern theme for tech-forward ISPs', badge: 'Popular', colors: { bg: '#0d1117', header: '#00E676', card: '#161b22', accent: '#58a6ff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'corporate-blue', name: 'Corporate Blue', category: 'business', desc: 'Trustworthy blue theme for enterprise', badge: null, colors: { bg: '#1e1e2f', header: '#1a73e8', card: '#252540', accent: '#8ab4f8', text: '#e0e0e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'ocean-deep', name: 'Ocean Deep', category: 'business', desc: 'Deep blue ocean inspired calm theme', badge: null, colors: { bg: '#03045E', header: '#0077B6', card: '#023E8A', accent: '#00B4D8', text: '#e0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'gaming-neon', name: 'Gaming Neon', category: 'entertainment', desc: 'Cyberpunk neon theme for gaming zones', badge: 'Trending', colors: { bg: '#0a001a', header: '#ff00ff', card: '#150030', accent: '#00ffff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'cyberpunk', name: 'Cyberpunk', category: 'entertainment', desc: 'Dark futuristic theme with vibrant accents', badge: null, colors: { bg: '#0d0d0d', header: '#ff6b35', card: '#1a1a1a', accent: '#ffd700', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'streaming-portal', name: 'Streaming Portal', category: 'entertainment', desc: 'Netflix-inspired dark theme', badge: 'Popular', colors: { bg: '#141414', header: '#e50914', card: '#1f1f1f', accent: '#ffffff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'rgb-wave', name: 'RGB Wave', category: 'entertainment', desc: 'Colorful RGB theme for tech events', badge: 'New', colors: { bg: '#0a0a1a', header: '#ff0080', card: '#150030', accent: '#7000ff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'sunset-vibes', name: 'Sunset Vibes', category: 'entertainment', desc: 'Warm sunset gradient theme', badge: null, colors: { bg: '#1a0a0a', header: '#FF6B6B', card: '#2d1b1b', accent: '#FFE66D', text: '#f0e8e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'midnight-purple', name: 'Midnight Purple', category: 'entertainment', desc: 'Deep purple theme for premium lounges', badge: null, colors: { bg: '#0d0015', header: '#9b59b6', card: '#1a0028', accent: '#f1c40f', text: '#f0e8ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'glass-morphism', name: 'Glass', category: 'minimal', desc: 'Modern glassmorphism design', badge: 'Popular', colors: { bg: '#0f172a', header: '#ffffff', card: 'rgba(255,255,255,0.06)', accent: '#60a5fa', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'apple-style', name: 'Apple Style', category: 'minimal', desc: 'Clean Apple-inspired minimal design', badge: null, colors: { bg: '#f5f5f7', header: '#1d1d1f', card: '#ffffff', accent: '#0071e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'material-design', name: 'Material', category: 'minimal', desc: 'Google Material Design 3 inspired', badge: null, colors: { bg: '#1c1b1f', header: '#6750A4', card: '#2b2930', accent: '#D0BCFF', text: '#e6e1e5', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'clean-white', name: 'Clean White', category: 'minimal', desc: 'Bright and clean white theme', badge: null, colors: { bg: '#ffffff', header: '#333333', card: '#f5f5f5', accent: '#4A90D9', text: '#1a1a1a', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'cherry-blossom', name: 'Cherry Blossom', category: 'minimal', desc: 'Soft pink theme with elegance', badge: 'New', colors: { bg: '#1a1014', header: '#FFB7C5', card: '#2d1a20', accent: '#d4a0a0', text: '#f0e8ec', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'kenyan-gold', name: 'Kenyan Gold', category: 'local', desc: 'Celebrate Kenya with gold and black', badge: 'Popular', colors: { bg: '#0a0a0a', header: '#DAA520', card: '#1a1400', accent: '#FFD700', text: '#f0e8c8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'safari', name: 'Safari', category: 'local', desc: 'Earthy tones inspired by the savannah', badge: null, colors: { bg: '#2a1f14', header: '#C4873B', card: '#3a2d1e', accent: '#E8B84B', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'afro-modern', name: 'Afro Modern', category: 'local', desc: 'Bold African patterns meets modern design', badge: 'New', colors: { bg: '#1a0f0a', header: '#E85D26', card: '#2d1a10', accent: '#F5A623', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'nairobi-night', name: 'Nairobi Night', category: 'local', desc: 'City lights inspired dark theme', badge: null, colors: { bg: '#0a0a14', header: '#6C3EB8', card: '#15152a', accent: '#B388FF', text: '#e8e0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'coffee-shop', name: 'Coffee Shop', category: 'local', desc: 'Warm brown theme perfect for cafes', badge: 'New', colors: { bg: '#1C1512', header: '#D4A574', card: '#2d2018', accent: '#8B5E3C', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
 ]
 
 const CATEGORIES = [
@@ -225,6 +225,33 @@ function GradientPreview({ gradient }: { gradient: string | null }) {
   return <div style={{ height: 4, borderRadius: 2, background: gradient, marginTop: 8 }} />
 }
 
+function TemplatePreview({ colors, radius }: { colors: { bg: string; header: string; card: string; accent: string; text: string; textDim: string }; radius?: number }) {
+  const r = radius || 12
+  const isLight = ['#ffffff', '#f5f5f7'].includes(colors.bg)
+  return (
+    <div style={{ width: '100%', height: '100%', background: colors.bg, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ height: 48, background: colors.header, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, flexShrink: 0 }}>
+        <div style={{ width: 20, height: 20, borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.15)' }} />
+        <div style={{ width: 60, height: 8, borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)' }} />
+      </div>
+      <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+        <div style={{ width: '70%', height: 7, borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)', marginBottom: 2 }} />
+        <div style={{ width: '45%', height: 5, borderRadius: 2, background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)' }} />
+        <div style={{ display: 'flex', gap: 5, marginTop: 4, flex: 1 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ flex: 1, background: colors.card, borderRadius: r * 0.5, padding: 5, display: 'flex', flexDirection: 'column', gap: 3, border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}` }}>
+              <div style={{ width: '60%', height: 4, borderRadius: 2, background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }} />
+              <div style={{ width: '80%', height: 3, borderRadius: 1, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' }} />
+              <div style={{ height: 3, flex: 1 }} />
+              <div style={{ height: 10, borderRadius: 4, background: colors.accent, opacity: 0.85 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PortalWizard() {
   const router = useRouter()
   const { user, token } = useAuth()
@@ -242,6 +269,21 @@ export default function PortalWizard() {
   const [showVersions, setShowVersions] = useState(false)
   const [snapshots, setSnapshots] = useState<any[]>([])
   const [exporting, setExporting] = useState(false)
+
+  const C = {
+    void: 'var(--theme-bg)',
+    base: 'var(--theme-card-base)',
+    surface: 'var(--theme-surface)',
+    border: 'var(--theme-border)',
+    border2: 'var(--theme-border2)',
+    text: 'var(--theme-text)',
+    dim: 'var(--theme-dim)',
+    mute: 'var(--theme-mute)',
+    gold: 'var(--theme-gold)',
+    green: 'var(--theme-green)',
+    red: 'var(--theme-red)',
+    muted: 'var(--theme-text-muted)',
+  }
 
   const PANELS = [
     { id: 'theme', icon: Palette, label: 'Theme Studio' },
@@ -372,7 +414,7 @@ export default function PortalWizard() {
       primaryDark: t.primary_color,
       accent: t.accent_color,
       accentLight: t.accent_color + '33',
-      cardBorder: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+      cardBorder: isLight ? 'rgba(0,0,0,0.08)' : C.border,
       cardHl: t.accent_color + '22',
     }
   }
@@ -563,50 +605,98 @@ export default function PortalWizard() {
   const displayName = user?.tenant_name || (user?.email?.split('@')[0] || 'My ISP')
 
   if (step === 'gallery') {
+    const TEMPLATE_COUNT = filteredTemplates.length
     return (
-      <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '40px 0' }}>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ marginBottom: 48, textAlign: 'center' }}>
-            <h1 style={{ fontSize: 40, fontWeight: 700, marginBottom: 8, background: 'linear-gradient(135deg, var(--theme-gold), #f0c27a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Portal Design Studio</h1>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>Choose a starting point. You can customize everything later.</p>
-          </div>
+      <div style={{ minHeight: '100vh', background: C.void, color: C.text }}>
+        <style>{`
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+          .tpl-card { animation: fadeIn 0.3s ease both; }
+          .tpl-card:hover .tpl-overlay { opacity: 1; }
+        `}</style>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 32, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* ─── Top Bar ─── */}
+        <div style={{ borderBottom: `1px solid ${C.border}`, background: C.base }}>
+          <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${C.gold}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Palette size={16} style={{ color: C.gold }} />
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Portal Design Studio</span>
+            </div>
+            <span style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{TEMPLATE_COUNT} templates</span>
+          </div>
+        </div>
+
+        {/* ─── Hero ─── */}
+        <div style={{ padding: '48px 32px 0', textAlign: 'center' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: C.text, letterSpacing: '-0.5px' }}>Choose a template</h1>
+          <p style={{ color: C.dim, fontSize: 14, marginBottom: 36 }}>Every template is fully customizable. Pick one to get started.</p>
+
+          {/* ─── Category Tabs ─── */}
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginBottom: 40, background: C.base, borderRadius: 10, padding: 3, width: 'fit-content', margin: '0 auto 40px' }}>
             {CATEGORIES.map(cat => (
               <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
-                padding: '10px 20px', borderRadius: 12, border: '0.5px solid',
-                borderColor: activeCategory === cat.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.1)',
-                background: activeCategory === cat.id ? 'rgba(232, 184, 75, 0.1)' : 'rgba(255,255,255,0.03)',
-                color: activeCategory === cat.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.6)',
-                cursor: 'pointer', fontSize: 14, fontWeight: 500, transition: 'all 0.2s',
+                padding: '8px 18px', borderRadius: 8, border: 'none',
+                background: activeCategory === cat.id ? C.gold : 'transparent',
+                color: activeCategory === cat.id ? '#000' : C.dim,
+                cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
+                fontFamily: 'Inter, sans-serif',
               }}>
-                {cat.emoji} {cat.name}
+                {cat.name}
               </button>
             ))}
           </div>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-            {filteredTemplates.map(t => (
-              <button key={t.id} onClick={() => selectTemplate(t.id)}
+        {/* ─── Template Grid ─── */}
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px 64px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {filteredTemplates.map((t, i) => (
+              <button key={t.id} className="tpl-card" onClick={() => selectTemplate(t.id)}
                 style={{
-                  background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '0.5px solid rgba(255,255,255,0.08)',
-                  padding: 0, cursor: 'pointer', overflow: 'hidden', transition: 'all 0.25s', textAlign: 'left', display: 'block',
+                  animationDelay: `${i * 40}ms`,
+                  background: C.base, borderRadius: 12, border: `1px solid ${C.border}`,
+                  padding: 0, cursor: 'pointer', overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
+                  textAlign: 'left', display: 'flex', flexDirection: 'column',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--theme-gold)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(0)' }}>
-                <div style={{ height: 140, background: 'linear-gradient(135deg, var(--theme-gold)22, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
-                  {t.emoji}
-                </div>
-                <div style={{ padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>{t.name}</span>
-                    {t.badge && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'var(--theme-gold)', color: '#000', fontWeight: 600 }}>{t.badge}</span>}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.gold; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = 'none' }}>
+                {/* Preview Area */}
+                <div style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
+                  <TemplatePreview colors={t.colors} radius={getTemplatePreset(t.id).card.radius} />
+                  {/* Hover overlay */}
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: 0, transition: 'opacity 0.2s', pointerEvents: 'none',
+                  }} className="tpl-overlay">
+                    <span style={{
+                      padding: '8px 20px', borderRadius: 8, background: C.gold, color: '#000',
+                      fontSize: 12, fontWeight: 600, letterSpacing: '0.3px',
+                    }}>Use template</span>
                   </div>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{t.desc}</p>
-                  {t.badge === 'Popular' && <div style={{ marginTop: 8, display: 'flex', gap: 4 }}>
-                    {[1,2,3,4,5].map(i => <Star key={i} size={12} color="var(--theme-gold)" fill="var(--theme-gold)" />)}
-                  </div>}
+                </div>
+                {/* Info */}
+                <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{t.name}</span>
+                    {t.badge && (
+                      <span style={{
+                        fontSize: 9, padding: '2px 7px', borderRadius: 4,
+                        background: t.badge === 'Popular' ? `${C.gold}1A` : t.badge === 'Trending' ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
+                        color: t.badge === 'Popular' ? C.gold : t.badge === 'Trending' ? C.green : C.dim,
+                        fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
+                      }}>{t.badge}</span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 12, color: C.dim, margin: 0, lineHeight: 1.4 }}>{t.desc}</p>
+                  {/* Color dots */}
+                  <div style={{ display: 'flex', gap: 4, marginTop: 'auto', paddingTop: 10 }}>
+                    {[t.colors.header, t.colors.accent, t.colors.card].map((c, j) => (
+                      <div key={j} style={{ width: 10, height: 10, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.08)' }} />
+                    ))}
+                  </div>
                 </div>
               </button>
             ))}
@@ -622,15 +712,19 @@ export default function PortalWizard() {
   const brand = config.brand
   const components = config.components
 
+  const S = (sel: string) => `var(--theme-${sel})`
+  const activeBg = `${C.gold}1A`
+  const hoverBg = 'var(--theme-surface)'
+
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#000', color: '#fff', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', background: C.void, color: C.text, overflow: 'hidden' }}>
       {/* ─── Left Sidebar (Settings Panels) ─── */}
-      <div style={{ width: 56, background: '#0a0a0a', borderRight: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0', flexShrink: 0 }}>
+      <div style={{ width: 56, background: C.base, borderRight: `0.5px solid ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0', flexShrink: 0 }}>
         {PANELS.map(p => (
           <button key={p.id} onClick={() => setActivePanel(p.id)} title={p.label} style={{
             width: 40, height: 40, borderRadius: 10, border: 'none', cursor: 'pointer', marginBottom: 2,
-            background: activePanel === p.id ? 'rgba(232,184,75,0.15)' : 'transparent',
-            color: activePanel === p.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.4)',
+            background: activePanel === p.id ? activeBg : 'transparent',
+            color: activePanel === p.id ? C.gold : C.dim,
             display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
           }}>
             <p.icon size={18} />
@@ -639,21 +733,21 @@ export default function PortalWizard() {
         <div style={{ flex: 1 }} />
         <button onClick={() => setStep('gallery')} title="Back to gallery" style={{
           width: 40, height: 40, borderRadius: 10, border: 'none', cursor: 'pointer',
-          background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: 10,
+          background: 'transparent', color: C.muted, fontSize: 10,
         }}>
           <ChevronLeft size={16} />
         </button>
       </div>
 
       {/* ─── Panel Content ─── */}
-      <div style={{ width: 320, background: '#0a0a0a', borderRight: '0.5px solid rgba(255,255,255,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ width: 320, background: C.base, borderRight: `0.5px solid ${C.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '16px 16px 12px', borderBottom: `0.5px solid ${C.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             {(() => {
               const p = PANELS.find(x => x.id === activePanel)
-              return p ? <p.icon size={16} style={{ color: 'var(--theme-gold)' }} /> : null
+              return p ? <p.icon size={16} style={{ color: C.gold }} /> : null
             })()}
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{PANELS.find(p => p.id === activePanel)?.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{PANELS.find(p => p.id === activePanel)?.label}</span>
           </div>
         </div>
 
@@ -661,77 +755,74 @@ export default function PortalWizard() {
           {/* ── Theme Studio Panel ── */}
           {activePanel === 'theme' && (
             <div style={{ padding: 16 }}>
+              {['Primary Color', 'Secondary Color', 'Accent Color'].map(label => (
+                <div key={label} style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</label>
+                  <ColorInput label="" value={theme[label === 'Primary Color' ? 'primary_color' : label === 'Secondary Color' ? 'secondary_color' : 'accent_color']}
+                    onChange={v => updateTheme(label === 'Primary Color' ? 'primary_color' : label === 'Secondary Color' ? 'secondary_color' : 'accent_color', v)} />
+                </div>
+              ))}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Primary Color</label>
-                <ColorInput label="" value={theme.primary_color} onChange={v => updateTheme('primary_color', v)} />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Secondary Color</label>
-                <ColorInput label="" value={theme.secondary_color} onChange={v => updateTheme('secondary_color', v)} />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Accent Color</label>
-                <ColorInput label="" value={theme.accent_color} onChange={v => updateTheme('accent_color', v)} />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Button Style</label>
+                <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Button Style</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {BTN_STYLES.map(bs => (
-                    <button key={bs.id} onClick={() => updateTheme('button_style', bs.id)} style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8, border: '0.5px solid',
-                      borderColor: theme.button_style === bs.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.1)',
-                      background: theme.button_style === bs.id ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                      color: theme.button_style === bs.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                      cursor: 'pointer', fontSize: 11, fontWeight: 500,
-                    }}>{bs.label}</button>
-                  ))}
+                  {BTN_STYLES.map(bs => {
+                    const sel = theme.button_style === bs.id
+                    return (
+                      <button key={bs.id} onClick={() => updateTheme('button_style', bs.id)} style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                        background: sel ? activeBg : hoverBg,
+                        color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11, fontWeight: 500,
+                      }}>{bs.label}</button>
+                    )
+                  })}
                 </div>
               </div>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Type</label>
+                <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Type</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {BG_TYPES.map(bg => (
-                    <button key={bg.id} onClick={() => updateTheme('background_type', bg.id)} style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8, border: '0.5px solid',
-                      borderColor: theme.background_type === bg.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.1)',
-                      background: theme.background_type === bg.id ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                      color: theme.background_type === bg.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                      cursor: 'pointer', fontSize: 11,
-                    }}><bg.icon size={14} style={{ marginRight: 4, display: 'inline' }} />{bg.label}</button>
-                  ))}
+                  {BG_TYPES.map(bg => {
+                    const sel = theme.background_type === bg.id
+                    return (
+                      <button key={bg.id} onClick={() => updateTheme('background_type', bg.id)} style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                        background: sel ? activeBg : hoverBg,
+                        color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11,
+                      }}><bg.icon size={14} style={{ marginRight: 4, display: 'inline' }} />{bg.label}</button>
+                    )
+                  })}
                 </div>
               </div>
               {theme.background_type === 'solid' && (
                 <div>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Color</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Color</label>
                   <ColorInput label="" value={theme.background_value} onChange={v => updateTheme('background_value', v)} />
                 </div>
               )}
               {theme.background_type === 'gradient' && (
                 <div>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gradient</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Gradient</label>
                   <input type="text" value={theme.gradient || ''} onChange={e => updateTheme('gradient', e.target.value)}
                     placeholder="linear-gradient(135deg, #000, #333)"
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 10px', color: '#fff', fontSize: 11, fontFamily: 'DM Mono, monospace' }} />
+                    style={{ width: '100%', background: hoverBg, border: `0.5px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 11, fontFamily: 'DM Mono, monospace' }} />
                   <GradientPreview gradient={theme.gradient} />
                   <div style={{ marginTop: 12 }}>
-                    <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Color (fallback)</label>
+                    <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Color (fallback)</label>
                     <ColorInput label="" value={theme.background_value} onChange={v => updateTheme('background_value', v)} />
                   </div>
                 </div>
               )}
               {theme.background_type === 'image' && (
                 <div>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Image URL</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Background Image URL</label>
                   <input type="text" value={theme.background_url || ''} onChange={e => updateTheme('background_url', e.target.value)}
                     placeholder="https://example.com/bg.jpg"
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 10px', color: '#fff', fontSize: 12 }} />
+                    style={{ width: '100%', background: hoverBg, border: `0.5px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 12 }} />
                 </div>
               )}
               <div style={{ marginTop: 20 }}>
                 <SliderField label="Overlay Opacity" value={Math.round(theme.overlay_opacity * 100)} min={0} max={100} step={5} onChange={v => updateTheme('overlay_opacity', v / 100)} suffix="%" />
                 <div style={{ marginTop: 12 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Overlay Color</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Overlay Color</label>
                   <ColorInput label="" value={theme.overlay_color} onChange={v => updateTheme('overlay_color', v)} />
                 </div>
               </div>
@@ -743,44 +834,41 @@ export default function PortalWizard() {
             <div style={{ padding: 16 }}>
               {Object.entries(FONT_CATEGORIES).map(([catKey, cat]) => (
                 <div key={catKey} style={{ marginBottom: 20 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat.name}</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {cat.fonts.map(font => (
-                      <button key={font} onClick={() => updateTypography('font_family', font)} style={{
-                        padding: '6px 12px', borderRadius: 8, border: '0.5px solid',
-                        borderColor: typography.font_family === font ? 'var(--theme-gold)' : 'rgba(255,255,255,0.08)',
-                        background: typography.font_family === font ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: typography.font_family === font ? 'var(--theme-gold)' : 'rgba(255,255,255,0.6)',
-                        cursor: 'pointer', fontSize: 12, fontFamily: `'${font}', sans-serif`,
-                        transition: 'all 0.15s',
-                      }}>{font}</button>
-                    ))}
+                    {cat.fonts.map(font => {
+                      const sel = typography.font_family === font
+                      return (
+                        <button key={font} onClick={() => updateTypography('font_family', font)} style={{
+                          padding: '6px 12px', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                          background: sel ? activeBg : hoverBg,
+                          color: sel ? C.gold : C.dim,
+                          cursor: 'pointer', fontSize: 12, fontFamily: `'${font}', sans-serif`,
+                          transition: 'all 0.15s',
+                        }}>{font}</button>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
-              <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
+              <div style={{ borderTop: `0.5px solid ${C.border}`, paddingTop: 16 }}>
                 <SliderField label="Heading Size" value={typography.heading_size} min={20} max={60} step={2} onChange={v => updateTypography('heading_size', v)} suffix="px" />
-                <div style={{ marginTop: 12 }}>
-                  <SliderField label="Body Size" value={typography.body_size} min={12} max={24} step={1} onChange={v => updateTypography('body_size', v)} suffix="px" />
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <SliderField label="Font Weight" value={typography.font_weight} min={300} max={900} step={100} onChange={v => updateTypography('font_weight', v)} />
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <SliderField label="Letter Spacing" value={typography.letter_spacing} min={-2} max={4} step={0.1} onChange={v => updateTypography('letter_spacing', v)} suffix="px" />
-                </div>
+                <div style={{ marginTop: 12 }}><SliderField label="Body Size" value={typography.body_size} min={12} max={24} step={1} onChange={v => updateTypography('body_size', v)} suffix="px" /></div>
+                <div style={{ marginTop: 12 }}><SliderField label="Font Weight" value={typography.font_weight} min={300} max={900} step={100} onChange={v => updateTypography('font_weight', v)} /></div>
+                <div style={{ marginTop: 12 }}><SliderField label="Letter Spacing" value={typography.letter_spacing} min={-2} max={4} step={0.1} onChange={v => updateTypography('letter_spacing', v)} suffix="px" /></div>
                 <div style={{ marginTop: 16 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Heading Case</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Heading Case</label>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {['normal', 'uppercase', 'lowercase'].map(c => (
-                      <button key={c} onClick={() => updateTypography('heading_case', c)} style={{
-                        flex: 1, padding: '6px 0', borderRadius: 8, border: '0.5px solid',
-                        borderColor: typography.heading_case === c ? 'var(--theme-gold)' : 'rgba(255,255,255,0.1)',
-                        background: typography.heading_case === c ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: typography.heading_case === c ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                        cursor: 'pointer', fontSize: 11,
-                      }}>{c}</button>
-                    ))}
+                    {['normal', 'uppercase', 'lowercase'].map(c => {
+                      const sel = typography.heading_case === c
+                      return (
+                        <button key={c} onClick={() => updateTypography('heading_case', c)} style={{
+                          flex: 1, padding: '6px 0', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                          background: sel ? activeBg : hoverBg,
+                          color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11,
+                        }}>{c}</button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -797,17 +885,17 @@ export default function PortalWizard() {
                 { key: 'support_phone', label: 'Support Phone', placeholder: '+254 700 000 000' },
               ].map(field => (
                 <div key={field.key} style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field.label}</label>
+                  <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field.label}</label>
                   <input type="text" value={(brand as any)[field.key] || ''} onChange={e => updateBrand(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 12px', color: '#fff', fontSize: 13 }} />
+                    style={{ width: '100%', background: hoverBg, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }} />
                 </div>
               ))}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Emoji / Icon</label>
+                <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Emoji / Icon</label>
                 <input type="text" value={brand.emoji} onChange={e => updateBrand('emoji', e.target.value)}
                   placeholder="📶" maxLength={4}
-                  style={{ width: 60, background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px', color: '#fff', fontSize: 24, textAlign: 'center' }} />
+                  style={{ width: 60, background: hoverBg, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: '10px', color: C.text, fontSize: 24, textAlign: 'center' }} />
               </div>
             </div>
           )}
@@ -816,38 +904,38 @@ export default function PortalWizard() {
           {activePanel === 'cards' && (
             <div style={{ padding: 16 }}>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Card Style</label>
+                <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Card Style</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                  {CARD_STYLES.map(cs => (
-                    <button key={cs.id} onClick={() => updateCard('style', cs.id)} style={{
-                      padding: '10px 0', borderRadius: 8, border: '0.5px solid',
-                      borderColor: card.style === cs.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.08)',
-                      background: card.style === cs.id ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                      color: card.style === cs.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                      cursor: 'pointer', fontSize: 11, textAlign: 'center',
-                    }}>
-                      <cs.icon size={16} style={{ margin: '0 auto 4px', display: 'block' }} />
-                      {cs.name}
-                    </button>
-                  ))}
+                  {CARD_STYLES.map(cs => {
+                    const sel = card.style === cs.id
+                    return (
+                      <button key={cs.id} onClick={() => updateCard('style', cs.id)} style={{
+                        padding: '10px 0', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                        background: sel ? activeBg : hoverBg,
+                        color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11, textAlign: 'center',
+                      }}>
+                        <cs.icon size={16} style={{ margin: '0 auto 4px', display: 'block' }} />
+                        {cs.name}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
               <SliderField label="Card Radius" value={card.radius} min={0} max={32} step={2} onChange={v => updateCard('radius', v)} suffix="px" />
-              <div style={{ marginTop: 12 }}>
-                <SliderField label="Elevation" value={card.elevation} min={0} max={8} step={1} onChange={v => updateCard('elevation', v)} />
-              </div>
+              <div style={{ marginTop: 12 }}><SliderField label="Elevation" value={card.elevation} min={0} max={8} step={1} onChange={v => updateCard('elevation', v)} /></div>
               <div style={{ marginTop: 16 }}>
-                <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Card Size</label>
+                <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Card Size</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {['compact', 'comfortable', 'large'].map(s => (
-                    <button key={s} onClick={() => updateCard('size', s)} style={{
-                      flex: 1, padding: '8px 0', borderRadius: 8, border: '0.5px solid',
-                      borderColor: card.size === s ? 'var(--theme-gold)' : 'rgba(255,255,255,0.1)',
-                      background: card.size === s ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                      color: card.size === s ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                      cursor: 'pointer', fontSize: 11,
-                    }}>{s}</button>
-                  ))}
+                  {['compact', 'comfortable', 'large'].map(s => {
+                    const sel = card.size === s
+                    return (
+                      <button key={s} onClick={() => updateCard('size', s)} style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                        background: sel ? activeBg : hoverBg,
+                        color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11,
+                      }}>{s}</button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -856,14 +944,14 @@ export default function PortalWizard() {
           {/* ── Layout Panel ── */}
           {activePanel === 'layout' && (
             <div style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>Toggle which sections appear on your portal. Drag to reorder (coming soon).</p>
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>Toggle which sections appear on your portal. Drag to reorder (coming soon).</p>
               {SECTION_OPTIONS.map(s => {
                 const enabled = config.layout.sections.includes(s.id)
                 return (
-                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                    <GripVertical size={14} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
+                    <GripVertical size={14} style={{ color: C.muted, flexShrink: 0 }} />
                     <Toggle checked={enabled} onChange={() => toggleSection(s.id)} />
-                    <span style={{ fontSize: 13, color: enabled ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)', flex: 1 }}>{s.label}</span>
+                    <span style={{ fontSize: 13, color: enabled ? C.text : C.muted, flex: 1 }}>{s.label}</span>
                   </div>
                 )
               })}
@@ -873,32 +961,32 @@ export default function PortalWizard() {
           {/* ── Components Panel ── */}
           {activePanel === 'components' && (
             <div style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portal Features</p>
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portal Features</p>
               {COMPONENT_TOGGLES.map(c => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <Toggle checked={(components as any)[c.id]} onChange={v => updateComponent(c.id, v)} />
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{c.label}</span>
+                  <span style={{ fontSize: 13, color: C.dim, flex: 1 }}>{c.label}</span>
                 </div>
               ))}
-              <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', marginTop: 16, paddingTop: 16 }}>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Methods</p>
+              <div style={{ borderTop: `0.5px solid ${C.border}`, marginTop: 16, paddingTop: 16 }}>
+                <p style={{ fontSize: 11, color: C.dim, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Methods</p>
                 {PAYMENT_TOGGLES.map(p => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                     <Toggle checked={(config.enabled_features as any)[p.id]} onChange={v => updateFeature(p.id, v)} />
-                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{p.label}</span>
+                    <span style={{ fontSize: 13, color: C.dim, flex: 1 }}>{p.label}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', marginTop: 16, paddingTop: 16 }}>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Network Status Banner</p>
+              <div style={{ borderTop: `0.5px solid ${C.border}`, marginTop: 16, paddingTop: 16 }}>
+                <p style={{ fontSize: 11, color: C.dim, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Network Status Banner</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <Toggle checked={config.network_awareness.show_status_banner} onChange={v => updateNetworkAwareness('show_status_banner', v)} />
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }}>Show status banner</span>
+                  <span style={{ fontSize: 13, color: C.dim, flex: 1 }}>Show status banner</span>
                 </div>
                 {config.network_awareness.show_status_banner && (
                   <input type="text" value={config.network_awareness.custom_status_message} onChange={e => updateNetworkAwareness('custom_status_message', e.target.value)}
                     placeholder="Custom status message (optional)"
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 10px', color: '#fff', fontSize: 12, marginTop: 8 }} />
+                    style={{ width: '100%', background: hoverBg, border: `0.5px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 12, marginTop: 8 }} />
                 )}
               </div>
             </div>
@@ -907,12 +995,12 @@ export default function PortalWizard() {
           {/* ── Background Panel ── */}
           {activePanel === 'background' && (
             <div style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>Upload your logo or background image.</p>
-              <div style={{ border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, cursor: 'pointer' }}
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>Upload your logo or background image.</p>
+              <div style={{ border: `1px dashed ${C.border}`, borderRadius: 12, padding: 32, textAlign: 'center', marginBottom: 16, cursor: 'pointer' }}
                 onClick={() => fileInputRef.current?.click()}>
-                <Upload size={24} style={{ color: 'rgba(255,255,255,0.3)', marginBottom: 8 }} />
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Click to upload</p>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>PNG, JPG, SVG, WebP — Max 10MB</p>
+                <Upload size={24} style={{ color: C.muted, marginBottom: 8 }} />
+                <p style={{ fontSize: 12, color: C.dim }}>Click to upload</p>
+                <p style={{ fontSize: 10, color: C.muted }}>PNG, JPG, SVG, WebP — Max 10MB</p>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={async e => {
@@ -936,9 +1024,9 @@ export default function PortalWizard() {
                   } catch {}
                 }} />
               {brand.logo_url && (
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                <div style={{ background: hoverBg, borderRadius: 8, padding: 12, marginBottom: 16 }}>
                   <img src={brand.logo_url} alt="Uploaded logo" style={{ maxWidth: '100%', maxHeight: 60, borderRadius: 4 }} />
-                  <button onClick={() => updateBrand('logo_url', null)} style={{ display: 'block', marginTop: 8, fontSize: 11, color: '#ff6b6b', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                  <button onClick={() => updateBrand('logo_url', null)} style={{ display: 'block', marginTop: 8, fontSize: 11, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
                 </div>
               )}
             </div>
@@ -947,20 +1035,21 @@ export default function PortalWizard() {
           {/* ── Animation Panel ── */}
           {activePanel === 'animation' && (
             <div style={{ padding: 16 }}>
-              <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Entrance Animation</label>
+              <label style={{ fontSize: 11, color: C.dim, display: 'block', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Entrance Animation</label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-                {ANIMATIONS.map(a => (
-                  <button key={a.id} onClick={() => updateAnimation('entrance', a.id)} style={{
-                    flex: 1, padding: '12px 0', borderRadius: 10, border: '0.5px solid',
-                    borderColor: config.animations.entrance === a.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.08)',
-                    background: config.animations.entrance === a.id ? 'rgba(232,184,75,0.1)' : 'rgba(255,255,255,0.03)',
-                    color: config.animations.entrance === a.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.5)',
-                    cursor: 'pointer', fontSize: 11, textAlign: 'center',
-                  }}>
-                    <a.icon size={18} style={{ margin: '0 auto 4px', display: 'block' }} />
-                    {a.name}
-                  </button>
-                ))}
+                {ANIMATIONS.map(a => {
+                  const sel = config.animations.entrance === a.id
+                  return (
+                    <button key={a.id} onClick={() => updateAnimation('entrance', a.id)} style={{
+                      flex: 1, padding: '12px 0', borderRadius: 10, border: `0.5px solid ${sel ? C.gold : C.border}`,
+                      background: sel ? activeBg : hoverBg,
+                      color: sel ? C.gold : C.dim, cursor: 'pointer', fontSize: 11, textAlign: 'center',
+                    }}>
+                      <a.icon size={18} style={{ margin: '0 auto 4px', display: 'block' }} />
+                      {a.name}
+                    </button>
+                  )
+                })}
               </div>
               {[
                 { key: 'floating_logo', label: 'Floating Logo' },
@@ -970,7 +1059,7 @@ export default function PortalWizard() {
               ].map(anim => (
                 <div key={anim.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <Toggle checked={(config.animations as any)[anim.key]} onChange={v => updateAnimation(anim.key, v)} />
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', flex: 1 }}>{anim.label}</span>
+                  <span style={{ fontSize: 13, color: C.dim, flex: 1 }}>{anim.label}</span>
                 </div>
               ))}
             </div>
@@ -979,25 +1068,25 @@ export default function PortalWizard() {
           {/* ── Export Panel ── */}
           {activePanel === 'export' && (
             <div style={{ padding: 16 }}>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>Export your portal design for offline or physical use.</p>
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>Export your portal design for offline or physical use.</p>
               <button onClick={handleExportZip} disabled={exporting} style={{
-                width: '100%', padding: '14px 0', borderRadius: 10, border: '0.5px solid var(--theme-gold)',
-                background: 'rgba(232,184,75,0.1)', color: 'var(--theme-gold)', cursor: 'pointer',
+                width: '100%', padding: '14px 0', borderRadius: 10, border: `0.5px solid ${C.gold}`,
+                background: activeBg, color: C.gold, cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 {exporting ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <FileDown size={16} />}
                 {exporting ? 'Generating...' : 'Download MikroTik ZIP'}
               </button>
               <button onClick={handleExportQR} style={{
-                width: '100%', padding: '14px 0', borderRadius: 10, border: '0.5px solid rgba(255,255,255,0.15)',
-                background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+                width: '100%', padding: '14px 0', borderRadius: 10, border: `0.5px solid ${C.border}`,
+                background: hoverBg, color: C.dim, cursor: 'pointer',
                 fontSize: 13, fontWeight: 500, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 <QrCode size={16} />
                 Download QR Poster
               </button>
               {snapshots.length > 0 && (
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 8 }}>
+                <p style={{ fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 8 }}>
                   {snapshots.length} version{snapshots.length !== 1 ? 's' : ''} saved
                 </p>
               )}
@@ -1008,31 +1097,31 @@ export default function PortalWizard() {
           {activePanel === 'versions' && (
             <div style={{ padding: 16 }}>
               <button onClick={createSnapshot} style={{
-                width: '100%', padding: '12px 0', borderRadius: 10, border: '0.5px solid var(--theme-gold)',
-                background: 'rgba(232,184,75,0.1)', color: 'var(--theme-gold)', cursor: 'pointer',
+                width: '100%', padding: '12px 0', borderRadius: 10, border: `0.5px solid ${C.gold}`,
+                background: activeBg, color: C.gold, cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 <Plus size={16} />
                 Save Current as Version
               </button>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Saved Versions</p>
+              <p style={{ fontSize: 11, color: C.dim, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Saved Versions</p>
               {snapshots.length === 0 && (
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 20 }}>No versions saved yet.</p>
+                <p style={{ fontSize: 12, color: C.muted, textAlign: 'center', padding: 20 }}>No versions saved yet.</p>
               )}
               {snapshots.map((s: any) => (
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px',
-                  borderRadius: 8, background: 'rgba(255,255,255,0.03)', marginBottom: 8,
-                  border: '0.5px solid rgba(255,255,255,0.06)',
+                  borderRadius: 8, background: hoverBg, marginBottom: 8,
+                  border: `0.5px solid ${C.border}`,
                 }}>
-                  <Clock size={14} style={{ color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+                  <Clock size={14} style={{ color: C.muted, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{s.version_tag}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                    <div style={{ fontSize: 10, color: C.muted }}>{new Date(s.created_at).toLocaleDateString()}</div>
                   </div>
                   <button onClick={() => restoreSnapshot(s.id)} style={{
-                    padding: '4px 10px', borderRadius: 6, border: '0.5px solid rgba(255,255,255,0.15)',
-                    background: 'transparent', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 10,
+                    padding: '4px 10px', borderRadius: 6, border: `0.5px solid ${C.border}`,
+                    background: 'transparent', color: C.dim, cursor: 'pointer', fontSize: 10,
                   }}>
                     <RotateCcw size={12} />
                   </button>
@@ -1043,11 +1132,11 @@ export default function PortalWizard() {
         </div>
 
         {/* ─── Save Bar ─── */}
-        <div style={{ padding: 12, borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: 12, borderTop: `0.5px solid ${C.border}` }}>
           <button onClick={handleSave} disabled={saving} style={{
             width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
-            background: saved ? '#00E676' : 'var(--theme-gold)',
-            color: saved ? '#fff' : '#000', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+            background: saved ? C.green : C.gold,
+            color: '#000', cursor: 'pointer', fontSize: 14, fontWeight: 600,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             transition: 'background 0.3s',
           }}>
@@ -1058,56 +1147,95 @@ export default function PortalWizard() {
       </div>
 
       {/* ─── Right Canvas (Preview) ─── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#050505' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.void }}>
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.06)', background: '#0a0a0a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `0.5px solid ${C.border}`, background: C.base }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+            <span style={{ fontSize: 12, color: C.dim, fontWeight: 500 }}>
               {TEMPLATES.find(t => t.id === config.template_id)?.name || 'Portal'}
             </span>
             <button onClick={refreshPreview} title="Refresh preview"
-              style={{ padding: '4px 6px', borderRadius: 4, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
+              style={{ padding: '4px 6px', borderRadius: 4, border: 'none', cursor: 'pointer', background: 'transparent', color: C.muted, fontSize: 11 }}>
               <RefreshCw size={12} />
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: C.base, borderRadius: 8, padding: 2 }}>
             {([
-              { id: 'desktop' as const, icon: Monitor },
-              { id: 'tablet' as const, icon: Tablet },
-              { id: 'phone' as const, icon: Smartphone },
+              { id: 'desktop' as const, icon: Monitor, label: 'Desktop' },
+              { id: 'tablet' as const, icon: Tablet, label: 'Tablet' },
+              { id: 'phone' as const, icon: Smartphone, label: 'Phone' },
             ] as const).map(d => (
               <button key={d.id} onClick={() => setPreviewDevice(d.id)} style={{
-                padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: previewDevice === d.id ? 'rgba(232,184,75,0.15)' : 'transparent',
-                color: previewDevice === d.id ? 'var(--theme-gold)' : 'rgba(255,255,255,0.3)',
+                padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                background: previewDevice === d.id ? C.gold : 'transparent',
+                color: previewDevice === d.id ? '#000' : C.dim,
+                fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5,
+                transition: 'all 0.15s',
               }}>
-                <d.icon size={16} />
+                <d.icon size={13} />
+                {d.label}
               </button>
             ))}
           </div>
         </div>
 
         {/* Preview frame */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflow: 'hidden' }}>
-          <div style={{
-            width: previewDevice === 'phone' ? 375 : previewDevice === 'tablet' ? 600 : '100%',
-            maxWidth: previewDevice === 'desktop' ? 1200 : undefined,
-            height: previewDevice === 'phone' ? 812 : previewDevice === 'tablet' ? 800 : '100%',
-            maxHeight: previewDevice !== 'desktop' ? undefined : '100%',
-            borderRadius: previewDevice === 'phone' ? 40 : previewDevice === 'tablet' ? 24 : 12,
-            overflow: previewDevice === 'phone' ? 'hidden auto' : 'hidden',
-            border: previewDevice !== 'desktop' ? '2px solid rgba(255,255,255,0.08)' : 'none',
-            boxShadow: previewDevice !== 'desktop' ? '0 20px 60px rgba(0,0,0,0.5)' : 'none',
-            transition: 'all 0.3s',
-          }}>
-            <iframe ref={iframeRef} src={previewSrc} onLoad={onIframeLoad}
-              style={{
-                width: '100%', height: '100%', border: 'none',
-                background: config.theme.background_type === 'solid' ? config.theme.background_value : '#000',
-                ...(previewDevice === 'phone' ? { overflow: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}),
-              }}
-              title="Portal Preview" />
-          </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden', background: C.void }}>
+          {previewDevice === 'desktop' ? (
+            <div style={{ width: '100%', maxWidth: 1200, height: '100%', borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}` }}>
+              <iframe ref={iframeRef} src={previewSrc} onLoad={onIframeLoad}
+                style={{ width: '100%', height: '100%', border: 'none', background: config.theme.background_type === 'solid' ? config.theme.background_value : C.void }}
+                title="Portal Preview" />
+            </div>
+          ) : previewDevice === 'tablet' ? (
+            <div style={{
+              width: 600, height: '100%', maxHeight: 800,
+              background: '#1a1a1a', borderRadius: 20, padding: '12px 8px',
+              boxShadow: '0 25px 80px rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ flex: 1, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+                <iframe ref={iframeRef} src={previewSrc} onLoad={onIframeLoad}
+                  scrolling="no"
+                  style={{ width: '100%', height: '100%', border: 'none', background: config.theme.background_type === 'solid' ? config.theme.background_value : C.void, pointerEvents: 'none' }}
+                  title="Portal Preview" />
+              </div>
+              <div style={{ height: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 4 }}>
+                <div style={{ width: 40, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+              </div>
+            </div>
+          ) : (
+            /* Phone device frame */
+            <div style={{
+              width: 390, height: '100%', maxHeight: 844,
+              background: '#1a1a1a', borderRadius: 44, padding: '10px 6px',
+              boxShadow: '0 30px 100px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.06)',
+              display: 'flex', flexDirection: 'column', position: 'relative',
+            }}>
+              {/* Notch / Dynamic Island */}
+              <div style={{
+                position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+                width: 120, height: 28, background: '#1a1a1a', borderRadius: 20,
+                zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#2a2a2a' }} />
+              </div>
+              {/* Screen */}
+              <div style={{ flex: 1, borderRadius: 34, overflow: 'hidden', position: 'relative' }}>
+                <iframe ref={iframeRef} src={previewSrc} onLoad={onIframeLoad}
+                  scrolling="no"
+                  style={{
+                    width: '100%', height: '100%', border: 'none',
+                    background: config.theme.background_type === 'solid' ? config.theme.background_value : C.void,
+                    pointerEvents: 'none',
+                  }}
+                  title="Portal Preview" />
+              </div>
+              {/* Home indicator */}
+              <div style={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 120, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
