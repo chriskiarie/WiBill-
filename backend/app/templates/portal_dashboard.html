@@ -1579,11 +1579,11 @@
             }
 
             if (data.type === 'UPDATE_BACKGROUND') {
-                if (data.type === 'solid' && data.value) {
+                if (data.bgType === 'solid' && data.value) {
                     root.style.setProperty('--bg-primary', data.value);
-                } else if (data.type === 'gradient' && data.gradient) {
+                } else if (data.bgType === 'gradient' && data.gradient) {
                     root.style.setProperty('--bg-primary', data.gradient);
-                } else if (data.type === 'image' && data.url) {
+                } else if (data.bgType === 'image' && data.url) {
                     root.style.setProperty('--bg-primary', 'url(' + data.url + ') center/cover');
                 }
             }

@@ -501,7 +501,7 @@ export default function PortalWizard() {
       }, '*')
       w.postMessage({
         type: 'UPDATE_BACKGROUND',
-        type: t.background_type,
+        bgType: t.background_type,
         value: t.background_value,
         gradient: t.gradient || '',
         url: t.background_url || '',
