@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, X, Package, AlertTriangle } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
+  border2: 'var(--theme-border2, #1a1a1a)',
   text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)',
   gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
@@ -41,7 +42,7 @@ export default function PackagesPage() {
   const [submitting, setSubmitting] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
   const [bulkUpdating, setBulkUpdating] = useState(false)
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null)
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
 
   const fetchPackages = async () => {
     if (!token) return
@@ -54,7 +55,6 @@ export default function PackagesPage() {
 
   useEffect(() => { fetchPackages() }, [token])
 
-  // Detect duplicate names
   const nameCounts: Record<string, number> = {}
   packages.forEach(p => { nameCounts[p.name] = (nameCounts[p.name] || 0) + 1 })
 
@@ -128,7 +128,7 @@ export default function PackagesPage() {
       <Topbar title="Packages" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         {/* Header */}
-        <div className="packages-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+        <div className="packages-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 8 }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: C.text }}>Packages</h1>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             {packages.length >= 2 && (
@@ -165,64 +165,42 @@ export default function PackagesPage() {
           </div>
         )}
 
-        {/* Package List */}
+        {/* Package Grid */}
         {!loading && packages.length > 0 && (
-          <div className="packages-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 12,
+          }}>
             {packages.map(pkg => {
               const isDuplicate = nameCounts[pkg.name] > 1
+              const isHovered = hoveredCard === pkg.id
               return (
-                <div key={pkg.id} data-nav="package-row" className="package-row"
-                  onMouseEnter={() => setHoveredRow(pkg.id)} onMouseLeave={() => setHoveredRow(null)}
+                <div key={pkg.id} data-nav="package-card"
+                  onMouseEnter={() => setHoveredCard(pkg.id)} onMouseLeave={() => setHoveredCard(null)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 16,
-                    background: C.base, border: `0.5px solid ${C.border}`,
-                    borderLeft: `2px solid ${pkg.is_active ? C.gold : C.mute}`,
-                    borderRadius: 10, padding: '12px 16px',
+                    background: C.base,
+                    border: `0.5px solid ${isHovered ? C.border2 : C.border}`,
+                    borderRadius: 10,
+                    padding: 20,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
                     transition: 'border-color 0.15s',
+                    position: 'relative',
                   }}>
-                  {/* Top row: Name + Duration */}
-                  <div className="package-row-top" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div className="pkg-name" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 500, color: C.text, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>{pkg.name}</span>
-                      {isDuplicate && (
-                        <span title="Duplicate package name" style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 2,
-                          padding: '1px 5px', borderRadius: 3,
-                          background: 'rgba(232,184,75,0.12)', color: C.gold,
-                          fontSize: 8, fontWeight: 700, fontFamily: "'DM Mono', monospace",
-                        }}>
-                          <AlertTriangle size={9} /> Dup
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ color: C.mute, fontSize: 14 }}>·</span>
-                    <div className="pkg-duration" style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold, fontWeight: 500 }}>
-                      {pkg.duration_label || `${pkg.duration_hours}h`}
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="package-row-price" style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 500, color: C.text }}>
-                    Ksh {pkg.price_ksh.toLocaleString('en-KE')}
-                  </div>
-
-                  {/* Actions row: Status toggle + Buttons */}
-                  <div className="package-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div className="pkg-status" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                      <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
-                        style={{
-                          padding: '4px 14px', borderRadius: 20, fontSize: 10, fontWeight: 600,
-                          fontFamily: "'DM Mono', monospace", cursor: 'pointer', border: 'none',
-                          background: pkg.is_active ? 'rgba(111,207,115,0.12)' : 'rgba(229,112,122,0.10)',
-                          color: pkg.is_active ? C.green : C.red, letterSpacing: '0.3px',
-                        }}>
-                        {toggling === pkg.id ? '···' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
-                      </button>
-                    </div>
-                    <div className="pkg-buttons" style={{
-                      display: 'flex', gap: 4, opacity: hoveredRow === pkg.id ? 1 : 0,
-                      transition: 'opacity 0.15s',
-                    }}>
+                  {/* Top: Status pill + actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
+                      style={{
+                        padding: '4px 12px', borderRadius: 20, fontSize: 9, fontWeight: 600,
+                        fontFamily: "'DM Mono', monospace", cursor: 'pointer', border: 'none',
+                        background: pkg.is_active ? 'rgba(111,207,115,0.12)' : 'rgba(229,112,122,0.10)',
+                        color: pkg.is_active ? C.green : C.red, letterSpacing: '0.3px',
+                      }}>
+                      {toggling === pkg.id ? '···' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
+                    </button>
+                    <div style={{ display: 'flex', gap: 2, opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
                       <button onClick={() => openEdit(pkg)}
                         style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim }}>
                         <Edit2 size={13} />
@@ -232,6 +210,41 @@ export default function PackagesPage() {
                         <Trash2 size={13} />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 600, color: C.text }}>
+                      {pkg.name}
+                    </span>
+                    {isDuplicate && (
+                      <span title="Duplicate package name" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 2,
+                        padding: '1px 5px', borderRadius: 3,
+                        background: 'rgba(232,184,75,0.12)', color: C.gold,
+                        fontSize: 8, fontWeight: 700, fontFamily: "'DM Mono', monospace",
+                      }}>
+                        <AlertTriangle size={9} /> Dup
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Duration */}
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold, fontWeight: 500 }}>
+                    {pkg.duration_label || `${pkg.duration_hours}h`}
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: C.border, margin: '0 -4px' }} />
+
+                  {/* Price */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 24, fontWeight: 500, color: C.text }}>
+                      {pkg.price_ksh.toLocaleString('en-KE')}
+                    </span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: C.dim, fontWeight: 500 }}>
+                      Ksh
+                    </span>
                   </div>
                 </div>
               )
