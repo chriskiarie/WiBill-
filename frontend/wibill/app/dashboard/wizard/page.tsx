@@ -500,7 +500,7 @@ export default function PortalWizard() {
         color: t.overlay_color,
       }, '*')
       w.postMessage({
-        type: 'UPDATE_BACKGROUND',
+        updateType: 'UPDATE_BACKGROUND',
         type: t.background_type,
         value: t.background_value,
         gradient: t.gradient || '',

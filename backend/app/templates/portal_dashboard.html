@@ -1578,7 +1578,7 @@
                 if (data.color) root.style.setProperty('--overlay-color', data.color);
             }
 
-            if (data.type === 'UPDATE_BACKGROUND') {
+            if (data.updateType === 'UPDATE_BACKGROUND') {
                 if (data.type === 'solid' && data.value) {
                     root.style.setProperty('--bg-primary', data.value);
                 } else if (data.type === 'gradient' && data.gradient) {
