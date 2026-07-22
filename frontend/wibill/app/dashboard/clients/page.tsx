@@ -1,10 +1,10 @@
-'use client'
-import { useEffect, useState, useCallback, useRef } from 'react'
+﻿'use client'
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Users, Wifi, Tv, PauseCircle, PlayCircle, AlertTriangle, X, Plus, Search, RefreshCw, Router, Download, MoreHorizontal, ChevronRight, Check } from 'lucide-react'
+import { Users, Wifi, Tv, PauseCircle, PlayCircle, AlertTriangle, X, Plus, Search, RefreshCw, Router, Download, ChevronDown, ChevronUp, Check } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -35,11 +35,9 @@ function statusBadge(status: string) {
   }
   const s = map[status] || { label: status, color: C.dim, bg: 'var(--theme-surface)' }
   return (
-    <span style={{
-      padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
-      fontFamily: 'DM Mono, monospace', textTransform: 'uppercase',
-      background: s.bg, color: s.color,
-    }}>{s.label}</span>
+    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
   )
 }
 
@@ -55,12 +53,42 @@ const labelSx: React.CSSProperties = {
   fontFamily: 'Inter, sans-serif',
 }
 
-interface SubscriberForm {
-  client_name: string; phone_number: string; networking_ip: string; plan_id: string;
-  networking_mac: string; networking_vlan: string; networking_interface: string;
-  networking_gateway: string; id_number: string; email: string;
-  installation_address: string; notes: string; billing_cycle_date: number;
-  billing_cycle_days: number; data_cap_gb: string;
+interface WizardForm {
+  client_name: string
+  phone_number: string
+  client_type: 'wifi' | 'tv'
+  installation_address: string
+  id_number: string
+  email: string
+  plan_id: string
+  networking_ip: string
+  networking_mac: string
+  networking_vlan: string
+  networking_interface: string
+  networking_gateway: string
+  billing_cycle_days: number
+  billing_cycle_date: number
+  data_cap_gb: string
+  notes: string
+}
+
+const stepLabels = ['Profile', 'Provisioning', 'Billing']
+
+const initialWizardForm: WizardForm = {
+  client_name: '', phone_number: '', client_type: 'wifi',
+  installation_address: '', id_number: '', email: '',
+  plan_id: '', networking_ip: '', networking_mac: '',
+  networking_vlan: '', networking_interface: '', networking_gateway: '',
+  billing_cycle_days: 30, billing_cycle_date: 1,
+  data_cap_gb: '', notes: '',
+}
+
+const actionBtnStyle: React.CSSProperties = {
+  width: 26, height: 26, borderRadius: 6,
+  border: `0.5px solid ${C.border}`, background: 'transparent',
+  cursor: 'pointer', display: 'inline-flex',
+  alignItems: 'center', justifyContent: 'center',
+  color: C.dim, padding: 0,
 }
 
 export default function ClientsPage() {
@@ -73,20 +101,20 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'all' | 'wifi' | 'tv'>('all')
   const [search, setSearch] = useState('')
-  const [showDrawer, setShowDrawer] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [total, setTotal] = useState(0)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [plansLoading, setPlansLoading] = useState(false)
 
-  const [form, setForm] = useState<SubscriberForm>({
-    client_name: '', phone_number: '', networking_ip: '', plan_id: '',
-    networking_mac: '', networking_vlan: '', networking_interface: '',
-    networking_gateway: '', id_number: '', email: '',
-    installation_address: '', notes: '', billing_cycle_date: 1,
-    billing_cycle_days: 30, data_cap_gb: '',
-  })
+  const [showWizard, setShowWizard] = useState(false)
+  const [wizardStep, setWizardStep] = useState(1)
+  const [showMoreDetails, setShowMoreDetails] = useState(false)
+  const [showAdvancedNetwork, setShowAdvancedNetwork] = useState(false)
+  const [ipsLoading, setIpsLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [ipAutoAssigned, setIpAutoAssigned] = useState(false)
+
+  const [form, setForm] = useState<WizardForm>({ ...initialWizardForm })
 
   const [planForm, setPlanForm] = useState({
     name: '', price_ksh: 0, bandwidth_down_mbps: 10, bandwidth_up_mbps: 5,
@@ -113,43 +141,117 @@ export default function ClientsPage() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  const loadAvailableIps = async () => {
+  const loadAvailableIps = async (clientType: 'wifi' | 'tv') => {
+    setIpsLoading(true)
     try {
-      const data = await api.getAvailableIps(tab === 'tv' ? 'tv' : 'wifi')
-      setAvailableIps(data.available_ips || [])
-    } catch {}
+      const data = await api.getAvailableIps(clientType)
+      const ips = data.available_ips || []
+      setAvailableIps(ips)
+      if (ips.length > 0) {
+        const firstIp = ips[0]
+        setForm(f => ({
+          ...f,
+          networking_ip: firstIp.ip,
+          networking_gateway: firstIp.gateway || '',
+          networking_vlan: firstIp.vlan_id?.toString() || '',
+          networking_interface: firstIp.interface_name || '',
+        }))
+        setIpAutoAssigned(true)
+      } else {
+        setForm(f => ({ ...f, networking_ip: '' }))
+        setIpAutoAssigned(false)
+      }
+    } catch {
+      setAvailableIps([])
+      setIpAutoAssigned(false)
+    } finally { setIpsLoading(false) }
   }
 
   const openCreate = () => {
-    setForm({
-      client_name: '', phone_number: '', networking_ip: '', plan_id: '',
-      networking_mac: '', networking_vlan: '', networking_interface: '',
-      networking_gateway: '', id_number: '', email: '',
-      installation_address: '', notes: '', billing_cycle_date: 1,
-      billing_cycle_days: 30, data_cap_gb: '',
-    })
-    loadAvailableIps()
-    setShowDrawer(true)
+    setForm({ ...initialWizardForm })
+    setWizardStep(1)
+    setShowMoreDetails(false)
+    setShowAdvancedNetwork(false)
+    setIpAutoAssigned(false)
+    setShowWizard(true)
+  }
+
+  const wizardPlans = plans.filter(p => p.client_type === form.client_type)
+
+  const handleNext = () => {
+    if (wizardStep === 1) {
+      if (!form.client_name.trim() || !form.phone_number.trim()) {
+        showToast('Client name and phone number are required', { type: 'error' })
+        return
+      }
+      setWizardStep(2)
+      loadAvailableIps(form.client_type)
+    } else if (wizardStep === 2) {
+      if (!form.networking_ip.trim()) {
+        showToast('Static IP address is required', { type: 'error' })
+        return
+      }
+      setWizardStep(3)
+    }
+  }
+
+  const handleBack = () => {
+    if (wizardStep > 1) setWizardStep(s => s - 1)
+  }
+
+  const handleCloseWizard = () => {
+    setShowWizard(false)
+    setWizardStep(1)
+  }
+
+  const handleIpManualOverride = (ip: string) => {
+    setForm(f => ({ ...f, networking_ip: ip }))
+    setIpAutoAssigned(false)
+  }
+
+  const handleIpDropdown = (ipVal: string) => {
+    if (ipVal) {
+      const ip = availableIps.find(i => i.ip === ipVal)
+      if (ip) {
+        setForm(f => ({
+          ...f, networking_ip: ip.ip, networking_gateway: ip.gateway || '',
+          networking_vlan: ip.vlan_id?.toString() || '',
+          networking_interface: ip.interface_name || '',
+        }))
+        setIpAutoAssigned(true)
+      }
+    }
   }
 
   const handleSubmit = async () => {
-    if (!form.client_name || !form.phone_number || !form.networking_ip) {
+    if (!form.client_name.trim() || !form.phone_number.trim() || !form.networking_ip.trim()) {
       showToast('Name, phone, and IP are required', { type: 'error' })
       return
     }
     setSubmitting(true)
     try {
       const payload = {
-        ...form,
+        client_name: form.client_name,
+        phone_number: form.phone_number,
+        client_type: form.client_type,
+        installation_address: form.installation_address || undefined,
+        id_number: form.id_number || undefined,
+        email: form.email || undefined,
         plan_id: form.plan_id || null,
+        networking_ip: form.networking_ip,
+        networking_mac: form.networking_mac || undefined,
         networking_vlan: form.networking_vlan ? parseInt(form.networking_vlan) : null,
+        networking_interface: form.networking_interface || undefined,
+        networking_gateway: form.networking_gateway || undefined,
         billing_cycle_date: form.billing_cycle_date,
         billing_cycle_days: form.billing_cycle_days,
         data_cap_gb: form.data_cap_gb ? parseFloat(form.data_cap_gb) : null,
+        notes: form.notes || undefined,
       }
       await api.createSubscriber(payload)
       showToast('Subscriber created', { type: 'success' })
-      setShowDrawer(false)
+      setShowWizard(false)
+      setWizardStep(1)
       loadAll()
     } catch (e: any) {
       showToast(e.message || 'Failed to create', { type: 'error' })
@@ -204,11 +306,6 @@ export default function ClientsPage() {
     }
   }
 
-  const filteredPlans = plans.filter(p => {
-    if (tab === 'all') return true
-    return p.client_type === tab
-  })
-
   const statsCards = stats ? [
     { label: 'Total Clients', value: fmt(stats.total), sub: `${stats.active} active · ${stats.online} online`, color: C.text },
     { label: 'Active', value: fmt(stats.active), sub: `${stats.online} online now`, color: C.green },
@@ -218,119 +315,277 @@ export default function ClientsPage() {
 
   const isBusy = (id: string) => actionLoading === id
 
+  const renderStepIndicator = () => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 28, padding: '0 20px' }}>
+      {[1, 2, 3].map((s, i) => (
+        <div key={s} style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace',
+              background: wizardStep === s ? C.gold : wizardStep > s ? 'rgba(34,197,94,0.15)' : C.mute,
+              color: wizardStep === s ? C.void : wizardStep > s ? C.green : C.dim,
+              border: wizardStep === s ? 'none' : wizardStep > s ? '1.5px solid rgba(34,197,94,0.3)' : `0.5px solid ${C.border}`,
+              transition: 'all 0.3s ease',
+            }}>
+              {wizardStep > s ? '✓' : s}
+            </div>
+            <div style={{
+              fontSize: 10, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+              color: wizardStep === s ? C.text : C.dim, letterSpacing: '0.02em',
+            }}>
+              {stepLabels[i]}
+            </div>
+          </div>
+          {i < 2 && (
+            <div style={{
+              width: 60, height: 1.5, margin: '0 8px', marginBottom: 18,
+              background: wizardStep > s ? 'rgba(34,197,94,0.3)' : C.mute,
+              borderRadius: 1, transition: 'background 0.3s ease',
+            }} />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
+  const renderStep1 = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={labelSx}>Client Name *</div>
+        <input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} placeholder="John Doe" style={inputSx} />
+      </div>
+      <div>
+        <div style={labelSx}>Phone Number *</div>
+        <input value={form.phone_number} onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))} placeholder="254712345678" style={inputSx} />
+      </div>
+      <div>
+        <div style={{ ...labelSx, marginBottom: 8 }}>Service Type</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['wifi', 'tv'] as const).map(t => (
+            <button key={t} type="button" onClick={() => setForm(f => ({ ...f, client_type: t }))} style={{
+              flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              background: form.client_type === t ? 'rgba(232,184,75,0.1)' : 'transparent',
+              border: form.client_type === t ? '1px solid rgba(232,184,75,0.25)' : `0.5px solid ${C.border}`,
+              color: form.client_type === t ? C.gold : C.dim, transition: 'all 0.2s ease',
+            }}>
+              {t === 'wifi' ? <Wifi size={13} /> : <Tv size={13} />}
+              {t === 'wifi' ? 'Home WiFi' : 'TV'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={labelSx}>Installation Address</div>
+        <input value={form.installation_address} onChange={e => setForm(f => ({ ...f, installation_address: e.target.value }))} placeholder="Plot 42, Kimathi Street" style={inputSx} />
+      </div>
+      <button type="button" onClick={() => setShowMoreDetails(!showMoreDetails)} style={{
+        display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
+        color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: '4px 0', fontFamily: 'Inter, sans-serif',
+      }}>
+        {showMoreDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {showMoreDetails ? 'Hide details' : 'Add more details'}
+      </button>
+      {showMoreDetails && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <div style={labelSx}>ID Number</div>
+            <input value={form.id_number} onChange={e => setForm(f => ({ ...f, id_number: e.target.value }))} placeholder="12345678" style={inputSx} />
+          </div>
+          <div>
+            <div style={labelSx}>Email</div>
+            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="john@example.com" style={inputSx} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderStep2 = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={labelSx}>Plan</div>
+        <select value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))} style={inputSx}>
+          <option value="">No plan (custom)</option>
+          {wizardPlans.map(p => (
+            <option key={p.id} value={p.id}>{p.name} — {ksh(p.price_ksh)}/mo</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <div style={labelSx}>Static IP Address *</div>
+        {ipsLoading ? (
+          <div style={{ ...inputSx, display: 'flex', alignItems: 'center', gap: 8, color: C.dim }}>
+            <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${C.mute}`, borderTop: `2px solid ${C.gold}`, animation: 'spin 1s linear infinite' }} />
+            Fetching available IPs...
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                value={form.networking_ip}
+                onChange={e => handleIpManualOverride(e.target.value)}
+                placeholder="192.168.88.50"
+                style={{ ...inputSx, flex: 1 }}
+              />
+              {availableIps.length > 0 && (
+                <select onChange={e => handleIpDropdown(e.target.value)} value="" style={{ ...inputSx, width: 'auto', minWidth: 100, padding: '10px 8px' }}>
+                  <option value="">Pick IP</option>
+                  {availableIps.slice(0, 20).map(i => (
+                    <option key={i.ip} value={i.ip}>{i.ip}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {ipAutoAssigned && form.networking_ip && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                <span style={{
+                  padding: '2px 7px', borderRadius: 4, fontSize: 9, fontWeight: 700,
+                  fontFamily: 'DM Mono, monospace', textTransform: 'uppercase',
+                  background: 'rgba(34,197,94,0.08)', color: C.green,
+                }}>Auto-assigned</span>
+              </div>
+            )}
+            {availableIps.length === 0 && !ipsLoading && (
+              <div style={{ fontSize: 11, color: C.dim, marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
+                No IPs available in pool. Enter manually or add IPs to pool.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div>
+        <div style={labelSx}>MAC Address {form.client_type === 'tv' ? '*' : ''}</div>
+        <input value={form.networking_mac} onChange={e => setForm(f => ({ ...f, networking_mac: e.target.value }))} placeholder="AA:BB:CC:DD:EE:FF" style={inputSx} />
+      </div>
+      <button type="button" onClick={() => setShowAdvancedNetwork(!showAdvancedNetwork)} style={{
+        display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
+        color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: '4px 0', fontFamily: 'Inter, sans-serif',
+      }}>
+        {showAdvancedNetwork ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        Advanced Network Settings
+      </button>
+      {showAdvancedNetwork && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div>
+            <div style={labelSx}>VLAN ID</div>
+            <input value={form.networking_vlan} onChange={e => setForm(f => ({ ...f, networking_vlan: e.target.value }))} placeholder="100" style={inputSx} />
+          </div>
+          <div>
+            <div style={labelSx}>Interface</div>
+            <input value={form.networking_interface} onChange={e => setForm(f => ({ ...f, networking_interface: e.target.value }))} placeholder="ether2" style={inputSx} />
+          </div>
+          <div>
+            <div style={labelSx}>Gateway</div>
+            <input value={form.networking_gateway} onChange={e => setForm(f => ({ ...f, networking_gateway: e.target.value }))} placeholder="192.168.88.1" style={inputSx} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderStep3 = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ ...labelSx, marginBottom: 8 }}>Billing Cycle</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[{ label: 'Monthly', days: 30 }, { label: 'Quarterly', days: 90 }].map(opt => (
+            <button key={opt.days} type="button" onClick={() => setForm(f => ({ ...f, billing_cycle_days: opt.days }))} style={{
+              flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+              fontFamily: 'Inter, sans-serif', cursor: 'pointer', textAlign: 'center',
+              background: form.billing_cycle_days === opt.days ? 'rgba(232,184,75,0.1)' : 'transparent',
+              border: form.billing_cycle_days === opt.days ? '1px solid rgba(232,184,75,0.25)' : `0.5px solid ${C.border}`,
+              color: form.billing_cycle_days === opt.days ? C.gold : C.dim, transition: 'all 0.2s ease',
+            }}>
+              {opt.label}
+              <div style={{ fontSize: 10, color: C.mute, marginTop: 2 }}>{opt.days} days</div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={labelSx}>Billing Day</div>
+        <select value={form.billing_cycle_date} onChange={e => setForm(f => ({ ...f, billing_cycle_date: parseInt(e.target.value) }))} style={inputSx}>
+          {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <div style={labelSx}>Data Cap (GB)</div>
+        <input value={form.data_cap_gb} onChange={e => setForm(f => ({ ...f, data_cap_gb: e.target.value }))} placeholder="Unlimited" style={inputSx} />
+      </div>
+      <div>
+        <div style={labelSx}>Notes</div>
+        <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes..." rows={3} style={{ ...inputSx, resize: 'vertical', fontFamily: 'Inter, sans-serif' }} />
+      </div>
+    </div>
+  )
+
   return (
-    <div style={{
-      background: C.void, color: C.text, minHeight: '100vh',
-      fontFamily: 'Inter, -apple-system, sans-serif',
-      display: 'flex', flexDirection: 'column', flex: 1,
-    }}>
+    <div style={{ background: C.void, color: C.text, minHeight: '100vh', fontFamily: 'Inter, -apple-system, sans-serif', display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Monthly Clients" />
 
-      <div style={{
-        flex: 1, overflowY: 'auto', padding: '28px 32px',
-        maxWidth: 1240, margin: '0 auto', width: '100%',
-      }}>
-        {/* ═══ STATS CARDS ═══ */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', maxWidth: 1240, margin: '0 auto', width: '100%' }}>
         {statsCards.length > 0 && (
-          <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {statsCards.map((c, i) => (
-              <div key={i} style={{
-                background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11,
-                padding: 16, position: 'relative', overflow: 'hidden',
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>
-                  {c.label}
-                </div>
-                <div style={{ fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                  {c.value}
-                </div>
-                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 4 }}>
-                  {c.sub}
-                </div>
+              <div key={i} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>{c.label}</div>
+                <div style={{ fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
+                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 4 }}>{c.sub}</div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ═══ TOOLBAR ═══ */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 16, gap: 12, flexWrap: 'wrap',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {(['all', 'wifi', 'tv'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
-                padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                fontFamily: 'Inter, sans-serif',
+                padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'Inter, sans-serif',
                 background: tab === t ? 'rgba(232,184,75,0.1)' : 'transparent',
                 border: tab === t ? '0.5px solid rgba(232,184,75,0.2)' : `0.5px solid ${C.border}`,
-                color: tab === t ? C.gold : C.dim, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 5,
+                color: tab === t ? C.gold : C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               }}>
                 {t === 'all' ? <Users size={12} /> : t === 'wifi' ? <Wifi size={12} /> : <Tv size={12} />}
                 {t === 'all' ? 'All' : t === 'wifi' ? 'Home WiFi' : 'TV'}
               </button>
             ))}
           </div>
-
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ position: 'relative', width: 200 }}>
               <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.dim }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..."
-                style={{
-                  width: '100%', padding: '8px 10px 8px 28px', borderRadius: 8,
-                  border: `0.5px solid ${C.border}`, background: C.base, color: C.text,
-                  fontSize: 12, outline: 'none', fontFamily: 'Inter, sans-serif',
-                  boxSizing: 'border-box',
-                }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..." style={{
+                width: '100%', padding: '8px 10px 8px 28px', borderRadius: 8,
+                border: `0.5px solid ${C.border}`, background: C.base, color: C.text,
+                fontSize: 12, outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
+              }} />
             </div>
-            <button onClick={loadAll} title="Refresh" style={{
-              width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`,
-              background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', padding: 0,
-            }}>
+            <button onClick={loadAll} title="Refresh" style={{ width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`, background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
               <RefreshCw size={12} />
             </button>
-            <button onClick={handleReconcile} title="Reconcile with router" style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-              borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace',
-              border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer',
-            }}>
+            <button onClick={handleReconcile} title="Reconcile with router" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
               <Router size={11} /> Sync
             </button>
-            <button onClick={() => setShowPlanModal(true)} style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
-              borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace',
-              border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer',
-            }}>
+            <button onClick={() => setShowPlanModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
               <Download size={11} /> Plans
             </button>
-            <button onClick={openCreate} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-              background: C.gold, color: C.void, border: 'none', cursor: 'pointer',
-              fontFamily: '"Space Grotesk", sans-serif',
-            }}>
+            <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: C.gold, color: C.void, border: 'none', cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif' }}>
               <Plus size={14} /> Add Client
             </button>
           </div>
         </div>
 
-        {/* ═══ SUBSCRIBER TABLE ═══ */}
-        <div style={{
-          background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden',
-        }}>
+        <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: `0.5px solid ${C.border}` }}>
                   {['Account', 'Client Name', 'IP / VLAN', 'Plan', 'Phone', 'Status', 'Online', 'Data Used', 'Actions'].map(h => (
-                    <th key={h} style={{
-                      textAlign: 'left', padding: '10px 14px', fontWeight: 700,
-                      color: C.dim, fontSize: 10, fontFamily: 'Inter, sans-serif',
-                      textTransform: 'uppercase', letterSpacing: '0.08em',
-                      whiteSpace: 'nowrap',
-                    }}>{h}</th>
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, color: C.dim, fontSize: 10, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -345,25 +600,15 @@ export default function ClientsPage() {
                   <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center' }}>
                     <Users size={20} color={C.mute} style={{ marginBottom: 8 }} />
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.dim }}>No monthly clients yet</div>
-                    <div style={{ fontSize: 11, color: C.mute, marginTop: 4 }}>
-                      Create subscriber plans and add clients to get started
-                    </div>
-                    <button onClick={openCreate} style={{
-                      marginTop: 12, padding: '8px 18px', borderRadius: 8,
-                      background: C.gold, color: C.void, border: 'none',
-                      fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                      fontFamily: 'Inter, sans-serif',
-                    }}>
+                    <div style={{ fontSize: 11, color: C.mute, marginTop: 4 }}>Create subscriber plans and add clients to get started</div>
+                    <button onClick={openCreate} style={{ marginTop: 12, padding: '8px 18px', borderRadius: 8, background: C.gold, color: C.void, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
                       <Plus size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Add Client
                     </button>
                   </td></tr>
                 ) : subscribers.map(s => {
                   const outOfSync = s.out_of_sync
                   return (
-                    <tr key={s.id} style={{
-                      borderBottom: `0.5px solid ${C.border}`,
-                      transition: 'background 0.15s',
-                    }}
+                    <tr key={s.id} style={{ borderBottom: `0.5px solid ${C.border}`, transition: 'background 0.15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
@@ -375,9 +620,7 @@ export default function ClientsPage() {
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                         <div style={{ fontWeight: 600, color: C.text }}>{s.client_name}</div>
-                        <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                          {s.phone_number ? maskPhone(s.phone_number) : '—'}
-                        </div>
+                        <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{s.phone_number ? maskPhone(s.phone_number) : '—'}</div>
                       </td>
                       <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
                         {s.networking_ip}
@@ -388,31 +631,15 @@ export default function ClientsPage() {
                         {s.plan_name ? (
                           <div>
                             <div style={{ color: C.text, fontSize: 11 }}>{s.plan_name}</div>
-                            {s.amount_due_ksh > 0 && (
-                              <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim }}>
-                                {ksh(s.amount_due_ksh)}/mo
-                              </div>
-                            )}
+                            {s.amount_due_ksh > 0 && <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim }}>{ksh(s.amount_due_ksh)}/mo</div>}
                           </div>
                         ) : <span style={{ color: C.mute }}>—</span>}
                       </td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap', color: C.dim }}>
-                        {maskPhone(s.phone_number)}
-                      </td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap', color: C.dim }}>{maskPhone(s.phone_number)}</td>
+                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{statusBadge(s.status)}</td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        {statusBadge(s.status)}
-                      </td>
-                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 600,
-                          color: s.online_status === 'online' ? C.green : C.dim,
-                        }}>
-                          <span style={{
-                            width: 5, height: 5, borderRadius: '50%',
-                            background: s.online_status === 'online' ? C.green : C.mute,
-                            display: 'inline-block',
-                          }} />
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 600, color: s.online_status === 'online' ? C.green : C.dim }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.online_status === 'online' ? C.green : C.mute, display: 'inline-block' }} />
                           {s.online_status === 'online' ? 'Online' : 'Offline'}
                         </span>
                       </td>
@@ -424,27 +651,15 @@ export default function ClientsPage() {
                         <div style={{ display: 'flex', gap: 4 }}>
                           {s.status === 'active' && (
                             <>
-                              <button onClick={() => handleAction(s.id, 'pause')} disabled={isBusy(s.id)} title="Pause"
-                                style={actionBtnStyle}>
-                                <PauseCircle size={12} />
-                              </button>
-                              <button onClick={() => handleAction(s.id, 'suspend')} disabled={isBusy(s.id)} title="Suspend"
-                                style={{ ...actionBtnStyle, color: C.red }}>
-                                <AlertTriangle size={12} />
-                              </button>
+                              <button onClick={() => handleAction(s.id, 'pause')} disabled={isBusy(s.id)} title="Pause" style={actionBtnStyle}><PauseCircle size={12} /></button>
+                              <button onClick={() => handleAction(s.id, 'suspend')} disabled={isBusy(s.id)} title="Suspend" style={{ ...actionBtnStyle, color: C.red }}><AlertTriangle size={12} /></button>
                             </>
                           )}
                           {(s.status === 'paused' || s.status === 'suspended') && (
-                            <button onClick={() => handleAction(s.id, 'resume')} disabled={isBusy(s.id)} title="Resume"
-                              style={{ ...actionBtnStyle, color: C.green }}>
-                              <PlayCircle size={12} />
-                            </button>
+                            <button onClick={() => handleAction(s.id, 'resume')} disabled={isBusy(s.id)} title="Resume" style={{ ...actionBtnStyle, color: C.green }}><PlayCircle size={12} /></button>
                           )}
                           {s.out_of_sync && (
-                            <button onClick={() => handleAction(s.id, 'activate')} disabled={isBusy(s.id)} title="Re-activate on router"
-                              style={{ ...actionBtnStyle, color: C.gold }}>
-                              <RefreshCw size={12} />
-                            </button>
+                            <button onClick={() => handleAction(s.id, 'activate')} disabled={isBusy(s.id)} title="Re-activate on router" style={{ ...actionBtnStyle, color: C.gold }}><RefreshCw size={12} /></button>
                           )}
                         </div>
                       </td>
@@ -462,29 +677,23 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* ═══ CREATE SUBSCRIBER DRAWER ═══ */}
-      {showDrawer && (
+      {showWizard && (
         <>
-          <div onClick={() => setShowDrawer(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />
+          <div onClick={handleCloseWizard} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} />
           <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201,
-            width: '100%', maxWidth: 460, background: C.base,
-            borderLeft: '0.5px solid rgba(232,184,75,0.08)',
-            boxShadow: '-10px 0 40px rgba(0,0,0,0.4)',
-            transform: 'translateX(0)', transition: 'transform 0.25s ease',
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          }}>
-            <div style={{ padding: '20px 20px 0', flex: 1, overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 201, width: '100%', maxWidth: 520, background: 'rgba(10,10,10,0.92)',
+            backdropFilter: 'blur(24px)', border: '0.5px solid rgba(232,184,75,0.12)',
+            borderRadius: 16, boxShadow: '0 0 80px rgba(0,0,0,0.5), 0 0 40px rgba(232,184,75,0.03)',
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '20px 24px 0', flex: 1, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div>
-                  <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>
-                    Add Client
-                  </div>
-                  <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
-                    Create a new monthly subscriber
-                  </div>
+                  <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>Add Client</div>
+                  <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Step {wizardStep} of 3 — {stepLabels[wizardStep - 1]}</div>
                 </div>
-                <button onClick={() => setShowDrawer(false)} style={{
+                <button onClick={handleCloseWizard} style={{
                   width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
                   border: '0.5px solid rgba(255,255,255,0.06)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.dim,
@@ -493,138 +702,50 @@ export default function ClientsPage() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <div style={labelSx}>Client Name *</div>
-                  <input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))} placeholder="John Doe" style={inputSx} />
-                </div>
+              {renderStepIndicator()}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={labelSx}>Phone Number *</div>
-                    <input value={form.phone_number} onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))} placeholder="254712345678" style={inputSx} />
-                  </div>
-                  <div>
-                    <div style={labelSx}>ID Number</div>
-                    <input value={form.id_number} onChange={e => setForm(f => ({ ...f, id_number: e.target.value }))} placeholder="12345678" style={inputSx} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={labelSx}>Plan</div>
-                  <select value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))} style={inputSx}>
-                    <option value="">No plan (custom)</option>
-                    {filteredPlans.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} — {ksh(p.price_ksh)}/mo</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div style={labelSx}>Static IP Address *</div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <input value={form.networking_ip} onChange={e => setForm(f => ({ ...f, networking_ip: e.target.value }))}
-                      placeholder="192.168.88.50" style={{ ...inputSx, flex: 1 }} />
-                    {availableIps.length > 0 && (
-                      <select onChange={e => {
-                        if (e.target.value) {
-                          const ip = availableIps.find(i => i.ip === e.target.value)
-                          if (ip) setForm(f => ({
-                            ...f, networking_ip: ip.ip, networking_gateway: ip.gateway,
-                            networking_vlan: ip.vlan_id?.toString() || '',
-                            networking_interface: ip.interface_name || '',
-                          }))
-                        }
-                      }} style={{
-                        ...inputSx, width: 'auto', minWidth: 100, padding: '10px 8px',
-                      }}>
-                        <option value="">Auto-assign</option>
-                        {availableIps.slice(0, 20).map(i => (
-                          <option key={i.ip} value={i.ip}>{i.ip} ({i.pool_name})</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={labelSx}>MAC Address</div>
-                    <input value={form.networking_mac} onChange={e => setForm(f => ({ ...f, networking_mac: e.target.value }))} placeholder="AA:BB:CC:DD:EE:FF" style={inputSx} />
-                  </div>
-                  <div>
-                    <div style={labelSx}>VLAN ID</div>
-                    <input value={form.networking_vlan} onChange={e => setForm(f => ({ ...f, networking_vlan: e.target.value }))} placeholder="100" style={inputSx} />
-                  </div>
-                  <div>
-                    <div style={labelSx}>Interface</div>
-                    <input value={form.networking_interface} onChange={e => setForm(f => ({ ...f, networking_interface: e.target.value }))} placeholder="ether2" style={inputSx} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={labelSx}>Gateway</div>
-                    <input value={form.networking_gateway} onChange={e => setForm(f => ({ ...f, networking_gateway: e.target.value }))} placeholder="192.168.88.1" style={inputSx} />
-                  </div>
-                  <div>
-                    <div style={labelSx}>Email</div>
-                    <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="john@example.com" style={inputSx} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={labelSx}>Installation Address</div>
-                  <input value={form.installation_address} onChange={e => setForm(f => ({ ...f, installation_address: e.target.value }))} placeholder="Plot 42, Kimathi Street" style={inputSx} />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <div>
-                    <div style={labelSx}>Billing Day</div>
-                    <select value={form.billing_cycle_date} onChange={e => setForm(f => ({ ...f, billing_cycle_date: parseInt(e.target.value) }))} style={inputSx}>
-                      {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <div style={labelSx}>Cycle (days)</div>
-                    <select value={form.billing_cycle_days} onChange={e => setForm(f => ({ ...f, billing_cycle_days: parseInt(e.target.value) }))} style={inputSx}>
-                      <option value={30}>30</option>
-                      <option value={15}>15</option>
-                      <option value={7}>7</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div style={labelSx}>Data Cap (GB)</div>
-                    <input value={form.data_cap_gb} onChange={e => setForm(f => ({ ...f, data_cap_gb: e.target.value }))} placeholder="Unlimited" style={inputSx} />
-                  </div>
-                </div>
-
-                <div>
-                  <div style={labelSx}>Notes</div>
-                  <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes..." rows={2} style={{
-                    ...inputSx, resize: 'vertical', fontFamily: 'Inter, sans-serif',
-                  }} />
-                </div>
+              <div style={{ minHeight: 220 }}>
+                {wizardStep === 1 && renderStep1()}
+                {wizardStep === 2 && renderStep2()}
+                {wizardStep === 3 && renderStep3()}
               </div>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: `0.5px solid ${C.border}` }}>
-              <button onClick={handleSubmit} disabled={submitting} style={{
-                width: '100%', padding: '12px', borderRadius: 8, border: 'none',
-                background: submitting ? C.mute : C.gold, color: submitting ? C.dim : C.void,
-                fontSize: 13, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer',
-                fontFamily: '"Space Grotesk", sans-serif',
-              }}>
-                {submitting ? 'Creating...' : 'Create Client'}
-              </button>
+            <div style={{ padding: '16px 24px 20px', borderTop: `0.5px solid ${C.border}`, display: 'flex', gap: 10, justifyContent: wizardStep > 1 ? 'space-between' : 'flex-end' }}>
+              {wizardStep > 1 && (
+                <button onClick={handleBack} style={{
+                  padding: '10px 20px', borderRadius: 8, border: `0.5px solid ${C.border}`,
+                  background: 'transparent', color: C.dim, fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                }}>
+                  Back
+                </button>
+              )}
+              {wizardStep < 3 ? (
+                <button onClick={handleNext} style={{
+                  padding: '10px 28px', borderRadius: 8, border: 'none',
+                  background: C.gold, color: C.void, fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  Next <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
+                </button>
+              ) : (
+                <button onClick={handleSubmit} disabled={submitting} style={{
+                  padding: '10px 28px', borderRadius: 8, border: 'none',
+                  background: submitting ? C.mute : C.gold, color: submitting ? C.dim : C.void,
+                  fontSize: 12, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer',
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  {submitting ? 'Creating...' : 'Create Client'} {!submitting && <Check size={13} />}
+                </button>
+              )}
             </div>
           </div>
         </>
       )}
 
-      {/* ═══ PLANS MODAL ═══ */}
       {showPlanModal && (
         <div onClick={() => setShowPlanModal(false)} style={{
           position: 'fixed', inset: 0, zIndex: 200,
@@ -641,12 +762,8 @@ export default function ClientsPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>
-                  Subscriber Plans
-                </div>
-                <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
-                  Define monthly bandwidth plans for WiFi and TV clients
-                </div>
+                <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>Subscriber Plans</div>
+                <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Define monthly bandwidth plans for WiFi and TV clients</div>
               </div>
               <button onClick={() => setShowPlanModal(false)} style={{
                 width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
@@ -657,11 +774,8 @@ export default function ClientsPage() {
               </button>
             </div>
 
-            {/* Create plan form */}
             <div style={{ background: 'var(--theme-surface)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12, fontFamily: 'Inter, sans-serif' }}>
-                New Plan
-              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12, fontFamily: 'Inter, sans-serif' }}>New Plan</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <input value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Plan name" style={inputSx} />
@@ -685,14 +799,12 @@ export default function ClientsPage() {
               <button onClick={handleCreatePlan} disabled={plansLoading} style={{
                 marginTop: 10, width: '100%', padding: '10px', borderRadius: 7, border: 'none',
                 background: plansLoading ? C.mute : C.gold, color: plansLoading ? C.dim : C.void,
-                fontSize: 12, fontWeight: 700, cursor: plansLoading ? 'not-allowed' : 'pointer',
-                fontFamily: 'Inter, sans-serif',
+                fontSize: 12, fontWeight: 700, cursor: plansLoading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 {plansLoading ? 'Creating...' : 'Create Plan'}
               </button>
             </div>
 
-            {/* Plan list */}
             {plans.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 16, color: C.dim, fontSize: 12 }}>
                 No plans yet. Create your first plan above.
@@ -726,12 +838,4 @@ export default function ClientsPage() {
       )}
     </div>
   )
-}
-
-const actionBtnStyle: React.CSSProperties = {
-  width: 26, height: 26, borderRadius: 6,
-  border: `0.5px solid ${C.border}`, background: 'transparent',
-  cursor: 'pointer', display: 'inline-flex',
-  alignItems: 'center', justifyContent: 'center',
-  color: C.dim, padding: 0,
 }
