@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if brand %}{{ brand.name }}{% else %}Dashboard Portal{% endif %} - WiFi Access</title>
+    <title>{% if brand %}{{ brand.name }}{% else %}WiFi Portal{% endif %} - WiFi Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {% if font %}
     <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700&display=swap" rel="stylesheet">
     {% else %}
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     {% endif %}
     <style>
         :root {
@@ -22,11 +22,6 @@
             --success: #10b981;
             --error: #ef4444;
             --radius: {{ radius }};
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
             --font-display: '{{ font }}', sans-serif;
             --font-body: '{{ font }}', sans-serif;
             --heading-size: 2rem;
@@ -35,62 +30,21 @@
             --letter-spacing: 0;
             --card-padding: 16px 20px;
             --btn-radius: 10px;
+            --btn-text: #fff;
             --overlay-opacity: 0.4;
             --overlay-color: #000000;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
         }
 
-        .btn-primary {
-            background: var(--accent-primary);
-            color: #fff;
-            border: none;
-            border-radius: var(--btn-radius);
-            padding: 0.7rem 1.8rem;
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: var(--transition);
-            letter-spacing: 0.02em;
-        }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        .package-item.card-glass {
-            background: rgba(255,255,255,0.03);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .package-item.card-outline {
-            background: transparent;
-            border: 1.5px solid var(--accent-primary);
-            backdrop-filter: none;
-        }
-        .package-item.card-minimal {
-            background: var(--bg-secondary);
-            border: none;
-            backdrop-filter: none;
-        }
-        .package-item.card-floating {
-            background: var(--bg-secondary);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            border: none;
-            transform: translateY(-2px);
-        }
-        .package-item.card-sharp {
-            background: var(--bg-secondary);
-            border-radius: 2px;
-            border: 1px solid rgba(255,255,255,0.06);
-            backdrop-filter: none;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
 
         html {
             font-size: 16px;
@@ -100,322 +54,377 @@
 
         body {
             background: var(--bg-primary);
-            background-image: 
-                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 0);
-            background-size: 40px 40px;
             color: var(--text-primary);
             font-family: var(--font-body);
+            font-size: var(--body-size);
             line-height: 1.6;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
         }
 
-        body::before {
-            content: '';
+        /* ── Animated Gradient Blobs ── */
+        .bg-blobs {
             position: fixed;
-            top: -20%;
-            right: -10%;
-            width: 700px;
-            height: 700px;
-            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
-            opacity: 0.08;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: float 8s ease-in-out infinite;
+            inset: 0;
             z-index: 0;
-            filter: blur(60px);
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            bottom: -15%;
-            left: -5%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
-            opacity: 0.06;
-            border-radius: 50%;
             pointer-events: none;
-            animation: float 10s ease-in-out infinite reverse;
-            z-index: 0;
+            overflow: hidden;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-40px); }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.07;
+            animation: blobDrift 14s ease-in-out infinite alternate;
         }
 
+        .blob-1 {
+            width: 600px; height: 600px;
+            background: var(--accent-primary);
+            top: -15%; right: -10%;
+            animation-duration: 12s;
+        }
+
+        .blob-2 {
+            width: 500px; height: 500px;
+            background: var(--accent-secondary);
+            bottom: -10%; left: -8%;
+            animation-duration: 16s;
+            animation-delay: 2s;
+        }
+
+        .blob-3 {
+            width: 350px; height: 350px;
+            background: var(--success);
+            top: 40%; left: 30%;
+            animation-duration: 20s;
+            animation-delay: 4s;
+            opacity: 0.04;
+        }
+
+        @keyframes blobDrift {
+            0%   { transform: translate(0, 0) scale(1); }
+            33%  { transform: translate(30px, -40px) scale(1.05); }
+            66%  { transform: translate(-20px, 20px) scale(0.95); }
+            100% { transform: translate(15px, -15px) scale(1.02); }
+        }
+
+        /* ── Network Banner ── */
         .network-banner {
             position: relative;
             z-index: 20;
             width: 100%;
-            padding: 0.85rem var(--spacing-lg);
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            color: #059669;
+            padding: 0.75rem var(--spacing-lg);
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            color: #34d399;
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 500;
             letter-spacing: 0.01em;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            backdrop-filter: blur(10px);
         }
 
         .network-banner.offline {
-            background: rgba(239, 68, 68, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+            background: rgba(239,68,68,0.08);
+            border-bottom-color: rgba(239,68,68,0.15);
             color: #fca5a5;
         }
 
         .network-status-dot {
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             border-radius: 50%;
             background: #10b981;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 8px rgba(16,185,129,0.5);
             animation: pulse 2s ease-in-out infinite;
         }
 
         .network-banner.offline .network-status-dot {
             background: #ef4444;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 8px rgba(239,68,68,0.5);
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
+            0%,100% { opacity:1; transform:scale(1); }
+            50%     { opacity:0.5; transform:scale(1.3); }
         }
 
-        .dashboard-topbar {
-            position: sticky;
-            top: 0;
-            z-index: 19;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-            padding: 1rem var(--spacing-lg);
-        }
-
-        .topbar-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1400px;
-            margin: 0 auto;
-            gap: var(--spacing-lg);
-        }
-
+        /* ── Brand Header ── */
         .brand-header {
+            position: relative;
+            z-index: 2;
             display: flex;
             align-items: center;
             gap: var(--spacing-md);
-            flex: 1;
-            min-width: 0;
-        }
-
-        .brand-icon {
-            font-size: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: calc(var(--radius) * 0.75);
-            color: white;
-            font-weight: 700;
-            flex-shrink: 0;
-            box-shadow: var(--shadow-md);
-        }
-
-        .brand-info h2 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            margin: 0;
-            color: var(--text-primary);
-        }
-
-        .brand-info p {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin: 0.25rem 0 0 0;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-weight: 600;
-        }
-
-        .topbar-status {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.85rem;
-            padding: 0.5rem 0.9rem;
-            background: var(--bg-secondary);
-            border-radius: calc(var(--radius) * 0.5);
-            color: var(--text-secondary);
-            font-weight: 500;
-            white-space: nowrap;
-            transition: var(--transition);
-        }
-
-        .status-item:hover {
-            background: var(--accent-primary);
-            color: white;
-        }
-
-        .status-indicator {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
-        }
-
-        .status-indicator.offline {
-            background: var(--error);
-            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
-        }
-
-        .dashboard-container {
-            position: relative;
-            z-index: 1;
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: var(--spacing-lg);
             padding: var(--spacing-lg);
             max-width: 1400px;
             margin: 0 auto;
-            min-height: calc(100vh - 180px);
         }
 
-        .dashboard-sidebar {
+        .brand-icon-wrap {
+            width: 56px; height: 56px;
+            border-radius: calc(var(--radius) * 0.8);
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .brand-text h1 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .brand-text p {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin: 0.15rem 0 0 0;
+        }
+
+        /* ── Main Layout ── */
+        .portal-layout {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: var(--spacing-lg);
+            padding: 0 var(--spacing-lg) var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 160px);
+        }
+
+        /* ── Sidebar ── */
+        .portal-sidebar {
             display: flex;
             flex-direction: column;
             gap: var(--spacing-md);
         }
 
         .sidebar-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.06);
             border-radius: var(--radius);
             padding: var(--spacing-md);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             transition: var(--transition);
-            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .sidebar-card:hover {
             box-shadow: var(--shadow-md);
+            border-color: rgba(255,255,255,0.1);
         }
 
-        .sidebar-section-title {
+        .sidebar-label {
             font-family: var(--font-display);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
             color: var(--accent-primary);
             margin-bottom: var(--spacing-sm);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
-        .sidebar-section-title::before {
-            content: '•';
-            font-size: 1.5rem;
-            line-height: 1;
+        .sidebar-label::before {
+            content: '';
+            width: 3px; height: 14px;
+            background: var(--accent-primary);
+            border-radius: 99px;
         }
 
-        .sidebar-info {
-            font-size: 0.9rem;
+        .sidebar-text {
+            font-size: 0.88rem;
             color: var(--text-secondary);
-            margin-bottom: var(--spacing-sm);
-            line-height: 1.5;
+            line-height: 1.55;
+            margin-bottom: var(--spacing-xs);
         }
 
-        .sidebar-info:last-child {
-            margin-bottom: 0;
-        }
-
-        .sidebar-info strong {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .sidebar-info a {
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .sidebar-info a:hover {
-            color: var(--accent-secondary);
-        }
+        .sidebar-text:last-child { margin-bottom: 0; }
+        .sidebar-text strong { color: var(--text-primary); font-weight: 600; }
 
         .sidebar-badge {
-            margin-top: var(--spacing-md);
-            padding: 0.6rem 0.9rem;
+            margin-top: var(--spacing-sm);
+            padding: 0.55rem 0.8rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
+            color: #fff;
             border-radius: calc(var(--radius) * 0.5);
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 700;
             text-align: center;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
 
-        .dashboard-content {
+        .quick-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            margin-bottom: 0.7rem;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+        }
+
+        .quick-step:last-child { margin-bottom: 0; }
+
+        .step-num {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-text strong { color: var(--text-primary); }
+
+        /* ── Voucher Box ── */
+        .voucher-card {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
+
+        .voucher-card.glow-green {
+            border-color: rgba(16,185,129,0.5);
+            box-shadow: 0 0 30px rgba(16,185,129,0.15);
+        }
+
+        .voucher-card.glow-red {
+            border-color: rgba(239,68,68,0.5);
+            box-shadow: 0 0 30px rgba(239,68,68,0.15);
+        }
+
+        .voucher-card.glow-yellow {
+            border-color: rgba(234,179,8,0.5);
+            box-shadow: 0 0 30px rgba(234,179,8,0.15);
+        }
+
+        .voucher-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .voucher-input-row input {
+            flex: 1;
+            padding: 0.7rem 0.9rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: calc(var(--radius) * 0.4);
+            color: var(--text-primary);
+            font-family: 'DM Mono','Courier New',monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 0;
+        }
+
+        .voucher-input-row input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .voucher-input-row input::placeholder {
+            letter-spacing: 1px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.5;
+            text-transform: none;
+            font-family: var(--font-body);
+        }
+
+        .voucher-btn {
+            padding: 0.7rem 1rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: calc(var(--radius) * 0.4);
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .voucher-btn:hover { background: rgba(255,255,255,0.12); }
+        .voucher-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .voucher-msg {
+            margin-top: 8px;
+            padding: 6px 10px;
+            border-radius: calc(var(--radius) * 0.4);
+            font-size: 0.78rem;
+            font-weight: 500;
+            display: none;
+            animation: slideUp 0.25s ease;
+        }
+
+        .voucher-msg.success { display:block; background:rgba(16,185,129,0.08); color:#34d399; }
+        .voucher-msg.error   { display:block; background:rgba(239,68,68,0.08); color:#f87171; }
+        .voucher-msg.warning { display:block; background:rgba(234,179,8,0.08); color:#fbbf24; }
+
+        /* ── Content Area ── */
+        .portal-content {
             display: flex;
             flex-direction: column;
             gap: var(--spacing-lg);
         }
 
-        .content-header {
-            text-align: left;
-        }
-
-        .content-header h1 {
+        .content-heading h2 {
             font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin: 0 0 0.5rem 0;
+            font-size: var(--heading-size);
+            font-weight: var(--font-weight);
+            letter-spacing: var(--letter-spacing);
             color: var(--text-primary);
+            margin: 0 0 0.4rem 0;
         }
 
-        .content-header p {
-            font-size: 1rem;
+        .content-heading p {
             color: var(--text-secondary);
+            font-size: 0.95rem;
             margin: 0;
         }
 
-        .packages-list {
-            display: flex;
-            flex-direction: column;
+        /* ── Package Cards ── */
+        .packages-grid {
+            display: grid;
+            grid-template-columns: 1fr;
             gap: var(--spacing-md);
         }
 
@@ -424,44 +433,46 @@
             align-items: center;
             justify-content: space-between;
             gap: var(--spacing-md);
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            padding: var(--spacing-md);
+            padding: var(--card-padding);
             border-radius: var(--radius);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
             transition: var(--transition);
             position: relative;
+            overflow: hidden;
         }
 
-        .package-item.featured {
-            background: rgba(255, 255, 255, 0.06);
+        .package-item.card-glass {
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .package-item.card-outline {
+            background: transparent;
             border: 1.5px solid var(--accent-primary);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .package-item.card-minimal {
+            background: var(--bg-secondary);
+            border: none;
+        }
+
+        .package-item.card-floating {
+            background: var(--bg-secondary);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        .package-item.card-sharp {
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.06);
         }
 
         .package-item:hover {
-            box-shadow: var(--shadow-md);
             transform: translateY(-2px);
-        }
-
-        .featured-badge {
-            position: absolute;
-            top: -12px;
-            right: 1.5rem;
-            padding: 0.4rem 1rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
             box-shadow: var(--shadow-md);
         }
 
-        .package-left {
+        .pkg-left {
             display: flex;
             align-items: center;
             gap: var(--spacing-md);
@@ -469,610 +480,347 @@
             min-width: 0;
         }
 
-        .package-icon {
-            font-size: 2rem;
+        .pkg-icon {
+            width: 52px; height: 52px;
+            border-radius: calc(var(--radius) * 0.7);
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: calc(var(--radius) * 0.75);
+            font-size: 1.4rem;
+            color: #fff;
             flex-shrink: 0;
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-sm);
         }
 
-        .package-details {
-            min-width: 0;
-        }
+        .pkg-info { min-width: 0; }
 
-        .package-details h3 {
+        .pkg-info h3 {
             font-family: var(--font-display);
-            font-size: 1.15rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            margin: 0 0 0.25rem 0;
             color: var(--text-primary);
+            margin: 0 0 0.15rem 0;
         }
 
-        .package-meta {
+        .pkg-meta {
             display: flex;
-            gap: var(--spacing-md);
-            font-size: 0.85rem;
+            gap: var(--spacing-sm);
+            font-size: 0.8rem;
             color: var(--text-secondary);
         }
 
-        .package-right {
+        .pkg-right {
             display: flex;
             align-items: center;
             gap: var(--spacing-lg);
             flex-shrink: 0;
         }
 
-        .package-price {
-            text-align: right;
-        }
+        .pkg-price { text-align: right; }
 
-        .price-label {
-            font-size: 0.75rem;
+        .price-tag {
+            font-size: 0.65rem;
             text-transform: uppercase;
+            letter-spacing: 0.06em;
             color: var(--text-secondary);
             font-weight: 600;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
         }
 
-        .price-amount {
+        .price-val {
             font-family: var(--font-display);
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--accent-primary);
             letter-spacing: -0.01em;
         }
 
-        .package-btn {
-            padding: 0.75rem 1.5rem;
+        .pkg-btn {
+            padding: 0.7rem 1.4rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             color: var(--btn-text, #fff);
             border: none;
-            border-radius: var(--btn-radius, calc(var(--radius) * 0.5));
+            border-radius: var(--btn-radius);
             font-family: var(--font-display);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: var(--shadow-md);
+            letter-spacing: 0.04em;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
             position: relative;
             overflow: hidden;
         }
 
-        .package-btn::before {
+        .pkg-btn::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.2);
-            transition: left 0.4s ease;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
         }
 
-        .package-btn:hover::before {
-            left: 100%;
-        }
+        .pkg-btn:hover::after { transform: translateX(100%); }
+        .pkg-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .pkg-btn:active { transform: translateY(0); }
 
-        .package-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .package-btn:active {
-            transform: translateY(0);
-        }
-
-        .dashboard-footer {
-            text-align: center;
-            padding: var(--spacing-xl) var(--spacing-lg);
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--bg-secondary);
-            background: var(--bg-primary);
-            position: relative;
-            z-index: 10;
-        }
-
-        .footer-link {
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.2s ease;
-            margin-left: 0.5rem;
-        }
-
-        .footer-link:hover {
-            color: var(--accent-secondary);
-        }
-
-        .offline-container {
+        /* ── Offline State ── */
+        .offline-state {
             position: relative;
             z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: calc(100vh - 140px);
+            min-height: calc(100vh - 200px);
             padding: var(--spacing-xl);
             text-align: center;
         }
 
-        .offline-icon {
-            font-size: 5rem;
-            margin-bottom: var(--spacing-lg);
+        .offline-state .off-icon {
+            font-size: 4.5rem;
+            margin-bottom: var(--spacing-md);
             animation: float 4s ease-in-out infinite;
         }
 
-        .offline-title {
-            font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: var(--spacing-md);
-            color: var(--text-primary);
+        @keyframes float {
+            0%,100% { transform:translateY(0); }
+            50%     { transform:translateY(-12px); }
         }
 
-        .offline-message {
-            font-size: 1rem;
+        .offline-state h2 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .offline-state p {
             color: var(--text-secondary);
-            max-width: 400px;
+            max-width: 380px;
             margin-bottom: var(--spacing-lg);
             line-height: 1.6;
         }
 
-        .offline-support {
+        .offline-btn {
             padding: 0.8rem 1.6rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: calc(var(--radius) * 0.5);
+            color: #fff;
+            border: none;
+            border-radius: var(--btn-radius);
             text-decoration: none;
+            font-family: var(--font-display);
             font-weight: 600;
             transition: var(--transition);
             box-shadow: var(--shadow-md);
         }
 
-        .offline-support:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-container {
-                grid-template-columns: 240px 1fr;
-                gap: var(--spacing-md);
-                padding: var(--spacing-md);
-            }
-
-            .content-header h1 {
-                font-size: 1.5rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-container {
-                grid-template-columns: 1fr;
-                gap: var(--spacing-md);
-                padding: var(--spacing-sm);
-            }
-
-            .topbar-content {
-                flex-direction: column;
-                gap: var(--spacing-sm);
-                align-items: flex-start;
-            }
-
-            .topbar-status {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            .dashboard-sidebar {
-                flex-direction: row;
-                gap: var(--spacing-sm);
-            }
-
-            .sidebar-card {
-                flex: 1;
-            }
-
-            .content-header h1 {
-                font-size: 1.3rem;
-            }
-
-            .package-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--spacing-sm);
-            }
-
-            .package-left {
-                width: 100%;
-            }
-
-            .package-right {
-                width: 100%;
-                justify-content: space-between;
-                gap: var(--spacing-md);
-            }
-
-            .package-price {
-                text-align: left;
-            }
-
-            .price-amount {
-                font-size: 1.5rem;
-            }
-
-            .featured-badge {
-                right: auto;
-                left: var(--spacing-md);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .topbar-content {
-                flex-direction: row;
-                align-items: center;
-                gap: var(--spacing-sm);
-            }
-            .brand-info h2 { font-size: 1rem; }
-            .brand-info p { font-size: 0.65rem; }
-            .topbar-status { font-size: 0.75rem; }
-            .status-item { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
-            .dashboard-sidebar { gap: var(--spacing-sm); }
-            .sidebar-card { padding: var(--spacing-sm); }
-            .sidebar-section-title { font-size: 0.7rem; }
-            .content-header h1 { font-size: 1.2rem; }
-            .package-item { padding: var(--spacing-sm); }
-            .package-icon { width: 52px; height: 52px; font-size: 1.5rem; }
-            .package-details h3 { font-size: 1rem; }
-            .price-amount { font-size: 1.3rem; }
-            .package-btn { padding: 0.6rem 1.2rem; font-size: 0.8rem; }
-        }
-
-        @media (max-width: 360px) {
-            .network-banner { font-size: 0.75rem; padding: 0.5rem 0.8rem; }
-            .dashboard-topbar { padding: 0.6rem 0.8rem; }
-            .brand-icon { width: 36px; height: 36px; font-size: 1.2rem; }
-            .brand-info h2 { font-size: 0.85rem; }
-            .brand-info p { font-size: 0.55rem; }
-            .topbar-content { gap: 0.4rem; }
-            .topbar-status { display: none; }
-            .dashboard-container { padding: 0.5rem; gap: 0.6rem; }
-            .dashboard-sidebar { flex-direction: column; gap: 0.5rem; }
-            .sidebar-card { padding: 0.6rem 0.8rem; }
-            .sidebar-section-title { font-size: 0.6rem; }
-            .sidebar-info { font-size: 0.75rem; }
-            .sidebar-badge { font-size: 0.65rem; padding: 0.4rem 0.6rem; }
-            .content-header h1 { font-size: 1rem; }
-            .content-header p { font-size: 0.75rem; }
-            .packages-list { gap: 0.6rem; }
-            .package-item { padding: 0.6rem 0.8rem; gap: 0.4rem; }
-            .package-left { gap: 0.5rem; }
-            .package-icon { display: none; }
-            .package-details h3 { font-size: 0.85rem; }
-            .package-meta { font-size: 0.7rem; gap: 0.5rem; }
-            .package-right { flex-direction: column; align-items: flex-end; gap: 0.4rem; }
-            .price-label { font-size: 0.6rem; }
-            .price-amount { font-size: 1.1rem; }
-            .package-btn { padding: 0.5rem 0.8rem; font-size: 0.7rem; }
-            .featured-badge { font-size: 0.6rem; padding: 0.3rem 0.7rem; top: -8px; left: 0.8rem; }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .offline-btn:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
 
         /* ── Activation Overlay ── */
         .activation-overlay {
-            position: fixed; inset: 0; z-index: 9999;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            display: none; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 20px; animation: fadeIn 0.3s ease;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            animation: fadeIn 0.3s ease;
         }
 
         .activation-overlay.show { display: flex; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-        .activation-wifi {
-            width: 64px; height: 64px;
-            position: relative; animation: wifiPulse 1.5s ease-in-out infinite;
+        .act-wifi {
+            width: 56px; height: 56px;
+            animation: wifiPulse 1.5s ease-in-out infinite;
         }
 
-        .activation-wifi svg { width: 100%; height: 100%; }
+        .act-wifi svg { width:100%; height:100%; }
 
         @keyframes wifiPulse {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.15); opacity: 1; }
+            0%,100% { transform:scale(1); opacity:0.6; }
+            50%     { transform:scale(1.15); opacity:1; }
         }
 
-        .activation-title {
+        .act-title {
             font-family: var(--font-display);
-            font-size: 1.4rem; font-weight: 700;
-            color: var(--text-primary); letter-spacing: -0.01em;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
-        .activation-sub {
-            font-size: 0.9rem; color: var(--text-secondary);
+        .act-sub {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
         }
 
-        .activation-bar {
-            width: 160px; height: 3px;
+        .act-bar {
+            width: 150px; height: 3px;
             background: rgba(255,255,255,0.06);
-            border-radius: 99px; overflow: hidden; margin-top: 8px;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-top: 6px;
         }
 
-        .activation-bar-fill {
-            height: 100%; width: 0%;
+        .act-bar-fill {
+            height: 100%;
+            width: 0%;
             background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: 99px; animation: barFill 2.5s ease forwards;
+            border-radius: 99px;
+            animation: barFill 2.5s ease forwards;
         }
 
         @keyframes barFill {
-            0% { width: 0%; }
-            40% { width: 45%; }
-            80% { width: 80%; }
-            100% { width: 100%; }
+            0%   { width:0%; }
+            40%  { width:45%; }
+            80%  { width:80%; }
+            100% { width:100%; }
         }
 
-        /* ── Voucher Section ── */
-        .voucher-section {
-            width: 100%; max-width: 440px;
-            position: relative; z-index: 2;
-        }
-
-        .voucher-box {
-            background: rgba(255,255,255,0.04); backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: calc(var(--radius) * 0.8);
-            padding: var(--spacing-md);
-            transition: box-shadow 0.4s, border-color 0.4s;
-            box-shadow: 0 0 0px rgba(255,255,255,0);
-        }
-
-        .voucher-box.glow-green {
-            border-color: rgba(16,185,129,0.5);
-            box-shadow: 0 0 30px rgba(16,185,129,0.2), 0 0 60px rgba(16,185,129,0.08);
-        }
-
-        .voucher-box.glow-red {
-            border-color: rgba(239,68,68,0.5);
-            box-shadow: 0 0 30px rgba(239,68,68,0.2), 0 0 60px rgba(239,68,68,0.08);
-        }
-
-        .voucher-box.glow-yellow {
-            border-color: rgba(234,179,8,0.5);
-            box-shadow: 0 0 30px rgba(234,179,8,0.2), 0 0 60px rgba(234,179,8,0.08);
-        }
-
-        .voucher-header {
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .voucher-header svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .voucher-title {
-            font-family: var(--font-display);
-            font-size: 0.95rem; font-weight: 700; color: var(--text-primary);
-        }
-
-        .voucher-subtitle {
-            font-size: 0.8rem; color: var(--text-secondary);
-            margin-bottom: 12px; line-height: 1.5;
-        }
-
-        .voucher-input-row {
-            display: flex; gap: 8px; align-items: stretch;
-        }
-
-        .voucher-input-row input {
-            flex: 1; padding: 0.75rem 1rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: calc(var(--radius) * 0.4);
-            color: var(--text-primary);
-            font-family: 'DM Mono', 'Courier New', monospace;
-            font-size: 1.1rem; font-weight: 600;
-            letter-spacing: 3px; text-transform: uppercase;
-            outline: none; transition: border-color 0.2s;
-            box-sizing: border-box; min-width: 0;
-        }
-
-        .voucher-input-row input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .voucher-input-row input::placeholder {
-            letter-spacing: 1px; font-size: 0.8rem;
-            color: var(--text-secondary); opacity: 0.5;
-        }
-
-        .voucher-btn {
-            padding: 0.75rem 1.2rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: calc(var(--radius) * 0.4);
-            color: var(--text-primary);
-            font-family: var(--font-display);
-            font-size: 0.8rem; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .voucher-btn:hover { background: rgba(255,255,255,0.12); }
-        .voucher-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .voucher-message {
-            margin-top: 10px; padding: 8px 12px;
-            border-radius: calc(var(--radius) * 0.4);
-            font-size: 0.8rem; font-weight: 500;
-            display: none; animation: slideUp 0.25s ease;
-        }
-
-        .voucher-message.success { display: block; background: rgba(16,185,129,0.08); color: #34d399; }
-        .voucher-message.error { display: block; background: rgba(239,68,68,0.08); color: #f87171; }
-        .voucher-message.warning { display: block; background: rgba(234,179,8,0.08); color: #fbbf24; }
-
-        /* ── Payment Modal ─────────────────────────────── */
+        /* ── Payment Modal ── */
         .payment-modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             padding: 1rem;
         }
 
-        .payment-modal-content {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .pm-box {
+            background: var(--bg-primary);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: var(--radius);
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
             animation: slideUp 0.3s ease;
+            overflow: hidden;
         }
 
-        .payment-modal-header {
+        @keyframes slideUp {
+            from { opacity:0; transform:translateY(20px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .pm-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1.2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 1.1rem 1.4rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
         }
 
-        .payment-modal-header h3 {
+        .pm-head h3 {
             font-family: var(--font-display);
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--text-primary);
             margin: 0;
         }
 
-        .payment-modal-close {
+        .pm-close {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             cursor: pointer;
-            padding: 0;
             line-height: 1;
+            padding: 0;
             transition: color 0.2s;
         }
 
-        .payment-modal-close:hover {
-            color: var(--text-primary);
-        }
+        .pm-close:hover { color: var(--text-primary); }
 
-        .payment-modal-body {
-            padding: 1.5rem;
-        }
+        .pm-body { padding: 1.4rem; }
 
-        .payment-modal-body p {
-            font-size: 0.9rem;
+        .pm-body p {
+            font-size: 0.88rem;
             color: var(--text-secondary);
-            margin: 0 0 0.5rem 0;
+            margin: 0 0 0.4rem 0;
         }
 
-        .payment-modal-body p strong {
-            color: var(--text-primary);
-        }
+        .pm-body p strong { color: var(--text-primary); }
 
-        .payment-input-group {
-            margin-top: 1rem;
-        }
+        .pm-field { margin-top: 0.9rem; }
 
-        .payment-input-group label {
+        .pm-field label {
             display: block;
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
         }
 
-        .payment-input-group input {
+        .pm-field input {
             width: 100%;
-            padding: 0.85rem 1rem;
-            background: var(--bg-primary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: calc(var(--radius) * 0.5);
             color: var(--text-primary);
             font-family: var(--font-body);
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             outline: none;
             transition: border-color 0.2s;
-            box-sizing: border-box;
         }
 
-        .payment-input-group input:focus {
+        .pm-field input:focus {
             border-color: var(--accent-primary);
         }
 
-        .payment-input-group input::placeholder {
-            color: var(--text-secondary);
-        }
+        .pm-field input::placeholder { color: var(--text-secondary); }
 
-        .payment-error {
-            margin-top: 0.8rem;
-            padding: 0.7rem 1rem;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: calc(var(--radius) * 0.5);
+        .pm-error {
+            margin-top: 0.7rem;
+            padding: 0.6rem 0.9rem;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: calc(var(--radius) * 0.4);
             color: #f87171;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
+            display: none;
         }
 
-        .payment-status {
-            margin-top: 0.8rem;
-            padding: 0.7rem 1rem;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: calc(var(--radius) * 0.5);
+        .pm-status {
+            margin-top: 0.7rem;
+            padding: 0.6rem 0.9rem;
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: calc(var(--radius) * 0.4);
             color: #60a5fa;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             text-align: center;
+            display: none;
         }
 
-        .payment-submit-btn {
+        .pm-submit {
             width: 100%;
-            margin-top: 1.2rem;
-            padding: 0.9rem;
+            margin-top: 1.1rem;
+            padding: 0.85rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
+            color: var(--btn-text, #fff);
             border: none;
-            border-radius: calc(var(--radius) * 0.5);
+            border-radius: var(--btn-radius);
             font-family: var(--font-display);
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             transition: opacity 0.2s, transform 0.2s;
@@ -1080,184 +828,235 @@
             letter-spacing: 0.05em;
         }
 
-        .payment-submit-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+        .pm-submit:hover { opacity:0.9; transform:translateY(-1px); }
+        .pm-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+        /* ── Footer ── */
+        .portal-footer {
+            text-align: center;
+            padding: var(--spacing-lg) var(--spacing-md);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            position: relative;
+            z-index: 2;
         }
 
-        .payment-submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+        .portal-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .portal-footer a:hover { color: var(--accent-secondary); }
+
+        /* ── Responsive: Tablet ── */
+        @media (max-width: 900px) {
+            .portal-layout {
+                grid-template-columns: 1fr;
+                padding: 0 var(--spacing-sm) var(--spacing-sm);
+                gap: var(--spacing-md);
+            }
+            .portal-sidebar {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: var(--spacing-sm);
+            }
+            .voucher-card { grid-column: 1 / -1; }
+            .packages-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .pkg-icon { width:44px; height:44px; font-size:1.2rem; }
+            .pkg-right { gap:var(--spacing-md); }
+            .price-val { font-size:1.25rem; }
+            .pkg-btn { padding:0.6rem 1rem; font-size:0.78rem; }
+        }
+
+        /* ── Responsive: Mobile ── */
+        @media (max-width: 600px) {
+            .brand-header { padding: var(--spacing-md) var(--spacing-sm); }
+            .brand-text h1 { font-size:1.1rem; }
+            .brand-text p { font-size:0.6rem; }
+
+            .portal-layout { padding: 0 var(--spacing-xs) var(--spacing-sm); gap:var(--spacing-sm); }
+
+            .portal-sidebar {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-sm);
+            }
+
+            .packages-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-sm);
+            }
+
+            .package-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--spacing-sm);
+            }
+
+            .pkg-left { gap: var(--spacing-sm); }
+            .pkg-icon { display: none; }
+            .pkg-right {
+                justify-content: space-between;
+                gap: var(--spacing-sm);
+            }
+            .pkg-price { text-align:left; }
+            .price-val { font-size:1.3rem; }
+            .pkg-info h3 { font-size:0.95rem; }
+            .pkg-meta { font-size:0.75rem; }
+            .pkg-btn { width:100%; padding:0.7rem; font-size:0.82rem; }
+
+            .content-heading h2 { font-size:1.3rem; }
+            .content-heading p { font-size:0.82rem; }
         }
 
         @media (max-width: 360px) {
-            .payment-modal-content { max-width: 100%; }
-            .payment-modal-header { padding: 1rem 1.2rem; }
-            .payment-modal-header h3 { font-size: 1rem; }
-            .payment-modal-body { padding: 1.2rem; }
-            .payment-submit-btn { padding: 0.8rem; font-size: 0.9rem; }
+            .network-banner { font-size:0.72rem; padding:0.5rem 0.7rem; }
+            .brand-icon-wrap { width:40px; height:40px; font-size:1.1rem; }
+            .brand-text h1 { font-size:0.9rem; }
+            .sidebar-card { padding:var(--spacing-sm); }
+            .sidebar-label { font-size:0.65rem; }
+            .sidebar-text { font-size:0.78rem; }
+            .pkg-meta { font-size:0.68rem; gap:0.5rem; }
+            .price-val { font-size:1.1rem; }
+            .pkg-btn { font-size:0.75rem; padding:0.6rem; }
+            .voucher-input-row input { font-size:0.85rem; letter-spacing:1.5px; }
         }
     </style>
 </head>
 <body>
-    <!-- Network Banner -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     {% if network_up %}
-    <div class="network-banner">
+    <!-- Network Banner -->
+    <div class="network-banner" id="network-banner">
         <div class="network-status-dot"></div>
         <span>{{ brand.status_message or '✓ Network is online and stable' }}</span>
     </div>
-    {% else %}
-    <div class="network-banner offline">
-        <span>⚠ Network currently offline. Please try again in a few moments.</span>
-    </div>
-    {% endif %}
 
-    <!-- Top Bar -->
-    <div class="dashboard-topbar">
-        <div class="topbar-content">
-            <div class="brand-header">
-                <div class="brand-icon">{{ brand.emoji or '📡' }}</div>
-                <div class="brand-info">
-                    <h2>{{ brand.name or 'WiFi Portal' }}</h2>
-                    <p>Internet Access</p>
-                </div>
-            </div>
-            <div class="topbar-status">
-                <div class="status-item">
-                    <div class="status-indicator {% if not network_up %}offline{% endif %}"></div>
-                    {% if network_up %}<span>Online</span>{% else %}<span>Offline</span>{% endif %}
-                </div>
-                {% if brand.location %}
-                <div class="status-item">
-                    <span>📍 {{ brand.location }}</span>
-                </div>
-                {% endif %}
-            </div>
+    <!-- Brand Header -->
+    <div class="brand-header">
+        <div class="brand-icon-wrap" id="brand-icon">{{ brand.emoji or '📡' }}</div>
+        <div class="brand-text">
+            <h1 id="brand-name">{{ brand.name or 'WiFi Portal' }}</h1>
+            <p id="brand-tagline">{{ brand.tagline or 'INTERNET ACCESS' }}</p>
         </div>
     </div>
 
-    {% if network_up %}
-    <!-- Main Container -->
-    <div class="dashboard-container">
+    <!-- Main Layout -->
+    <div class="portal-layout">
         <!-- Sidebar -->
-        <div class="dashboard-sidebar">
+        <aside class="portal-sidebar">
             <!-- About Card -->
             <div class="sidebar-card">
-                <div class="sidebar-section-title">About</div>
-                <div class="sidebar-info">
+                <div class="sidebar-label">About</div>
+                <div class="sidebar-text">
                     <strong>{{ brand.name or 'WiFi Portal' }}</strong>
                     {{ brand.tagline or 'Fast, reliable internet access' }}
                 </div>
-                <div class="sidebar-info">
-                    📍 {{ brand.location or 'Location unavailable' }}
+                <div class="sidebar-text">
+                    📍 <span id="brand-location">{{ brand.location or 'Location unavailable' }}</span>
                 </div>
-                <div class="sidebar-badge">
-                    ⚡ Premium Network
-                </div>
+                <div class="sidebar-badge">⚡ Premium Network</div>
             </div>
 
             <!-- Quick Start Card -->
             <div class="sidebar-card">
-                <div class="sidebar-section-title">Quick Start</div>
-                <div class="sidebar-info">
-                    1️⃣ <strong>Select a plan</strong>
+                <div class="sidebar-label">Quick Start</div>
+                <div class="quick-step">
+                    <div class="step-num">1</div>
+                    <div class="step-text"><strong>Select a plan</strong> that suits you</div>
                 </div>
-                <div class="sidebar-info">
-                    2️⃣ <strong>Tap "Get Now"</strong>
+                <div class="quick-step">
+                    <div class="step-num">2</div>
+                    <div class="step-text"><strong>Tap "Get Now"</strong> to proceed</div>
                 </div>
-                <div class="sidebar-info">
-                    3️⃣ <strong>Get connected</strong>
+                <div class="quick-step">
+                    <div class="step-num">3</div>
+                    <div class="step-text"><strong>Get connected</strong> instantly</div>
                 </div>
                 {% if brand.support_number %}
-                <div class="sidebar-info" style="margin-top: var(--spacing-sm);">
-                    📞 <a href="tel:{{ brand.support_number }}">{{ brand.support_number }}</a>
+                <div class="sidebar-text" style="margin-top:var(--spacing-sm);">
+                    📞 <a href="tel:{{ brand.support_number }}" style="color:var(--accent-primary);text-decoration:none;font-weight:600;">{{ brand.support_number }}</a>
                 </div>
                 {% endif %}
             </div>
 
-            <!-- Voucher Section -->
-            <div class="voucher-section">
-                <div id="voucher-box" class="voucher-box">
-                    <div class="voucher-header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
-                            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/>
-                            <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
-                            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
-                        </svg>
-                        <span class="voucher-title">Got a voucher code?</span>
-                    </div>
-                    <div class="voucher-subtitle">Enter your code below — no phone or M-Pesa needed.</div>
-                    <div class="voucher-input-row">
-                        <input type="text" id="voucher-code" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
-                        <button id="voucher-btn" class="voucher-btn" onclick="redeemVoucher()">Redeem</button>
-                    </div>
-                    <div id="voucher-message" class="voucher-message"></div>
+            <!-- Voucher Box -->
+            <div class="voucher-card" id="voucher-box">
+                <div class="sidebar-label">Voucher Code</div>
+                <div class="sidebar-text">Enter your code below — no phone or M-Pesa needed.</div>
+                <div class="voucher-input-row">
+                    <input type="text" id="voucher-code" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
+                    <button id="voucher-btn" class="voucher-btn" onclick="redeemVoucher()">Redeem</button>
                 </div>
+                <div id="voucher-message" class="voucher-msg"></div>
             </div>
-        </div>
+        </aside>
 
         <!-- Content -->
-        <div class="dashboard-content">
-            <div class="content-header">
-                <h1>Choose Your Plan</h1>
+        <main class="portal-content">
+            <div class="content-heading">
+                <h2>Choose Your Plan</h2>
                 <p>Select the perfect internet package for you</p>
             </div>
 
-            <div class="packages-list">
+            <div class="packages-grid">
                 {% for package in packages %}
-                <div class="package-item {% if package.star %}featured{% endif %}">
-                    {% if package.star %}<div class="featured-badge">★ Popular</div>{% endif %}
-                    <div class="package-left">
-                        <div class="package-icon">⚡</div>
-                        <div class="package-details">
+                <div class="package-item card-glass" data-card-style="card-glass">
+                    <div class="pkg-left">
+                        <div class="pkg-icon">⚡</div>
+                        <div class="pkg-info">
                             <h3>{{ package.n }}</h3>
-                            <div class="package-meta">
+                            <div class="pkg-meta">
                                 <span>⏱ {{ package.d }}</span>
                                 <span>{{ package.s or 'High Speed' }}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="package-right">
-                        <div class="package-price">
-                            <div class="price-label">Price</div>
-                            <div class="price-amount">KES {{ package.p }}</div>
+                    <div class="pkg-right">
+                        <div class="pkg-price">
+                            <div class="price-tag">Price</div>
+                            <div class="price-val">KES {{ package.p }}</div>
                         </div>
-                        <button class="package-btn" onclick="openPaymentModal('{{ package.id }}', '{{ package.n }}', {{ package.p }})">
-                            Get Now
-                        </button>
+                        <button class="pkg-btn" onclick="openPaymentModal('{{ package.id }}', '{{ package.n }}', {{ package.p }})">Get Now</button>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-        </div>
+        </main>
     </div>
 
-    <!-- Footer -->
     {% if brand.footer_text or brand.terms_url %}
-    <div class="dashboard-footer">
+    <div class="portal-footer">
         {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
-        {% if brand.terms_url %}<a href="{{ brand.terms_url }}" class="footer-link">Terms & Privacy</a>{% endif %}
+        {% if brand.terms_url %}<a href="{{ brand.terms_url }}">Terms &amp; Privacy</a>{% endif %}
     </div>
     {% endif %}
 
     {% else %}
     <!-- Offline State -->
-    <div class="offline-container">
-        <div class="offline-icon">🌐</div>
-        <h2 class="offline-title">Network Offline</h2>
-        <p class="offline-message">
-            The internet connection is currently unavailable. Please check back in a few moments or contact support for assistance.
-        </p>
+    <div class="offline-state">
+        <div class="off-icon">🌐</div>
+        <h2>Network Offline</h2>
+        <p>The internet connection is currently unavailable. Please check back in a few moments or contact support.</p>
         {% if brand.support_number %}
-        <a href="tel:{{ brand.support_number }}" class="offline-support">📞 Contact Support</a>
+        <a href="tel:{{ brand.support_number }}" class="offline-btn">📞 Contact Support</a>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- Activation Overlay -->
     <div id="activation-overlay" class="activation-overlay">
-        <div class="activation-wifi">
+        <div class="act-wifi">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
                 <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
                 <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
@@ -1265,44 +1064,45 @@
                 <circle cx="12" cy="20" r="1"/>
             </svg>
         </div>
-        <div class="activation-title">Activating to WiFi</div>
-        <div class="activation-sub">Connecting your device to the network</div>
-        <div class="activation-bar"><div class="activation-bar-fill"></div></div>
+        <div class="act-title">Activating WiFi</div>
+        <div class="act-sub">Connecting your device to the network</div>
+        <div class="act-bar"><div class="act-bar-fill"></div></div>
     </div>
 
     <!-- Payment Modal -->
-    <div id="payment-modal" class="payment-modal" style="display: none;">
-        <div class="payment-modal-content">
-            <div class="payment-modal-header">
-                <h3 id="pm-title">Pay with M-Pesa</h3>
-                <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
+    <div id="payment-modal" class="payment-modal">
+        <div class="pm-box">
+            <div class="pm-head">
+                <h3>Pay with M-Pesa</h3>
+                <button class="pm-close" onclick="closePaymentModal()">&times;</button>
             </div>
-            <div class="payment-modal-body">
-                <p>Package: <strong id="payment-package-name"></strong></p>
-                <p>Amount: <strong id="payment-package-price"></strong></p>
-                <input type="hidden" id="payment-package-id">
-                <div class="payment-input-group">
-                    <label for="payment-phone">Phone Number (M-Pesa)</label>
-                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
+            <div class="pm-body">
+                <p>Package: <strong id="pm-pkg-name"></strong></p>
+                <p>Amount: <strong id="pm-pkg-price"></strong></p>
+                <input type="hidden" id="pm-pkg-id">
+                <div class="pm-field">
+                    <label for="pm-phone">Phone Number (M-Pesa)</label>
+                    <input type="tel" id="pm-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
                 </div>
-                <div id="payment-error" class="payment-error" style="display: none;"></div>
-                <div id="payment-status" class="payment-status" style="display: none;"></div>
-                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
+                <div id="pm-error" class="pm-error"></div>
+                <div id="pm-status" class="pm-status"></div>
+                <button id="pm-submit" class="pm-submit" onclick="initiatePayment()">Pay with M-Pesa</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Payment flow - open modal when package clicked
-        function openPaymentModal(packageId, packageName, packagePrice) {
-            document.getElementById('payment-modal').style.display = 'flex';
-            document.getElementById('payment-package-name').textContent = packageName;
-            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
-            document.getElementById('payment-package-id').value = packageId;
-            document.getElementById('payment-phone').value = '';
-            document.getElementById('payment-error').style.display = 'none';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        function openPaymentModal(id, name, price) {
+            var modal = document.getElementById('payment-modal');
+            modal.style.display = 'flex';
+            document.getElementById('pm-pkg-name').textContent = name;
+            document.getElementById('pm-pkg-price').textContent = 'KES ' + price;
+            document.getElementById('pm-pkg-id').value = id;
+            document.getElementById('pm-phone').value = '';
+            document.getElementById('pm-error').style.display = 'none';
+            document.getElementById('pm-status').style.display = 'none';
+            document.getElementById('pm-submit').disabled = false;
+            document.getElementById('pm-submit').textContent = 'Pay with M-Pesa';
         }
 
         function closePaymentModal() {
@@ -1310,283 +1110,274 @@
         }
 
         function setVoucherGlow(type) {
-            const box = document.getElementById('voucher-box');
-            box.classList.remove('glow-green', 'glow-red', 'glow-yellow');
+            var box = document.getElementById('voucher-box');
+            box.classList.remove('glow-green','glow-red','glow-yellow');
             if (type) box.classList.add(type);
         }
 
-        function showVoucherMessage(msg, type) {
-            const el = document.getElementById('voucher-message');
+        function showVoucherMsg(msg, type) {
+            var el = document.getElementById('voucher-message');
             el.textContent = msg;
-            el.className = 'voucher-message ' + type;
+            el.className = 'voucher-msg ' + type;
         }
 
         async function redeemVoucher() {
-            const code = document.getElementById('voucher-code').value.trim().toUpperCase();
-            if (!code) { showVoucherMessage('Please enter a voucher code', 'error'); setVoucherGlow('glow-red'); return; }
-            const urlParams = new URLSearchParams(window.location.search);
-            const mac = urlParams.get('mac') || '';
-            const ip = urlParams.get('ip') || '';
-            const btn = document.getElementById('voucher-btn');
-            btn.disabled = true; btn.textContent = 'Checking\u2026';
+            var code = document.getElementById('voucher-code').value.trim().toUpperCase();
+            if (!code) {
+                showVoucherMsg('Please enter a voucher code', 'error');
+                setVoucherGlow('glow-red');
+                return;
+            }
+            var params = new URLSearchParams(window.location.search);
+            var mac = params.get('mac') || '';
+            var ip = params.get('ip') || '';
+            var btn = document.getElementById('voucher-btn');
+            btn.disabled = true;
+            btn.textContent = 'Checking\u2026';
             setVoucherGlow(null);
             try {
-                const response = await fetch('/api/vouchers/redeem', {
+                var resp = await fetch('/api/vouchers/redeem', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, mac_address: mac, ip_address: ip })
+                    body: JSON.stringify({ code: code, mac_address: mac, ip_address: ip })
                 });
-                const text = await response.text();
-                let data;
-                try { data = JSON.parse(text); } catch { data = { detail: text || 'Server error' }; }
+                var text = await resp.text();
+                var data;
+                try { data = JSON.parse(text); } catch(e) { data = { detail: text || 'Server error' }; }
 
-                if (response.ok) {
+                if (resp.ok) {
                     document.getElementById('activation-overlay').classList.add('show');
-                    setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 2500);
+                    setTimeout(function() { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 2500);
                     return;
                 }
 
-                const detail = (data.detail || '').toLowerCase();
-                if (detail.includes('already used')) {
+                var detail = (data.detail || '').toLowerCase();
+                if (detail.indexOf('already used') !== -1) {
                     setVoucherGlow('glow-yellow');
-                    showVoucherMessage(data.detail || 'Voucher already used', 'warning');
-                } else if (detail.includes('suspended')) {
+                    showVoucherMsg(data.detail || 'Voucher already used', 'warning');
+                } else if (detail.indexOf('suspended') !== -1) {
                     setVoucherGlow('glow-red');
-                    showVoucherMessage(data.detail || 'Voucher has been suspended', 'error');
+                    showVoucherMsg(data.detail || 'Voucher has been suspended', 'error');
                 } else {
                     setVoucherGlow('glow-red');
-                    showVoucherMessage(data.detail || 'Invalid voucher code', 'error');
+                    showVoucherMsg(data.detail || 'Invalid voucher code', 'error');
                 }
-                btn.disabled = false; btn.textContent = 'Redeem';
+                btn.disabled = false;
+                btn.textContent = 'Redeem';
             } catch (e) {
                 setVoucherGlow('glow-red');
-                showVoucherMessage('Connection error. Please try again.', 'error');
-                btn.disabled = false; btn.textContent = 'Redeem';
+                showVoucherMsg('Connection error. Please try again.', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Redeem';
             }
         }
 
+        function pmError(msg) {
+            var el = document.getElementById('pm-error');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('pm-submit').disabled = false;
+            document.getElementById('pm-submit').textContent = 'Pay with M-Pesa';
+        }
+
         async function initiatePayment() {
-            const packageId = document.getElementById('payment-package-id').value;
-            const phone = document.getElementById('payment-phone').value.trim();
-            const slug = "{{ brand.slug }}";
+            var pkgId = document.getElementById('pm-pkg-id').value;
+            var phone = document.getElementById('pm-phone').value.trim();
+            var slug = '{{ brand.slug }}';
 
-            if (!phone) {
-                showError('Please enter your phone number');
-                return;
-            }
-
+            if (!phone) { pmError('Please enter your phone number'); return; }
             if (!/^(254|0)7\d{8}$/.test(phone)) {
-                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
+                pmError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
                 return;
             }
 
-            const submitBtn = document.getElementById('payment-submit');
+            var submitBtn = document.getElementById('pm-submit');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending...';
 
             try {
-                // Get MAC and IP from URL params (set by MikroTik hotspot)
-                const urlParams = new URLSearchParams(window.location.search);
-                const mac = urlParams.get('mac') || '';
-                const ip = urlParams.get('ip') || '';
+                var params = new URLSearchParams(window.location.search);
+                var mac = params.get('mac') || '';
+                var ip = params.get('ip') || '';
 
-                const response = await fetch('/api/portal/{{ brand.slug }}/sessions', {
+                var resp = await fetch('/api/portal/' + slug + '/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        package_id: packageId,
+                        package_id: pkgId,
                         phone_number: phone,
                         mac_address: mac,
                         ip_address: ip
                     })
                 });
 
-                const data = await response.json();
+                var data = await resp.json();
 
-                if (!response.ok) {
+                if (!resp.ok) {
                     throw new Error(data.detail || 'Failed to initiate payment');
                 }
 
-                // Payment initiated, start polling
                 pollPaymentStatus(data.session_id);
-
             } catch (error) {
-                showError(error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Pay with M-Pesa';
+                pmError(error.message);
             }
         }
 
         function pollPaymentStatus(sessionId) {
-            const statusEl = document.getElementById('payment-status');
+            var statusEl = document.getElementById('pm-status');
             statusEl.style.display = 'block';
             statusEl.textContent = 'Waiting for payment...';
 
-            const poll = async () => {
+            var poll = async function() {
                 try {
-                    const response = await fetch(`/api/portal/{{ brand.slug }}/sessions/${sessionId}`);
-                    const data = await response.json();
+                    var resp = await fetch('/api/portal/{{ brand.slug }}/sessions/' + sessionId);
+                    var data = await resp.json();
 
                     if (data.status === 'active') {
-                        // Payment successful - redirect to success page
-                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
-                        return;
+                        window.location.href = '/portal/{{ brand.slug }}/success/' + sessionId;
                     } else if (data.status === 'failed' || data.status === 'expired') {
-                        showError('Payment failed or timed out. Please try again.');
-                        return;
+                        pmError('Payment failed or timed out. Please try again.');
                     } else if (data.status === 'pending_payment') {
-                        // Still waiting, continue polling
                         setTimeout(poll, 3000);
                     }
-                } catch (error) {
-                    showError('Error checking payment status');
+                } catch (e) {
+                    pmError('Error checking payment status');
                 }
             };
 
             setTimeout(poll, 3000);
         }
 
-        function showError(message) {
-            const errorEl = document.getElementById('payment-error');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard Portal initialized');
-        });
-
-        // Listen for live updates from onboarding wizard
         window.addEventListener('message', function(event) {
             if (!event.data || !event.data.type) return;
-            const data = event.data;
-            const root = document.documentElement;
+            var d = event.data;
+            var root = document.documentElement;
 
-            if (data.type === 'UPDATE_PALETTE' && data.colors) {
-                root.style.setProperty('--bg-primary', data.colors.bgStart);
-                root.style.setProperty('--bg-secondary', data.colors.card);
-                root.style.setProperty('--text-primary', data.colors.text);
-                root.style.setProperty('--text-secondary', data.colors.textDim);
-                root.style.setProperty('--accent-primary', data.colors.primary);
-                root.style.setProperty('--accent-secondary', data.colors.primaryDark);
-                root.style.setProperty('--success', data.colors.accent);
-                // Auto-detect button text color based on primary color brightness
-                var hex = data.colors.primary.replace('#', '');
+            if (d.type === 'UPDATE_PALETTE' && d.colors) {
+                root.style.setProperty('--bg-primary', d.colors.bgStart);
+                root.style.setProperty('--bg-secondary', d.colors.card);
+                root.style.setProperty('--text-primary', d.colors.text);
+                root.style.setProperty('--text-secondary', d.colors.textDim);
+                root.style.setProperty('--accent-primary', d.colors.primary);
+                root.style.setProperty('--accent-secondary', d.colors.primaryDark);
+                root.style.setProperty('--success', d.colors.accent);
+                var hex = d.colors.primary.replace('#','');
                 if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-                var r2 = parseInt(hex.substring(0,2),16), g2 = parseInt(hex.substring(2,4),16), b2 = parseInt(hex.substring(4,6),16);
-                var brightness = (r2*299 + g2*587 + b2*114) / 1000;
+                var r = parseInt(hex.substring(0,2),16);
+                var g = parseInt(hex.substring(2,4),16);
+                var b = parseInt(hex.substring(4,6),16);
+                var brightness = (r*299 + g*587 + b*114) / 1000;
                 root.style.setProperty('--btn-text', brightness > 140 ? '#1a1a1a' : '#ffffff');
             }
 
-            if (data.type === 'UPDATE_BRAND') {
-                var nameEl = document.querySelector('.brand-info h2');
-                if (nameEl && data.name) nameEl.textContent = data.name;
-                var tagEl = document.querySelector('.brand-info .tagline, .brand-subtitle');
-                if (tagEl && data.tagline !== undefined) tagEl.textContent = data.tagline || 'INTERNET ACCESS';
-                var locEl = document.querySelector('.brand-location');
-                if (locEl && data.location !== undefined) locEl.textContent = data.location || '';
-                if (data.emoji) {
-                    var emojiEl = document.querySelector('.brand-icon');
-                    if (emojiEl) emojiEl.textContent = data.emoji;
+            if (d.type === 'UPDATE_BRAND') {
+                if (d.name) {
+                    document.getElementById('brand-name').textContent = d.name;
+                    document.title = d.name + ' - WiFi Access';
                 }
-                if (data.logo_url) {
-                    var iconEl = document.querySelector('.brand-icon');
-                    if (iconEl) { iconEl.innerHTML = '<img src="' + data.logo_url + '" style="width:100%;height:100%;object-fit:contain;border-radius:inherit" />'; }
+                if (d.tagline !== undefined) {
+                    document.getElementById('brand-tagline').textContent = d.tagline || 'INTERNET ACCESS';
                 }
-                if (data.name) document.title = data.name + ' - WiFi Access';
+                if (d.location !== undefined) {
+                    document.getElementById('brand-location').textContent = d.location || '';
+                }
+                if (d.emoji) {
+                    document.getElementById('brand-icon').textContent = d.emoji;
+                }
+                if (d.logo_url) {
+                    document.getElementById('brand-icon').innerHTML = '<img src="' + d.logo_url + '" style="width:100%;height:100%;object-fit:contain;border-radius:inherit" />';
+                }
             }
 
-            if (data.type === 'UPDATE_TYPOGRAPHY') {
-                if (data.font) {
-                    root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
-                    root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
+            if (d.type === 'UPDATE_TYPOGRAPHY') {
+                if (d.font) {
+                    root.style.setProperty('--font-display', "'" + d.font + "', sans-serif");
+                    root.style.setProperty('--font-body', "'" + d.font + "', sans-serif");
                     var oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
                     var newLink = document.createElement('link');
                     newLink.rel = 'stylesheet';
-                    newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700&display=swap';
+                    newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(d.font) + ':wght@400;500;600;700&display=swap';
                     if (oldLink) { oldLink.replaceWith(newLink); } else { document.head.appendChild(newLink); }
-                    document.body.style.fontFamily = "'" + data.font + "', sans-serif";
+                    document.body.style.fontFamily = "'" + d.font + "', sans-serif";
                 }
-                if (data.heading_size) root.style.setProperty('--heading-size', data.heading_size);
-                if (data.body_size) root.style.setProperty('--body-size', data.body_size);
-                if (data.font_weight) root.style.setProperty('--font-weight', data.font_weight);
-                if (data.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', data.letter_spacing);
-                if (data.heading_case) {
-                    document.querySelectorAll('.content-header, h2, h3').forEach(function(el) {
-                        el.style.textTransform = data.heading_case;
+                if (d.heading_size) root.style.setProperty('--heading-size', d.heading_size);
+                if (d.body_size) root.style.setProperty('--body-size', d.body_size);
+                if (d.font_weight) root.style.setProperty('--font-weight', d.font_weight);
+                if (d.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', d.letter_spacing);
+                if (d.heading_case) {
+                    document.querySelectorAll('.content-heading h2, .sidebar-label').forEach(function(el) {
+                        el.style.textTransform = d.heading_case;
                     });
                 }
             }
 
-            if (data.type === 'UPDATE_CARD_STYLE') {
-                if (data.radius) root.style.setProperty('--radius', data.radius);
-                if (data.style) {
-                    var cards = document.querySelectorAll('.package-item');
-                    cards.forEach(function(card) {
-                        card.classList.remove('card-glass', 'card-outline', 'card-minimal', 'card-floating', 'card-sharp');
-                        card.classList.add('card-' + data.style);
+            if (d.type === 'UPDATE_CARD_STYLE') {
+                if (d.radius) root.style.setProperty('--radius', d.radius);
+                if (d.style) {
+                    document.querySelectorAll('.package-item').forEach(function(card) {
+                        card.classList.remove('card-glass','card-outline','card-minimal','card-floating','card-sharp');
+                        card.classList.add('card-' + d.style);
+                        card.setAttribute('data-card-style', 'card-' + d.style);
                     });
-                    root.style.setProperty('--card-style', data.style);
                 }
-                if (data.elevation !== undefined) root.style.setProperty('--card-elevation', data.elevation);
-                if (data.size) {
+                if (d.size) {
                     var sizeMap = { compact: '12px 16px', comfortable: '16px 20px', large: '20px 24px' };
-                    root.style.setProperty('--card-padding', sizeMap[data.size] || '16px 20px');
+                    root.style.setProperty('--card-padding', sizeMap[d.size] || '16px 20px');
                 }
             }
 
-            if (data.type === 'UPDATE_BUTTON_STYLE') {
-                root.style.setProperty('--btn-style', data.style || 'rounded');
+            if (d.type === 'UPDATE_BUTTON_STYLE') {
                 var radiusMap = { rounded: '10px', pill: '50px', sharp: '2px' };
-                root.style.setProperty('--btn-radius', radiusMap[data.style] || '10px');
+                root.style.setProperty('--btn-radius', radiusMap[d.style] || '10px');
             }
 
-            if (data.type === 'UPDATE_LAYOUT' && data.sections) {
+            if (d.type === 'UPDATE_LAYOUT' && d.sections) {
                 var sectionMap = {
-                    hero: '.brand-header',
-                    logo: '.brand-icon',
-                    welcome_text: '.content-header',
-                    packages: '.package-list',
+                    brand_header: '.brand-header',
+                    sidebar: '.portal-sidebar',
+                    packages: '.packages-grid',
                     footer: '.portal-footer'
                 };
                 Object.keys(sectionMap).forEach(function(key) {
                     var el = document.querySelector(sectionMap[key]);
-                    if (el) el.style.display = data.sections.includes(key) ? '' : 'none';
+                    if (el) el.style.display = d.sections.includes(key) ? '' : 'none';
                 });
             }
 
-            if (data.type === 'UPDATE_COMPONENTS') {
-                var voucherBox = document.querySelector('.voucher-box');
-                if (voucherBox) voucherBox.style.display = data.saved_number_login !== false ? '' : 'none';
+            if (d.type === 'UPDATE_COMPONENTS') {
+                var vb = document.querySelector('#voucher-box');
+                if (vb) vb.style.display = d.saved_number_login !== false ? '' : 'none';
             }
 
-            if (data.type === 'UPDATE_NETWORK') {
-                var banner = document.querySelector('.network-banner');
-                if (banner) {
-                    banner.style.display = data.show_banner ? 'flex' : 'none';
-                    if (data.message) {
-                        var msgEl = banner.querySelector('.banner-text, span');
-                        if (msgEl) msgEl.textContent = data.message;
+            if (d.type === 'UPDATE_NETWORK') {
+                var nb = document.getElementById('network-banner');
+                if (nb) {
+                    nb.style.display = d.show_banner ? 'flex' : 'none';
+                    if (d.message) {
+                        var span = nb.querySelector('span');
+                        if (span) span.textContent = d.message;
                     }
                 }
             }
 
-            if (data.type === 'UPDATE_OVERLAY') {
-                if (data.opacity !== undefined) root.style.setProperty('--overlay-opacity', data.opacity);
-                if (data.color) root.style.setProperty('--overlay-color', data.color);
+            if (d.type === 'UPDATE_OVERLAY') {
+                if (d.opacity !== undefined) root.style.setProperty('--overlay-opacity', d.opacity);
+                if (d.color) root.style.setProperty('--overlay-color', d.color);
             }
 
-            if (data.type === 'UPDATE_BACKGROUND') {
-                if (data.bgType === 'solid' && data.value) {
-                    root.style.setProperty('--bg-primary', data.value);
-                } else if (data.bgType === 'gradient' && data.gradient) {
-                    root.style.setProperty('--bg-primary', data.gradient);
-                } else if (data.bgType === 'image' && data.url) {
-                    root.style.setProperty('--bg-primary', 'url(' + data.url + ') center/cover');
+            if (d.type === 'UPDATE_BACKGROUND') {
+                if (d.bgType === 'solid' && d.value) {
+                    root.style.setProperty('--bg-primary', d.value);
+                } else if (d.bgType === 'gradient' && d.gradient) {
+                    root.style.setProperty('--bg-primary', d.gradient);
+                } else if (d.bgType === 'image' && d.url) {
+                    root.style.setProperty('--bg-primary', 'url(' + d.url + ') center/cover');
                 }
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('WiBill Portal loaded');
         });
     </script>
 </body>
