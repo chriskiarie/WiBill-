@@ -20,6 +20,7 @@ router = APIRouter(tags=["admin-feature-flags"])
 TENANT_FEATURE_COLS = [
     "has_vouchers", "has_campaigns", "has_loyalty",
     "has_mikrotik", "has_portal_customization",
+    "has_monthly_subscribers", "has_tv_subscribers",
 ]
 
 FEATURE_LABEL_MAP = {
@@ -28,6 +29,8 @@ FEATURE_LABEL_MAP = {
     "has_loyalty": "loyalty",
     "has_mikrotik": "mikrotik",
     "has_portal_customization": "portal_customization",
+    "has_monthly_subscribers": "monthly_subscribers",
+    "has_tv_subscribers": "tv_subscribers",
 }
 
 class TenantFlagsResponse(BaseModel):

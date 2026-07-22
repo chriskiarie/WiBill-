@@ -481,11 +481,22 @@ async def get_my_feature_flags(
 ):
     """Get feature flags for the current admin's tenant. Returns all-false for platform admins (no tenant)."""
     if not current_user.tenant_id:
-        return {"vouchers": False, "campaigns": False, "loyalty": False, "mikrotik": False, "portal_customization": False}
+        return {"vouchers": False, "campaigns": False, "loyalty": False, "mikrotik": False, "portal_customization": False, "monthly_subscribers": False, "tv_subscribers": False}
     result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+
+    changed = False
+    if not tenant.has_monthly_subscribers:
+        tenant.has_monthly_subscribers = True
+        changed = True
+    if tenant.has_monthly_subscribers and not tenant.has_tv_subscribers:
+        pass  # tv is optional, only enable on demand
+
+    if changed:
+        await db.commit()
+
     return {
         "vouchers": tenant.has_vouchers,
         "campaigns": tenant.has_campaigns,
