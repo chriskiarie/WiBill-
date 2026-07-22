@@ -324,6 +324,93 @@ async def generate_login_html(
     return PlainTextResponse(content=html, media_type="text/html")
 
 
+@router.get("/mikrotik/routeros-script")
+async def get_routeros_script(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Generate a .rsc RouterOS script that configures the MikroTik completely when pasted into Winbox Terminal."""
+    from app.core.config import settings
+
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    slug = tenant.slug
+    name = tenant.name
+
+    result = await db.execute(
+        select(MikrotikConfig).where(
+            MikrotikConfig.tenant_id == current_user.tenant_id
+        )
+    )
+    config = result.scalar_one_or_none()
+
+    if config and config.api_password_enc:
+        api_password = decrypt(config.api_password_enc)
+    else:
+        api_password = secrets.token_urlsafe(16)
+        if config:
+            config.api_password_enc = encrypt(api_password)
+            await db.commit()
+
+    backend_host = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
+
+    script = f"""# ============================================================
+# WiBill Router Setup Script
+# Tenant: {name}
+# Paste into Winbox -> New Terminal -> Press Enter
+# ============================================================
+
+# 1. Create hotspot bridge
+/interface bridge add name=WiBillBridge comment="WiBill hotspot bridge"
+
+# 2. Assign IP to bridge
+/ip address add address=192.168.4.1/24 interface=WiBillBridge comment="WiBill hotspot IP"
+
+# 3. Add WiFi interface to bridge
+/interface bridge port add bridge=WiBillBridge interface=wlan1
+
+# 4. Create IP pool for hotspot clients
+/ip pool add name=wibill-pool ranges=192.168.4.2-192.168.4.254
+
+# 5. Create DHCP server on bridge
+/ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no
+/ip dhcp-server network add address=192.168.4.0/24 gateway=192.168.4.1 dns-server=8.8.8.8,8.8.4.4
+
+# 6. Create hotspot on bridge
+/ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
+
+# 7. Configure hotspot profile
+/ip hotspot profile set [find name=hsprof1] idle-timeout=30d keepalive-timeout=30d login-timeout=30d addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
+
+# 8. Enable API service
+/ip service enable api
+/ip service set api port=8728 address=""
+
+# 9. Create WiBill API user
+/user add name=wibill-api password={api_password} group=full comment="WiBill API access"
+
+# 10. Walled garden (hostname-based)
+/ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
+/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
+/ip hotspot walled-garden add dst-host=*.googleapis.com action=allow comment="Google fonts"
+/ip hotspot walled-garden add dst-host=*.gstatic.com action=allow comment="Google static"
+
+# 11. Walled garden (IP-based - allow HTTPS/HTTP before auth)
+/ip hotspot walled-garden ip add dst-address=0.0.0.0/0 dst-port=443 action=accept comment="Allow HTTPS before auth"
+/ip hotspot walled-garden ip add dst-address=0.0.0.0/0 dst-port=80 action=accept comment="Allow HTTP before auth"
+
+:log info "WiBill setup complete for {name}"
+"""
+    return PlainTextResponse(
+        content=script,
+        headers={
+            "Content-Disposition": f'attachment; filename="wibill-{slug}-setup.rsc"'
+        }
+    )
+
+
 @router.get("/mikrotik/install-script")
 async def generate_install_script(
     db: AsyncSession = Depends(get_db),

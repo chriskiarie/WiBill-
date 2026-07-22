@@ -175,6 +175,17 @@ export const api = {
       request<any>('/api/mikrotik/provision', { method: 'POST' }),
    decommissionMikrotik: () =>
       request<any>('/api/mikrotik/decomission', { method: 'POST' }),
+    getMikrotikRouterOsScript: async () => {
+       const token = getToken()
+       const res = await fetch(`${BASE}/api/mikrotik/routeros-script`, {
+         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+       })
+       if (!res.ok) {
+         const err = await res.json().catch(() => ({ detail: 'Failed to generate script' }))
+         throw new Error(err.detail || `HTTP ${res.status}`)
+       }
+       return res.text()
+     },
     getMikrotikInstallScript: async () => {
        const token = getToken()
        const res = await fetch(`${BASE}/api/mikrotik/install-script`, {

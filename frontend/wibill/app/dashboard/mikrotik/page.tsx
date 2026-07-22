@@ -1,11 +1,11 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Router, CheckCircle, XCircle, Activity, Users, Wifi, HardDrive, Terminal, Download, RefreshCw, Server, Cpu, Clock, Zap } from 'lucide-react'
+import { CheckCircle, XCircle, Activity, Download, Copy, Terminal, Wifi, AlertTriangle } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
@@ -14,177 +14,74 @@ const C = {
   gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
+const STEPS = [
+  { id: 1, label: 'Router Script' },
+  { id: 2, label: 'Portal File' },
+  { id: 3, label: 'Test Connection' },
+  { id: 4, label: 'Go Live' },
+]
+
 export default function MikrotikPage() {
   const { token } = useAuth()
   const { showToast } = useToast()
 
+  const [step, setStep] = useState(1)
+  const [script, setScript] = useState<string | null>(null)
+  const [scriptLoading, setScriptLoading] = useState(false)
+  const [step1Ready, setStep1Ready] = useState(false)
+  const [step2Confirmed, setStep2Confirmed] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null)
+  const [packages, setPackages] = useState<any[]>([])
+  const [goLiveDone, setGoLiveDone] = useState(false)
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [testResult, setTestResult] = useState<any>(null)
-  const [health, setHealth] = useState<any>(null)
-  const [activeUsers, setActiveUsers] = useState<any[]>([])
-  const [installScript, setInstallScript] = useState<string | null>(null)
-  const [showScript, setShowScript] = useState(false)
-  const [provisioning, setProvisioning] = useState(false)
-  const [generatingScript, setGeneratingScript] = useState(false)
-  const [tab, setTab] = useState<'config' | 'users' | 'script'>('config')
-  const [form, setForm] = useState({
-    router_ip: '',
-    api_port: '8728',
-    api_username: '',
-    api_password: '',
-    hotspot_server: 'hotspot1',
-    hotspot_profile_name: 'XwB_Profile',
-    nas_ip_address: '',
-    notes: '',
-  })
-
-  const fetchConfig = useCallback(async () => {
-    if (!token) return
-    setLoading(true)
-    try {
-      const data = await api.getMikrotikConfig()
-      setConfig(data)
-      setForm({
-        router_ip: data.router_ip || '',
-        api_port: data.api_port?.toString() || '8728',
-        api_username: data.api_username || '',
-        api_password: '',
-        hotspot_server: data.hotspot_server || 'hotspot1',
-        hotspot_profile_name: data.hotspot_profile_name || 'XwB_Profile',
-        nas_ip_address: data.nas_ip_address || '',
-        notes: data.notes || '',
-      })
-      fetchHealth()
-    } catch { setConfig(null); setShowForm(true) } finally { setLoading(false) }
-  }, [token])
-
-  const fetchHealth = async () => {
-    try {
-      const h = await api.getMikrotikHealth()
-      setHealth(h)
-    } catch { setHealth(null) }
-  }
-
-  const fetchActiveUsers = async () => {
-    try {
-      const data = await api.getMikrotikUsers()
-      setActiveUsers(data.users || [])
-    } catch { setActiveUsers([]) }
-  }
-
-  useEffect(() => { fetchConfig() }, [fetchConfig])
+  const step1TimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [portalUrl, setPortalUrl] = useState('')
 
   useEffect(() => {
-    if (!config) return
-    fetchHealth()
-    fetchActiveUsers()
-    const interval = setInterval(() => {
-      fetchHealth()
-      fetchActiveUsers()
-    }, 15000)
-    return () => clearInterval(interval)
-  }, [config])
+    if (!token) return
+    api.getMikrotikConfig().then(setConfig).catch(() => {}).finally(() => setLoading(false))
+    api.getPackages().then(setPackages).catch(() => {})
+    const slug = window.location.hostname === 'localhost' ? 'demo' : ''
+    setPortalUrl(`${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/portal/${slug}`)
+  }, [token])
 
-  const handleTest = async () => {
-    setTesting(true)
-    setTestResult(null)
+  const fetchScript = useCallback(async () => {
+    setScriptLoading(true)
     try {
-      const result = await api.testMikrotikConnection()
-      setTestResult(result)
-      if (result.connected) {
-        showToast(`Connected to ${result.router_identity} v${result.router_os_version?.split(' ')[0] || ''}`, { type: 'success' })
-      } else {
-        showToast(stripHtml(result.error || 'Connection failed'), { type: 'error' })
-      }
-      fetchHealth()
-    } catch (e: any) {
-      setTestResult({ connected: false, error: e.message || 'Connection failed' })
-      showToast(stripHtml(e.message || 'Connection failed'), { type: 'error' })
-    } finally { setTesting(false) }
-  }
-
-  const handleSave = async () => {
-    if (!form.router_ip || !form.api_username) {
-      showToast('Router IP and username required', { type: 'error' })
-      return
-    }
-    setSaving(true)
-    try {
-      if (config) {
-        await api.updateMikrotikConfig({
-          router_ip: form.router_ip,
-          api_port: parseInt(form.api_port) || 8728,
-          api_username: form.api_username,
-          api_password: form.api_password || undefined,
-          hotspot_server: form.hotspot_server,
-          hotspot_profile_name: form.hotspot_profile_name,
-          nas_ip_address: form.nas_ip_address || undefined,
-          notes: form.notes || undefined,
-        })
-      } else {
-        await api.saveMikrotikConfig({
-          router_ip: form.router_ip,
-          api_port: parseInt(form.api_port) || 8728,
-          api_username: form.api_username,
-          api_password: form.api_password,
-          hotspot_server: form.hotspot_server,
-          hotspot_profile_name: form.hotspot_profile_name,
-          nas_ip_address: form.nas_ip_address || undefined,
-          notes: form.notes || undefined,
-        })
-      }
-      showToast('Configuration saved', { type: 'success' })
-      setShowForm(false)
-      fetchConfig()
-    } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setSaving(false) }
-  }
-
-  const handleProvision = async () => {
-    setProvisioning(true)
-    try {
-      await api.provisionMikrotik()
-      showToast('Bridge provisioned successfully', { type: 'success' })
-      fetchConfig()
-    } catch (e: any) {
-      showToast(e.message || 'Provisioning failed', { type: 'error' })
-    } finally { setProvisioning(false) }
-  }
-
-  const handleInstallScript = async () => {
-    setGeneratingScript(true)
-    try {
-      const data = await api.getMikrotikInstallScript()
-      setInstallScript(data)
-      setShowScript(true)
+      const data = await api.getMikrotikRouterOsScript()
+      setScript(data)
     } catch (e: any) {
       showToast(e.message || 'Failed to generate script', { type: 'error' })
     } finally {
-      setGeneratingScript(false)
+      setScriptLoading(false)
     }
-  }
+  }, [showToast])
 
-  const copyInstallScript = () => {
-    if (!installScript) return
-    navigator.clipboard.writeText(installScript)
-    showToast('Script copied to clipboard', { type: 'success' })
-  }
+  const handleStep1Advance = useCallback(() => {
+    setStep1Ready(true)
+    setStep(2)
+  }, [])
 
-  const downloadInstallScript = () => {
-    if (!installScript) return
-    const blob = new Blob([installScript], { type: 'text/plain' })
+  const handleDownloadScript = () => {
+    if (!script) return
+    const blob = new Blob([script], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'install.ps1'
+    a.download = 'wibill-setup.rsc'
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  const downloadLoginHtml = async () => {
+  const handleCopyScript = () => {
+    if (!script) return
+    navigator.clipboard.writeText(script)
+    showToast('Script copied to clipboard', { type: 'success' })
+  }
+
+  const handleDownloadLoginHtml = async () => {
     try {
       const html = await api.getMikrotikLoginHtml()
       const blob = new Blob([html], { type: 'text/html' })
@@ -194,27 +91,41 @@ export default function MikrotikPage() {
       a.download = 'login.html'
       a.click()
       URL.revokeObjectURL(url)
-      showToast('login.html downloaded — upload to Winbox Files > hotspot folder', { type: 'success' })
+      showToast('login.html downloaded', { type: 'success' })
     } catch (e: any) {
       showToast(e.message || 'Failed to generate login.html', { type: 'error' })
     }
   }
 
-  const f = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
+  const handleTest = async () => {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const result = await api.testMikrotikConnection()
+      setTestResult(result)
+      if (result.connected) {
+        showToast(`Connected to ${result.router_identity}`, { type: 'success' })
+      } else {
+        showToast(result.error || 'Connection failed', { type: 'error' })
+      }
+    } catch (e: any) {
+      setTestResult({ connected: false, error: e.message || 'Connection failed' })
+      showToast(e.message || 'Connection failed', { type: 'error' })
+    } finally {
+      setTesting(false)
+    }
+  }
 
-  const Input = ({ label, value, onChange, placeholder, type, mono }: {
-    label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean
-  }) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>{label}</label>
-      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'}
-        style={{
-          width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7,
-          color: C.text, fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
-          boxSizing: 'border-box', outline: 'none',
-        }} />
-    </div>
-  )
+  const handleGoLive = async () => {
+    setGoLiveDone(true)
+    showToast('Setup complete! Your hotspot is live.', { type: 'success' })
+  }
+
+  const canAdvanceToStep3 = step2Confirmed
+  const canAdvanceToStep4 = testResult?.connected && testResult?.hotspot_found
+  const hasActivePackage = packages.some(p => p.is_active)
+
+  const stripHtml = (s: string) => s ? s.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ').trim() : ''
 
   const Card = ({ children, style }: any) => (
     <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, ...style }}>
@@ -222,385 +133,303 @@ export default function MikrotikPage() {
     </div>
   )
 
-  const StatCard = ({ icon, label, value, color }: { icon: any; label: string; value: string; color?: string }) => (
-    <div style={{ background: C.base, borderRadius: 8, padding: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        {icon}
-        <span style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>{label}</span>
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Topbar title="MikroTik Setup" />
+        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LoadingSpinner size="md" label="Loading..." />
+        </div>
       </div>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: color || C.text }}>{value || '—'}</div>
-    </div>
-  )
-
-  const statusColor = (s: string) => s === 'CONNECTED' ? C.green : s === 'ERROR' ? C.red : s === 'PROVISIONED' ? C.gold : C.dim
-
-  const statusLabel = (s: string) => {
-    switch (s) {
-      case 'CONNECTED': return 'Connected';
-      case 'ERROR': return 'Error';
-      case 'PROVISIONED': return 'Waiting for Bridge';
-      case 'DISCONNECTED': return 'Not Configured';
-      default: return s || 'Unknown';
-    }
+    )
   }
-
-  const stripHtml = (s: string) => s ? s.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').replace(/\s+/g, ' ').trim() : ''
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title="MikroTik" />
-        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>MikroTik</h1>
-              {config && (
-                <span style={{
-                  padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 700, fontFamily: 'DM Mono, monospace',
-                  textTransform: 'uppercase', letterSpacing: '0.5px',
-                  background: config.status === 'CONNECTED' ? 'rgba(34,197,94,0.08)' : config.status === 'ERROR' ? 'rgba(239,68,68,0.08)' : C.base,
-                  color: statusColor(config.status), border: `0.5px solid ${statusColor(config.status)}22`,
-                }}>
-                  {config.status || 'DISCONNECTED'}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>RouterOS hotspot integration</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {config && (
-              <>
-                <button onClick={fetchHealth} style={{ padding: '8px 14px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <RefreshCw size={13} /> Refresh
-                </button>
-                <button onClick={() => setShowForm(true)} style={{ padding: '8px 14px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                  Edit Config
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+      <Topbar title="MikroTik Setup" />
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
 
-        {loading ? (
-          <LoadingSpinner size="md" label="Loading router config..." />
-        ) : (
-          <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
-            {config && !showForm && (
-              <>
-                {/* Tab Navigation */}
-                <div className="mikrotik-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-                  {[
-                    { id: 'config', label: 'Dashboard' },
-                    { id: 'users', label: `Active Users (${activeUsers.length})` },
-                    { id: 'script', label: 'Install Script' },
-                  ].map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id as any)}
-                      style={{
-                        padding: '8px 16px', background: tab === t.id ? C.border : 'transparent',
-                        border: `0.5px solid ${tab === t.id ? C.border2 : 'transparent'}`, borderRadius: 7,
-                        color: tab === t.id ? C.text : C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      }}>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Dashboard Tab */}
-                {tab === 'config' && (
-                  <>
-                    {/* Health Cards */}
-                    <div className="grid-4" style={{ display: 'grid', gap: 12, marginBottom: 16 }}>
-                      <StatCard icon={<Server size={14} color={C.gold} />} label="Router" value={health?.router_identity || health?.router_ip || config.router_ip} />
-                      <StatCard icon={<Activity size={14} color={C.green} />} label="RouterOS" value={health?.router_os_version || health?.version || '—'} color={C.text} />
-                      <StatCard icon={<HardDrive size={14} color={C.gold} />} label="Board" value={health?.board_name || '—'} color={C.text} />
-                      <StatCard icon={<Clock size={14} color={C.gold} />} label="Uptime" value={health?.uptime || '—'} color={C.text} />
-                    </div>
-
-                    {/* Connection Status Card */}
-                    <Card style={{ marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
-                        {health?.status === 'CONNECTED' ? <CheckCircle size={18} color={C.green} /> :
-                         health?.status === 'ERROR' ? <XCircle size={18} color={C.red} /> :
-                         health?.status === 'PROVISIONED' ? <Activity size={18} color={C.gold} /> :
-                         <XCircle size={18} color={C.dim} />}
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{statusLabel(health?.status)}</span>
-                            <span style={{
-                              padding: '2px 8px', borderRadius: 20, fontSize: 9, fontWeight: 700,
-                              fontFamily: 'DM Mono, monospace', textTransform: 'uppercase',
-                              background: statusColor(health?.status) + '22',
-                              color: statusColor(health?.status),
-                              border: `0.5px solid ${statusColor(health?.status)}44`,
-                            }}>
-                              {health?.status || 'UNKNOWN'}
-                            </span>
-                          </div>
-                          {health?.status === 'CONNECTED' && (
-                            <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>
-                              {health?.router_os_version ? `v${health.router_os_version}` : ''}{health?.board_name ? ` · ${health.board_name}` : ''}
-                            </div>
-                          )}
-                          {health?.status === 'ERROR' && (
-                            <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{stripHtml(health?.last_error || health?.error || 'Unknown error')}</div>
-                          )}
-                          {health?.status === 'PROVISIONED' && (
-                            <div style={{ fontSize: 10, color: C.gold, marginTop: 2 }}>
-                              Bridge tunnel created. Download and run the installer script on the on-prem PC.
-                            </div>
-                          )}
-                          {health?.last_connected_at && (
-                            <div style={{ fontSize: 9, color: C.dim, marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
-                              Last connected: {new Date(health.last_connected_at).toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                        {health?.uptime && (
-                          <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap' }}>
-                            <Clock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-                            {health.uptime}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Server</div>
-                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_server || 'hotspot1'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot Profile</div>
-                          <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{config.hotspot_profile_name || 'XwB_Profile'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Bridge URL</div>
-                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.router_ip || '—'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Tunnel ID</div>
-                          <div style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{config.tunnel_id ? config.tunnel_id.substring(0, 12) + '…' : '—'}</div>
-                        </div>
-                      </div>
-                    </Card>
-
-                    {/* Provisioning Status (not yet provisioned) */}
-                    {!config.tunnel_id && (
-                      <Card style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Connect Router via Tunnel</div>
-                        <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, marginBottom: 14 }}>
-                          Takes 2 minutes:<br />
-                          1. <strong>Provision</strong> — creates a Cloudflare Tunnel and generates a unique bridge secret<br />
-                          2. <strong>Install</strong> — run the generated PowerShell script on the always-on PC at the ISP site<br />
-                          3. <strong>Verify</strong> — the dashboard shows CONNECTED when bridge + tunnel are live
-                        </div>
-                        <button onClick={handleProvision} disabled={provisioning}
-                          style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, cursor: provisioning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: provisioning ? 0.6 : 1 }}>
-                          <Zap size={14} /> {provisioning ? 'Provisioning...' : 'Provision Bridge'}
-                        </button>
-                      </Card>
-                    )}
-
-                    {/* Actions */}
-                    <Card>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        {config.tunnel_id && (
-                          <button onClick={handleInstallScript}
-                            style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Download size={14} /> Download Install Script
-                          </button>
-                        )}
-                        <button onClick={downloadLoginHtml}
-                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Download size={14} /> login.html
-                        </button>
-                        <button onClick={handleTest} disabled={testing}
-                          style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Zap size={14} /> {testing ? 'Testing...' : 'Test Connection'}
-                        </button>
-                      </div>
-                    </Card>
-                  </>
-                )}
-
-                {/* Active Users Tab */}
-                {tab === 'users' && (
-                  <Card>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Active Users ({activeUsers.length})
-                      </div>
-                      <button onClick={fetchActiveUsers} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}>
-                        <RefreshCw size={13} />
-                      </button>
-                    </div>
-                    {activeUsers.length === 0 ? (
-                      <div style={{ padding: '30px 0', textAlign: 'center', color: C.dim, fontSize: 11 }}>
-                        <Wifi size={24} color={C.mute} style={{ marginBottom: 8 }} />
-                        <div>No active users on router</div>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {activeUsers.map((u: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: C.base, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
-                            <div>
-                              <div style={{ fontSize: 11, fontWeight: 600, color: C.text, fontFamily: 'DM Mono, monospace' }}>{u.mac_address || u.user}</div>
-                              <div style={{ fontSize: 10, color: C.dim }}>{u.address} · {u.uptime}</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 10, color: C.green, fontFamily: 'DM Mono, monospace' }}>{u.session_time_left || '—'}</div>
-                              <div style={{ fontSize: 9, color: C.dim }}>{(u.bytes_in / 1024 / 1024).toFixed(1)}MB / {(u.bytes_out / 1024 / 1024).toFixed(1)}MB</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Card>
-                )}
-
-                {/* Install Script Tab */}
-                {tab === 'script' && (
-                  <Card>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Install Script</div>
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 2 }}>Run this PowerShell script on the always-on PC at the ISP site</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {installScript && (
-                          <>
-                            <button onClick={copyInstallScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Copy</button>
-                            <button onClick={downloadInstallScript} style={{ padding: '6px 12px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Download size={12} /> Download
-                            </button>
-                          </>
-                        )}
-                        <button onClick={handleInstallScript} disabled={generatingScript}
-                          style={{ padding: '6px 12px', background: C.border2, border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 10, fontWeight: 600, cursor: generatingScript ? 'not-allowed' : 'pointer', opacity: generatingScript ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {generatingScript ? 'Generating...' : installScript ? 'Regenerate' : 'Generate'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '12px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 14, fontSize: 10, color: C.dim, lineHeight: 1.8 }}>
-                      <div>ⓘ Run as Administrator on the ISP's always-on Windows PC</div>
-                      <div>ⓘ Requires: Python 3, internet connection (for cloudflared + pip downloads)</div>
-                      <div>ⓘ Installs: bridge.py service, cloudflared tunnel, NSSM service manager</div>
-                    </div>
-
-                    {installScript && (
-                      <pre style={{
-                        background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
-                        fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
-                        overflowX: 'auto', whiteSpace: 'pre', maxHeight: 400, overflowY: 'auto',
-                      }}>
-                        {installScript}
-                      </pre>
-                    )}
-
-                    {!installScript && (
-                      <div style={{ padding: '30px 0', textAlign: 'center', color: C.dim, fontSize: 11 }}>
-                        <Terminal size={24} color={C.mute} style={{ marginBottom: 8 }} />
-                        <div>Provision the bridge first, then generate the install script</div>
-                      </div>
-                    )}
-                  </Card>
-                )}
-              </>
-            )}
-
-            {/* Setup / Edit Form */}
-            {(showForm || !config) && (
-              <Card>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {config ? 'Update Router Config' : 'Connect Your MikroTik'}
-                </div>
-
-                {!config && (
-                  <div style={{ padding: '12px 14px', background: C.surface, border: `0.5px solid ${C.gold}33`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
-                    Enter your MikroTik router details below. You must have API access enabled on the router.<br />
-                    <strong>Need help?</strong> Provision the bridge and download the install script.
-                  </div>
-                )}
-
-                <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
-                  <Input label="Router IP / Hostname *" value={form.router_ip} onChange={f('router_ip')} placeholder="192.168.88.1" mono />
-                <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
-                    <Input label="API Port" value={form.api_port} onChange={f('api_port')} placeholder="8728" mono />
-                    <Input label="Hotspot Interface" value={form.hotspot_server} onChange={f('hotspot_server')} placeholder="ether5" mono />
-                  </div>
-                  <Input label="API Username *" value={form.api_username} onChange={f('api_username')} placeholder="honestbill" mono />
-                  <Input label="API Password" value={form.api_password} onChange={f('api_password')} placeholder={config ? 'Leave blank to keep' : ''} type="password" />
-                  <Input label="Hotspot Profile" value={form.hotspot_profile_name} onChange={f('hotspot_profile_name')} placeholder="XwB_Profile" />
-                  <Input label="NAS IP (optional)" value={form.nas_ip_address} onChange={f('nas_ip_address')} placeholder={config?.router_ip || 'Same as router IP'} />
-                </div>
-                <Input label="Notes (optional)" value={form.notes} onChange={f('notes')} placeholder="Location, contact info, etc." />
-
-                {testResult && (
+          {/* Step Indicator */}
+          <div style={{ display: 'flex', gap: 0, marginBottom: 32, alignItems: 'stretch' }}>
+            {STEPS.map((s, i) => {
+              const isActive = step === s.id
+              const isDone = step > s.id
+              return (
+                <div key={s.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+                  {i > 0 && (
+                    <div style={{
+                      position: 'absolute', top: 14, left: 0, right: '50%', height: 1.5,
+                      background: isDone ? C.gold : C.border, zIndex: 0,
+                    }} />
+                  )}
                   <div style={{
-                    padding: 12, marginBottom: 12, borderRadius: 7, fontSize: 11, lineHeight: 1.5,
-                    background: testResult.connected ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-                    border: `0.5px solid ${testResult.connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                    color: testResult.connected ? C.green : C.red,
+                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isDone ? C.gold : isActive ? 'transparent' : C.mute,
+                    border: `1.5px solid ${isDone ? C.gold : isActive ? C.gold : C.border2}`,
+                    color: isDone ? '#000' : isActive ? C.gold : C.dim,
+                    fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace',
+                    zIndex: 1, transition: 'all 0.3s',
                   }}>
-                    {testResult.connected ? (
-                      <>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>✅ Connected to {testResult.router_identity || testResult.router_ip}</div>
-                        <div style={{ fontSize: 10, color: C.dim }}>
-                          {testResult.router_os_version ? `v${testResult.router_os_version.split(' ')[0]}` : ''}{testResult.board_name ? ` · ${testResult.board_name}` : ''}{testResult.uptime ? ` · ${testResult.uptime}` : ''}
-                        </div>
-                        {testResult.hotspot_found === false && (
-                          <div style={{ fontSize: 10, color: C.gold, marginTop: 4 }}>⚠ Hotspot server not found — check the interface name</div>
-                        )}
-                      </>
-                    ) : (
-                      <div>❌ {stripHtml(testResult.error || 'Connection failed')}</div>
-                    )}
+                    {isDone ? '✓' : s.id}
                   </div>
-                )}
+                  <div style={{
+                    fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+                    color: isActive || isDone ? C.gold : C.dim, marginTop: 6, textAlign: 'center',
+                  }}>
+                    {s.label}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-                  <button onClick={downloadLoginHtml}
-                    style={{ padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Download size={14} /> login.html
-                  </button>
-                  <button onClick={handleTest} disabled={testing}
-                    style={{
-                      padding: '10px 18px', background: 'transparent', border: `0.5px solid ${C.border2}`, borderRadius: 7,
-                      color: C.dim, fontSize: 11, fontWeight: 600, cursor: testing ? 'not-allowed' : 'pointer', opacity: testing ? 0.5 : 1,
-                    }}>
-                    {testing ? 'Testing...' : 'Test Connection'}
-                  </button>
-                  <button onClick={handleSave} disabled={saving}
-                    style={{
-                      flex: 1, padding: '12px', background: saving ? C.dim : C.gold, border: 'none', borderRadius: 7,
-                      color: saving ? C.dim : '#000', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.5 : 1,
-                    }}>
-                    {saving ? 'Saving...' : config ? 'Update Configuration' : 'Save Configuration'}
-                  </button>
-                  {config && (
-                    <button onClick={() => { setShowForm(false); setTestResult(null) }}
-                      style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                      Cancel
+          {/* Step 1 — Router Script */}
+          {step === 1 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 1 of 4 — Configure Your Router
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+                This script configures your MikroTik router completely — bridge, DHCP, hotspot, walled garden, and API user.
+                Open <strong>Winbox → New Terminal</strong>, paste the entire script, and press Enter.
+              </div>
+
+              {!script && !scriptLoading && (
+                <button onClick={fetchScript}
+                  style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  Generate Setup Script
+                </button>
+              )}
+
+              {scriptLoading && <LoadingSpinner size="sm" label="Generating script..." />}
+
+              {script && (
+                <>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <button onClick={handleCopyScript}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Copy size={13} /> Copy Script
                     </button>
+                    <button onClick={handleDownloadScript}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Download size={13} /> Download .rsc
+                    </button>
+                  </div>
+
+                  <pre style={{
+                    background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                    fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
+                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 400, overflowY: 'auto', marginBottom: 20,
+                  }}>
+                    {script}
+                  </pre>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 16 }}>
+                    <Terminal size={16} color={C.gold} />
+                    <span style={{ fontSize: 11, color: C.dim, flex: 1 }}>
+                      Open <strong>Winbox → New Terminal</strong>, paste the script above, and press <strong>Enter</strong>. Wait about 10 seconds for it to complete.
+                    </span>
+                  </div>
+
+                  <button onClick={handleStep1Advance}
+                    style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    I've run the script →
+                  </button>
+                </>
+              )}
+            </Card>
+          )}
+
+          {/* Step 2 — Portal File */}
+          {step === 2 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 2 of 4 — Upload Portal Redirect
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+                Download the <strong>login.html</strong> file below. Then in <strong>Winbox → Files</strong>, navigate to the <strong>hotspot</strong> folder and upload this file.
+                This file redirects users to your branded portal when they connect to WiFi.
+              </div>
+
+              <button onClick={handleDownloadLoginHtml}
+                style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <Download size={14} /> Download login.html
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <input type="checkbox" id="step2-confirm" checked={step2Confirmed} onChange={e => setStep2Confirmed(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: C.gold }} />
+                <label htmlFor="step2-confirm" style={{ fontSize: 11, color: C.text, cursor: 'pointer' }}>
+                  I've uploaded <strong>login.html</strong> to the hotspot folder in Winbox
+                </label>
+              </div>
+
+              <button onClick={() => setStep(3)} disabled={!step2Confirmed}
+                style={{ width: '100%', padding: 12, background: step2Confirmed ? C.gold : C.mute, border: 'none', borderRadius: 7, color: step2Confirmed ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: step2Confirmed ? 'pointer' : 'not-allowed', opacity: step2Confirmed ? 1 : 0.5 }}>
+                Done →
+              </button>
+            </Card>
+          )}
+
+          {/* Step 3 — Test Connection */}
+          {step === 3 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 3 of 4 — Verify Connection
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+                Test that the dashboard can reach your MikroTik router and detect the hotspot server.
+              </div>
+
+              <button onClick={handleTest} disabled={testing}
+                style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: testing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, opacity: testing ? 0.6 : 1 }}>
+                <Activity size={14} /> {testing ? 'Testing...' : 'Test Connection'}
+              </button>
+
+              {testResult && (
+                <div style={{
+                  padding: 16, marginBottom: 20, borderRadius: 7, fontSize: 11, lineHeight: 1.6,
+                  background: testResult.connected ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `0.5px solid ${testResult.connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                }}>
+                  {testResult.connected ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <CheckCircle size={16} color={C.green} />
+                        <span style={{ fontWeight: 600, color: C.green }}>Connected to {testResult.router_identity || 'Router'}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: C.dim, marginLeft: 24 }}>
+                        <div>Version: {testResult.router_os_version || '—'}</div>
+                        <div>Board: {testResult.board_name || '—'}</div>
+                        <div>Uptime: {testResult.uptime || '—'}</div>
+                        <div style={{ color: testResult.hotspot_found ? C.green : C.red, marginTop: 4 }}>
+                          Hotspot server: {testResult.hotspot_found ? '✓ Found' : '✗ Not found'}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <XCircle size={16} color={C.red} />
+                        <span style={{ fontWeight: 600, color: C.red }}>Connection Failed</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: C.dim, marginLeft: 24 }}>
+                        {stripHtml(testResult.error || 'Unknown error')}
+                      </div>
+                    </>
                   )}
                 </div>
-              </Card>
-            )}
+              )}
 
-            {!config && !showForm && (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: C.dim }}>
-                <Router size={40} color={C.mute} style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 14, marginBottom: 8, color: C.text }}>No Router Configured</div>
-                <div style={{ fontSize: 12, color: C.dim, marginBottom: 16 }}>Connect your MikroTik to provision hotspots and manage users automatically</div>
-                <button onClick={() => setShowForm(true)}
-                  style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                  Add Router
-                </button>
+              <button onClick={() => setStep(4)} disabled={!canAdvanceToStep4}
+                style={{ width: '100%', padding: 12, background: canAdvanceToStep4 ? C.gold : C.mute, border: 'none', borderRadius: 7, color: canAdvanceToStep4 ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: canAdvanceToStep4 ? 'pointer' : 'not-allowed', opacity: canAdvanceToStep4 ? 1 : 0.5 }}>
+                Connection confirmed →
+              </button>
+            </Card>
+          )}
+
+          {/* Step 4 — Go Live */}
+          {step === 4 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 4 of 4 — Go Live
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Pre-flight: package check */}
+              {!hasActivePackage && (
+                <div style={{
+                  padding: 14, marginBottom: 20, borderRadius: 7,
+                  background: 'rgba(232,184,75,0.08)', border: `0.5px solid rgba(232,184,75,0.25)`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <AlertTriangle size={14} color={C.gold} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: C.gold }}>No active packages</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>
+                    You have no internet packages configured. Customers won't be able to purchase internet.
+                    <br />
+                    <a href="/dashboard/packages" style={{ color: C.gold, textDecoration: 'underline' }}>Add Packages →</a>
+                  </div>
+                </div>
+              )}
+
+              {!goLiveDone ? (
+                <>
+                  <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+                    Your hotspot is ready. Customers connecting to your WiFi will be redirected to your portal automatically.
+                  </div>
+
+                  <div style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
+                    <div style={{ padding: 14, background: C.surface, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                      <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Your Portal URL</div>
+                      <div style={{ fontSize: 11, color: C.gold, fontFamily: 'DM Mono, monospace', wordBreak: 'break-all' }}>{portalUrl}</div>
+                    </div>
+                    <div style={{ padding: 14, background: C.surface, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                      <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>WiFi Network Name</div>
+                      <div style={{ fontSize: 11, color: C.text, fontFamily: 'DM Mono, monospace' }}>WiBill Hotspot</div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: 14, background: C.surface, borderRadius: 7, border: `0.5px solid ${C.border}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+                    flexDirection: 'column', gap: 8,
+                  }}>
+                    <Wifi size={24} color={C.gold} />
+                    <div style={{ fontSize: 10, color: C.dim, textAlign: 'center' }}>
+                      Customers scan this QR code to connect
+                    </div>
+                    <div style={{
+                      width: 120, height: 120, background: '#fff', borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, color: '#999', fontFamily: 'DM Mono, monospace', textAlign: 'center',
+                      padding: 8, boxSizing: 'border-box',
+                    }}>
+                      QR placeholder<br />({window.location.hostname})
+                    </div>
+                  </div>
+
+                  {hasActivePackage && (
+                    <div style={{
+                      padding: 12, marginBottom: 20, borderRadius: 7,
+                      background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`,
+                      display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                      <CheckCircle size={14} color={C.green} />
+                      <span style={{ fontSize: 10, color: C.green }}>
+                        {packages.filter(p => p.is_active).length} active package(s) configured
+                      </span>
+                    </div>
+                  )}
+
+                  <button onClick={handleGoLive}
+                    style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <CheckCircle size={16} /> Go Live
+                  </button>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 8 }}>Setup Complete!</div>
+                  <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, maxWidth: 400, margin: '0 auto' }}>
+                    Your MikroTik hotspot is configured and connected to WiBill. Customers can now connect to your WiFi,
+                    see the branded portal, and purchase internet packages via M-Pesa.
+                  </div>
+                  <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center', gap: 8 }}>
+                    <a href="/dashboard" style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
+                      Go to Dashboard
+                    </a>
+                    <a href="/dashboard/portal" style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                      Customize Portal
+                    </a>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
+        </div>
       </div>
     </div>
   )
