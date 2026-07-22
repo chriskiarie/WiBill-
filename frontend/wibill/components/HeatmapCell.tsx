@@ -10,6 +10,33 @@ export type CellData = {
   isPeak: boolean
 }
 
+function lerp(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t)
+}
+
+function getColor(intensity: number): string {
+  if (intensity === 0) return 'rgb(18, 18, 30)'
+  if (intensity <= 0.01) return 'rgb(28, 24, 36)'
+
+  const stops: [number, number, number, number][] = [
+    [0.0,  28, 24, 36],
+    [0.2,  74, 30, 42],
+    [0.45, 160, 72, 30],
+    [0.7,  34, 130, 58],
+    [1.0,  34, 197, 94],
+  ]
+
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, r0, g0, b0] = stops[i]
+    const [t1, r1, g1, b1] = stops[i + 1]
+    if (intensity <= t1) {
+      const t = (intensity - t0) / (t1 - t0)
+      return `rgb(${lerp(r0, r1, t)}, ${lerp(g0, g1, t)}, ${lerp(b0, b1, t)})`
+    }
+  }
+  return 'rgb(34, 197, 94)'
+}
+
 function CellTooltip({ x, y, day, hour, sessions }: { x: number; y: number; day: string; hour: number; sessions: number }) {
   return (
     <div
@@ -58,6 +85,7 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
   const [tipPos, setTipPos] = useState({ x: 0, y: 0 })
 
   const intensity = data.maxSessions === 0 ? 0 : data.sessions / data.maxSessions
+  const cellColor = getColor(intensity)
 
   const handleMouseMove = (e: React.MouseEvent) => {
     setTipPos({ x: e.clientX, y: e.clientY })
@@ -76,24 +104,24 @@ export function HeatmapCell({ data, selected, onSelect }: { data: CellData; sele
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(data)}
         className={`heat-cell${data.isPeak ? ' heat-peak' : ''}`}
         style={{
-          '--intensity': intensity,
           width: '100%',
           aspectRatio: '1',
           borderRadius: 5,
           cursor: 'pointer',
+          background: cellColor,
           boxShadow: [
             'inset 0 1px 0 rgba(255,255,255,0.07)',
             'inset 0 -1px 0 rgba(0,0,0,0.25)',
             data.isPeak
-              ? '0 0 0 1px rgba(245,197,99,0.5), 0 0 16px 3px rgba(245,197,99,0.45)'
+              ? '0 0 0 1px rgba(34,197,94,0.5), 0 0 16px 3px rgba(34,197,94,0.4)'
               : 'none',
-            selected ? '0 0 0 2px rgba(250,193,7,0.9)' : 'none',
+            selected ? '0 0 0 2px rgba(34,197,94,0.9)' : 'none',
           ].join(', '),
           transform: hovered ? 'scale(1.14)' : data.isPeak ? 'scale(1.06)' : 'scale(1)',
           zIndex: hovered ? 10 : data.isPeak ? 5 : 1,
-          transition: 'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 140ms ease',
+          transition: 'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 140ms ease, background-color 0.2s ease',
           outline: 'none',
-        } as React.CSSProperties & { '--intensity': number }}
+        } as React.CSSProperties}
       />
       {hovered && (
         <CellTooltip x={tipPos.x} y={tipPos.y} day={data.day} hour={data.hour} sessions={data.sessions} />

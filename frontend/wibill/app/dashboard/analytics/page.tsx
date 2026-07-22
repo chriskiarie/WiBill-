@@ -206,11 +206,11 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
                   <span>Fewer</span>
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgb(var(--hfr),var(--hfg),var(--hfb))', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#3a2f13', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#665521', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#997c30', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#e8b84b', border: '0.5px solid rgba(232,184,75,0.3)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#1c1824', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#4a1e2a', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#a0481e', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#22823a', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#22c55e', border: '0.5px solid rgba(34,197,94,0.3)' }} />
                   <span>More</span>
                 </div>
               </div>
