@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{% if brand %}{{ brand.name }}{% else %}WiFi Portal{% endif %} - WiFi Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if brand %}{{ brand.name }}{% else %}Stories Portal{% endif %} - WiFi Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {% if font %}
-    <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     {% else %}
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     {% endif %}
     <style>
         :root {
@@ -22,6 +22,12 @@
             --success: #10b981;
             --error: #ef4444;
             --radius: {{ radius }};
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            --spacing-2xl: 4rem;
             --font-display: '{{ font }}', sans-serif;
             --font-body: '{{ font }}', sans-serif;
             --heading-size: 2rem;
@@ -30,267 +36,46 @@
             --letter-spacing: 0;
             --card-padding: 16px 20px;
             --btn-radius: 10px;
-            --btn-text: #fff;
-            --overlay-opacity: 0.6;
-            --overlay-color: #000000;
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.15);
-            --shadow-md: 0 8px 24px rgba(0,0,0,0.25);
-            --shadow-lg: 0 16px 48px rgba(0,0,0,0.35);
-            --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        * { margin:0; padding:0; box-sizing:border-box; }
-
-        html {
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            scroll-behavior: auto;
-        }
-
-        body {
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            line-height: 1.5;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-            position: relative;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: -30%;
-            right: -10%;
-            width: 70vw;
-            height: 70vw;
-            max-width: 600px;
-            max-height: 600px;
-            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
-            opacity: 0.06;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-            filter: blur(80px);
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            bottom: -20%;
-            left: -10%;
-            width: 60vw;
-            height: 60vw;
-            max-width: 500px;
-            max-height: 500px;
-            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
-            opacity: 0.04;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-            filter: blur(80px);
-        }
-
-        /* ── Network Banner ── */
-        .network-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            padding: 0.6rem var(--spacing-lg);
-            background: rgba(16,185,129,0.12);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(16,185,129,0.15);
-            color: #34d399;
-            text-align: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transform: translateY(-100%);
-            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
-        }
-
-        .network-banner.visible { transform: translateY(0); }
-
-        .network-banner.offline {
-            background: rgba(239,68,68,0.12);
-            border-bottom-color: rgba(239,68,68,0.15);
-            color: #f87171;
-        }
-
-        .network-status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 8px rgba(16,185,129,0.6);
-            animation: pulse 2s ease-in-out infinite;
-            flex-shrink: 0;
-        }
-
-        .network-banner.offline .network-status-dot {
-            background: #ef4444;
-            box-shadow: 0 0 8px rgba(239,68,68,0.6);
-        }
-
-        @keyframes pulse {
-            0%,100% { opacity:1; transform:scale(1); }
-            50% { opacity:0.5; transform:scale(1.3); }
-        }
-
-        /* ── Header ── */
-        .portal-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 90;
-            padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-md);
-            text-align: center;
-            background: linear-gradient(180deg, var(--bg-primary) 0%, transparent 100%);
-            pointer-events: none;
-            transition: padding-top 0.4s ease;
-        }
-
-        .portal-header.banner-visible {
-            padding-top: calc(var(--spacing-xl) + 2.4rem);
-        }
-
-        .portal-header .brand-emoji {
-            font-size: 2.8rem;
-            display: block;
-            margin-bottom: var(--spacing-xs);
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .portal-header .brand-name {
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--btn-text, #fff);
+            border: none;
+            border-radius: var(--btn-radius);
+            padding: 0.8rem 2rem;
             font-family: var(--font-display);
-            font-size: clamp(1.4rem, 5vw, 2rem);
-            font-weight: 800;
-            color: var(--text-primary);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-        }
-
-        .portal-header .brand-tagline {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-top: 0.3rem;
-            font-weight: 400;
-        }
-
-        .portal-header .brand-location {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 0.2rem;
-            opacity: 0.7;
-        }
-
-        @keyframes float {
-            0%,100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        /* ── Stories Container ── */
-        .stories-wrapper {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-        }
-
-        .stories-track {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
-        .stories-track::-webkit-scrollbar { display: none; }
-
-        /* ── Individual Story Slide ── */
-        .story-slide {
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--spacing-xl) var(--spacing-md);
-            padding-top: calc(var(--spacing-xl) + 70px);
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        /* ── Story Card ── */
-        .story-card {
-            width: 100%;
-            max-width: 420px;
-            max-height: calc(100vh - 160px);
-            max-height: calc(100dvh - 160px);
-            display: flex;
-            flex-direction: column;
-            border-radius: var(--radius);
-            overflow: hidden;
-            background: rgba(255,255,255,0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
             transition: var(--transition);
-            position: relative;
         }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
 
         .story-card.card-glass {
             background: rgba(255,255,255,0.03);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
         }
-
         .story-card.card-outline {
             background: transparent;
             border: 1.5px solid var(--accent-primary);
             backdrop-filter: none;
-            box-shadow: none;
         }
-
         .story-card.card-minimal {
             background: var(--bg-secondary);
             border: none;
             backdrop-filter: none;
         }
-
         .story-card.card-floating {
             background: var(--bg-secondary);
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
             border: none;
-            backdrop-filter: none;
         }
-
         .story-card.card-sharp {
             background: var(--bg-secondary);
             border-radius: 2px;
@@ -298,144 +83,394 @@
             backdrop-filter: none;
         }
 
-        /* ── Story Gradient Background ── */
-        .story-gradient {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            opacity: 0.08;
-            pointer-events: none;
-            z-index: 0;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .story-card.card-outline .story-gradient,
-        .story-card.card-minimal .story-gradient,
-        .story-card.card-floating .story-gradient,
-        .story-card.card-sharp .story-gradient {
-            display: none;
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
         }
 
-        /* ── Story Visual (large icon) ── */
-        .story-visual {
+        body {
+            background: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 0);
+            background-size: 40px 40px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
             position: relative;
-            z-index: 1;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -5%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+            opacity: 0.08;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 10s ease-in-out infinite;
+            z-index: 0;
+            filter: blur(60px);
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -15%;
+            left: -5%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+            opacity: 0.06;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 12s ease-in-out infinite reverse;
+            z-index: 0;
+            filter: blur(60px);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-50px); }
+        }
+
+        .network-banner {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            width: 100%;
+            padding: 0.85rem var(--spacing-lg);
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #059669;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.01em;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 45%;
-            min-height: 180px;
-            flex-shrink: 0;
+            gap: 0.5rem;
+            backdrop-filter: blur(12px);
         }
 
-        .story-visual .story-icon {
-            font-size: clamp(4rem, 15vw, 7rem);
-            filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
-            animation: iconFloat 5s ease-in-out infinite;
-            user-select: none;
+        .network-banner.offline {
+            background: rgba(239, 68, 68, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
         }
 
-        @keyframes iconFloat {
-            0%,100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-12px) scale(1.02); }
+        .network-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        .story-visual::after {
+        .network-banner.offline .network-status-dot {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        .stories-header {
+            position: relative;
+            z-index: 10;
+            padding: 3.5rem var(--spacing-lg) 2.5rem;
+            text-align: center;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-secondary);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 99px;
+            font-size: 0.7rem;
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--spacing-lg);
+            font-family: var(--font-display);
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-badge::before {
+            content: '✨';
+            font-size: 0.8rem;
+        }
+
+        .header-icon {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-md);
+            display: inline-block;
+            animation: bounce 4s ease-in-out infinite;
+            filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15));
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-25px); }
+        }
+
+        .header-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 7vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .header-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .header-location {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: var(--spacing-xs);
+        }
+
+        .stories-container {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+        }
+
+        .stories-progress {
+            display: flex;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+            z-index: 6;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .progress-dot.active {
+            width: 24px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            box-shadow: var(--shadow-md);
+        }
+
+        .progress-dot:hover {
+            background: var(--accent-primary);
+        }
+
+        .stories-stack {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .story-card {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: var(--transition);
+            min-height: 560px;
+            position: relative;
+        }
+
+        .story-card.featured {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1.5px solid var(--accent-primary);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .story-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            padding: 0.4rem 0.85rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border-radius: calc(var(--radius) * 0.5);
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            z-index: 2;
+            box-shadow: var(--shadow-md);
+        }
+
+        .story-visual {
+            height: 200px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .story-visual::before {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 10%;
-            right: 10%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
         }
 
-        /* ── Story Content ── */
+        .story-visual-icon {
+            font-size: 4rem;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+            animation: bounce 3s ease-in-out infinite;
+        }
+
         .story-content {
-            position: relative;
-            z-index: 1;
             display: flex;
             flex-direction: column;
             flex: 1;
-            padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+            padding: var(--spacing-lg);
+            gap: var(--spacing-md);
+            justify-content: space-between;
+        }
+
+        .story-header {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             gap: var(--spacing-sm);
-            text-align: center;
         }
 
         .story-name {
             font-family: var(--font-display);
-            font-size: clamp(1.3rem, 4vw, 1.7rem);
+            font-size: 1.4rem;
             font-weight: 800;
             color: var(--text-primary);
+            margin: 0;
             letter-spacing: -0.01em;
-            line-height: 1.15;
         }
 
-        .story-meta {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--spacing-sm);
-            flex-wrap: wrap;
-        }
-
-        .story-duration,
-        .story-speed {
-            font-size: 0.82rem;
+        .story-duration {
+            font-size: 0.85rem;
             color: var(--text-secondary);
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.4rem;
         }
 
-        .story-meta-divider {
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: var(--text-secondary);
-            opacity: 0.4;
+        .story-divider {
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent-primary), transparent);
+            opacity: 0.3;
         }
 
-        .story-price-row {
+        .story-specs {
             display: flex;
-            align-items: baseline;
-            justify-content: center;
-            gap: 0.3rem;
-            margin: var(--spacing-xs) 0;
+            flex-direction: column;
+            gap: 0.4rem;
         }
 
-        .story-currency {
-            font-family: var(--font-display);
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            opacity: 0.7;
+        .story-spec {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .story-spec-icon {
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .story-footer {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            margin-top: auto;
         }
 
         .story-price {
             font-family: var(--font-display);
-            font-size: clamp(2rem, 8vw, 2.8rem);
-            font-weight: 900;
+            font-size: 2rem;
+            font-weight: 800;
             color: var(--accent-primary);
-            letter-spacing: -0.02em;
-            line-height: 1;
-        }
-
-        .story-price-suffix {
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-secondary);
+            margin: 0;
+            letter-spacing: -0.01em;
         }
 
         .story-btn {
-            margin-top: auto;
-            padding: 0.9rem 2rem;
+            padding: 0.85rem 1.5rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: var(--btn-text);
+            color: var(--btn-text, #fff);
             border: none;
-            border-radius: var(--btn-radius);
+            border-radius: var(--btn-radius, calc(var(--radius) * 0.5));
             font-family: var(--font-display);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
@@ -454,1023 +489,780 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: rgba(255,255,255,0.15);
-            transition: left 0.5s ease;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.4s ease;
         }
 
-        .story-btn:hover::before { left: 100%; }
-        .story-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-        .story-btn:active { transform: translateY(0); }
-
-        /* ── Progress Dots (right side) ── */
-        .progress-dots {
-            position: fixed;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 80;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
+        .story-btn:hover::before {
+            left: 100%;
         }
 
-        .progress-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.1);
-            cursor: pointer;
-            transition: var(--transition);
-            flex-shrink: 0;
-        }
-
-        .progress-dot.active {
-            width: 6px;
-            height: 24px;
-            border-radius: 3px;
-            background: var(--accent-primary);
-            border-color: transparent;
-            box-shadow: 0 0 10px rgba(255,255,255,0.1);
-        }
-
-        .progress-dot:hover:not(.active) {
-            background: rgba(255,255,255,0.35);
-            transform: scale(1.3);
-        }
-
-        /* ── Voucher Story Slide ── */
-        .voucher-slide {
-            text-align: center;
-        }
-
-        .voucher-card {
-            width: 100%;
-            max-width: 420px;
-            max-height: calc(100vh - 160px);
-            max-height: calc(100dvh - 160px);
-            border-radius: var(--radius);
-            overflow: hidden;
-            background: var(--bg-secondary);
-            border: 1px solid rgba(255,255,255,0.06);
+        .story-btn:hover {
+            transform: translateY(-3px);
             box-shadow: var(--shadow-lg);
+        }
+
+        .story-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .stories-footer {
             padding: var(--spacing-lg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--spacing-md);
-        }
-
-        .voucher-icon {
-            font-size: 3.5rem;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
-            animation: float 5s ease-in-out infinite;
-        }
-
-        .voucher-title {
-            font-family: var(--font-display);
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .voucher-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
             font-size: 0.85rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .voucher-input-group {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .voucher-input-group label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .voucher-input {
-            width: 100%;
-            padding: 0.85rem 1rem;
+            border-top: 1px solid var(--bg-secondary);
             background: var(--bg-primary);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: calc(var(--radius) * 0.5);
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 1rem;
-            font-weight: 600;
-            text-align: center;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .voucher-input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .voucher-input::placeholder {
-            color: var(--text-secondary);
-            letter-spacing: 0.05em;
-            text-transform: none;
-            font-weight: 400;
-        }
-
-        .voucher-btn {
-            width: 100%;
-            padding: 0.85rem 2rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: var(--btn-text);
-            border: none;
-            border-radius: var(--btn-radius);
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .voucher-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .voucher-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-        .voucher-error {
-            width: 100%;
-            padding: 0.6rem 0.8rem;
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.2);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #f87171;
-            font-size: 0.8rem;
-            text-align: center;
-            display: none;
-        }
-
-        .voucher-success {
-            width: 100%;
-            padding: 0.6rem 0.8rem;
-            background: rgba(16,185,129,0.1);
-            border: 1px solid rgba(16,185,129,0.2);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #34d399;
-            font-size: 0.8rem;
-            text-align: center;
-            display: none;
-        }
-
-        /* ── Payment Modal ── */
-        .payment-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .payment-overlay.active {
-            display: flex;
-        }
-
-        .payment-backdrop {
-            position: absolute;
-            inset: 0;
-            background: var(--overlay-color);
-            opacity: var(--overlay-opacity);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-        }
-
-        .payment-modal {
             position: relative;
-            z-index: 1;
-            background: var(--bg-secondary);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: var(--radius);
-            width: 100%;
-            max-width: 380px;
-            box-shadow: var(--shadow-lg);
-            animation: modalIn 0.35s cubic-bezier(0.4,0,0.2,1);
+            z-index: 10;
+            line-height: 1.6;
         }
 
-        @keyframes modalIn {
-            from { opacity:0; transform: translateY(24px) scale(0.96); }
-            to { opacity:1; transform: translateY(0) scale(1); }
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1.1rem 1.3rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .modal-header h3 {
-            font-family: var(--font-display);
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.4rem;
-            cursor: pointer;
-            line-height: 1;
-            padding: 0;
-            transition: color 0.2s;
-        }
-
-        .modal-close:hover { color: var(--text-primary); }
-
-        .modal-body {
-            padding: 1.3rem;
-        }
-
-        .modal-package-info {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-            margin-bottom: 1.2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .modal-package-info .pkg-name {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .modal-package-info .pkg-name strong {
-            color: var(--text-primary);
-        }
-
-        .modal-package-info .pkg-price {
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 800;
+        .stories-footer a {
             color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-            margin-bottom: 1rem;
+        .stories-footer a:hover {
+            color: var(--accent-secondary);
         }
 
-        .input-group label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 0.8rem 0.9rem;
-            background: var(--bg-primary);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: calc(var(--radius) * 0.5);
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 0.95rem;
-            font-weight: 500;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .input-group input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .input-group input::placeholder {
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        .modal-error {
-            padding: 0.6rem 0.8rem;
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.2);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #f87171;
-            font-size: 0.8rem;
-            display: none;
-            margin-bottom: 0.8rem;
-        }
-
-        .modal-status {
-            padding: 0.7rem;
-            background: rgba(59,130,246,0.1);
-            border: 1px solid rgba(59,130,246,0.2);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #60a5fa;
-            font-size: 0.85rem;
-            text-align: center;
-            display: none;
-            margin-bottom: 0.8rem;
-        }
-
-        .modal-submit {
-            width: 100%;
-            padding: 0.9rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: var(--btn-text);
-            border: none;
-            border-radius: var(--btn-radius);
-            font-family: var(--font-display);
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .modal-submit:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-        .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-        /* ── Activation Overlay ── */
-        .activation-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 300;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-
-        .activation-overlay.active {
-            display: flex;
-        }
-
-        .activation-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .activation-card {
+        .offline-fullpage {
             position: relative;
-            z-index: 1;
-            text-align: center;
-            max-width: 340px;
-        }
-
-        .activation-icon {
-            font-size: 4rem;
-            margin-bottom: var(--spacing-md);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .activation-title {
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: #fff;
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .activation-message {
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.7);
-            line-height: 1.5;
-        }
-
-        /* ── Offline Fullpage ── */
-        .offline-page {
-            position: fixed;
-            inset: 0;
-            z-index: 50;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            min-height: calc(100vh - 140px);
             padding: var(--spacing-xl);
             text-align: center;
-            background: var(--bg-primary);
         }
 
-        .offline-page .offline-icon { font-size: 4rem; margin-bottom: var(--spacing-lg); }
-        .offline-page h2 {
-            font-family: var(--font-display);
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-bottom: var(--spacing-sm);
-        }
-        .offline-page p {
-            color: var(--text-secondary);
-            max-width: 360px;
-            font-size: 0.9rem;
-            line-height: 1.6;
+        .offline-icon-large {
+            font-size: 4rem;
             margin-bottom: var(--spacing-lg);
+            animation: float 4s ease-in-out infinite;
         }
+
+        .offline-title {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            margin-bottom: var(--spacing-md);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .offline-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-lg);
+            max-width: 400px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
         .offline-link {
-            padding: 0.8rem 1.5rem;
+            padding: 0.8rem 1.6rem;
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
             color: white;
             border-radius: calc(var(--radius) * 0.5);
             text-decoration: none;
             font-weight: 600;
-            font-family: var(--font-display);
             transition: var(--transition);
-        }
-        .offline-link:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-        /* ── Swipe Hint ── */
-        .swipe-hint {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 80;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            opacity: 0.4;
-            transition: opacity 0.4s;
-            pointer-events: none;
+            box-shadow: var(--shadow-md);
+            display: inline-block;
         }
 
-        .swipe-hint.hidden { opacity: 0; }
-
-        .swipe-hint-text {
-            font-size: 0.65rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+        .offline-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
 
-        .swipe-hint-arrow {
-            width: 20px;
-            height: 20px;
-            border-right: 1.5px solid var(--text-secondary);
-            border-bottom: 1.5px solid var(--text-secondary);
-            transform: rotate(45deg);
-            animation: bounceDown 1.5s ease-in-out infinite;
+        @media (max-width: 768px) {
+            .stories-header {
+                padding: 2.5rem var(--spacing-md) 1.5rem;
+            }
+
+            .header-icon {
+                font-size: 3.2rem;
+            }
+
+            .header-title {
+                font-size: 1.6rem;
+            }
+
+            .header-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .stories-container {
+                padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+            }
+
+            .stories-stack {
+                max-width: 100%;
+            }
+
+            .story-card {
+                min-height: 520px;
+            }
+
+            .story-visual {
+                height: 180px;
+            }
+
+            .story-visual-icon {
+                font-size: 3.5rem;
+            }
+
+            .story-name {
+                font-size: 1.3rem;
+            }
+
+            .story-price {
+                font-size: 1.8rem;
+            }
+
+            .story-content {
+                padding: var(--spacing-lg);
+            }
+
+            .progress-dot {
+                width: 6px;
+                height: 6px;
+            }
+
+            .progress-dot.active {
+                width: 20px;
+            }
+
+            .stories-progress {
+                margin-bottom: var(--spacing-lg);
+            }
         }
 
-        @keyframes bounceDown {
-            0%,100% { transform: rotate(45deg) translateY(0); }
-            50% { transform: rotate(45deg) translateY(4px); }
-        }
-
-        /* ── Responsive ── */
         @media (max-width: 480px) {
-            .progress-dots { right: 8px; gap: 8px; }
-            .progress-dot { width: 5px; height: 5px; }
-            .progress-dot.active { width: 5px; height: 20px; border-radius: 2.5px; }
-            .portal-header { padding: var(--spacing-lg) var(--spacing-md) var(--spacing-sm); }
-            .portal-header .brand-emoji { font-size: 2.2rem; }
-            .portal-header .brand-name { font-size: 1.3rem; }
-            .story-slide { padding: var(--spacing-lg) var(--spacing-sm); padding-top: calc(var(--spacing-lg) + 50px); }
-            .story-content { padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md); }
-            .story-price { font-size: 2rem; }
+            .header-badge {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.65rem;
+                margin-bottom: var(--spacing-md);
+            }
+
+            .header-icon {
+                font-size: 2.8rem;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .header-title {
+                font-size: 1.3rem;
+            }
+
+            .header-subtitle {
+                font-size: 0.85rem;
+            }
+
+            .header-location {
+                font-size: 0.75rem;
+            }
+
+            .stories-header {
+                padding: 1.5rem var(--spacing-sm) 1rem;
+            }
+
+            .stories-container {
+                padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+            }
+
+            .stories-progress {
+                gap: 0.4rem;
+                margin-bottom: var(--spacing-md);
+            }
+
+            .progress-dot {
+                width: 5px;
+                height: 5px;
+            }
+
+            .progress-dot.active {
+                width: 16px;
+            }
+
+            .story-card {
+                min-height: 480px;
+            }
+
+            .story-content {
+                padding: var(--spacing-md);
+            }
+
+            .story-visual {
+                height: 160px;
+            }
+
+            .story-visual-icon {
+                font-size: 3rem;
+            }
+
+            .story-name {
+                font-size: 1.1rem;
+            }
+
+            .story-price {
+                font-size: 1.5rem;
+            }
+
+            .story-btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.8rem;
+            }
+
+            .featured-badge {
+                padding: 0.35rem 0.7rem;
+                font-size: 0.6rem;
+                top: var(--spacing-sm);
+                right: var(--spacing-sm);
+            }
+
+            .stories-footer {
+                font-size: 0.75rem;
+                padding: var(--spacing-md);
+            }
         }
 
-        @media (min-width: 768px) {
-            .progress-dots { right: 20px; gap: 12px; }
-            .progress-dot { width: 7px; height: 7px; }
-            .progress-dot.active { width: 7px; height: 28px; border-radius: 3.5px; }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Payment Modal ─────────────────────────────── */
+        .payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .payment-modal-content {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            animation: slideUp 0.3s ease;
+        }
+
+        .payment-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .payment-modal-header h3 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .payment-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .payment-modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .payment-modal-body {
+            padding: 1.5rem;
+        }
+
+        .payment-modal-body p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .payment-modal-body p strong {
+            color: var(--text-primary);
+        }
+
+        .payment-input-group {
+            margin-top: 1rem;
+        }
+
+        .payment-input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .payment-input-group input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: calc(var(--radius) * 0.5);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .payment-input-group input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .payment-input-group input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .payment-error {
+            margin-top: 0.8rem;
+            padding: 0.7rem 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: calc(var(--radius) * 0.5);
+            color: #f87171;
+            font-size: 0.85rem;
+        }
+
+        .payment-status {
+            margin-top: 0.8rem;
+            padding: 0.7rem 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: calc(var(--radius) * 0.5);
+            color: #60a5fa;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .payment-submit-btn {
+            width: 100%;
+            margin-top: 1.2rem;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            border-radius: calc(var(--radius) * 0.5);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .payment-submit-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .payment-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 360px) {
+            .payment-modal-content { max-width: 100%; }
+            .payment-modal-header { padding: 1rem 1.2rem; }
+            .payment-modal-header h3 { font-size: 1rem; }
+            .payment-modal-body { padding: 1.2rem; }
+            .payment-submit-btn { padding: 0.8rem; font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
-    {# ─── Network Banner ─── #}
-    <div class="network-banner {% if network_up %}visible{% endif %}" id="network-banner">
+    <!-- Network Banner -->
+    {% if network_up %}
+    <div class="network-banner">
         <div class="network-status-dot"></div>
-        <span id="network-message">{{ brand.status_message or 'Network is online and stable' }}</span>
+        <span>{{ brand.status_message or '✓ Network is online and stable' }}</span>
     </div>
+    {% else %}
+    <div class="network-banner offline">
+        <span>⚠ Network currently offline. Please try again in a few moments.</span>
+    </div>
+    {% endif %}
 
     {% if network_up %}
-
-    {# ─── Header ─── #}
-    <div class="portal-header" id="portal-header">
-        <span class="brand-emoji" id="brand-emoji">{{ brand.emoji or '📡' }}</span>
-        <div class="brand-name" id="brand-name">{{ brand.name or 'WiFi Portal' }}</div>
-        <div class="brand-tagline" id="brand-tagline">{{ brand.tagline or 'Fast, reliable internet access' }}</div>
-        <div class="brand-location" id="brand-location">📍 {{ brand.location or '' }}</div>
+    <!-- Header -->
+    <div class="stories-header">
+        <div class="header-badge">WiFi Stories</div>
+        <div class="header-icon">{{ brand.emoji or '📡' }}</div>
+        <h1 class="header-title">{{ brand.name or 'WiFi Portal' }}</h1>
+        <p class="header-subtitle">{{ brand.tagline or 'Fast, reliable internet access' }}</p>
+        <p class="header-location">📍 {{ brand.location or 'Location unavailable' }}</p>
     </div>
 
-    {# ─── Progress Dots ─── #}
-    <div class="progress-dots" id="progress-dots">
-        {% for package in packages %}
-        <div class="progress-dot {% if loop.first %}active{% endif %}"
-             data-index="{{ loop.index0 }}"
-             onclick="goToSlide({{ loop.index0 }})"></div>
-        {% endfor %}
-        <div class="progress-dot" data-index="voucher" onclick="goToSlide('voucher')"></div>
-    </div>
-
-    {# ─── Stories Wrapper ─── #}
-    <div class="stories-wrapper">
-        <div class="stories-track" id="stories-track">
+    <!-- Stories Container -->
+    <div class="stories-container">
+        <!-- Progress Indicators -->
+        <div class="stories-progress">
             {% for package in packages %}
-            <div class="story-slide" id="slide-{{ loop.index0 }}" data-index="{{ loop.index0 }}">
-                <div class="story-card card-glass" data-card="{{ loop.index0 }}">
-                    <div class="story-gradient"></div>
+            <div class="progress-dot {% if loop.first %}active{% endif %}" onclick="scroll_to_card({{ loop.index0 }})"></div>
+            {% endfor %}
+        </div>
 
-                    <div class="story-visual">
-                        <div class="story-icon">{{ brand.emoji or '⚡' }}</div>
+        <!-- Story Cards Stack -->
+        <div class="stories-stack">
+            {% for package in packages %}
+            <div class="story-card {% if package.star %}featured{% endif %}" id="story-{{ loop.index0 }}">
+                {% if package.star %}
+                <div class="featured-badge">Popular Choice</div>
+                {% endif %}
+
+                <!-- Visual Section -->
+                <div class="story-visual">
+                    <div class="story-visual-icon">⚡</div>
+                </div>
+
+                <!-- Content Section -->
+                <div class="story-content">
+                    <div class="story-header">
+                        <h2 class="story-name">{{ package.n }}</h2>
+                        <p class="story-duration"><span>⏱</span> {{ package.d }}</p>
+                        <div class="story-divider"></div>
+                        <div class="story-specs">
+                            <div class="story-spec">
+                                <div class="story-spec-icon">🚀</div>
+                                <span>{{ package.s or 'High Speed' }}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="story-content">
-                        <h2 class="story-name">{{ package.n }}</h2>
-
-                        <div class="story-meta">
-                            <span class="story-duration">⏱ {{ package.d }}</span>
-                            {% if package.s %}
-                            <span class="story-meta-divider"></span>
-                            <span class="story-speed">🚀 {{ package.s }}</span>
-                            {% endif %}
-                        </div>
-
-                        <div class="story-price-row">
-                            <span class="story-currency">KES</span>
-                            <span class="story-price">{{ package.p }}</span>
-                        </div>
-
-                        <button class="story-btn" onclick="openPayment('{{ package.id }}', '{{ package.n }}', {{ package.p }})">
+                    <!-- Footer Section -->
+                    <div class="story-footer">
+                        <div class="story-price">KES {{ package.p }}</div>
+                        <button class="story-btn" onclick="openPaymentModal('{{ package.id }}', '{{ package.n }}', {{ package.p }})">
                             Get Now
                         </button>
                     </div>
                 </div>
             </div>
             {% endfor %}
-
-            {# ─── Voucher Slide ─── #}
-            <div class="story-slide voucher-slide" id="slide-voucher" data-index="voucher">
-                <div class="voucher-card">
-                    <div class="voucher-icon">🎟️</div>
-                    <div class="voucher-title">Have a Voucher?</div>
-                    <div class="voucher-subtitle">Enter your voucher code below to activate internet access instantly.</div>
-
-                    <div class="voucher-input-group">
-                        <label for="voucher-code">Voucher Code</label>
-                        <input type="text"
-                               id="voucher-code"
-                               class="voucher-input"
-                               placeholder="XXXX-XXXX-XXXX"
-                               autocomplete="off"
-                               maxlength="20">
-                    </div>
-
-                    <div id="voucher-error" class="voucher-error"></div>
-                    <div id="voucher-success" class="voucher-success"></div>
-
-                    <button class="voucher-btn" id="voucher-btn" onclick="redeemVoucher()">
-                        Redeem Voucher
-                    </button>
-                </div>
-            </div>
         </div>
-    </div>
 
-    {# ─── Swipe Hint ─── #}
-    <div class="swipe-hint" id="swipe-hint">
-        <span class="swipe-hint-text">Swipe</span>
-        <div class="swipe-hint-arrow"></div>
+        <!-- Footer Info -->
+        {% if brand.footer_text or brand.terms_url %}
+        <div class="stories-footer">
+            {{ brand.footer_text or 'Fast, reliable internet at your fingertips' }}
+            {% if brand.terms_url %}
+            · <a href="{{ brand.terms_url }}">Terms & Privacy</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     {% else %}
-
-    {# ─── Offline State ─── #}
-    <div class="offline-page">
-        <div class="offline-icon">🌐</div>
-        <h2>Network Offline</h2>
-        <p>The internet connection is currently unavailable. Please try again in a few moments or contact support.</p>
+    <!-- Offline State -->
+    <div class="offline-fullpage">
+        <div class="offline-icon-large">🌐</div>
+        <h2 class="offline-title">Network Offline</h2>
+        <p class="offline-message">
+            The internet connection is currently unavailable. Please check back in a few moments or contact support for assistance.
+        </p>
         {% if brand.support_number %}
         <a href="tel:{{ brand.support_number }}" class="offline-link">📞 Contact Support</a>
         {% endif %}
     </div>
-
     {% endif %}
 
-    {# ─── Payment Modal ─── #}
-    <div class="payment-overlay" id="payment-overlay">
-        <div class="payment-backdrop" onclick="closePayment()"></div>
-        <div class="payment-modal">
-            <div class="modal-header">
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="payment-modal" style="display: none;">
+        <div class="payment-modal-content">
+            <div class="payment-modal-header">
                 <h3>Pay with M-Pesa</h3>
-                <button class="modal-close" onclick="closePayment()">&times;</button>
+                <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="modal-package-info">
-                    <div class="pkg-name">Package: <strong id="modal-pkg-name"></strong></div>
-                    <div class="pkg-price" id="modal-pkg-price"></div>
+            <div class="payment-modal-body">
+                <p>Package: <strong id="payment-package-name"></strong></p>
+                <p>Amount: <strong id="payment-package-price"></strong></p>
+                <input type="hidden" id="payment-package-id">
+                <div class="payment-input-group">
+                    <label for="payment-phone">Phone Number (M-Pesa)</label>
+                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
                 </div>
-                <input type="hidden" id="modal-pkg-id">
-
-                <div class="input-group">
-                    <label for="modal-phone">Phone Number (M-Pesa)</label>
-                    <input type="tel"
-                           id="modal-phone"
-                           placeholder="2547XXXXXXXX or 07XXXXXXXX"
-                           autocomplete="tel"
-                           maxlength="12">
-                </div>
-
-                <div class="modal-error" id="modal-error"></div>
-                <div class="modal-status" id="modal-status"></div>
-
-                <button class="modal-submit" id="modal-submit" onclick="submitPayment()">
-                    Pay with M-Pesa
-                </button>
+                <div id="payment-error" class="payment-error" style="display: none;"></div>
+                <div id="payment-status" class="payment-status" style="display: none;"></div>
+                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
             </div>
-        </div>
-    </div>
-
-    {# ─── Activation Overlay ─── #}
-    <div class="activation-overlay" id="activation-overlay">
-        <div class="activation-backdrop"></div>
-        <div class="activation-card">
-            <div class="activation-icon">🎉</div>
-            <div class="activation-title">Payment Received!</div>
-            <div class="activation-message">Activating your internet access now. This will only take a moment...</div>
         </div>
     </div>
 
     <script>
-        (function() {
-            var track = document.getElementById('stories-track');
-            var banner = document.getElementById('network-banner');
-            var header = document.getElementById('portal-header');
-            var swipeHint = document.getElementById('swipe-hint');
-            var totalSlides = document.querySelectorAll('.story-slide').length;
-            var currentSlide = 0;
-            var hintTimer = null;
+        // Payment flow - open modal when package clicked
+        function openPaymentModal(packageId, packageName, packagePrice) {
+            document.getElementById('payment-modal').style.display = 'flex';
+            document.getElementById('payment-package-name').textContent = packageName;
+            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
+            document.getElementById('payment-package-id').value = packageId;
+            document.getElementById('payment-phone').value = '';
+            document.getElementById('payment-error').style.display = 'none';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
 
-            function updateProgress(index) {
-                document.querySelectorAll('.progress-dot').forEach(function(dot, i) {
-                    var dotIndex = dot.getAttribute('data-index');
-                    var isActive = (typeof index === 'string') ? (dotIndex === index) : (i === index);
-                    dot.classList.toggle('active', isActive);
-                });
-                currentSlide = index;
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        async function initiatePayment() {
+            const packageId = document.getElementById('payment-package-id').value;
+            const phone = document.getElementById('payment-phone').value.trim();
+            const slug = "{{ brand.slug }}";
+
+            if (!phone) {
+                showError('Please enter your phone number');
+                return;
             }
 
-            function hideSwipeHint() {
-                if (swipeHint) swipeHint.classList.add('hidden');
-                if (hintTimer) clearTimeout(hintTimer);
+            if (!/^(254|0)7\d{8}$/.test(phone)) {
+                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
+                return;
             }
 
-            if (swipeHint) {
-                hintTimer = setTimeout(hideSwipeHint, 4000);
-            }
+            const submitBtn = document.getElementById('payment-submit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
 
-            if (track) {
-                var observer = null;
-                var slides = document.querySelectorAll('.story-slide');
+            try {
+                // Get MAC and IP from URL params (set by MikroTik hotspot)
+                const urlParams = new URLSearchParams(window.location.search);
+                const mac = urlParams.get('mac') || '';
+                const ip = urlParams.get('ip') || '';
 
-                if ('IntersectionObserver' in window) {
-                    observer = new IntersectionObserver(function(entries) {
-                        entries.forEach(function(entry) {
-                            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                                var idx = entry.target.getAttribute('data-index');
-                                updateProgress(idx);
-                                hideSwipeHint();
-                            }
-                        });
-                    }, { root: track, threshold: 0.5 });
-
-                    slides.forEach(function(slide) { observer.observe(slide); });
-                }
-
-                if (swipeHint) {
-                    track.addEventListener('scroll', hideSwipeHint, { passive: true });
-                }
-            }
-
-            window.goToSlide = function(index) {
-                hideSwipeHint();
-                var el;
-                if (index === 'voucher') {
-                    el = document.getElementById('slide-voucher');
-                } else {
-                    el = document.getElementById('slide-' + index);
-                }
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    updateProgress(index);
-                }
-            };
-
-            // Payment flow
-            window.openPayment = function(pkgId, pkgName, pkgPrice) {
-                document.getElementById('modal-pkg-id').value = pkgId;
-                document.getElementById('modal-pkg-name').textContent = pkgName;
-                document.getElementById('modal-pkg-price').textContent = 'KES ' + pkgPrice;
-                document.getElementById('modal-phone').value = '';
-                document.getElementById('modal-error').style.display = 'none';
-                document.getElementById('modal-status').style.display = 'none';
-                document.getElementById('modal-submit').disabled = false;
-                document.getElementById('modal-submit').textContent = 'Pay with M-Pesa';
-                document.getElementById('payment-overlay').classList.add('active');
-            };
-
-            window.closePayment = function() {
-                document.getElementById('payment-overlay').classList.remove('active');
-            };
-
-            window.submitPayment = function() {
-                var phone = document.getElementById('modal-phone').value.trim();
-                var pkgId = document.getElementById('modal-pkg-id').value;
-                var slug = '{{ brand.slug }}';
-                var errorEl = document.getElementById('modal-error');
-                var statusEl = document.getElementById('modal-status');
-                var submitBtn = document.getElementById('modal-submit');
-
-                errorEl.style.display = 'none';
-
-                if (!phone) {
-                    errorEl.textContent = 'Please enter your phone number.';
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                if (!/^(254|0)7\d{8}$/.test(phone)) {
-                    errorEl.textContent = 'Invalid phone number. Use 2547XXXXXXXX or 07XXXXXXXX.';
-                    errorEl.style.display = 'block';
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Sending...';
-
-                var urlParams = new URLSearchParams(window.location.search);
-                var mac = urlParams.get('mac') || '';
-                var ip = urlParams.get('ip') || '';
-
-                fetch('/api/portal/' + slug + '/sessions', {
+                const response = await fetch('/api/portal/{{ brand.slug }}/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        package_id: pkgId,
+                        package_id: packageId,
                         phone_number: phone,
                         mac_address: mac,
                         ip_address: ip
                     })
-                })
-                .then(function(resp) { return resp.json().then(function(d) { return { ok: resp.ok, data: d }; }); })
-                .then(function(result) {
-                    if (!result.ok) {
-                        throw new Error(result.data.detail || 'Failed to initiate payment');
-                    }
-                    statusEl.style.display = 'block';
-                    statusEl.textContent = 'Waiting for M-Pesa prompt on your phone...';
-                    submitBtn.textContent = 'Waiting...';
-                    pollSession(result.data.session_id);
-                })
-                .catch(function(err) {
-                    errorEl.textContent = err.message;
-                    errorEl.style.display = 'block';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Pay with M-Pesa';
                 });
-            };
 
-            function pollSession(sessionId) {
-                var slug = '{{ brand.slug }}';
-                var poll = function() {
-                    fetch('/api/portal/' + slug + '/sessions/' + sessionId)
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (data.status === 'active') {
-                            showActivation();
-                            setTimeout(function() {
-                                window.location.href = '/portal/' + slug + '/success/' + sessionId;
-                            }, 2500);
-                        } else if (data.status === 'failed' || data.status === 'expired') {
-                            var errEl = document.getElementById('modal-error');
-                            errEl.textContent = 'Payment failed or timed out. Please try again.';
-                            errEl.style.display = 'block';
-                            var statusEl = document.getElementById('modal-status');
-                            statusEl.style.display = 'none';
-                            var submitBtn = document.getElementById('modal-submit');
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = 'Pay with M-Pesa';
-                        } else {
-                            setTimeout(poll, 3000);
-                        }
-                    })
-                    .catch(function() {
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to initiate payment');
+                }
+
+                // Payment initiated, start polling
+                pollPaymentStatus(data.session_id);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Pay with M-Pesa';
+            }
+        }
+
+        function pollPaymentStatus(sessionId) {
+            const statusEl = document.getElementById('payment-status');
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Waiting for payment...';
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(`/api/portal/{{ brand.slug }}/sessions/${sessionId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'active') {
+                        // Payment successful - redirect to success page
+                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
+                        return;
+                    } else if (data.status === 'failed' || data.status === 'expired') {
+                        showError('Payment failed or timed out. Please try again.');
+                        return;
+                    } else if (data.status === 'pending_payment') {
+                        // Still waiting, continue polling
                         setTimeout(poll, 3000);
-                    });
-                };
-                setTimeout(poll, 3000);
-            }
-
-            function showActivation() {
-                document.getElementById('activation-overlay').classList.add('active');
-            }
-
-            // Voucher flow
-            window.redeemVoucher = function() {
-                var code = document.getElementById('voucher-code').value.trim();
-                var errEl = document.getElementById('voucher-error');
-                var sucEl = document.getElementById('voucher-success');
-                var btn = document.getElementById('voucher-btn');
-
-                errEl.style.display = 'none';
-                sucEl.style.display = 'none';
-
-                if (!code) {
-                    errEl.textContent = 'Please enter a voucher code.';
-                    errEl.style.display = 'block';
-                    return;
-                }
-
-                btn.disabled = true;
-                btn.textContent = 'Redeeming...';
-
-                var slug = '{{ brand.slug }}';
-
-                fetch('/api/portal/' + slug + '/vouchers/redeem', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: code })
-                })
-                .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
-                .then(function(result) {
-                    if (!result.ok) {
-                        throw new Error(result.data.detail || 'Invalid voucher code');
                     }
-                    sucEl.textContent = 'Voucher redeemed! Redirecting...';
-                    sucEl.style.display = 'block';
-                    setTimeout(function() {
-                        window.location.href = '/portal/' + slug + '/success/' + (result.data.session_id || '');
-                    }, 1500);
-                })
-                .catch(function(err) {
-                    errEl.textContent = err.message;
-                    errEl.style.display = 'block';
-                    btn.disabled = false;
-                    btn.textContent = 'Redeem Voucher';
-                });
+                } catch (error) {
+                    showError('Error checking payment status');
+                }
             };
 
-            // postMessage handler
-            window.addEventListener('message', function(event) {
-                if (!event.data || !event.data.type) return;
-                var d = event.data;
-                var root = document.documentElement;
+            setTimeout(poll, 3000);
+        }
 
-                if (d.type === 'UPDATE_PALETTE' && d.colors) {
-                    root.style.setProperty('--bg-primary', d.colors.bgStart);
-                    root.style.setProperty('--bg-secondary', d.colors.card);
-                    root.style.setProperty('--text-primary', d.colors.text);
-                    root.style.setProperty('--text-secondary', d.colors.textDim);
-                    root.style.setProperty('--accent-primary', d.colors.primary);
-                    root.style.setProperty('--accent-secondary', d.colors.primaryDark);
-                    if (d.colors.accent) root.style.setProperty('--success', d.colors.accent);
+        function showError(message) {
+            const errorEl = document.getElementById('payment-error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('payment-submit').disabled = false;
+            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        }
 
-                    var hex = d.colors.primary.replace('#', '');
-                    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-                    var r = parseInt(hex.substring(0,2),16);
-                    var g = parseInt(hex.substring(2,4),16);
-                    var b = parseInt(hex.substring(4,6),16);
-                    var brightness = (r*299 + g*587 + b*114) / 1000;
-                    root.style.setProperty('--btn-text', brightness > 140 ? '#1a1a1a' : '#ffffff');
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        function scroll_to_card(index) {
+            const card = document.getElementById(`story-${index}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                update_progress_indicators(index);
+            }
+        }
+
+        function update_progress_indicators(active_index) {
+            document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === active_index);
+            });
+        }
+
+        const stories_stack = document.querySelector('.stories-stack');
+        if (stories_stack) {
+            window.addEventListener('scroll', () => {
+                const cards = document.querySelectorAll('.story-card');
+                let closest_index = 0;
+                let closest_distance = Infinity;
+
+                cards.forEach((card, i) => {
+                    const rect = card.getBoundingClientRect();
+                    const distance = Math.abs(rect.top - window.innerHeight / 2);
+                    if (distance < closest_distance) {
+                        closest_distance = distance;
+                        closest_index = i;
+                    }
+                });
+
+                update_progress_indicators(closest_index);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Stories Portal initialized');
+        });
+
+        // Listen for live updates from onboarding wizard
+        window.addEventListener('message', function(event) {
+            if (!event.data || !event.data.type) return;
+            const data = event.data;
+            const root = document.documentElement;
+
+            if (data.type === 'UPDATE_PALETTE' && data.colors) {
+                root.style.setProperty('--bg-primary', data.colors.bgStart);
+                root.style.setProperty('--bg-secondary', data.colors.card);
+                root.style.setProperty('--text-primary', data.colors.text);
+                root.style.setProperty('--text-secondary', data.colors.textDim);
+                root.style.setProperty('--accent-primary', data.colors.primary);
+                root.style.setProperty('--accent-secondary', data.colors.primaryDark);
+                root.style.setProperty('--success', data.colors.accent);
+                var hex = data.colors.primary.replace('#', '');
+                if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+                var r2 = parseInt(hex.substring(0,2),16), g2 = parseInt(hex.substring(2,4),16), b2 = parseInt(hex.substring(4,6),16);
+                var brightness = (r2*299 + g2*587 + b2*114) / 1000;
+                root.style.setProperty('--btn-text', brightness > 140 ? '#1a1a1a' : '#ffffff');
+            }
+
+            if (data.type === 'UPDATE_BRAND') {
+                var titleEl = document.querySelector('.header-title');
+                if (titleEl && data.name) titleEl.textContent = data.name;
+                if (data.name) document.title = data.name + ' - WiFi Access';
+            }
+
+            if (data.type === 'UPDATE_TYPOGRAPHY') {
+                if (data.font) {
+                    root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
+                    root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
+                    var oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
+                    var newLink = document.createElement('link');
+                    newLink.rel = 'stylesheet';
+                    newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700;800&display=swap';
+                    if (oldLink) { oldLink.replaceWith(newLink); } else { document.head.appendChild(newLink); }
+                    document.body.style.fontFamily = "'" + data.font + "', sans-serif";
                 }
-
-                if (d.type === 'UPDATE_BRAND') {
-                    if (d.name) {
-                        var nameEl = document.getElementById('brand-name');
-                        if (nameEl) nameEl.textContent = d.name;
-                        document.title = d.name + ' - WiFi Access';
-                    }
-                    if (d.tagline) {
-                        var tagEl = document.getElementById('brand-tagline');
-                        if (tagEl) tagEl.textContent = d.tagline;
-                    }
-                    if (d.location) {
-                        var locEl = document.getElementById('brand-location');
-                        if (locEl) locEl.textContent = '📍 ' + d.location;
-                    }
-                    if (d.emoji) {
-                        var emojiEl = document.getElementById('brand-emoji');
-                        if (emojiEl) emojiEl.textContent = d.emoji;
-                        document.querySelectorAll('.story-icon').forEach(function(icon) {
-                            icon.textContent = d.emoji;
-                        });
-                    }
-                    if (d.logo_url) {
-                        var emojiE = document.getElementById('brand-emoji');
-                        if (emojiE) {
-                            emojiE.innerHTML = '<img src="' + d.logo_url + '" alt="logo" style="height:3rem;width:auto;filter:none;">';
-                        }
-                    }
-                }
-
-                if (d.type === 'UPDATE_TYPOGRAPHY') {
-                    if (d.font) {
-                        root.style.setProperty('--font-display', "'" + d.font + "', sans-serif");
-                        root.style.setProperty('--font-body', "'" + d.font + "', sans-serif");
-                        var oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
-                        var newLink = document.createElement('link');
-                        newLink.rel = 'stylesheet';
-                        newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(d.font) + ':wght@400;500;600;700;800;900&display=swap';
-                        if (oldLink) { oldLink.replaceWith(newLink); } else { document.head.appendChild(newLink); }
-                        document.body.style.fontFamily = "'" + d.font + "', sans-serif";
-                    }
-                    if (d.heading_size) root.style.setProperty('--heading-size', d.heading_size);
-                    if (d.body_size) root.style.setProperty('--body-size', d.body_size);
-                    if (d.font_weight) root.style.setProperty('--font-weight', d.font_weight);
-                    if (d.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', d.letter_spacing);
-                    if (d.heading_case) {
-                        document.querySelectorAll('.story-name').forEach(function(el) {
-                            el.style.textTransform = d.heading_case;
-                        });
-                    }
-                }
-
-                if (d.type === 'UPDATE_CARD_STYLE') {
-                    if (d.radius) root.style.setProperty('--radius', d.radius);
-                    if (d.style) {
-                        document.querySelectorAll('.story-card').forEach(function(card) {
-                            card.classList.remove('card-glass','card-outline','card-minimal','card-floating','card-sharp');
-                            card.classList.add('card-' + d.style);
-                        });
-                    }
-                    if (d.size) {
-                        var sizeMap = { compact: '12px 16px', comfortable: '16px 20px', large: '24px 28px' };
-                        root.style.setProperty('--card-padding', sizeMap[d.size] || '16px 20px');
-                    }
-                    if (d.elevation) {
-                        var elevMap = { none: 'none', sm: '0 2px 8px rgba(0,0,0,0.15)', md: '0 8px 24px rgba(0,0,0,0.25)', lg: '0 16px 48px rgba(0,0,0,0.35)' };
-                        document.querySelectorAll('.story-card').forEach(function(card) {
-                            card.style.boxShadow = elevMap[d.elevation] || elevMap.md;
-                        });
-                    }
-                }
-
-                if (d.type === 'UPDATE_BUTTON_STYLE') {
-                    var radiusMap = { rounded: '10px', pill: '50px', sharp: '2px' };
-                    root.style.setProperty('--btn-radius', radiusMap[d.style] || '10px');
-                }
-
-                if (d.type === 'UPDATE_NETWORK') {
-                    if (banner) {
-                        banner.classList.toggle('visible', !!d.show_banner);
-                        if (banner.classList.contains('visible')) {
-                            banner.classList.toggle('offline', false);
-                        }
-                        if (d.message) {
-                            document.getElementById('network-message').textContent = d.message;
-                        }
-                    }
-                    if (header) {
-                        header.classList.toggle('banner-visible', !!d.show_banner);
-                    }
-                }
-
-                if (d.type === 'UPDATE_OVERLAY') {
-                    if (d.opacity !== undefined) root.style.setProperty('--overlay-opacity', d.opacity);
-                    if (d.color) root.style.setProperty('--overlay-color', d.color);
-                }
-
-                if (d.type === 'UPDATE_LAYOUT' && d.sections) {
-                    var sectionMap = { hero: '.story-visual', packages: '.stories-wrapper', voucher: '.voucher-slide' };
-                    Object.keys(sectionMap).forEach(function(key) {
-                        var el = document.querySelector(sectionMap[key]);
-                        if (el) el.style.display = d.sections.includes(key) ? '' : 'none';
+                if (data.heading_size) root.style.setProperty('--heading-size', data.heading_size);
+                if (data.body_size) root.style.setProperty('--body-size', data.body_size);
+                if (data.font_weight) root.style.setProperty('--font-weight', data.font_weight);
+                if (data.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', data.letter_spacing);
+                if (data.heading_case) {
+                    document.querySelectorAll('.story-name, h2, h3').forEach(function(el) {
+                        el.style.textTransform = data.heading_case;
                     });
                 }
+            }
 
-                if (d.type === 'UPDATE_BACKGROUND') {
-                    if (d.bgType === 'solid' && d.value) {
-                        root.style.setProperty('--bg-primary', d.value);
-                    } else if (d.bgType === 'gradient' && d.gradient) {
-                        root.style.setProperty('--bg-primary', d.gradient);
-                    } else if (d.bgType === 'image' && d.url) {
-                        document.body.style.backgroundImage = 'url(' + d.url + ')';
-                        document.body.style.backgroundSize = 'cover';
-                        document.body.style.backgroundPosition = 'center';
+            if (data.type === 'UPDATE_CARD_STYLE') {
+                if (data.radius) root.style.setProperty('--radius', data.radius);
+                if (data.style) {
+                    document.querySelectorAll('.story-card').forEach(function(card) {
+                        card.classList.remove('card-glass', 'card-outline', 'card-minimal', 'card-floating', 'card-sharp');
+                        card.classList.add('card-' + data.style);
+                    });
+                }
+                if (data.size) {
+                    var sizeMap = { compact: '12px 16px', comfortable: '16px 20px', large: '24px 28px' };
+                    root.style.setProperty('--card-padding', sizeMap[data.size] || '16px 20px');
+                }
+            }
+
+            if (data.type === 'UPDATE_BUTTON_STYLE') {
+                var radiusMap = { rounded: '10px', pill: '50px', sharp: '2px' };
+                root.style.setProperty('--btn-radius', radiusMap[data.style] || '10px');
+            }
+
+            if (data.type === 'UPDATE_NETWORK') {
+                var banner = document.querySelector('.network-banner');
+                if (banner) {
+                    banner.style.display = data.show_banner ? 'flex' : 'none';
+                    if (data.message) {
+                        var msgEl = banner.querySelector('.banner-text, span');
+                        if (msgEl) msgEl.textContent = data.message;
                     }
                 }
-            });
-        })();
+            }
+
+            if (data.type === 'UPDATE_LAYOUT' && data.sections) {
+                var sectionMap = { hero: '.story-visual', packages: '.stories-container' };
+                Object.keys(sectionMap).forEach(function(key) {
+                    var el = document.querySelector(sectionMap[key]);
+                    if (el) el.style.display = data.sections.includes(key) ? '' : 'none';
+                });
+            }
+        });
+        });
     </script>
 </body>
 </html>
