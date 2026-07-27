@@ -14,6 +14,7 @@ import {
   Signal, Radio, Globe, Server, Antenna, Activity, WifiOff,
   Smartphone, Laptop, Tablet, Tv, WifiHigh, WifiZero,
   Network, Router, MonitorSmartphone,
+  Broadcast, Zap, Shield, Rocket, Layers, Cloud, Satellite, Lock,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -41,15 +42,24 @@ const MAIN_TEMPLATES = [
 ]
 
 const BRAND_ICONS: { name: string; comp: any; emoji: string }[] = [
-  { name: 'Wifi', comp: Wifi, emoji: '📶' }, { name: 'Signal', comp: Signal, emoji: '📡' },
-  { name: 'Radio', comp: Radio, emoji: '📻' }, { name: 'Globe', comp: Globe, emoji: '🌐' },
-  { name: 'Server', comp: Server, emoji: '🖥️' }, { name: 'Antenna', comp: Antenna, emoji: '📡' },
-  { name: 'Network', comp: Network, emoji: '🔗' }, { name: 'Router', comp: Router, emoji: '📶' },
-  { name: 'Activity', comp: Activity, emoji: '📊' }, { name: 'Laptop', comp: Laptop, emoji: '💻' },
-  { name: 'Smartphone', comp: Smartphone, emoji: '📱' }, { name: 'Tablet', comp: Tablet, emoji: '📱' },
-  { name: 'Tv', comp: Tv, emoji: '📺' }, { name: 'WifiHigh', comp: WifiHigh, emoji: '📶' },
-  { name: 'Monitor', comp: MonitorSmartphone, emoji: '🖥️' }, { name: 'Star', comp: Star, emoji: '⭐' },
-  { name: 'Crown', comp: Crown, emoji: '👑' }, { name: 'Bolt', comp: Activity, emoji: '⚡' },
+  { name: 'Wifi', comp: Wifi, emoji: '📶' },
+  { name: 'Signal', comp: Signal, emoji: '📡' },
+  { name: 'Globe', comp: Globe, emoji: '🌐' },
+  { name: 'Server', comp: Server, emoji: '🖥️' },
+  { name: 'Router', comp: Router, emoji: '📶' },
+  { name: 'Antenna', comp: Broadcast, emoji: '📡' },
+  { name: 'Zap', comp: Zap, emoji: '⚡' },
+  { name: 'Shield', comp: Shield, emoji: '🛡️' },
+  { name: 'Rocket', comp: Rocket, emoji: '🚀' },
+  { name: 'Layers', comp: Layers, emoji: '🔗' },
+  { name: 'Cloud', comp: Cloud, emoji: '☁️' },
+  { name: 'Satellite', comp: Satellite, emoji: '🛰️' },
+  { name: 'Cpu', comp: Cpu, emoji: '⚙️' },
+  { name: 'Database', comp: Database, emoji: '💾' },
+  { name: 'Radio', comp: Radio, emoji: '📻' },
+  { name: 'SignalHigh', comp: Signal, emoji: '📶' },
+  { name: 'Lock', comp: Lock, emoji: '🔒' },
+  { name: 'Activity', comp: Activity, emoji: '📊' },
 ]
 
 const FONT_CATEGORIES: Record<string, { name: string; fonts: { family: string; preview: string }[] }> = {
