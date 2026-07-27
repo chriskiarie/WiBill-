@@ -553,7 +553,7 @@ export default function PortalWizard() {
         </div>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#f0f0f0', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid #2a2a2a', bottom: toastMsg ? 24 : -80 }}>
+      <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#f0f0f0', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid #2a2a2a', bottom: toastMsg ? 24 : -80 }}>
         {toastMsg}
       </div>
     </div>
