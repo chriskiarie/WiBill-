@@ -14,7 +14,7 @@ import {
   Signal, Radio, Globe, Server, Antenna, Activity, WifiOff,
   Smartphone, Laptop, Tablet, Tv, WifiHigh, WifiZero,
   Network, Router, MonitorSmartphone,
-  Broadcast, Zap, Shield, Rocket, Layers, Cloud, Satellite, Lock,
+  Zap, Shield, Rocket, Layers, Cloud, Satellite, Lock, Database,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -47,7 +47,7 @@ const BRAND_ICONS: { name: string; comp: any; emoji: string }[] = [
   { name: 'Globe', comp: Globe, emoji: '🌐' },
   { name: 'Server', comp: Server, emoji: '🖥️' },
   { name: 'Router', comp: Router, emoji: '📶' },
-  { name: 'Antenna', comp: Broadcast, emoji: '📡' },
+  { name: 'Antenna', comp: Antenna, emoji: '📡' },
   { name: 'Zap', comp: Zap, emoji: '⚡' },
   { name: 'Shield', comp: Shield, emoji: '🛡️' },
   { name: 'Rocket', comp: Rocket, emoji: '🚀' },
