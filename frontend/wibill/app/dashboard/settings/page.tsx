@@ -111,7 +111,7 @@ export default function SettingsPage() {
               Your branded captive portal is live at <strong style={{ color: C.gold, fontFamily: 'DM Mono, monospace' }}>/portal/{tenant?.slug}</strong>.
               Re-run the onboarding wizard to update colors, fonts, layout, and branding.
             </div>
-            <button onClick={() => router.push('/onboarding')} style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={() => window.open('/onboarding?force=true', '_blank')} style={{ padding: '10px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               Re-open Portal Wizard
             </button>
           </div>

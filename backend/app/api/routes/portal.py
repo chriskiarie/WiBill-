@@ -29,7 +29,6 @@ DEMO_PACKAGES = [
     {"n": "1 Hour", "p": 20, "d": "60 min", "s": "Up to 5 Mbps", "star": False},
     {"n": "6 Hours", "p": 80, "d": "6 hrs", "s": "Up to 10 Mbps", "star": False},
     {"n": "Daily", "p": 150, "d": "24 hrs", "s": "Up to 15 Mbps", "star": True},
-    {"n": "Weekly", "p": 500, "d": "7 days", "s": "Up to 20 Mbps", "star": False},
 ]
 
 DEMO_BRAND = {
