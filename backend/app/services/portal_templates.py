@@ -191,7 +191,7 @@ TEMPLATE_GALLERY = [
         "description": "Dark futuristic theme with vibrant accents",
         "badge": None,
         "tags": ["Best for Cafes"],
-        "base_template": "stories.html",
+        "base_template": "portal_dashboard.html",
         "preset": {
             "theme": {
                 "primary_color": "#ff6b35",
@@ -467,7 +467,7 @@ TEMPLATE_GALLERY = [
         "description": "Bold African patterns meets modern design",
         "badge": "New",
         "tags": ["Best for ISPs"],
-        "base_template": "stories.html",
+        "base_template": "portal_spotlight.html",
         "preset": {
             "theme": {
                 "primary_color": "#E85D26",
@@ -590,7 +590,7 @@ TEMPLATE_GALLERY = [
         "description": "Deep purple theme for premium lounges",
         "badge": None,
         "tags": ["Best for Events"],
-        "base_template": "stories.html",
+        "base_template": "portal_bento.html",
         "preset": {
             "theme": {
                 "primary_color": "#9b59b6",
@@ -672,6 +672,218 @@ TEMPLATE_GALLERY = [
                 "heading_case": "normal",
             },
             "card": {"style": "glass", "radius": 20, "elevation": 0, "size": "comfortable"},
+        }
+    },
+    # ── Split Layout ──────────────────────────────────────────────────────────
+    {
+        "id": "split-modern",
+        "name": "Split Modern",
+        "category": "business",
+        "description": "Split-screen layout with gradient brand panel and clean package rows",
+        "badge": "Popular",
+        "tags": ["Best for ISPs"],
+        "base_template": "portal_split.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#6366f1",
+                "secondary_color": "#0f0f1a",
+                "accent_color": "#818cf8",
+                "background_type": "solid",
+                "background_value": "#0f0f1a",
+                "overlay_opacity": 0.3,
+                "overlay_color": "#000000",
+                "button_style": "rounded",
+            },
+            "typography": {
+                "font_family": "Inter",
+                "heading_size": 32,
+                "body_size": 15,
+                "font_weight": 600,
+                "letter_spacing": 0.2,
+                "heading_case": "normal",
+            },
+            "card": {"style": "outline", "radius": 14, "elevation": 0, "size": "compact"},
+        }
+    },
+    {
+        "id": "split-ocean",
+        "name": "Split Ocean",
+        "category": "business",
+        "description": "Deep blue split-screen for premium hospitality",
+        "badge": None,
+        "tags": ["Best for Hotels"],
+        "base_template": "portal_split.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#0284c7",
+                "secondary_color": "#0c1929",
+                "accent_color": "#38bdf8",
+                "background_type": "solid",
+                "background_value": "#0c1929",
+                "overlay_opacity": 0.2,
+                "overlay_color": "#000000",
+                "button_style": "pill",
+            },
+            "typography": {
+                "font_family": "Space Grotesk",
+                "heading_size": 34,
+                "body_size": 15,
+                "font_weight": 500,
+                "letter_spacing": 0.3,
+                "heading_case": "normal",
+            },
+            "card": {"style": "glass", "radius": 12, "elevation": 0, "size": "comfortable"},
+        }
+    },
+    {
+        "id": "split-sunset",
+        "name": "Split Sunset",
+        "category": "entertainment",
+        "description": "Warm orange gradient split-screen for cafes and lounges",
+        "badge": "New",
+        "tags": ["Best for Cafes"],
+        "base_template": "portal_split.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#f97316",
+                "secondary_color": "#1a0f08",
+                "accent_color": "#fb923c",
+                "background_type": "solid",
+                "background_value": "#1a0f08",
+                "overlay_opacity": 0.3,
+                "overlay_color": "#000000",
+                "button_style": "rounded",
+            },
+            "typography": {
+                "font_family": "Space Grotesk",
+                "heading_size": 30,
+                "body_size": 14,
+                "font_weight": 600,
+                "letter_spacing": 0.4,
+                "heading_case": "normal",
+            },
+            "card": {"style": "minimal", "radius": 10, "elevation": 0, "size": "compact"},
+        }
+    },
+    {
+        "id": "split-forest",
+        "name": "Split Forest",
+        "category": "local",
+        "description": "Deep green split-screen inspired by Kenyan highlands",
+        "badge": None,
+        "tags": ["Best for ISPs"],
+        "base_template": "portal_split.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#16a34a",
+                "secondary_color": "#052e16",
+                "accent_color": "#4ade80",
+                "background_type": "solid",
+                "background_value": "#052e16",
+                "overlay_opacity": 0.3,
+                "overlay_color": "#000000",
+                "button_style": "rounded",
+            },
+            "typography": {
+                "font_family": "Inter",
+                "heading_size": 30,
+                "body_size": 15,
+                "font_weight": 600,
+                "letter_spacing": 0.2,
+                "heading_case": "normal",
+            },
+            "card": {"style": "outline", "radius": 12, "elevation": 0, "size": "compact"},
+        }
+    },
+    # ── Bento Layout ──────────────────────────────────────────────────────────
+    {
+        "id": "bento-modern",
+        "name": "Bento Modern",
+        "category": "business",
+        "description": "Asymmetric bento grid with varying card sizes",
+        "badge": "Popular",
+        "tags": ["Best for ISPs"],
+        "base_template": "portal_bento.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#6366f1",
+                "secondary_color": "#0f0f1a",
+                "accent_color": "#818cf8",
+                "background_type": "solid",
+                "background_value": "#0f0f1a",
+                "overlay_opacity": 0.3,
+                "overlay_color": "#000000",
+                "button_style": "rounded",
+            },
+            "typography": {
+                "font_family": "Inter",
+                "heading_size": 32,
+                "body_size": 15,
+                "font_weight": 600,
+                "letter_spacing": 0.2,
+                "heading_case": "normal",
+            },
+            "card": {"style": "outline", "radius": 14, "elevation": 0, "size": "compact"},
+        }
+    },
+    {
+        "id": "bento-neon",
+        "name": "Bento Neon",
+        "category": "entertainment",
+        "description": "Cyberpunk bento grid for gaming zones and tech venues",
+        "badge": "Trending",
+        "tags": ["Best for Gamers"],
+        "base_template": "portal_bento.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#00ff88",
+                "secondary_color": "#0a0a14",
+                "accent_color": "#00cc6a",
+                "background_type": "solid",
+                "background_value": "#0a0a14",
+                "overlay_opacity": 0.4,
+                "overlay_color": "#000000",
+                "button_style": "sharp",
+            },
+            "typography": {
+                "font_family": "Space Grotesk",
+                "heading_size": 34,
+                "body_size": 15,
+                "font_weight": 700,
+                "letter_spacing": 1.0,
+                "heading_case": "uppercase",
+            },
+            "card": {"style": "glass", "radius": 8, "elevation": 2, "size": "compact"},
+        }
+    },
+    {
+        "id": "bento-warm",
+        "name": "Bento Warm",
+        "category": "local",
+        "description": "Warm earthy bento grid for cafes and restaurants",
+        "badge": "New",
+        "tags": ["Best for Cafes"],
+        "base_template": "portal_bento.html",
+        "preset": {
+            "theme": {
+                "primary_color": "#d97706",
+                "secondary_color": "#1c1408",
+                "accent_color": "#f59e0b",
+                "background_type": "solid",
+                "background_value": "#1c1408",
+                "overlay_opacity": 0.3,
+                "overlay_color": "#000000",
+                "button_style": "rounded",
+            },
+            "typography": {
+                "font_family": "Space Grotesk",
+                "heading_size": 30,
+                "body_size": 14,
+                "font_weight": 600,
+                "letter_spacing": 0.3,
+                "heading_case": "normal",
+            },
+            "card": {"style": "minimal", "radius": 10, "elevation": 0, "size": "compact"},
         }
     },
 ]

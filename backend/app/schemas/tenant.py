@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class PortalConfigUpdate(BaseModel):
-    template: str = Field(..., description="e.g., 'spotlight-dark', 'dashboard-light', 'stories-feed'")
+    template: str = Field(..., description="e.g., 'spotlight', 'dashboard', 'split', 'bento'")
     palette: str = Field(..., description="e.g., 'midnight', 'arctic'")
     font: str = Field(..., description="Google font family identifier")
     tagline: Optional[str] = Field(None, max_length=150)

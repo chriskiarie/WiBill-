@@ -6,7 +6,8 @@ from enum import Enum
 class TemplateID(str, Enum):
     spotlight = "spotlight"
     dashboard = "dashboard"
-    stories = "stories"
+    split = "split"
+    bento = "bento"
 
 
 class PaletteIndex(int, Enum):

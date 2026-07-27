@@ -29,6 +29,7 @@ export default function MikrotikPage() {
   const [script, setScript] = useState<string | null>(null)
   const [scriptLoading, setScriptLoading] = useState(false)
   const [step1Ready, setStep1Ready] = useState(false)
+  const [step1TimeElapsed, setStep1TimeElapsed] = useState(false)
   const [step2Confirmed, setStep2Confirmed] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<any>(null)
@@ -36,22 +37,32 @@ export default function MikrotikPage() {
   const [goLiveDone, setGoLiveDone] = useState(false)
   const [config, setConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const step1TimerRef = useRef<NodeJS.Timeout | null>(null)
+  const step1TimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [portalUrl, setPortalUrl] = useState('')
 
   useEffect(() => {
     if (!token) return
     api.getMikrotikConfig().then(setConfig).catch(() => {}).finally(() => setLoading(false))
     api.getPackages().then(setPackages).catch(() => {})
-    const slug = window.location.hostname === 'localhost' ? 'demo' : ''
-    setPortalUrl(`${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/portal/${slug}`)
+  }, [token])
+
+  useEffect(() => {
+    api.getMe().then((user: any) => {
+      if (user?.tenant?.slug) {
+        setPortalUrl(`${window.location.origin}/portal/${user.tenant.slug}`)
+      }
+    }).catch(() => {
+      setPortalUrl(`${window.location.origin}/portal/demo`)
+    })
   }, [token])
 
   const fetchScript = useCallback(async () => {
     setScriptLoading(true)
+    setStep1TimeElapsed(false)
     try {
       const data = await api.getMikrotikRouterOsScript()
       setScript(data)
+      step1TimerRef.current = setTimeout(() => setStep1TimeElapsed(true), 5000)
     } catch (e: any) {
       showToast(e.message || 'Failed to generate script', { type: 'error' })
     } finally {
@@ -232,10 +243,17 @@ export default function MikrotikPage() {
                     </span>
                   </div>
 
-                  <button onClick={handleStep1Advance}
-                    style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                    I've run the script →
-                  </button>
+                  {step1TimeElapsed && (
+                    <button onClick={handleStep1Advance}
+                      style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      I've run the script →
+                    </button>
+                  )}
+                  {!step1TimeElapsed && (
+                    <div style={{ textAlign: 'center', fontSize: 10, color: C.dim, padding: 8 }}>
+                      The advance button will appear in 5 seconds — please read through the script carefully
+                    </div>
+                  )}
                 </>
               )}
             </Card>
@@ -314,9 +332,17 @@ export default function MikrotikPage() {
                         <XCircle size={16} color={C.red} />
                         <span style={{ fontWeight: 600, color: C.red }}>Connection Failed</span>
                       </div>
-                      <div style={{ fontSize: 10, color: C.dim, marginLeft: 24 }}>
+                      <div style={{ fontSize: 10, color: C.dim, marginLeft: 24, lineHeight: 1.7 }}>
                         {stripHtml(testResult.error || 'Unknown error')}
                       </div>
+                      {(testResult.error || '').includes('502') && (
+                        <div style={{ marginTop: 10, padding: '10px 14', background: 'rgba(232,184,75,0.08)', borderRadius: 7, border: '0.5px solid rgba(232,184,75,0.25)', fontSize: 10, color: C.dim, lineHeight: 1.7 }}>
+                          <strong style={{ color: C.gold }}>Bridge not set up yet?</strong><br />
+                          The test connection goes through the WiBill bridge (bridge.py + Cloudflare tunnel), which must be running on an always-on PC at your site.
+                          You need to provision the bridge first (
+                          <a href="/dashboard/network" style={{ color: C.gold }}>Network Settings</a>) and run the installer on your local PC.
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

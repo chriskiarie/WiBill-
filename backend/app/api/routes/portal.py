@@ -58,6 +58,18 @@ PALETTES = [
 ]
 
 
+@router.get("/studio", response_class=HTMLResponse)
+async def portal_studio():
+    """Serve the Portal Design Studio wizard."""
+    import os
+    wizard_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "portal_wizard.html")
+    wizard_path = os.path.normpath(wizard_path)
+    if os.path.exists(wizard_path):
+        with open(wizard_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Wizard not found</h1>", status_code=404)
+
+
 @router.get("/api/v1/portal-previews/{template_id}", response_class=HTMLResponse)
 async def preview_portal(template_id: str, request: Request):
     """
@@ -80,7 +92,8 @@ async def preview_portal(template_id: str, request: Request):
     template_map = {
         'spotlight': 'portal_spotlight.html',
         'dashboard': 'portal_dashboard.html',
-        'stories': 'stories.html',
+        'split': 'portal_split.html',
+        'bento': 'portal_bento.html',
     }
     
     filename = template_map.get(template_id, 'portal_dashboard.html')
@@ -266,7 +279,8 @@ async def get_live_portal(
     template_map = {
         'spotlight': 'portal_spotlight.html',
         'dashboard': 'portal_dashboard.html',
-        'stories': 'stories.html',
+        'split': 'portal_split.html',
+        'bento': 'portal_bento.html',
     }
     
     filename = template_map.get(template_id, 'portal_dashboard.html')

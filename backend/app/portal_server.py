@@ -14,7 +14,8 @@ Run:
 Visit:
   http://localhost:8000/api/v1/portal-previews/spotlight
   http://localhost:8000/api/v1/portal-previews/dashboard
-  http://localhost:8000/api/v1/portal-previews/stories
+  http://localhost:8000/api/v1/portal-previews/split
+  http://localhost:8000/api/v1/portal-previews/bento
 """
 
 from fastapi import FastAPI
@@ -480,12 +481,14 @@ async def get_portal_preview(template_id: str):
     Endpoints:
     - /api/v1/portal-previews/spotlight
     - /api/v1/portal-previews/dashboard
-    - /api/v1/portal-previews/stories
+    - /api/v1/portal-previews/split
+    - /api/v1/portal-previews/bento
     """
     template_names = {
-        "spotlight": "Spotlight Dark",
-        "dashboard": "Dashboard Light",
-        "stories": "Stories Flow",
+        "spotlight": "Spotlight",
+        "dashboard": "Dashboard",
+        "split": "Split",
+        "bento": "Bento",
     }
     
     template_name = template_names.get(template_id, "Portal")
@@ -511,7 +514,8 @@ async def root():
     <ul>
       <li><a href="/api/v1/portal-previews/spotlight">GET /api/v1/portal-previews/spotlight</a></li>
       <li><a href="/api/v1/portal-previews/dashboard">GET /api/v1/portal-previews/dashboard</a></li>
-      <li><a href="/api/v1/portal-previews/stories">GET /api/v1/portal-previews/stories</a></li>
+      <li><a href="/api/v1/portal-previews/split">GET /api/v1/portal-previews/split</a></li>
+      <li><a href="/api/v1/portal-previews/bento">GET /api/v1/portal-previews/bento</a></li>
       <li><a href="/health">GET /health</a></li>
     </ul>
     

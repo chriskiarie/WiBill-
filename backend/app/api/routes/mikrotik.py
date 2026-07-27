@@ -22,6 +22,7 @@ from app.models.tenant import Tenant
 
 router = APIRouter()
 
+
 class MikrotikConfigPayload(BaseModel):
     router_ip: str
     api_port: int = 8728
@@ -62,7 +63,7 @@ async def get_config(
         "router_ip": config.router_ip,
         "api_port": config.api_port,
         "api_username": config.api_username,
-        "api_password": "••••••••",
+        "api_password": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
         "hotspot_server": config.hotspot_server,
         "hotspot_profile_name": config.hotspot_profile_name,
         "nas_ip_address": config.nas_ip_address,
@@ -89,7 +90,7 @@ async def create_config(
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Config already exists — use PATCH to update"
+            detail="Config already exists \u2014 use PATCH to update"
         )
     config = MikrotikConfig(
         id=uuid.uuid4(),
@@ -123,12 +124,12 @@ async def update_config(
     if not config:
         raise HTTPException(
             status_code=404,
-            detail="No config found — use POST to create"
+            detail="No config found \u2014 use POST to create"
         )
     config.router_ip = payload.router_ip
     config.api_port = payload.api_port
     config.api_username = payload.api_username
-    if payload.api_password is not None and payload.api_password != "••••••••":
+    if payload.api_password is not None and payload.api_password != "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022":
         config.api_password_enc = encrypt(payload.api_password)
     config.hotspot_server = payload.hotspot_server
     config.hotspot_profile_name = payload.hotspot_profile_name
@@ -154,10 +155,6 @@ async def health_check(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """
-    Health check polled by the dashboard. Returns 4-state connection status
-    and persists the detected state to the DB for caching.
-    """
     from datetime import datetime, timezone as tz
 
     result = await db.execute(
@@ -208,7 +205,6 @@ async def provision_bridge(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Create Cloudflare tunnel + generate bridge secret for this ISP."""
     result = await db.execute(
         select(Tenant).where(Tenant.id == current_user.tenant_id)
     )
@@ -226,7 +222,7 @@ async def provision_bridge(
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
 
     if config.tunnel_id:
-        raise HTTPException(status_code=400, detail="Tunnel already provisioned — delete and re-create if needed")
+        raise HTTPException(status_code=400, detail="Tunnel already provisioned \u2014 delete and re-create if needed")
 
     tunnel_name = f"isp-{tenant.slug}"
     bridge_secret = secrets.token_hex(32)
@@ -258,7 +254,6 @@ async def decommission_bridge(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Delete Cloudflare tunnel and reset bridge config for this ISP."""
     result = await db.execute(
         select(MikrotikConfig).where(
             MikrotikConfig.tenant_id == current_user.tenant_id
@@ -284,7 +279,6 @@ async def decommission_bridge(
 
 @router.get("/mikrotik/bridge-download")
 async def download_bridge():
-    """Serve bridge.py for ISP to install on their on-prem PC."""
     bridge_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "bridge.py")
     if not os.path.exists(bridge_path):
         raise HTTPException(status_code=404, detail="bridge.py not found on server")
@@ -297,7 +291,6 @@ async def generate_login_html(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Generate login.html with the ISP's slug pre-filled, ready to upload to Winbox."""
     result = await db.execute(
         select(Tenant).where(Tenant.id == current_user.tenant_id)
     )
@@ -305,7 +298,6 @@ async def generate_login_html(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    # Use forwarded proto/scheme (handles Railway TLS termination)
     scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
     base_url = f"{scheme}://{request.url.hostname}"
     if "localhost" in request.url.hostname or "127.0.0.1" in request.url.hostname:
@@ -329,9 +321,6 @@ async def get_routeros_script(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Generate a .rsc RouterOS script that configures the MikroTik completely when pasted into Winbox Terminal."""
-    from app.core.config import settings
-
     tenant = await db.get(Tenant, current_user.tenant_id)
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -379,10 +368,10 @@ async def get_routeros_script(
 /ip dhcp-server network add address=192.168.4.0/24 gateway=192.168.4.1 dns-server=8.8.8.8,8.8.4.4
 
 # 6. Create hotspot on bridge
-/ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
+/ip hotspot add name=wibill-hotspot interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
 
 # 7. Configure hotspot profile
-/ip hotspot profile set [find name=hsprof1] idle-timeout=30d keepalive-timeout=30d login-timeout=30d addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
+/ip hotspot profile set [find name=hsprof1] addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
 
 # 8. Enable API service
 /ip service enable api
@@ -391,15 +380,12 @@ async def get_routeros_script(
 # 9. Create WiBill API user
 /user add name=wibill-api password={api_password} group=full comment="WiBill API access"
 
-# 10. Walled garden (hostname-based)
+# 10. Walled garden (allow portal and bridge before payment)
 /ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
 /ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
-/ip hotspot walled-garden add dst-host=*.googleapis.com action=allow comment="Google fonts"
-/ip hotspot walled-garden add dst-host=*.gstatic.com action=allow comment="Google static"
 
-# 11. Walled garden (IP-based - allow HTTPS/HTTP before auth)
-/ip hotspot walled-garden ip add dst-address=0.0.0.0/0 dst-port=443 action=accept comment="Allow HTTPS before auth"
-/ip hotspot walled-garden ip add dst-address=0.0.0.0/0 dst-port=80 action=accept comment="Allow HTTP before auth"
+# 11. Allow HTTPS to portal by IP
+/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept comment="Allow Railway HTTPS"
 
 :log info "WiBill setup complete for {name}"
 """
@@ -416,7 +402,6 @@ async def generate_install_script(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Generate a PowerShell install script with this ISP's secrets embedded."""
     result = await db.execute(
         select(Tenant).where(Tenant.id == current_user.tenant_id)
     )
@@ -440,7 +425,7 @@ async def generate_install_script(
     api_password = decrypt(config.api_password_enc)
 
     script = f"""<#
-.WiBill Bridge Installer — generated for {tenant.name}
+.WiBill Bridge Installer \u2014 generated for {tenant.name}
 .Download bridge.py and cloudflared, set up services on this PC.
 .Run this script as Administrator on the always-on PC at the ISP site.
 #>
@@ -448,17 +433,17 @@ async def generate_install_script(
 $ErrorActionPreference = "Stop"
 $WIBILL_DIR = "C:\\WiBill"
 
-# ── 1. Create working directory ──────────────────────────────────────
+# \u2500\u2500 1. Create working directory \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
 Set-Location -LiteralPath "$WIBILL_DIR"
 
-    # ── 2. Download bridge.py ───────────────────────────────────────────
+    # \u2500\u2500 2. Download bridge.py \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 Write-Host "Downloading bridge.py..."
 $BRIDGE_URL = "{settings.PUBLIC_BASE_URL}/api/mikrotik/bridge-download"
 Invoke-WebRequest -Uri "$BRIDGE_URL" -OutFile "bridge.py"
 
-# ── 3. Write .env ───────────────────────────────────────────────────
-$envContent = @'
+# \u2500\u2500 3. Write .env \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+$envContent = '@
 MIKROTIK_HOST={config.router_ip}
 MIKROTIK_PORT={config.api_port}
 MIKROTIK_USERNAME={config.api_username}
@@ -470,7 +455,7 @@ BRIDGE_VERSION={settings.MIKROTIK_BRIDGE_VERSION}
 Set-Content -Path ".env" -Value $envContent
 Write-Host ".env written to $WIBILL_DIR\\.env"
 
-# ── 4. Install cloudflared ──────────────────────────────────────────
+# \u2500\u2500 4. Install cloudflared \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 $cloudflared = Get-Command "cloudflared.exe" -ErrorAction SilentlyContinue
 if (-not $cloudflared) {{
     Write-Host "Downloading cloudflared..."
@@ -483,11 +468,11 @@ if (-not $cloudflared) {{
 }}
 Write-Host "cloudflared ready at $cloudflaredPath"
 
-# ── 5. Install Python packages needed by bridge.py ─────────────────
+# \u2500\u2500 5. Install Python packages needed by bridge.py \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 Write-Host "Installing Python dependencies..."
 pip install fastapi uvicorn librouteros httpx > "$WIBILL_DIR\\install.log" 2>&1
 
-# ── 6. Install bridge.py as a service (via NSSM) ────────────────────
+# \u2500\u2500 6. Install bridge.py as a service (via NSSM) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 $nssm = Get-Command "nssm.exe" -ErrorAction SilentlyContinue
 if (-not $nssm) {{
     Write-Host "Downloading NSSM..."
@@ -511,7 +496,7 @@ if (-not $nssm) {{
 & $nssmPath start WiBillBridge
 Write-Host "WiBillBridge service installed and started."
 
-# ── 7. Install cloudflared as a tunnel service ──────────────────────
+# \u2500\u2500 7. Install cloudflared as a tunnel service \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 $tunnelToken = "{tunnel_token}"
 & cloudflared.exe service uninstall 2>$null
 Start-Sleep -Seconds 2
