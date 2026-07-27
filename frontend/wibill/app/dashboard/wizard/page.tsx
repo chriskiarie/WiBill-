@@ -732,6 +732,7 @@ export default function PortalWizard() {
                   ref: iframeRef,
                   src: previewUrl,
                   onLoad: () => setPreviewLoading(false),
+                  scrolling: 'no',
                   style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.862)', transformOrigin: 'top left' },
                   title: 'Portal Preview',
                 })}
