@@ -21,6 +21,7 @@ import os
 import ipaddress
 import logging
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 import librouteros
 from librouteros import connect
@@ -64,6 +65,12 @@ def get_api():
         port=MIKROTIK_PORT,
         timeout=10,
     )
+
+
+# ── In-memory file store for staged portal files ─────────────────────────
+_temp_files: dict[str, dict] = {}
+import secrets as _secrets
+import time as _time
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
@@ -120,6 +127,101 @@ def test():
         raise HTTPException(status_code=401, detail=f"Auth failed: {e}")
     except OSError as e:
         raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
+
+
+# ── Wireless interfaces ───────────────────────────────────────────
+@app.get("/interfaces/wireless")
+def wireless_interfaces():
+    try:
+        api = get_api()
+        ifaces = list(api("/interface/wireless/print"))
+        api.close()
+        return {"interfaces": [{"name": i.get("name"), "ssid": i.get("ssid", ""), "band": i.get("band", ""), "enabled": i.get("disabled", "false") != "true"} for i in ifaces]}
+    except FatalError as e:
+        raise HTTPException(status_code=401, detail=f"Auth failed: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Stage a file for the router to fetch ─────────────────────────
+@app.post("/file/stage")
+def stage_file(data: dict):
+    file_id = _secrets.token_hex(8)
+    _temp_files[file_id] = {"content": data.get("content", ""), "path": data.get("path", "login.html"), "created": _time.time()}
+    return {"file_id": file_id, "ttl_seconds": 300}
+
+@app.get("/file/serve/{file_id}")
+def serve_file(file_id: str):
+    meta = _temp_files.get(file_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="File not found or expired")
+    return PlainTextResponse(meta["content"], media_type="text/html")
+
+@app.post("/file/push-to-router")
+def push_file_to_router(data: dict):
+    file_id = data.get("file_id")
+    fetch_url = data.get("fetch_url", "")
+    dst_path = data.get("dst_path", "hotspot/login.html")
+    try:
+        api = get_api()
+        list(api("/tool/fetch", **{"=url": fetch_url, "=dst-path": dst_path}))
+        api.close()
+        return {"success": True, "message": f"Fetching {fetch_url} to {dst_path}"}
+    except TrapError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/file/status/{path:path}")
+def file_status(path: str):
+    try:
+        api = get_api()
+        files = list(api("/file/print", **{"?name": path}))
+        api.close()
+        if files:
+            f = files[0]
+            return {"exists": True, "name": f.get("name"), "size": f.get("size", "0"), "type": f.get("type", "")}
+        return {"exists": False}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+
+# ── Hotspot hosts (for device detection in Step 3) ──────────────
+@app.get("/hosts")
+def hotspot_hosts():
+    try:
+        api = get_api()
+        hosts = list(api("/ip/hotspot/host/print"))
+        active = list(api("/ip/hotspot/active/print"))
+        api.close()
+        return {"hosts": [{"mac": h.get("mac-address"), "address": h.get("address"), "authorized": h.get("authorized")} for h in hosts], "active_count": len(active)}
+    except Exception:
+        return {"hosts": [], "active_count": 0}
+
+
+# ── Router addresses (for subnet collision check) ─────────────────
+@app.get("/addresses")
+def router_addresses():
+    try:
+        api = get_api()
+        addrs = list(api("/ip/address/print"))
+        api.close()
+        return {"addresses": [{"address": a.get("address"), "interface": a.get("interface"), "network": a.get("network")} for a in addrs]}
+    except Exception as e:
+        return {"addresses": [], "error": str(e)}
+
+
+# ── Walled garden rules (for preflight checks) ────────────────────
+@app.get("/walled-garden")
+def walled_garden_rules():
+    try:
+        api = get_api()
+        host_rules = list(api("/ip/hotspot/walled-garden/print"))
+        ip_rules = list(api("/ip/hotspot/walled-garden/ip/print"))
+        api.close()
+        return {"host": host_rules, "ip": ip_rules}
+    except Exception as e:
+        return {"host": [], "ip": [], "error": str(e)}
 
 
 @app.get("/hotspot")

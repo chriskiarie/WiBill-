@@ -108,6 +108,7 @@ class EnabledFeaturesConfig(BaseModel):
 
 class SavePortalConfigRequest(BaseModel):
     template_id: str = "executive-dark"
+    palette_index: int | None = None
     brand: BrandConfig = BrandConfig()
     theme: ThemeConfig = ThemeConfig()
     typography: TypographyConfig = TypographyConfig()
@@ -187,6 +188,7 @@ async def save_portal_config(
     portal_config = {
         "version": "2.0",
         "template_id": data.template_id,
+        "palette_index": data.palette_index,
         "brand": data.brand.model_dump(),
         "theme": data.theme.model_dump(),
         "typography": data.typography.model_dump(),

@@ -64,6 +64,58 @@ def _bridge_headers(config: MikrotikConfig) -> dict:
     return headers
 
 
+async def _bridge_post(tenant_id: str, path: str, payload: dict, db: AsyncSession) -> dict:
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "error": "No MikroTik config"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(f"{_bridge_url(config)}{path}", json=payload, headers=_bridge_headers(config))
+            if r.status_code == 200:
+                return {"success": True, "data": r.json()}
+            return {"success": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def _bridge_get(tenant_id: str, path: str, db: AsyncSession) -> dict:
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "error": "No MikroTik config"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{_bridge_url(config)}{path}", headers=_bridge_headers(config))
+            if r.status_code == 200:
+                return {"success": True, "data": r.json()}
+            return {"success": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+async def get_wireless_interfaces(tenant_id: str, db: AsyncSession) -> dict:
+    return await _bridge_get(tenant_id, "/interfaces/wireless", db)
+
+async def get_hotspot_hosts(tenant_id: str, db: AsyncSession) -> dict:
+    return await _bridge_get(tenant_id, "/hosts", db)
+
+async def stage_portal_file(tenant_id: str, content: str, path: str, db: AsyncSession) -> dict:
+    return await _bridge_post(tenant_id, "/file/stage", {"content": content, "path": path}, db)
+
+async def push_file_to_router(tenant_id: str, file_id: str, fetch_url: str, dst_path: str, db: AsyncSession) -> dict:
+    return await _bridge_post(tenant_id, "/file/push-to-router", {"file_id": file_id, "fetch_url": fetch_url, "dst_path": dst_path}, db)
+
+async def check_file_on_router(tenant_id: str, path: str, db: AsyncSession) -> dict:
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"exists": False, "error": "No MikroTik config"}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{_bridge_url(config)}/file/status/{path}", headers=_bridge_headers(config))
+            if r.status_code == 200:
+                return r.json()
+            return {"exists": False, "error": f"Bridge error {r.status_code}"}
+    except Exception as e:
+        return {"exists": False, "error": str(e)}
+
+
 async def check_mikrotik_connection(tenant_id: str, db: AsyncSession) -> dict:
     config = await _get_config(tenant_id, db)
     if not config:

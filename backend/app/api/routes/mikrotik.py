@@ -16,7 +16,7 @@ from app.models.admin_user import AdminUser
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import encrypt, decrypt
 from app.services.cloudflare_service import create_tunnel, create_dns_record, delete_tunnel
-from app.services.mikrotik_service import check_mikrotik_connection, get_active_users
+from app.services.mikrotik_service import check_mikrotik_connection, get_active_users, _bridge_url, _bridge_headers, get_wireless_interfaces, get_hotspot_hosts, stage_portal_file, push_file_to_router, check_file_on_router
 from app.models.tenant import Tenant
 
 
@@ -283,6 +283,278 @@ async def download_bridge():
     if not os.path.exists(bridge_path):
         raise HTTPException(status_code=404, detail="bridge.py not found on server")
     return FileResponse(bridge_path, filename="bridge.py", media_type="text/plain")
+
+
+# In-memory temp file store for portal file uploads
+_temp_file_store: dict[str, str] = {}
+
+# ── Wizard: Get wireless interfaces ─────────────────────────────────
+@router.get("/mikrotik/interfaces")
+async def get_wireless_ifaces(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    result = await get_wireless_interfaces(str(current_user.tenant_id), db)
+    return result.get("data", {"interfaces": []})
+
+
+# ── Wizard: Check subnet collision ──────────────────────────────────
+@router.get("/mikrotik/subnet-check")
+async def check_subnet(
+    octet: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Check if a subnet octet collides with existing networks on the router."""
+    config_result = await db.execute(select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id))
+    config = config_result.scalar_one_or_none()
+    if not config:
+        return {"available": True, "note": "No config — assuming available"}
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{_bridge_url(config)}/addresses", headers=_bridge_headers(config))
+            if r.status_code == 200:
+                addrs = r.json().get("addresses", [])
+                target = f"192.168.{octet}."
+                collision = any(target in a.get("address", "") for a in addrs)
+                return {"available": not collision, "conflicting": target if collision else None, "addresses": addrs[:10]}
+            return {"available": True}
+    except Exception:
+        return {"available": True}
+
+
+# ── Wizard: Generate parameterized script ───────────────────────────
+@router.post("/mikrotik/generate-script")
+async def generate_parameterized_script(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Generate a RouterOS .rsc script with user-provided parameters."""
+    from app.core.config import settings
+    body = await request.json()
+    ssid = body.get("ssid", "WiFi")
+    wifi_password = body.get("wifi_password", "")
+    network_octet = body.get("network_octet", 4)
+    wifi_interface = body.get("wifi_interface", "wlan1")
+    backend_host_override = body.get("backend_host", "")
+
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    slug = tenant.slug if tenant else "wibill"
+    name = tenant.name if tenant else "WiBill ISP"
+
+    config_result = await db.execute(select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id))
+    config = config_result.scalar_one_or_none()
+    if config and config.api_password_enc:
+        api_password = decrypt(config.api_password_enc)
+    else:
+        api_password = secrets.token_urlsafe(16)
+        if config:
+            config.api_password_enc = encrypt(api_password)
+            await db.commit()
+
+    backend_host = backend_host_override or (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
+
+    wifi_secure = ""
+    if wifi_password:
+        wifi_secure = f'/interface wireless security-profiles set [find default] authentication-types=wpa2-psk mode=dynamic-keys wpa2-pre-shared-key="{wifi_password}"'
+
+    script = f"""# ============================================================
+# WiBill Router Setup Script
+# ISP: {name}
+# Generated: auto
+# Paste into Winbox -> New Terminal -> Press Enter
+# ============================================================
+
+# 1. Create hotspot bridge
+/interface bridge add name=WiBillBridge comment="WiBill hotspot bridge"
+
+# 2. Assign IP to bridge
+/ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge comment="WiBill hotspot IP"
+
+# 3. Add WiFi interface to bridge
+/interface bridge port add bridge=WiBillBridge interface={wifi_interface}
+
+# 4. Set WiFi SSID
+/interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto
+{wifi_secure}
+
+# 5. Create IP pool for hotspot clients
+/ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254
+
+# 6. Create DHCP server on bridge
+/ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no
+/ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4
+
+# 7. Create hotspot on bridge
+/ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
+
+# 8. Configure hotspot profile
+/ip hotspot profile set [find name=hsprof1] addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
+
+# 9. Enable API service
+/ip service enable api
+/ip service set api port=8728 address=""
+
+# 10. Create WiBill API user
+/user add name=wibill-api password={api_password} group=full comment="WiBill API access"
+
+# 11. Walled garden (hostname-based)
+/ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
+/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
+
+# 12. Walled garden (IP-based - Railway)
+/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept comment="Allow Railway HTTPS"
+
+:log info "WiBill setup complete for {name}"
+"""
+    return PlainTextResponse(
+        content=script,
+        headers={"Content-Disposition": f'attachment; filename="wibill-{slug}-setup.rsc"'}
+    )
+
+
+# ── Wizard: Upload and push portal file to router ──────────────────
+@router.post("/mikrotik/upload-portal")
+async def upload_portal_file(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Accept login.html content, stage it, tell router to fetch it."""
+    from app.core.config import settings
+    body = await request.json()
+    html_content = body.get("html", "")
+    if not html_content:
+        raise HTTPException(status_code=400, detail="No HTML content provided")
+
+    # Stage file on bridge
+    stage = await stage_portal_file(str(current_user.tenant_id), html_content, "login.html", db)
+    if not stage.get("success"):
+        raise HTTPException(status_code=502, detail=stage.get("error", "Failed to stage file"))
+
+    file_id = stage["data"]["file_id"]
+    backend_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
+    fetch_url = f"{backend_base}/api/mikrotik/temp-portal/{file_id}"
+
+    # Store for serving
+    _temp_file_store[file_id] = html_content
+
+    # Tell router to fetch it
+    push = await push_file_to_router(str(current_user.tenant_id), file_id, fetch_url, "hotspot/login.html", db)
+    if not push.get("success"):
+        raise HTTPException(status_code=502, detail=push.get("error", "Failed to push file to router"))
+
+    return {"ok": True, "file_id": file_id, "fetch_url": fetch_url}
+
+
+# ── Wizard: Serve temp portal file for router fetch ───────────────
+@router.get("/mikrotik/temp-portal/{file_id}")
+async def serve_temp_portal(file_id: str):
+    content = _temp_file_store.get(file_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="File not found or expired")
+    return PlainTextResponse(content=content, media_type="text/html")
+
+
+# ── Wizard: Check file is on router ────────────────────────────────
+@router.get("/mikrotik/file-status")
+async def get_file_status(
+    path: str = "hotspot/login.html",
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    result = await check_file_on_router(str(current_user.tenant_id), path, db)
+    return result
+
+
+# ── Wizard: Poll hotspot hosts (Step 3 live detection) ────────────
+@router.get("/mikrotik/hosts")
+async def get_hotspot_hosts_endpoint(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    result = await get_hotspot_hosts(str(current_user.tenant_id), db)
+    return result.get("data", {"hosts": [], "active_count": 0})
+
+
+# ── Wizard: Pre-flight checks (Step 4) ────────────────────────────
+@router.get("/mikrotik/preflight")
+async def run_preflight_checks(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Run automated checks before going live."""
+    import httpx
+    checks = {}
+
+    config_result = await db.execute(select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id))
+    config = config_result.scalar_one_or_none()
+    if not config:
+        return {"checks": {"config": {"passed": False, "message": "No router configured"}}, "all_passed": False}
+
+    bridge_result = await check_mikrotik_connection(str(current_user.tenant_id), db)
+    checks["connection"] = {"passed": bool(bridge_result.get("connected")), "message": bridge_result.get("error", "Connected") if not bridge_result.get("connected") else "Router reachable"}
+
+    # Check walled garden rules
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{_bridge_url(config)}/walled-garden", headers=_bridge_headers(config))
+            if r.status_code == 200:
+                wg = r.json()
+                has_wildcard = any("0.0.0.0" in str(e.get("dst-address", "")) for e in wg.get("ip", []))
+                checks["walled_garden"] = {"passed": not has_wildcard, "message": "No blanket 0.0.0.0/0 rules" if not has_wildcard else "Blanket 0.0.0.0/0 rule detected"}
+            else:
+                checks["walled_garden"] = {"passed": False, "message": "Could not check"}
+    except Exception:
+        checks["walled_garden"] = {"passed": False, "message": "Could not reach bridge"}
+
+    # Check hotspot interface matches bridge
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{_bridge_url(config)}/hotspot", headers=_bridge_headers(config))
+            if r.status_code == 200:
+                hs = r.json()
+                servers = hs.get("servers", [])
+                if servers:
+                    s = servers[0]
+                    checks["hotspot_binding"] = {"passed": s.get("interface") == "WiBillBridge", "message": f"Hotspot on {s.get('interface')}"}
+                else:
+                    checks["hotspot_binding"] = {"passed": False, "message": "No hotspot server found"}
+            else:
+                checks["hotspot_binding"] = {"passed": False, "message": "Could not check"}
+    except Exception:
+        checks["hotspot_binding"] = {"passed": False, "message": "Could not reach bridge"}
+
+    # Check login.html exists
+    file_check = await check_file_on_router(str(current_user.tenant_id), "hotspot/login.html", db)
+    checks["portal_file"] = {"passed": file_check.get("exists", False), "message": "login.html found" if file_check.get("exists") else "login.html not found on router"}
+
+    # Check API password not default
+    try:
+        pwd = decrypt(config.api_password_enc)
+        checks["api_password"] = {"passed": pwd not in ["wibill12345555", "admin", "1234"], "message": "API password is secure" if pwd not in ["wibill12345555", "admin", "1234"] else "Using default/weak password"}
+    except Exception:
+        checks["api_password"] = {"passed": False, "message": "Could not check password"}
+
+    all_passed = all(c["passed"] for c in checks.values())
+    return {"checks": checks, "all_passed": all_passed}
+
+
+# ── Wizard: Go live ────────────────────────────────────────────────
+@router.post("/mikrotik/go-live")
+async def go_live(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    config_result = await db.execute(select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id))
+    config = config_result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=400, detail="No router configured")
+    config.status = "CONNECTED"
+    await db.commit()
+    return {"ok": True, "status": "CONNECTED", "message": "Router is live"}
 
 
 @router.get("/mikrotik/login-html")

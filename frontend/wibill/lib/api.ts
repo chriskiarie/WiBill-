@@ -186,19 +186,41 @@ export const api = {
        }
        return res.text()
      },
-    getMikrotikInstallScript: async () => {
+     getMikrotikInstallScript: async () => {
+        const token = getToken()
+        const res = await fetch(`${BASE}/api/mikrotik/install-script`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Failed to generate script' }))
+          throw new Error(err.detail || `HTTP ${res.status}`)
+        }
+        return res.text()
+      },
+    // ========================================================================
+    // MIKROTIK WIZARD API
+    // ========================================================================
+    getMikrotikInterfaces: () => request<any>('/api/mikrotik/interfaces'),
+    checkMikrotikSubnet: (octet: number) => request<any>(`/api/mikrotik/subnet-check?octet=${octet}`),
+    generateMikrotikScript: async (params: any) => {
        const token = getToken()
-       const res = await fetch(`${BASE}/api/mikrotik/install-script`, {
-         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+       const res = await fetch(`${BASE}/api/mikrotik/generate-script`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+         body: JSON.stringify(params),
        })
-       if (!res.ok) {
-         const err = await res.json().catch(() => ({ detail: 'Failed to generate script' }))
-         throw new Error(err.detail || `HTTP ${res.status}`)
-       }
+       if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Failed' })); throw new Error(err.detail) }
        return res.text()
      },
-    // ========================================================================
-    // MONTHLY SUBSCRIBERS
+    uploadPortalFile: (html: string) =>
+      request<any>('/api/mikrotik/upload-portal', { method: 'POST', body: JSON.stringify({ html }) }),
+    getMikrotikFileStatus: (path: string = 'hotspot/login.html') =>
+      request<any>(`/api/mikrotik/file-status?path=${encodeURIComponent(path)}`),
+    getMikrotikHosts: () => request<any>('/api/mikrotik/hosts'),
+    getMikrotikPreflight: () => request<any>('/api/mikrotik/preflight'),
+    goLiveMikrotik: () => request<any>('/api/mikrotik/go-live', { method: 'POST' }),
+     // ========================================================================
+     // MONTHLY SUBSCRIBERS
     // ========================================================================
     getSubscribers: (params?: { status?: string; client_type?: string; search?: string; skip?: number; limit?: number }) => {
       const q = new URLSearchParams()

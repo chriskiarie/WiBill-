@@ -224,13 +224,37 @@ export default function OnboardingWizard() {
       const token = localStorage.getItem('wb_token');
       if (!token) throw new Error('No auth token');
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const snaps = STYLE_PRESETS.find(sp => sp.p === S.palette);
       const res = await fetch(`${apiBase}/api/portal-config`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          template_id: S.tpl, palette_index: S.palette, font_family: S.font,
-          name: S.name, tagline: S.tag, location: S.loc, emoji: S.emoji, support_phone: S.phone,
-          enabled_features: { mpesa_stk: S.feats.mpesa, vouchers: S.feats.voucher, sms_receipts: S.feats.sms },
+          template_id: S.tpl,
+          palette_index: S.palette,
+          brand: { name: S.name, tagline: S.tag, location: S.loc, emoji: S.emoji, support_phone: S.phone, logo_url: null },
+          theme: {
+            primary_color: snaps?.hd || '#5b4fff',
+            secondary_color: snaps?.bg || '#0c0c1a',
+            accent_color: snaps?.ac || '#5b4fff',
+            background_type: 'solid', background_value: snaps?.bg || '#0c0c1a',
+            gradient: null, background_url: null,
+            overlay_opacity: 0.4, overlay_color: '#000000',
+            button_style: 'rounded', button_gradient: null,
+          },
+          typography: { font_family: S.font, heading_size: 36, body_size: 16, font_weight: 600, letter_spacing: 0.5, heading_case: 'normal' },
+          card: { style: 'glass', radius: 16, elevation: 0, size: 'compact' },
+          layout: { sections: ['hero', 'logo', 'packages', 'footer'], banner_position: 'top' },
+          components: {
+            hero: true, logo: true, welcome_text: true, packages: true,
+            promo_banner: S.feats.announcement, countdown: false, reviews: false,
+            qr_code: false, social_links: false, faq: false,
+            terms: true, footer: true,
+            saved_number_login: S.feats.login, session_timer: S.feats.countdown,
+            terms_checkbox: S.feats.termsCheck, share_button: S.feats.shareButton,
+          },
+          animations: { entrance: 'fade-in', floating_logo: false, particles: false, pulse_button: false, ripple: false },
+          network_awareness: { show_status_banner: false, custom_status_message: '' },
+          enabled_features: { mpesa_stk: S.feats.mpesa, card_payments: false, vouchers: S.feats.voucher, sms_receipts: S.feats.sms },
         }),
       });
       if (!res.ok) throw new Error('Save failed');

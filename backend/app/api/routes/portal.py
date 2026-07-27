@@ -312,15 +312,30 @@ async def get_live_portal(
     brand = tenant.portal_config.get('brand', {})
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
     network = tenant.portal_config.get('network_awareness', {})
-    design = tenant.portal_config.get('design', {})
+    theme = tenant.portal_config.get('theme', {})
+    typography = tenant.portal_config.get('typography', {})
+    card = tenant.portal_config.get('card', {})
     
-    # Validate palette index
+    # Resolve palette index — stored directly, or match by primary color, or default 0
+    palette_idx = tenant.portal_config.get('palette_index')
+    if palette_idx is None:
+        try:
+            pc = (theme.get('primary_color') or '').lower()
+            for i, p in enumerate(PALETTES):
+                if p['primary'].lower() == pc:
+                    palette_idx = i
+                    break
+        except:
+            pass
     try:
-        palette_idx = int(design.get('palette_index', 0))
+        palette_idx = int(palette_idx) if palette_idx is not None else 0
         if palette_idx < 0 or palette_idx >= len(PALETTES):
             palette_idx = 0
     except:
         palette_idx = 0
+
+    font = typography.get('font_family') or 'Syne'
+    radius = f"{card.get('radius', 16)}px" if card.get('radius') else '16px'
 
     # Build rendering context
     context = {
@@ -330,9 +345,9 @@ async def get_live_portal(
         'network_status': network.get('custom_status_message', '✅ Network is online'),
         'status_message': network.get('custom_status_message', '✅ Network is online'),
         'palette': PALETTES[palette_idx],
-        'font': design.get('font_family', 'Syne'),
-        'radius': design.get('card_radius', '16px'),
-        'design': design
+        'font': font,
+        'radius': radius,
+        'design': { 'font_family': font, 'card_radius': radius, 'palette_index': palette_idx }
     }
     
     try:
@@ -408,21 +423,41 @@ async def seed_portal_for_slug(
 
     default_config = {
         "template_id": "dashboard",
-        "version": "1.0",
+        "version": "2.0",
+        "palette_index": 0,
         "brand": {
             "name": tenant.name,
             "emoji": "\U0001f4e1",
             "tagline": f"Fast, reliable internet by {tenant.name}",
             "location": "Nairobi, Kenya",
             "support_phone": "+254 700 123 456",
-            "support_number": "+254 700 123 456",
         },
-        "design": {
-            "palette_index": 0,
+        "theme": {
+            "primary_color": "#5b4fff",
+            "secondary_color": "#0c0c1a",
+            "accent_color": "#5b4fff",
+            "background_type": "solid",
+            "background_value": "#0c0c1a",
+            "gradient": None, "background_url": None,
+            "overlay_opacity": 0.4, "overlay_color": "#000000",
+            "button_style": "rounded", "button_gradient": None,
+        },
+        "typography": {
             "font_family": "Syne",
-            "card_radius": "16px",
-            "layout_size": "compact",
+            "heading_size": 36, "body_size": 16,
+            "font_weight": 600, "letter_spacing": 0.5,
+            "heading_case": "normal",
         },
+        "card": { "style": "glass", "radius": 16, "elevation": 0, "size": "compact" },
+        "layout": { "sections": ["hero", "logo", "packages", "footer"], "banner_position": "top" },
+        "components": {
+            "hero": True, "logo": True, "welcome_text": True, "packages": True,
+            "promo_banner": False, "countdown": False, "reviews": False,
+            "qr_code": False, "social_links": False, "faq": False,
+            "terms": True, "footer": True, "saved_number_login": True,
+            "session_timer": True, "terms_checkbox": True, "share_button": False,
+        },
+        "animations": { "entrance": "fade-in", "floating_logo": False, "particles": False, "pulse_button": False, "ripple": False },
         "network_awareness": {
             "show_status_banner": True,
             "custom_status_message": "\u2705 Network is online and stable",
