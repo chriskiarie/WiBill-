@@ -60,6 +60,8 @@ class BrandConfig(BaseModel):
     emoji: str = "📶"
     support_phone: str = ""
     logo_url: str | None = None
+    hero_title: str = ""
+    section_heading: str = ""
 
 
 class LayoutConfig(BaseModel):

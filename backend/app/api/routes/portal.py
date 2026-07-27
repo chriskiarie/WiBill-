@@ -137,6 +137,9 @@ async def preview_portal(template_id: str, request: Request):
         "tagline": params.get("tag", DEMO_BRAND["tagline"]),
         "location": params.get("loc", DEMO_BRAND["location"]),
         "support_phone": params.get("phone", DEMO_BRAND["support_phone"]),
+        "logo_url": params.get("logo_url"),
+        "hero_title": params.get("hero_title", "Choose Your Plan"),
+        "section_heading": params.get("section_heading", "Internet Packages"),
     }
 
     # 4. Parse Network Status

@@ -389,7 +389,7 @@
     <div class="split">
         <div class="lp">
             <div class="lp-brand">
-                <div class="lp-logo" id="b-logo">{{ brand.emoji or '📡' }}</div>
+                <div class="lp-logo" id="b-logo">{% if brand.logo_url %}<img src="{{ brand.logo_url }}" alt="{{ brand.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ brand.emoji or '📡' }}{% endif %}</div>
                 <h1 class="lp-name" id="b-name">{{ brand.name or 'WiFi Portal' }}</h1>
                 <p class="lp-tag" id="b-tag">{{ brand.tagline or 'Fast, reliable internet' }}</p>
                 {% if brand.location %}<p class="lp-loc">📍 {{ brand.location }}</p>{% endif %}
