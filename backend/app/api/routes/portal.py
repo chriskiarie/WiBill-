@@ -126,7 +126,12 @@ async def preview_portal(template_id: str, request: Request):
     except:
         palette_idx = 0
 
-    palette = PALETTES[palette_idx]
+    palette = dict(PALETTES[palette_idx])
+    # Allow individual color overrides from raw color pickers
+    for key, qp in [('primary','primary'), ('bg','secondary'), ('accent','accent')]:
+        val = params.get(qp)
+        if val:
+            palette[key] = val
     font_family = params.get("font", "Syne")
     card_radius = params.get("shape", "16px")
 
@@ -137,6 +142,7 @@ async def preview_portal(template_id: str, request: Request):
         "tagline": params.get("tag", DEMO_BRAND["tagline"]),
         "location": params.get("loc", DEMO_BRAND["location"]),
         "support_phone": params.get("phone", DEMO_BRAND["support_phone"]),
+        "support_number": params.get("phone", DEMO_BRAND["support_phone"]),  # alias for templates
         "logo_url": params.get("logo_url"),
         "hero_title": params.get("hero_title", "Choose Your Plan"),
         "section_heading": params.get("section_heading", "Internet Packages"),
@@ -312,8 +318,10 @@ async def get_live_portal(
         packages_data = DEMO_PACKAGES
     
     # Prepare context from tenant's portal_config; inject slug for JS URLs
-    brand = tenant.portal_config.get('brand', {})
+    brand = dict(tenant.portal_config.get('brand', {}))
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
+    if 'support_phone' in brand and 'support_number' not in brand:
+        brand['support_number'] = brand['support_phone']
     network = tenant.portal_config.get('network_awareness', {})
     theme = tenant.portal_config.get('theme', {})
     typography = tenant.portal_config.get('typography', {})
@@ -340,14 +348,19 @@ async def get_live_portal(
     font = typography.get('font_family') or 'Syne'
     radius = f"{card.get('radius', 16)}px" if card.get('radius') else '16px'
 
-    # Build rendering context
+    # Build palette, with overrides from custom theme colors
+    palette = dict(PALETTES[palette_idx])
+    if theme.get('primary_color'): palette['primary'] = theme['primary_color']
+    if theme.get('secondary_color'): palette['bg'] = theme['secondary_color']
+    if theme.get('accent_color'): palette['accent'] = theme['accent_color']
+
     context = {
         'brand': brand,
         'packages': packages_data,
         'network_up': network.get('show_status_banner', True),
         'network_status': network.get('custom_status_message', '✅ Network is online'),
         'status_message': network.get('custom_status_message', '✅ Network is online'),
-        'palette': PALETTES[palette_idx],
+        'palette': palette,
         'font': font,
         'radius': radius,
         'design': { 'font_family': font, 'card_radius': radius, 'palette_index': palette_idx }

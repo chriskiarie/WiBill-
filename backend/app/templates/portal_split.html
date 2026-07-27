@@ -21,13 +21,20 @@
         ];
         var p=new URLSearchParams(window.location.search);
         var r=document.documentElement;
-        var i=parseInt(p.get('palette'));
-        if(!isNaN(i)&&palettes[i]){
-            var c=palettes[i];
-            r.style.setProperty('--bg',c.bg);r.style.setProperty('--surface',c.card);
-            r.style.setProperty('--border',c.cardBorder);r.style.setProperty('--text',c.text);
-            r.style.setProperty('--dim',c.textDim);r.style.setProperty('--accent',c.primary);
-            r.style.setProperty('--accent2',c.primaryDark);
+        var pi=p.get('palette'),pri=p.get('primary'),sec=p.get('secondary'),ac=p.get('accent');
+        if(pri||sec||ac){
+            if(pri){r.style.setProperty('--accent',pri);r.style.setProperty('--accent2',pri)}
+            if(!pri&&ac){r.style.setProperty('--accent2',ac)}
+            if(sec)r.style.setProperty('--bg',sec);
+        }else if(pi){
+            var i=parseInt(pi);
+            if(!isNaN(i)&&palettes[i]){
+                var c=palettes[i];
+                r.style.setProperty('--bg',c.bg);r.style.setProperty('--surface',c.card);
+                r.style.setProperty('--border',c.cardBorder);r.style.setProperty('--text',c.text);
+                r.style.setProperty('--dim',c.textDim);r.style.setProperty('--accent',c.primary);
+                r.style.setProperty('--accent2',c.primaryDark);
+            }
         }
         var bgImg=p.get('bgimg');
         if(bgImg){

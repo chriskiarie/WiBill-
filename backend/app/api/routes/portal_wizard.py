@@ -59,6 +59,7 @@ class BrandConfig(BaseModel):
     location: str = ""
     emoji: str = "📶"
     support_phone: str = ""
+    support_number: str = ""
     logo_url: str | None = None
     hero_title: str = ""
     section_heading: str = ""
@@ -187,11 +188,14 @@ async def save_portal_config(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
+    brand_data = data.brand.model_dump()
+    if not brand_data.get('support_number') and brand_data.get('support_phone'):
+        brand_data['support_number'] = brand_data['support_phone']
     portal_config = {
         "version": "2.0",
         "template_id": data.template_id,
         "palette_index": data.palette_index,
-        "brand": data.brand.model_dump(),
+        "brand": brand_data,
         "theme": data.theme.model_dump(),
         "typography": data.typography.model_dump(),
         "card": data.card.model_dump(),

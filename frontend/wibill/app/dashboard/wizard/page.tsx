@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import {
@@ -40,13 +40,16 @@ const MAIN_TEMPLATES = [
   { id:'bento', label:'Bento', desc:'Asymmetric · Apple-style', icon: LayoutTemplate },
 ]
 
-const BRAND_ICONS: { name: string; comp: any }[] = [
-  { name: 'Wifi', comp: Wifi }, { name: 'Signal', comp: Signal }, { name: 'Radio', comp: Radio },
-  { name: 'Globe', comp: Globe }, { name: 'Server', comp: Server }, { name: 'Antenna', comp: Antenna },
-  { name: 'Network', comp: Network }, { name: 'Router', comp: Router }, { name: 'Satellite', comp: Activity },
-  { name: 'Laptop', comp: Laptop }, { name: 'Smartphone', comp: Smartphone }, { name: 'Tablet', comp: Tablet },
-  { name: 'Tv', comp: Tv }, { name: 'WifiHigh', comp: WifiHigh }, { name: 'Monitor', comp: MonitorSmartphone },
-  { name: 'Star', comp: Star }, { name: 'Crown', comp: Crown }, { name: 'Zap', comp: Activity },
+const BRAND_ICONS: { name: string; comp: any; emoji: string }[] = [
+  { name: 'Wifi', comp: Wifi, emoji: '📶' }, { name: 'Signal', comp: Signal, emoji: '📡' },
+  { name: 'Radio', comp: Radio, emoji: '📻' }, { name: 'Globe', comp: Globe, emoji: '🌐' },
+  { name: 'Server', comp: Server, emoji: '🖥️' }, { name: 'Antenna', comp: Antenna, emoji: '📡' },
+  { name: 'Network', comp: Network, emoji: '🔗' }, { name: 'Router', comp: Router, emoji: '📶' },
+  { name: 'Activity', comp: Activity, emoji: '📊' }, { name: 'Laptop', comp: Laptop, emoji: '💻' },
+  { name: 'Smartphone', comp: Smartphone, emoji: '📱' }, { name: 'Tablet', comp: Tablet, emoji: '📱' },
+  { name: 'Tv', comp: Tv, emoji: '📺' }, { name: 'WifiHigh', comp: WifiHigh, emoji: '📶' },
+  { name: 'Monitor', comp: MonitorSmartphone, emoji: '🖥️' }, { name: 'Star', comp: Star, emoji: '⭐' },
+  { name: 'Crown', comp: Crown, emoji: '👑' }, { name: 'Bolt', comp: Activity, emoji: '⚡' },
 ]
 
 const FONT_CATEGORIES: Record<string, { name: string; fonts: { family: string; preview: string }[] }> = {
@@ -118,6 +121,7 @@ export default function PortalWizard() {
   const [secondaryColor, setSecondaryColor] = useState('#0c0c1a')
   const [accentColor, setAccentColor] = useState('#5b4fff')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [selectedIcon, setSelectedIcon] = useState<any>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -125,12 +129,13 @@ export default function PortalWizard() {
   const [snapshots, setSnapshots] = useState<any[]>([])
   const [toastMsg, setToastMsg] = useState('')
   const [loadingConfig, setLoadingConfig] = useState(true)
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200) }
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
 
-  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}`
+  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}`
 
   useEffect(() => {
     const savedToken = localStorage.getItem('wb_token')
@@ -151,22 +156,26 @@ export default function PortalWizard() {
             const pc = data.portal_config
             if (pc.template_id) setTpl(pc.template_id)
             if (pc.brand) {
-              if (pc.brand.name) setName(pc.brand.name)
-              if (pc.brand.tagline) setTagline(pc.brand.tagline)
-              if (pc.brand.location) setLocation(pc.brand.location)
-              if (pc.brand.emoji) setEmoji(pc.brand.emoji)
-              if (pc.brand.support_phone) setPhone(pc.brand.support_phone)
-              if (pc.brand.logo_url) setLogoUrl(pc.brand.logo_url)
-              if (pc.brand.hero_title) setHeroTitle(pc.brand.hero_title)
-              if (pc.brand.section_heading) setSectionHeading(pc.brand.section_heading)
+              if (pc.brand.name !== undefined) setName(pc.brand.name)
+              if (pc.brand.tagline !== undefined) setTagline(pc.brand.tagline)
+              if (pc.brand.location !== undefined) setLocation(pc.brand.location)
+              if (pc.brand.emoji !== undefined && pc.brand.emoji !== null) setEmoji(pc.brand.emoji)
+              if (pc.brand.support_phone !== undefined) setPhone(pc.brand.support_phone)
+              if (pc.brand.logo_url !== undefined) setLogoUrl(pc.brand.logo_url)
+              if (pc.brand.hero_title !== undefined) setHeroTitle(pc.brand.hero_title)
+              if (pc.brand.section_heading !== undefined) setSectionHeading(pc.brand.section_heading)
             }
             if (pc.typography?.font_family) setFont(pc.typography.font_family)
             if (pc.theme) {
               if (pc.theme.primary_color) setPrimaryColor(pc.theme.primary_color)
               if (pc.theme.secondary_color) setSecondaryColor(pc.theme.secondary_color)
               if (pc.theme.accent_color) setAccentColor(pc.theme.accent_color)
+            }
+            if (pc.palette_index !== null && pc.palette_index !== undefined) {
+              setPalette(pc.palette_index)
+            } else if (pc.theme?.primary_color) {
               const match = STYLE_PRESETS.find(sp => sp.hd.toLowerCase() === pc.theme.primary_color.toLowerCase())
-              if (match) { setPalette(match.p); setFont(pc.typography?.font_family || match.f) }
+              if (match) setPalette(match.p)
             }
           }
         }
@@ -191,9 +200,10 @@ export default function PortalWizard() {
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe) return
+    setPreviewLoading(true)
     const timer = setTimeout(() => {
       iframe.src = previewUrl
-    }, 150)
+    }, 200)
     return () => clearTimeout(timer)
   }, [previewKey])
 
@@ -412,6 +422,10 @@ export default function PortalWizard() {
                   <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', marginBottom: 2, background: '#000' }}>
                     <img src={logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Logo" />
                   </div>
+                ) : selectedIcon ? (
+                  <div style={{ width: 48, height: 48, borderRadius: 10, marginBottom: 2, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {React.createElement(selectedIcon, { size: 24, color: '#e8e6ff' })}
+                  </div>
                 ) : (
                   <div style={{ fontSize: 30, lineHeight: 1, marginBottom: 2 }}>{emoji || '📡'}</div>
                 )}
@@ -454,9 +468,9 @@ export default function PortalWizard() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 5, marginBottom: 10 }}>
                 {BRAND_ICONS.map(ic => {
                   const IconComp = ic.comp
-                  const active = !logoUrl && emoji === ic.name
+                  const active = !logoUrl && emoji === ic.emoji
                   return (
-                    <button key={ic.name} onClick={() => { setEmoji(ic.name); setLogoUrl(null) }} style={{
+                    <button key={ic.name} onClick={() => { setEmoji(ic.emoji); setSelectedIcon(() => ic.comp); setLogoUrl(null) }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: active ? '1px solid #E8B84B' : '1px solid #141414',
                       background: active ? 'rgba(232,184,75,0.1)' : '#000', cursor: 'pointer',
@@ -478,7 +492,7 @@ export default function PortalWizard() {
                   {uploading ? 'Uploading...' : 'Upload Logo'}
                 </button>
                 {logoUrl && (
-                  <button onClick={() => setLogoUrl(null)} style={{
+                  <button onClick={() => { setLogoUrl(null); setSelectedIcon(null); setEmoji('📡') }} style={{
                     padding: '10px 14px', borderRadius: 9, border: '1px solid #ef4444',
                     background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', fontSize: 11,
                     fontFamily: 'Inter, sans-serif',
@@ -505,16 +519,16 @@ export default function PortalWizard() {
                       const url = data.asset?.url
                       if (url) {
                         setLogoUrl(url)
-                        setEmoji('')
+                        setEmoji(''); setSelectedIcon(null)
                       } else {
                         const fallback = URL.createObjectURL(file)
                         setLogoUrl(fallback)
-                        setEmoji('')
+                        setEmoji(''); setSelectedIcon(null)
                       }
                     } else {
                       const fallback = URL.createObjectURL(file)
                       setLogoUrl(fallback)
-                      setEmoji('')
+                      setEmoji(''); setSelectedIcon(null)
                     }
                   } catch {
                     const fallback = URL.createObjectURL(file)
@@ -575,7 +589,7 @@ export default function PortalWizard() {
                 {STYLE_PRESETS.map(sp => {
                   const active = palette === sp.p
                   return (
-                    <button key={sp.p} onClick={() => { setPalette(sp.p); setFont(sp.f); setPrimaryColor(sp.hd); setSecondaryColor(sp.bg); setAccentColor(sp.ac) }} style={{
+                    <button key={sp.p} onClick={() => { setPalette(sp.p); setPrimaryColor(sp.hd); setSecondaryColor(sp.bg); setAccentColor(sp.ac) }} style={{
                       border: active ? '1px solid #fff' : '1px solid #1a1a1a',
                       borderRadius: 12, padding: 12, cursor: 'pointer', textAlign: 'center',
                       background: active ? '#0a0a0a' : '#050505',
@@ -684,10 +698,10 @@ export default function PortalWizard() {
         </div>
       </div>
 
-      {/* Right: Phone Preview — uses backend endpoint for full brand rendering */}
+      {/* Right: Phone Preview */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0', animation: 'slideUp 0.3s ease' }} key={previewKey}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0' }}>
             {sel?.label || 'Portal'} — {snaps?.n || 'Custom'}
           </span>
         </div>
@@ -702,10 +716,25 @@ export default function PortalWizard() {
               border: '1px solid #2a2a2a',
             }} />
             <div style={{ width: 336, height: 700, borderRadius: 32, overflow: 'hidden', background: '#000', position: 'relative' }}>
-              <div style={{ width: 375, height: 812, transformOrigin: 'top left', transform: 'scale(0.896)' }}>
-                <iframe key={previewKey} ref={iframeRef} src={previewUrl}
-                  style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                  title="Portal Preview" />
+              {previewLoading && (
+                <div style={{
+                  position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 12,
+                  background: '#000', borderRadius: 32,
+                }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', animation: 'spin 0.8s linear infinite' }} />
+                  <div style={{ fontSize: 10, color: '#555' }}>Updating preview...</div>
+                </div>
+              )}
+              <div style={{ width: 323, height: 700, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
+                {React.createElement('iframe', {
+                  key: previewKey,
+                  ref: iframeRef,
+                  src: previewUrl,
+                  onLoad: () => setPreviewLoading(false),
+                  style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.862)', transformOrigin: 'top left' },
+                  title: 'Portal Preview',
+                })}
               </div>
             </div>
             <div style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
