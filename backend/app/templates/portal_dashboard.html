@@ -3,1589 +3,731 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if brand %}{{ brand.name }}{% else %}Dashboard Portal{% endif %} - WiFi Access</title>
+    <title>{% if brand %}{{ brand.name }}{% else %}Portal{% endif %} - WiFi Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    {% if font %}
-    <link href="https://fonts.googleapis.com/css2?family={{ font|replace(' ', '+') }}:wght@400;500;600;700&display=swap" rel="stylesheet">
-    {% else %}
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
-    {% endif %}
+    <link id="gfont" href="https://fonts.googleapis.com/css2?family={{ (font or 'Inter')|replace(' ', '+') }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+    (function(){
+        var palettes=[
+            {bg:"#0c0c1a",card:"rgba(255,255,255,.06)",cardBorder:"rgba(255,255,255,.12)",text:"#e8e6ff",textDim:"rgba(232,230,255,.5)",primary:"#5b4fff",primaryDark:"rgba(91,79,255,.6)"},
+            {bg:"#fff7ed",card:"#ffffff",cardBorder:"#fed7aa",text:"#431407",textDim:"#a1520b",primary:"#f97316",primaryDark:"#f97316"},
+            {bg:"#f0f9ff",card:"#ffffff",cardBorder:"#bae6fd",text:"#0c4a6e",textDim:"#0369a1",primary:"#0ea5e9",primaryDark:"#0c4a6e"},
+            {bg:"#052e16",card:"rgba(255,255,255,.07)",cardBorder:"rgba(134,239,172,.15)",text:"#dcfce7",textDim:"rgba(220,252,231,.5)",primary:"#16a34a",primaryDark:"rgba(134,239,172,.5)"},
+            {bg:"#fff1f2",card:"#ffffff",cardBorder:"#fecdd3",text:"#4c0519",textDim:"#881337",primary:"#f43f5e",primaryDark:"#f43f5e"},
+            {bg:"#f8fafc",card:"#ffffff",cardBorder:"#e2e8f0",text:"#0f172a",textDim:"#64748b",primary:"#1e293b",primaryDark:"#1e293b"},
+            {bg:"#fffbeb",card:"#ffffff",cardBorder:"#fde68a",text:"#451a03",textDim:"#92400e",primary:"#b45309",primaryDark:"#d97706"},
+            {bg:"#faf5ff",card:"#ffffff",cardBorder:"#ddd6fe",text:"#2e1065",textDim:"#6d28d9",primary:"#7c3aed",primaryDark:"#7c3aed"}
+        ];
+        var p=new URLSearchParams(window.location.search);
+        var r=document.documentElement;
+        // Palette
+        var i=parseInt(p.get('palette'));
+        if(!isNaN(i)&&palettes[i]){
+            var c=palettes[i];
+            r.style.setProperty('--bg',c.bg);r.style.setProperty('--surface',c.card);
+            r.style.setProperty('--border',c.cardBorder);r.style.setProperty('--text',c.text);
+            r.style.setProperty('--dim',c.textDim);r.style.setProperty('--accent',c.primary);
+            r.style.setProperty('--accent2',c.primaryDark);
+        }
+        // Background image
+        var bgImg=p.get('bgimg');
+        if(bgImg){
+            r.style.setProperty('--bg-img','url('+decodeURIComponent(bgImg)+')');
+            r.style.setProperty('--show-bg','1');
+            document.body.classList.add('has-bg');
+        }
+        var blur=p.get('blur');
+        if(blur!==null)r.style.setProperty('--ov-blur',blur+'px');
+        else r.style.setProperty('--ov-blur','0px');
+        // Font
+        var fn=p.get('font');
+        if(fn){
+            var link=document.getElementById('gfont');
+            if(link)link.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(fn)+':wght@400;500;600;700;800&display=swap';
+            r.style.setProperty('--f',"'"+fn+"',system-ui,sans-serif");
+        }
+    })();
+    </script>
     <style>
         :root {
-            --bg-primary: {{ palette.bg }};
-            --bg-secondary: {{ palette.card }};
-            --text-primary: {{ palette.text }};
-            --text-secondary: {{ palette.textDim }};
-            --accent-primary: {{ palette.primary }};
-            --accent-secondary: {{ palette.primaryDark }};
-            --success: #10b981;
-            --error: #ef4444;
-            --radius: {{ radius }};
-            --spacing-xs: 0.5rem;
-            --spacing-sm: 1rem;
-            --spacing-md: 1.5rem;
-            --spacing-lg: 2rem;
-            --spacing-xl: 3rem;
-            --font-display: '{{ font }}', sans-serif;
-            --font-body: '{{ font }}', sans-serif;
-            --heading-size: 2rem;
-            --body-size: 1rem;
-            --font-weight: 600;
-            --letter-spacing: 0;
-            --card-padding: 16px 20px;
-            --btn-radius: 10px;
-            --overlay-opacity: 0.4;
-            --overlay-color: #000000;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg: {{ palette.bg }};
+            --surface: {{ palette.card }};
+            --border: {{ palette.cardBorder }};
+            --text: {{ palette.text }};
+            --dim: {{ palette.textDim }};
+            --accent: {{ palette.primary }};
+            --accent2: {{ palette.primaryDark }};
+            --white: #fff;
+            --ok: #10b981;
+            --ok-bg: rgba(16,185,129,.12);
+            --err: #ef4444;
+            --err-bg: rgba(239,68,68,.12);
+            --r: {{ radius }};
+            --f: '{{ font or "Inter" }}', system-ui, sans-serif;
+            --bg-img: none;
+            --show-bg: 0;
+            --ov-blur: 0px;
         }
-
-        .btn-primary {
-            background: var(--accent-primary);
-            color: #fff;
-            border: none;
-            border-radius: var(--btn-radius);
-            padding: 0.7rem 1.8rem;
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: var(--transition);
-            letter-spacing: 0.02em;
-        }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        .package-item.card-glass {
-            background: rgba(255,255,255,0.03);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        .package-item.card-outline {
-            background: transparent;
-            border: 1.5px solid var(--accent-primary);
-            backdrop-filter: none;
-        }
-        .package-item.card-minimal {
-            background: var(--bg-secondary);
-            border: none;
-            backdrop-filter: none;
-        }
-        .package-item.card-floating {
-            background: var(--bg-secondary);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            border: none;
-            transform: translateY(-2px);
-        }
-        .package-item.card-sharp {
-            background: var(--bg-secondary);
-            border-radius: 2px;
-            border: 1px solid rgba(255,255,255,0.06);
-            backdrop-filter: none;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            font-size: 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        body {
-            background: var(--bg-primary);
-            background-image: 
-                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 0);
-            background-size: 40px 40px;
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            line-height: 1.6;
-            min-height: 100vh;
-            overflow-x: hidden;
-            position: relative;
-        }
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        html{font-size:16px;-webkit-font-smoothing:antialiased}
+        body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
         body::before {
-            content: '';
-            position: fixed;
-            top: -20%;
-            right: -10%;
-            width: 700px;
-            height: 700px;
-            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
-            opacity: 0.08;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: float 8s ease-in-out infinite;
-            z-index: 0;
-            filter: blur(60px);
+            content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:
+                radial-gradient(circle at 20% 15%,rgba({{ palette.primary }},.07) 0%,transparent 50%),
+                radial-gradient(circle at 80% 85%,rgba({{ palette.primary }},.05) 0%,transparent 50%);
         }
-
+        /* Background image */
         body::after {
-            content: '';
-            position: fixed;
-            bottom: -15%;
-            left: -5%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
-            opacity: 0.06;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: float 10s ease-in-out infinite reverse;
-            z-index: 0;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-40px); }
-        }
-
-        .network-banner {
-            position: relative;
-            z-index: 20;
-            width: 100%;
-            padding: 0.85rem var(--spacing-lg);
-            background: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            color: #059669;
-            text-align: center;
-            font-size: 0.9rem;
-            font-weight: 500;
-            letter-spacing: 0.01em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .network-banner.offline {
-            background: rgba(239, 68, 68, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
-        }
-
-        .network-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .network-banner.offline .network-status-dot {
-            background: #ef4444;
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
-        }
-
-        .dashboard-topbar {
-            position: sticky;
-            top: 0;
-            z-index: 19;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
-            padding: 1rem var(--spacing-lg);
-        }
-
-        .topbar-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1400px;
-            margin: 0 auto;
-            gap: var(--spacing-lg);
-        }
-
-        .brand-header {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            flex: 1;
-            min-width: 0;
-        }
-
-        .brand-icon {
-            font-size: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: calc(var(--radius) * 0.75);
-            color: white;
-            font-weight: 700;
-            flex-shrink: 0;
-            box-shadow: var(--shadow-md);
-        }
-
-        .brand-info h2 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            margin: 0;
-            color: var(--text-primary);
-        }
-
-        .brand-info p {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin: 0.25rem 0 0 0;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-weight: 600;
-        }
-
-        .topbar-status {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.85rem;
-            padding: 0.5rem 0.9rem;
-            background: var(--bg-secondary);
-            border-radius: calc(var(--radius) * 0.5);
-            color: var(--text-secondary);
-            font-weight: 500;
-            white-space: nowrap;
-            transition: var(--transition);
-        }
-
-        .status-item:hover {
-            background: var(--accent-primary);
-            color: white;
-        }
-
-        .status-indicator {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
-        }
-
-        .status-indicator.offline {
-            background: var(--error);
-            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
-        }
-
-        .dashboard-container {
-            position: relative;
-            z-index: 1;
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: var(--spacing-lg);
-            padding: var(--spacing-lg);
-            max-width: 1400px;
-            margin: 0 auto;
-            min-height: calc(100vh - 180px);
-        }
-
-        .dashboard-sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .sidebar-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-radius: var(--radius);
-            padding: var(--spacing-md);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-            transition: var(--transition);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .sidebar-card:hover {
-            box-shadow: var(--shadow-md);
-        }
-
-        .sidebar-section-title {
-            font-family: var(--font-display);
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--accent-primary);
-            margin-bottom: var(--spacing-sm);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .sidebar-section-title::before {
-            content: '•';
-            font-size: 1.5rem;
-            line-height: 1;
-        }
-
-        .sidebar-info {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-sm);
-            line-height: 1.5;
-        }
-
-        .sidebar-info:last-child {
-            margin-bottom: 0;
-        }
-
-        .sidebar-info strong {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .sidebar-info a {
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-
-        .sidebar-info a:hover {
-            color: var(--accent-secondary);
-        }
-
-        .sidebar-badge {
-            margin-top: var(--spacing-md);
-            padding: 0.6rem 0.9rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: calc(var(--radius) * 0.5);
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-align: center;
-            letter-spacing: 0.05em;
-        }
-
-        .dashboard-content {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-lg);
-        }
-
-        .content-header {
-            text-align: left;
-        }
-
-        .content-header h1 {
-            font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin: 0 0 0.5rem 0;
-            color: var(--text-primary);
-        }
-
-        .content-header p {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            margin: 0;
-        }
-
-        .packages-list {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .package-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: var(--spacing-md);
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            padding: var(--spacing-md);
-            border-radius: var(--radius);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .package-item.featured {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1.5px solid var(--accent-primary);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(0, 0, 0, 0.05);
-        }
-
-        .package-item:hover {
-            box-shadow: var(--shadow-md);
-            transform: translateY(-2px);
-        }
-
-        .featured-badge {
-            position: absolute;
-            top: -12px;
-            right: 1.5rem;
-            padding: 0.4rem 1rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: var(--shadow-md);
-        }
-
-        .package-left {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-md);
-            flex: 1;
-            min-width: 0;
-        }
-
-        .package-icon {
-            font-size: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: calc(var(--radius) * 0.75);
-            flex-shrink: 0;
-            box-shadow: var(--shadow-md);
-        }
-
-        .package-details {
-            min-width: 0;
-        }
-
-        .package-details h3 {
-            font-family: var(--font-display);
-            font-size: 1.15rem;
-            font-weight: 700;
-            margin: 0 0 0.25rem 0;
-            color: var(--text-primary);
-        }
-
-        .package-meta {
-            display: flex;
-            gap: var(--spacing-md);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .package-right {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-lg);
-            flex-shrink: 0;
-        }
-
-        .package-price {
-            text-align: right;
-        }
-
-        .price-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-
-        .price-amount {
-            font-family: var(--font-display);
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            letter-spacing: -0.01em;
-        }
-
-        .package-btn {
-            padding: 0.75rem 1.5rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: var(--btn-text, #fff);
-            border: none;
-            border-radius: var(--btn-radius, calc(var(--radius) * 0.5));
-            font-family: var(--font-display);
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: var(--shadow-md);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .package-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.2);
-            transition: left 0.4s ease;
-        }
-
-        .package-btn:hover::before {
-            left: 100%;
-        }
-
-        .package-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .package-btn:active {
-            transform: translateY(0);
-        }
-
-        .dashboard-footer {
-            text-align: center;
-            padding: var(--spacing-xl) var(--spacing-lg);
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--bg-secondary);
-            background: var(--bg-primary);
-            position: relative;
-            z-index: 10;
-        }
-
-        .footer-link {
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.2s ease;
-            margin-left: 0.5rem;
-        }
-
-        .footer-link:hover {
-            color: var(--accent-secondary);
-        }
-
-        .offline-container {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 140px);
-            padding: var(--spacing-xl);
-            text-align: center;
-        }
-
-        .offline-icon {
-            font-size: 5rem;
-            margin-bottom: var(--spacing-lg);
-            animation: float 4s ease-in-out infinite;
-        }
-
-        .offline-title {
-            font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: var(--spacing-md);
-            color: var(--text-primary);
-        }
-
-        .offline-message {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            max-width: 400px;
-            margin-bottom: var(--spacing-lg);
-            line-height: 1.6;
-        }
-
-        .offline-support {
-            padding: 0.8rem 1.6rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border-radius: calc(var(--radius) * 0.5);
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-            box-shadow: var(--shadow-md);
-        }
-
-        .offline-support:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-container {
-                grid-template-columns: 240px 1fr;
-                gap: var(--spacing-md);
-                padding: var(--spacing-md);
-            }
-
-            .content-header h1 {
-                font-size: 1.5rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-container {
-                grid-template-columns: 1fr;
-                gap: var(--spacing-md);
-                padding: var(--spacing-sm);
-            }
-
-            .topbar-content {
-                flex-direction: column;
-                gap: var(--spacing-sm);
-                align-items: flex-start;
-            }
-
-            .topbar-status {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            .dashboard-sidebar {
-                flex-direction: row;
-                gap: var(--spacing-sm);
-            }
-
-            .sidebar-card {
-                flex: 1;
-            }
-
-            .content-header h1 {
-                font-size: 1.3rem;
-            }
-
-            .package-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--spacing-sm);
-            }
-
-            .package-left {
-                width: 100%;
-            }
-
-            .package-right {
-                width: 100%;
-                justify-content: space-between;
-                gap: var(--spacing-md);
-            }
-
-            .package-price {
-                text-align: left;
-            }
-
-            .price-amount {
-                font-size: 1.5rem;
-            }
-
-            .featured-badge {
-                right: auto;
-                left: var(--spacing-md);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .topbar-content {
-                flex-direction: row;
-                align-items: center;
-                gap: var(--spacing-sm);
-            }
-            .brand-info h2 { font-size: 1rem; }
-            .brand-info p { font-size: 0.65rem; }
-            .topbar-status { font-size: 0.75rem; }
-            .status-item { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
-            .dashboard-sidebar { gap: var(--spacing-sm); }
-            .sidebar-card { padding: var(--spacing-sm); }
-            .sidebar-section-title { font-size: 0.7rem; }
-            .content-header h1 { font-size: 1.2rem; }
-            .package-item { padding: var(--spacing-sm); }
-            .package-icon { width: 52px; height: 52px; font-size: 1.5rem; }
-            .package-details h3 { font-size: 1rem; }
-            .price-amount { font-size: 1.3rem; }
-            .package-btn { padding: 0.6rem 1.2rem; font-size: 0.8rem; }
-        }
-
-        @media (max-width: 360px) {
-            .network-banner { font-size: 0.75rem; padding: 0.5rem 0.8rem; }
-            .dashboard-topbar { padding: 0.6rem 0.8rem; }
-            .brand-icon { width: 36px; height: 36px; font-size: 1.2rem; }
-            .brand-info h2 { font-size: 0.85rem; }
-            .brand-info p { font-size: 0.55rem; }
-            .topbar-content { gap: 0.4rem; }
-            .topbar-status { display: none; }
-            .dashboard-container { padding: 0.5rem; gap: 0.6rem; }
-            .dashboard-sidebar { flex-direction: column; gap: 0.5rem; }
-            .sidebar-card { padding: 0.6rem 0.8rem; }
-            .sidebar-section-title { font-size: 0.6rem; }
-            .sidebar-info { font-size: 0.75rem; }
-            .sidebar-badge { font-size: 0.65rem; padding: 0.4rem 0.6rem; }
-            .content-header h1 { font-size: 1rem; }
-            .content-header p { font-size: 0.75rem; }
-            .packages-list { gap: 0.6rem; }
-            .package-item { padding: 0.6rem 0.8rem; gap: 0.4rem; }
-            .package-left { gap: 0.5rem; }
-            .package-icon { display: none; }
-            .package-details h3 { font-size: 0.85rem; }
-            .package-meta { font-size: 0.7rem; gap: 0.5rem; }
-            .package-right { flex-direction: column; align-items: flex-end; gap: 0.4rem; }
-            .price-label { font-size: 0.6rem; }
-            .price-amount { font-size: 1.1rem; }
-            .package-btn { padding: 0.5rem 0.8rem; font-size: 0.7rem; }
-            .featured-badge { font-size: 0.6rem; padding: 0.3rem 0.7rem; top: -8px; left: 0.8rem; }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ── Activation Overlay ── */
-        .activation-overlay {
-            position: fixed; inset: 0; z-index: 9999;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            display: none; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 20px; animation: fadeIn 0.3s ease;
-        }
-
-        .activation-overlay.show { display: flex; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .activation-wifi {
-            width: 64px; height: 64px;
-            position: relative; animation: wifiPulse 1.5s ease-in-out infinite;
-        }
-
-        .activation-wifi svg { width: 100%; height: 100%; }
-
-        @keyframes wifiPulse {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.15); opacity: 1; }
-        }
-
-        .activation-title {
-            font-family: var(--font-display);
-            font-size: 1.4rem; font-weight: 700;
-            color: var(--text-primary); letter-spacing: -0.01em;
-        }
-
-        .activation-sub {
-            font-size: 0.9rem; color: var(--text-secondary);
-        }
-
-        .activation-bar {
-            width: 160px; height: 3px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 99px; overflow: hidden; margin-top: 8px;
-        }
-
-        .activation-bar-fill {
-            height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: 99px; animation: barFill 2.5s ease forwards;
-        }
-
-        @keyframes barFill {
-            0% { width: 0%; }
-            40% { width: 45%; }
-            80% { width: 80%; }
-            100% { width: 100%; }
-        }
-
-        /* ── Voucher Section ── */
-        .voucher-section {
-            width: 100%; max-width: 440px;
-            position: relative; z-index: 2;
-        }
-
-        .voucher-box {
-            background: rgba(255,255,255,0.04); backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: calc(var(--radius) * 0.8);
-            padding: var(--spacing-md);
-            transition: box-shadow 0.4s, border-color 0.4s;
-            box-shadow: 0 0 0px rgba(255,255,255,0);
-        }
-
-        .voucher-box.glow-green {
-            border-color: rgba(16,185,129,0.5);
-            box-shadow: 0 0 30px rgba(16,185,129,0.2), 0 0 60px rgba(16,185,129,0.08);
-        }
-
-        .voucher-box.glow-red {
-            border-color: rgba(239,68,68,0.5);
-            box-shadow: 0 0 30px rgba(239,68,68,0.2), 0 0 60px rgba(239,68,68,0.08);
-        }
-
-        .voucher-box.glow-yellow {
-            border-color: rgba(234,179,8,0.5);
-            box-shadow: 0 0 30px rgba(234,179,8,0.2), 0 0 60px rgba(234,179,8,0.08);
-        }
-
-        .voucher-header {
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .voucher-header svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .voucher-title {
-            font-family: var(--font-display);
-            font-size: 0.95rem; font-weight: 700; color: var(--text-primary);
-        }
-
-        .voucher-subtitle {
-            font-size: 0.8rem; color: var(--text-secondary);
-            margin-bottom: 12px; line-height: 1.5;
-        }
-
-        .voucher-input-row {
-            display: flex; gap: 8px; align-items: stretch;
-        }
-
-        .voucher-input-row input {
-            flex: 1; padding: 0.75rem 1rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: calc(var(--radius) * 0.4);
-            color: var(--text-primary);
-            font-family: 'DM Mono', 'Courier New', monospace;
-            font-size: 1.1rem; font-weight: 600;
-            letter-spacing: 3px; text-transform: uppercase;
-            outline: none; transition: border-color 0.2s;
-            box-sizing: border-box; min-width: 0;
-        }
-
-        .voucher-input-row input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .voucher-input-row input::placeholder {
-            letter-spacing: 1px; font-size: 0.8rem;
-            color: var(--text-secondary); opacity: 0.5;
-        }
-
-        .voucher-btn {
-            padding: 0.75rem 1.2rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: calc(var(--radius) * 0.4);
-            color: var(--text-primary);
-            font-family: var(--font-display);
-            font-size: 0.8rem; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .voucher-btn:hover { background: rgba(255,255,255,0.12); }
-        .voucher-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .voucher-message {
-            margin-top: 10px; padding: 8px 12px;
-            border-radius: calc(var(--radius) * 0.4);
-            font-size: 0.8rem; font-weight: 500;
-            display: none; animation: slideUp 0.25s ease;
-        }
-
-        .voucher-message.success { display: block; background: rgba(16,185,129,0.08); color: #34d399; }
-        .voucher-message.error { display: block; background: rgba(239,68,68,0.08); color: #f87171; }
-        .voucher-message.warning { display: block; background: rgba(234,179,8,0.08); color: #fbbf24; }
-
-        /* ── Payment Modal ─────────────────────────────── */
-        .payment-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .payment-modal-content {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius);
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-            animation: slideUp 0.3s ease;
-        }
-
-        .payment-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1.2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .payment-modal-header h3 {
-            font-family: var(--font-display);
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .payment-modal-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-
-        .payment-modal-close:hover {
-            color: var(--text-primary);
-        }
-
-        .payment-modal-body {
-            padding: 1.5rem;
-        }
-
-        .payment-modal-body p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin: 0 0 0.5rem 0;
-        }
-
-        .payment-modal-body p strong {
-            color: var(--text-primary);
-        }
-
-        .payment-input-group {
-            margin-top: 1rem;
-        }
-
-        .payment-input-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .payment-input-group input {
-            width: 100%;
-            padding: 0.85rem 1rem;
-            background: var(--bg-primary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: calc(var(--radius) * 0.5);
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 0.95rem;
-            outline: none;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        .payment-input-group input:focus {
-            border-color: var(--accent-primary);
-        }
-
-        .payment-input-group input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .payment-error {
-            margin-top: 0.8rem;
-            padding: 0.7rem 1rem;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #f87171;
-            font-size: 0.85rem;
-        }
-
-        .payment-status {
-            margin-top: 0.8rem;
-            padding: 0.7rem 1rem;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: calc(var(--radius) * 0.5);
-            color: #60a5fa;
-            font-size: 0.85rem;
-            text-align: center;
-        }
-
-        .payment-submit-btn {
-            width: 100%;
-            margin-top: 1.2rem;
-            padding: 0.9rem;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            color: white;
-            border: none;
-            border-radius: calc(var(--radius) * 0.5);
-            font-family: var(--font-display);
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .payment-submit-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .payment-submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        @media (max-width: 360px) {
-            .payment-modal-content { max-width: 100%; }
-            .payment-modal-header { padding: 1rem 1.2rem; }
-            .payment-modal-header h3 { font-size: 1rem; }
-            .payment-modal-body { padding: 1.2rem; }
-            .payment-submit-btn { padding: 0.8rem; font-size: 0.9rem; }
+            content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:var(--bg-img) center/cover no-repeat fixed;
+            opacity:var(--show-bg);
+            image-rendering:auto;
+        }
+        /* Blur overlay */
+        body>.bg-overlay{
+            position:fixed;inset:0;z-index:0;pointer-events:none;
+            backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));
+            display:calc(var(--show-bg) * block);
+        }
+        /* Glass cards when bg image active */
+        body.has-bg .c,
+        body.has-bg .recon-card,
+        body.has-bg .vs,
+        body.has-bg .hero{
+            background:rgba(255,255,255,.08)!important;
+            backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+            border-color:rgba(255,255,255,.15)!important;
+        }
+        body.has-bg .tb{
+            background:rgba(255,255,255,.06)!important;
+            backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+            border-color:rgba(255,255,255,.1)!important;
+        }
+        body.has-bg input,body.has-bg .fi,body.has-bg .vni{
+            background:rgba(255,255,255,.08)!important;
+            border-color:rgba(255,255,255,.12)!important;
+            color:var(--text)!important;
+        }
+        body>*{position:relative;z-index:1}
+
+        /* ── Top Bar ── */
+        .tb{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+        .br{display:flex;align-items:center;gap:10px;min-width:0}
+        .bl{width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--white);overflow:hidden}
+        .bl img{width:100%;height:100%;object-fit:cover}
+        .bn{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .bt{font-size:.6rem;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+        .tm{display:flex;gap:6px;flex-shrink:0}
+        .tl{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:99px;font-size:.7rem;font-weight:500;color:var(--dim)}
+        .td{width:5px;height:5px;border-radius:50%;background:var(--ok)}
+        .td.off{background:var(--err)}
+
+        .wrap{max-width:520px;margin:0 auto;padding:14px}
+        .hero{text-align:center;padding:16px 0 14px}
+        .hero h1{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+        .hero p{font-size:.85rem;color:var(--dim)}
+
+        /* ── Package Grid ── */
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .grid .c:last-child:nth-child(odd){grid-column:1/-1;max-width:50%;margin:0 auto}
+
+        /* ── Package Card ── */
+        .c{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
+        .c:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+        .c.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba({{ palette.primary }},.04))}
+        .cb{position:absolute;top:8px;right:8px;padding:2px 7px;background:var(--accent);color:var(--white);border-radius:99px;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+
+        /* WiFi Icon Styles */
+        .ci{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
+        .ci svg{width:22px;height:22px;position:relative;z-index:1}
+        .ci::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:.12}
+        /* Tier 1: Basic */
+        .ci.t1{background:linear-gradient(135deg,rgba({{ palette.primary }},.15),rgba({{ palette.primary }},.05));border:1px solid rgba({{ palette.primary }},.2)}
+        .ci.t1 svg{color:var(--accent)}
+        /* Tier 2: Mid */
+        .ci.t2{background:linear-gradient(135deg,rgba({{ palette.primary }},.2),rgba({{ palette.primary }},.08));border:1px solid rgba({{ palette.primary }},.25)}
+        .ci.t2 svg{color:var(--accent)}
+        /* Tier 3: Popular */
+        .ci.t3{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ci.t3 svg{color:var(--white)}
+        /* Tier 4: Premium */
+        .ci.t4{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ci.t4 svg{color:var(--white)}
+
+        .cn{font-size:.88rem;font-weight:700}
+        .cm{font-size:.68rem;color:var(--dim);display:flex;gap:6px;flex-wrap:wrap}
+        .cp{text-align:center;margin-top:auto;padding-top:4px}
+        .cpl{font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:1px}
+        .cpv{font-size:1.15rem;font-weight:800;color:var(--accent)}
+        .cpc{font-size:.6rem;font-weight:600;color:var(--dim);margin-right:1px}
+
+        /* ── Reconnect Section ── */
+        .recon{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+        .recon-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:center;margin-bottom:2px}
+        .recon-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+        .recon-label{font-size:.75rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+        .recon-label svg{width:14px;height:14px;color:var(--accent);flex-shrink:0}
+        .recon-sub{font-size:.68rem;color:var(--dim);margin-top:-4px}
+
+        .fi{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--f);font-size:.9rem;outline:none;transition:border-color .15s,box-shadow .15s}
+        .fi::placeholder{color:var(--dim);opacity:.5}
+        .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.1)}
+
+        /* ── Circular Button ── */
+        .act-btn-wrap{display:flex;justify-content:center;margin-top:4px}
+        .act-btn{
+            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            color:var(--white);display:flex;align-items:center;justify-content:center;
+            box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
+            transition:all .2s ease;position:relative;overflow:hidden;
+        }
+        .act-btn::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent);opacity:0;transition:opacity .2s}
+        .act-btn:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba({{ palette.primary }},.4)}
+        .act-btn:hover::before{opacity:1}
+        .act-btn:active{transform:scale(.9);box-shadow:0 2px 8px rgba({{ palette.primary }},.3)}
+        .act-btn:active::before{opacity:0}
+        .act-btn svg{width:20px;height:20px;position:relative;z-index:1}
+        .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+        /* ── Voucher ── */
+        .vs{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+        .vs.ok{border-color:var(--ok);box-shadow:0 0 16px rgba(16,185,129,.12)}
+        .vs.er{border-color:var(--err);box-shadow:0 0 16px rgba(239,68,68,.12)}
+        .vh{display:flex;align-items:center;gap:7px}
+        .vi{width:24px;height:24px;border-radius:5px;background:var(--accent);color:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .vt{font-size:.85rem;font-weight:700}
+        .vd{font-size:.68rem;color:var(--dim);margin-top:-4px}
+        .vr{display:flex;gap:6px;align-items:stretch}
+        .vni{flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'SF Mono',monospace;font-size:.95rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;outline:none;transition:border-color .15s}
+        .vni::placeholder{letter-spacing:1px;font-size:.75rem;font-weight:400;text-transform:none}
+        .vni:focus{border-color:var(--accent)}
+        .vm{margin-top:4px;padding:8px 10px;border-radius:6px;font-size:.72rem;font-weight:500;display:none}
+        .vm.show{display:block}.vm.ok{background:var(--ok-bg);color:var(--ok)}.vm.er{background:var(--err-bg);color:var(--err)}
+
+        /* ══════════════════════════════════════════════
+           PAYMENT MODAL - Glass morphism
+           ══════════════════════════════════════════════ */
+        .pov{display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;padding:16px}
+        .pov.on{display:flex}
+        .pov-bg{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .pm{position:relative;z-index:1;background:rgba(255,255,255,.06);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.12);border-radius:calc(var(--r)*1.8);width:100%;max-width:360px;box-shadow:0 24px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);animation:pmIn .35s cubic-bezier(.4,0,.2,1)}
+        @keyframes pmIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+        .pm-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+        .pm-title{font-size:1rem;font-weight:700;color:var(--white)}
+        .pm-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:1rem;cursor:pointer;transition:all .15s}
+        .pm-close:hover{background:rgba(255,255,255,.15);color:var(--white)}
+
+        .pm-body{padding:20px}
+
+        .pm-pkg{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:16px}
+        .pm-pkg-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .pm-pkg-icon svg{width:20px;height:20px;color:var(--white)}
+        .pm-pkg-info{flex:1;min-width:0}
+        .pm-pkg-name{font-size:.9rem;font-weight:700;color:var(--white)}
+        .pm-pkg-meta{font-size:.72rem;color:rgba(255,255,255,.5)}
+        .pm-pkg-price{text-align:right;flex-shrink:0}
+        .pm-pkg-price-label{font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.4)}
+        .pm-pkg-price-val{font-size:1.1rem;font-weight:800;color:var(--accent)}
+
+        .pm-field{margin-bottom:14px}
+        .pm-label{display:block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-bottom:6px}
+        .pm-input{
+            width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+            border-radius:var(--r);color:var(--white);font-family:var(--f);font-size:.95rem;outline:none;
+            transition:border-color .15s,box-shadow .15s;
+        }
+        .pm-input::placeholder{color:rgba(255,255,255,.3)}
+        .pm-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.2)}
+
+        .pm-err{padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#fca5a5;font-size:.8rem;margin-bottom:12px;display:none}
+        .pm-err.show{display:block}
+
+        .pm-submit{
+            width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+            color:var(--white);border:none;border-radius:var(--r);font-family:var(--f);
+            font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;
+            letter-spacing:.02em;
+        }
+        .pm-submit:hover{box-shadow:0 4px 20px rgba({{ palette.primary }},.4);transform:translateY(-1px)}
+        .pm-submit:active{transform:translateY(0) scale(.98)}
+        .pm-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+        /* ══════════════════════════════════════════════
+           LOADING SEQUENCE
+           ══════════════════════════════════════════════ */
+        .load-ov{display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center}
+        .load-ov.on{display:flex}
+        .load-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+        .load-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;padding:20px}
+
+        /* M-Pesa logo animation */
+        .mpesa-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#4caf50,#2e7d32);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(76,175,80,.3);animation:logoFloat 2s ease-in-out infinite}
+        @keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        .mpesa-logo svg{width:36px;height:36px;color:var(--white)}
+
+        .load-title{font-size:1.1rem;font-weight:700;color:var(--white)}
+        .load-sub{font-size:.85rem;color:rgba(255,255,255,.6);max-width:260px;line-height:1.5}
+
+        /* Spinner ring */
+        .load-ring{width:48px;height:48px;position:relative}
+        .load-ring::before,.load-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
+        .load-ring::before{border-top-color:var(--accent);animation:spin 1s linear infinite}
+        .load-ring::after{border-right-color:rgba(255,255,255,.2);animation:spin 1.5s linear infinite reverse}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* Dots */
+        .load-dots{display:flex;gap:6px}
+        .load-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:dotPulse 1.4s ease-in-out infinite}
+        .load-dot:nth-child(2){animation-delay:.2s}
+        .load-dot:nth-child(3){animation-delay:.4s}
+        @keyframes dotPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+        .load-phone{font-size:.8rem;color:rgba(255,255,255,.5);margin-top:4px}
+        .load-phone span{color:var(--white);font-weight:600}
+
+        /* ── Status Overlays ── */
+        .sov{display:none;position:fixed;inset:0;z-index:3000;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+        .sov.on{display:flex}
+        .sov.suc{background:rgba(16,185,129,.12)}
+        .sov.fai{background:rgba(239,68,68,.12)}
+        .so-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
+        .sov.suc .so-icon{background:var(--ok);color:var(--white);box-shadow:0 0 40px rgba(16,185,129,.4)}
+        .sov.fai .so-icon{background:var(--err);color:var(--white);box-shadow:0 0 40px rgba(239,68,68,.4)}
+        .so-icon svg{width:32px;height:32px}
+        .so-title{font-size:1.2rem;font-weight:800}
+        .sov.suc .so-title{color:var(--ok)}
+        .sov.fai .so-title{color:var(--err)}
+        .so-sub{font-size:.85rem;color:rgba(255,255,255,.6);text-align:center;max-width:280px;line-height:1.5}
+        .so-pkg{padding:12px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;text-align:center}
+        .so-pkg-name{font-size:.9rem;font-weight:700;color:var(--white);margin-bottom:2px}
+        .so-pkg-detail{font-size:.75rem;color:rgba(255,255,255,.5)}
+        .so-btn{margin-top:8px;padding:10px 24px;border-radius:99px;border:none;font-family:var(--f);font-size:.85rem;font-weight:700;cursor:pointer;transition:all .15s}
+        .sov.suc .so-btn{background:var(--ok);color:var(--white)}
+        .sov.fai .so-btn{background:var(--err);color:var(--white)}
+        .so-btn:hover{transform:scale(1.03)}
+
+        @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+
+        /* ── Offline ── */
+        .op{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:30px;text-align:center}
+        .oi{font-size:3rem;margin-bottom:16px}
+        .ot{font-size:1.3rem;font-weight:700;margin-bottom:10px}
+        .om{font-size:.9rem;color:var(--dim);max-width:320px;margin-bottom:20px;line-height:1.6}
+
+        .ft{text-align:center;padding:16px;border-top:1px solid var(--border);font-size:.7rem;color:var(--dim)}
+        .ft a{color:var(--accent);text-decoration:none;font-weight:600}
+
+        @media(min-width:420px){.grid{grid-template-columns:repeat(3,1fr);gap:10px}.grid .c:last-child:nth-child(odd){max-width:33.33%}}
+        @media(min-width:600px){.wrap{max-width:600px}.grid{gap:14px}.c{padding:16px}.cn{font-size:1rem}.cpv{font-size:1.3rem}}
+        @media(max-width:360px){
+            .wrap{padding:10px}.hero{padding:12px 0 10px}.hero h1{font-size:1.15rem}
+            .grid{gap:8px}.c{padding:10px;gap:6px}.ci{width:34px;height:34px}.ci svg{width:18px;height:18px}
+            .cn{font-size:.8rem}.cpv{font-size:1rem}.cm{font-size:.6rem}
+            .act-btn{width:46px;height:46px}.act-btn svg{width:18px;height:18px}
         }
     </style>
 </head>
 <body>
-    <!-- Network Banner -->
-    {% if network_up %}
-    <div class="network-banner">
-        <div class="network-status-dot"></div>
-        <span>{{ brand.status_message or '✓ Network is online and stable' }}</span>
-    </div>
-    {% else %}
-    <div class="network-banner offline">
-        <span>⚠ Network currently offline. Please try again in a few moments.</span>
-    </div>
-    {% endif %}
-
-    <!-- Top Bar -->
-    <div class="dashboard-topbar">
-        <div class="topbar-content">
-            <div class="brand-header">
-                <div class="brand-icon">{{ brand.emoji or '📡' }}</div>
-                <div class="brand-info">
-                    <h2>{{ brand.name or 'WiFi Portal' }}</h2>
-                    <p>Internet Access</p>
-                </div>
-            </div>
-            <div class="topbar-status">
-                <div class="status-item">
-                    <div class="status-indicator {% if not network_up %}offline{% endif %}"></div>
-                    {% if network_up %}<span>Online</span>{% else %}<span>Offline</span>{% endif %}
-                </div>
-                {% if brand.location %}
-                <div class="status-item">
-                    <span>📍 {{ brand.location }}</span>
-                </div>
-                {% endif %}
-            </div>
+    <div class="bg-overlay"></div>
+    <div class="tb">
+        <div class="br">
+            <div class="bl" id="b-logo">{{ brand.emoji or '📡' }}</div>
+            <div><div class="bn" id="b-name">{{ brand.name or 'WiFi Portal' }}</div><div class="bt" id="b-tag">INTERNET ACCESS</div></div>
+        </div>
+        <div class="tm">
+            <div class="tl"><div class="td {% if not network_up %}off{% endif %}"></div>{% if network_up %}Online{% else %}Offline{% endif %}</div>
+            {% if brand.location %}<div class="tl">{{ brand.location }}</div>{% endif %}
         </div>
     </div>
 
     {% if network_up %}
-    <!-- Main Container -->
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="dashboard-sidebar">
-            <!-- About Card -->
-            <div class="sidebar-card">
-                <div class="sidebar-section-title">About</div>
-                <div class="sidebar-info">
-                    <strong>{{ brand.name or 'WiFi Portal' }}</strong>
-                    {{ brand.tagline or 'Fast, reliable internet access' }}
-                </div>
-                <div class="sidebar-info">
-                    📍 {{ brand.location or 'Location unavailable' }}
-                </div>
-                <div class="sidebar-badge">
-                    ⚡ Premium Network
-                </div>
-            </div>
-
-            <!-- Quick Start Card -->
-            <div class="sidebar-card">
-                <div class="sidebar-section-title">Quick Start</div>
-                <div class="sidebar-info">
-                    1️⃣ <strong>Select a plan</strong>
-                </div>
-                <div class="sidebar-info">
-                    2️⃣ <strong>Tap "Get Now"</strong>
-                </div>
-                <div class="sidebar-info">
-                    3️⃣ <strong>Get connected</strong>
-                </div>
-                {% if brand.support_number %}
-                <div class="sidebar-info" style="margin-top: var(--spacing-sm);">
-                    📞 <a href="tel:{{ brand.support_number }}">{{ brand.support_number }}</a>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Voucher Section -->
-            <div class="voucher-section">
-                <div id="voucher-box" class="voucher-box">
-                    <div class="voucher-header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
-                            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/>
-                            <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/>
-                            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/>
-                        </svg>
-                        <span class="voucher-title">Got a voucher code?</span>
-                    </div>
-                    <div class="voucher-subtitle">Enter your code below — no phone or M-Pesa needed.</div>
-                    <div class="voucher-input-row">
-                        <input type="text" id="voucher-code" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
-                        <button id="voucher-btn" class="voucher-btn" onclick="redeemVoucher()">Redeem</button>
-                    </div>
-                    <div id="voucher-message" class="voucher-message"></div>
-                </div>
-            </div>
+    <div class="wrap">
+        <div class="hero">
+            <h1>Choose Your Plan</h1>
+            <p>Select the perfect internet package for you</p>
         </div>
 
-        <!-- Content -->
-        <div class="dashboard-content">
-            <div class="content-header">
-                <h1>Choose Your Plan</h1>
-                <p>Select the perfect internet package for you</p>
+        <div class="grid" id="pkg-grid">
+            {% for pkg in packages %}
+            <div class="c {% if pkg.star %}feat{% endif %}" data-cs data-idx="{{ loop.index }}" data-name="{{ pkg.name }}" data-price="{{ pkg.price_ksh }}" data-dur="{{ pkg.duration_label }}" data-speed="{{ pkg.speed or '' }}" data-id="{{ pkg.id or loop.index }}" onclick="openPay(this)">
+                {% if pkg.star %}<div class="cb">Popular</div>{% endif %}
+                <div class="ci t{{ [loop.index, 4] | min }}">
+                    {% if loop.index <= 1 %}
+                    <!-- Single wave - Basic -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    {% elif loop.index == 2 %}
+                    <!-- Two waves - Mid -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    {% elif loop.index == 3 %}
+                    <!-- Three waves - Popular -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    {% else %}
+                    <!-- Full signal - Premium -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/><circle cx="12" cy="20" r="1"/></svg>
+                    {% endif %}
+                </div>
+                <div class="cn">{{ pkg.name }}</div>
+                <div class="cm">
+                    <span>⏱ {{ pkg.duration_label }}</span>
+                    {% if pkg.speed %}<span>{{ pkg.speed }}</span>{% endif %}
+                </div>
+                <div class="cp">
+                    <div class="cpl">Price</div>
+                    <div class="cpv"><span class="cpc">KES</span>{{ pkg.price_ksh }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="recon">
+            <div class="recon-title">Already paid? Reconnect here</div>
+            <div class="recon-card">
+                <div class="recon-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    M-Pesa Reconnect
+                </div>
+                <div class="recon-sub">Enter the M-Pesa confirmation code from your payment</div>
+                <input type="text" id="mpesa-code" class="fi" placeholder="e.g. QHK3X7B9ABC" maxlength="20" autocomplete="off">
+                <div class="act-btn-wrap">
+                    <button class="act-btn" id="mpesa-btn" onclick="reconnectMpesa()" title="Reconnect">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                </div>
+                <div id="mpesa-msg" class="vm"></div>
             </div>
 
-            <div class="packages-list">
-                {% for package in packages %}
-                <div class="package-item {% if package.star %}featured{% endif %}">
-                    {% if package.star %}<div class="featured-badge">★ Popular</div>{% endif %}
-                    <div class="package-left">
-                        <div class="package-icon">⚡</div>
-                        <div class="package-details">
-                            <h3>{{ package.n }}</h3>
-                            <div class="package-meta">
-                                <span>⏱ {{ package.d }}</span>
-                                <span>{{ package.s or 'High Speed' }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="package-right">
-                        <div class="package-price">
-                            <div class="price-label">Price</div>
-                            <div class="price-amount">KES {{ package.p }}</div>
-                        </div>
-                        <button class="package-btn" onclick="openPaymentModal('{{ package.id }}', '{{ package.n }}', {{ package.p }})">
-                            Get Now
-                        </button>
-                    </div>
+            <div class="vs" id="vbox">
+                <div class="vh">
+                    <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
+                    <span class="vt">Voucher Code</span>
                 </div>
-                {% endfor %}
+                <div class="vd">Enter your voucher code to reconnect instantly</div>
+                <div class="vr">
+                    <input type="text" id="vcode" class="vni" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
+                </div>
+                <div class="act-btn-wrap">
+                    <button class="act-btn" id="vbtn" onclick="redeem()" title="Activate">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </button>
+                </div>
+                <div id="vmsg" class="vm"></div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
     {% if brand.footer_text or brand.terms_url %}
-    <div class="dashboard-footer">
-        {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
-        {% if brand.terms_url %}<a href="{{ brand.terms_url }}" class="footer-link">Terms & Privacy</a>{% endif %}
-    </div>
+    <div class="ft">{% if brand.footer_text %}{{ brand.footer_text }}{% endif %}{% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}</div>
     {% endif %}
 
     {% else %}
-    <!-- Offline State -->
-    <div class="offline-container">
-        <div class="offline-icon">🌐</div>
-        <h2 class="offline-title">Network Offline</h2>
-        <p class="offline-message">
-            The internet connection is currently unavailable. Please check back in a few moments or contact support for assistance.
-        </p>
-        {% if brand.support_number %}
-        <a href="tel:{{ brand.support_number }}" class="offline-support">📞 Contact Support</a>
-        {% endif %}
+    <div class="op">
+        <div class="oi">🌐</div>
+        <h2 class="ot">Network Offline</h2>
+        <p class="om">The internet connection is currently unavailable. Please check back shortly or contact support.</p>
+        {% if brand.support_number %}<a href="tel:{{ brand.support_number }}" class="btn bp" style="width:auto;padding:12px 24px">Contact Support</a>{% endif %}
     </div>
     {% endif %}
 
-    <!-- Activation Overlay -->
-    <div id="activation-overlay" class="activation-overlay">
-        <div class="activation-wifi">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-primary)">
-                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                <circle cx="12" cy="20" r="1"/>
-            </svg>
+    <!-- ═══ PAYMENT MODAL ═══ -->
+    <div id="pmod" class="pov">
+        <div class="pov-bg" onclick="closePay()"></div>
+        <div class="pm">
+            <div class="pm-header">
+                <div class="pm-title">Pay with M-Pesa</div>
+                <button class="pm-close" onclick="closePay()">&times;</button>
+            </div>
+            <div class="pm-body">
+                <div class="pm-pkg">
+                    <div class="pm-pkg-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    </div>
+                    <div class="pm-pkg-info">
+                        <div class="pm-pkg-name" id="pm-name">Daily</div>
+                        <div class="pm-pkg-meta" id="pm-meta">24 hrs</div>
+                    </div>
+                    <div class="pm-pkg-price">
+                        <div class="pm-pkg-price-label">Total</div>
+                        <div class="pm-pkg-price-val" id="pm-price">KES 150</div>
+                    </div>
+                </div>
+                <input type="hidden" id="pm-id">
+                <div class="pm-field">
+                    <label class="pm-label" for="pm-phone">Phone Number (M-Pesa)</label>
+                    <input type="tel" id="pm-phone" class="pm-input" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
+                </div>
+                <div id="pm-err" class="pm-err"></div>
+                <button id="pm-btn" class="pm-submit" onclick="pay()">Pay with M-Pesa</button>
+            </div>
         </div>
-        <div class="activation-title">Activating to WiFi</div>
-        <div class="activation-sub">Connecting your device to the network</div>
-        <div class="activation-bar"><div class="activation-bar-fill"></div></div>
     </div>
 
-    <!-- Payment Modal -->
-    <div id="payment-modal" class="payment-modal" style="display: none;">
-        <div class="payment-modal-content">
-            <div class="payment-modal-header">
-                <h3 id="pm-title">Pay with M-Pesa</h3>
-                <button class="payment-modal-close" onclick="closePaymentModal()">&times;</button>
+    <!-- ═══ LOADING SEQUENCE ═══ -->
+    <div id="loader" class="load-ov">
+        <div class="load-bg"></div>
+        <div class="load-content">
+            <div class="mpesa-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
             </div>
-            <div class="payment-modal-body">
-                <p>Package: <strong id="payment-package-name"></strong></p>
-                <p>Amount: <strong id="payment-package-price"></strong></p>
-                <input type="hidden" id="payment-package-id">
-                <div class="payment-input-group">
-                    <label for="payment-phone">Phone Number (M-Pesa)</label>
-                    <input type="tel" id="payment-phone" placeholder="2547XXXXXXXX or 07XXXXXXXX" autocomplete="tel">
-                </div>
-                <div id="payment-error" class="payment-error" style="display: none;"></div>
-                <div id="payment-status" class="payment-status" style="display: none;"></div>
-                <button id="payment-submit" class="payment-submit-btn" onclick="initiatePayment()">Pay with M-Pesa</button>
+            <div class="load-title">Waiting for M-Pesa</div>
+            <div class="load-sub">Check your phone for the M-Pesa prompt and enter your PIN to complete payment</div>
+            <div class="load-ring"></div>
+            <div class="load-dots">
+                <div class="load-dot"></div>
+                <div class="load-dot"></div>
+                <div class="load-dot"></div>
             </div>
+            <div class="load-phone" id="load-phone"></div>
         </div>
+    </div>
+
+    <!-- ═══ SUCCESS ═══ -->
+    <div id="ov-success" class="sov suc">
+        <div class="so-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="so-title">Connected!</div>
+        <div class="so-sub">Your device is now connected to the internet</div>
+        <div class="so-pkg" id="ov-pkg">
+            <div class="so-pkg-name" id="ov-pkg-name"></div>
+            <div class="so-pkg-detail" id="ov-pkg-detail"></div>
+        </div>
+    </div>
+
+    <!-- ═══ FAIL ═══ -->
+    <div id="ov-fail" class="sov fai">
+        <div class="so-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+        <div class="so-title">Payment Failed</div>
+        <div class="so-sub" id="ov-fail-msg">Something went wrong. Please try again.</div>
+        <button class="so-btn" onclick="closeAll()">Try Again</button>
     </div>
 
     <script>
-        // Payment flow - open modal when package clicked
-        function openPaymentModal(packageId, packageName, packagePrice) {
-            document.getElementById('payment-modal').style.display = 'flex';
-            document.getElementById('payment-package-name').textContent = packageName;
-            document.getElementById('payment-package-price').textContent = 'KES ' + packagePrice;
-            document.getElementById('payment-package-id').value = packageId;
-            document.getElementById('payment-phone').value = '';
-            document.getElementById('payment-error').style.display = 'none';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        /* ── Package data from cards ── */
+        var pkgData = {};
+        document.querySelectorAll('#pkg-grid .c').forEach(function(el) {
+            pkgData[el.dataset.id] = {
+                name: el.dataset.name,
+                price: el.dataset.price,
+                dur: el.dataset.dur,
+                speed: el.dataset.speed
+            };
+        });
+
+        function openPay(el) {
+            var id = el.dataset.id;
+            var pkg = pkgData[id];
+            if (!pkg) return;
+            document.getElementById('pm-id').value = id;
+            document.getElementById('pm-name').textContent = pkg.name;
+            document.getElementById('pm-meta').textContent = pkg.dur + (pkg.speed ? ' · ' + pkg.speed : '');
+            document.getElementById('pm-price').textContent = 'KES ' + pkg.price;
+            document.getElementById('pm-phone').value = '';
+            document.getElementById('pm-err').classList.remove('show');
+            document.getElementById('pm-btn').disabled = false;
+            document.getElementById('pm-btn').textContent = 'Pay with M-Pesa';
+            document.getElementById('pmod').classList.add('on');
         }
 
-        function closePaymentModal() {
-            document.getElementById('payment-modal').style.display = 'none';
+        function closePay() { document.getElementById('pmod').classList.remove('on'); }
+
+        function showLoader(phone) {
+            document.getElementById('load-phone').innerHTML = 'Sending to <span>' + phone + '</span>';
+            document.getElementById('loader').classList.add('on');
+        }
+        function hideLoader() { document.getElementById('loader').classList.remove('on'); }
+
+        function showStatus(type, pkgName, pkgDetail) {
+            var ov = document.getElementById('ov-' + type);
+            if (pkgName) {
+                document.getElementById('ov-pkg-name').textContent = pkgName;
+                document.getElementById('ov-pkg-detail').textContent = pkgDetail;
+                document.getElementById('ov-pkg').style.display = '';
+            } else {
+                document.getElementById('ov-pkg').style.display = 'none';
+            }
+            ov.classList.add('on');
         }
 
-        function setVoucherGlow(type) {
-            const box = document.getElementById('voucher-box');
-            box.classList.remove('glow-green', 'glow-red', 'glow-yellow');
-            if (type) box.classList.add(type);
+        function closeAll() {
+            document.querySelectorAll('.sov, .load-ov').forEach(function(o) { o.classList.remove('on'); });
         }
 
-        function showVoucherMessage(msg, type) {
-            const el = document.getElementById('voucher-message');
-            el.textContent = msg;
-            el.className = 'voucher-message ' + type;
+        function showMsg(id, msg, type) {
+            var e = document.getElementById(id);
+            e.textContent = msg;
+            e.className = 'vm show ' + type;
         }
 
-        async function redeemVoucher() {
-            const code = document.getElementById('voucher-code').value.trim().toUpperCase();
-            if (!code) { showVoucherMessage('Please enter a voucher code', 'error'); setVoucherGlow('glow-red'); return; }
-            const urlParams = new URLSearchParams(window.location.search);
-            const mac = urlParams.get('mac') || '';
-            const ip = urlParams.get('ip') || '';
-            const btn = document.getElementById('voucher-btn');
-            btn.disabled = true; btn.textContent = 'Checking\u2026';
-            setVoucherGlow(null);
+        async function reconnectMpesa() {
+            var code = document.getElementById('mpesa-code').value.trim();
+            if (!code) { showMsg('mpesa-msg', 'Please enter the M-Pesa confirmation code', 'er'); return; }
+            var btn = document.getElementById('mpesa-btn');
+            btn.disabled = true;
+            var p = new URLSearchParams(window.location.search);
             try {
-                const response = await fetch('/api/vouchers/redeem', {
+                var r = await fetch('/api/portal/reconnect/mpesa', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, mac_address: mac, ip_address: ip })
+                    body: JSON.stringify({ mpesa_code: code, mac_address: p.get('mac') || '', ip_address: p.get('ip') || '' })
                 });
-                const text = await response.text();
-                let data;
-                try { data = JSON.parse(text); } catch { data = { detail: text || 'Server error' }; }
-
-                if (response.ok) {
-                    document.getElementById('activation-overlay').classList.add('show');
-                    setTimeout(() => { window.location.href = '/portal/{{ brand.slug }}/success/' + data.session_id; }, 2500);
+                var d = await r.json();
+                if (r.ok) {
+                    showStatus('success', d.package_name || 'Your Package', d.duration || 'Enjoy your internet!');
+                    setTimeout(function() { window.location.reload(); }, 4000);
                     return;
                 }
-
-                const detail = (data.detail || '').toLowerCase();
-                if (detail.includes('already used')) {
-                    setVoucherGlow('glow-yellow');
-                    showVoucherMessage(data.detail || 'Voucher already used', 'warning');
-                } else if (detail.includes('suspended')) {
-                    setVoucherGlow('glow-red');
-                    showVoucherMessage(data.detail || 'Voucher has been suspended', 'error');
-                } else {
-                    setVoucherGlow('glow-red');
-                    showVoucherMessage(data.detail || 'Invalid voucher code', 'error');
-                }
-                btn.disabled = false; btn.textContent = 'Redeem';
+                showMsg('mpesa-msg', d.detail || 'Code not found. Please check and try again.', 'er');
+                btn.disabled = false;
             } catch (e) {
-                setVoucherGlow('glow-red');
-                showVoucherMessage('Connection error. Please try again.', 'error');
-                btn.disabled = false; btn.textContent = 'Redeem';
+                showMsg('mpesa-msg', 'Connection error. Please try again.', 'er');
+                btn.disabled = false;
             }
         }
 
-        async function initiatePayment() {
-            const packageId = document.getElementById('payment-package-id').value;
-            const phone = document.getElementById('payment-phone').value.trim();
-            const slug = "{{ brand.slug }}";
-
-            if (!phone) {
-                showError('Please enter your phone number');
-                return;
+        async function redeem() {
+            var c = document.getElementById('vcode').value.trim().toUpperCase();
+            if (!c) { showMsg('vmsg', 'Please enter a voucher code', 'er'); return; }
+            var p = new URLSearchParams(window.location.search);
+            var btn = document.getElementById('vbtn');
+            btn.disabled = true;
+            try {
+                var r = await fetch('/api/vouchers/redeem', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: c, mac_address: p.get('mac') || '', ip_address: p.get('ip') || '' })
+                });
+                var d = await r.json();
+                if (r.ok) {
+                    showStatus('success', d.package_name || 'Your Package', d.duration || 'Enjoy your internet!');
+                    setTimeout(function() { window.location.reload(); }, 4000);
+                    return;
+                }
+                var dt = (d.detail || '').toLowerCase();
+                showMsg('vmsg', d.detail || (dt.includes('used') ? 'Voucher already used' : 'Invalid voucher code'), 'er');
+                btn.disabled = false;
+            } catch (e) {
+                showMsg('vmsg', 'Connection error. Try again.', 'er');
+                btn.disabled = false;
             }
+        }
 
-            if (!/^(254|0)7\d{8}$/.test(phone)) {
-                showError('Invalid phone number. Use format: 2547XXXXXXXX or 07XXXXXXXX');
-                return;
-            }
+        async function pay() {
+            var id = document.getElementById('pm-id').value;
+            var ph = document.getElementById('pm-phone').value.trim();
+            var slug = '{{ brand.slug }}';
+            var pkg = pkgData[id];
+            if (!ph) { showPE('Please enter your phone number'); return; }
+            if (!/^(254|0)7\d{8}$/.test(ph)) { showPE('Invalid phone. Use 2547XXXXXXXX or 07XXXXXXXX'); return; }
 
-            const submitBtn = document.getElementById('payment-submit');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
+            var btn = document.getElementById('pm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
 
             try {
-                // Get MAC and IP from URL params (set by MikroTik hotspot)
-                const urlParams = new URLSearchParams(window.location.search);
-                const mac = urlParams.get('mac') || '';
-                const ip = urlParams.get('ip') || '';
-
-                const response = await fetch('/api/portal/{{ brand.slug }}/sessions', {
+                var p = new URLSearchParams(window.location.search);
+                var r = await fetch('/api/portal/' + slug + '/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        package_id: packageId,
-                        phone_number: phone,
-                        mac_address: mac,
-                        ip_address: ip
+                        package_id: id,
+                        phone_number: ph,
+                        mac_address: p.get('mac') || '',
+                        ip_address: p.get('ip') || ''
                     })
                 });
+                var d = await r.json();
+                if (!r.ok) throw new Error(d.detail || 'Failed');
 
-                const data = await response.json();
+                closePay();
+                showLoader(ph);
 
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Failed to initiate payment');
-                }
-
-                // Payment initiated, start polling
-                pollPaymentStatus(data.session_id);
-
-            } catch (error) {
-                showError(error.message);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Pay with M-Pesa';
+                pollSS(d.session_id, pkg);
+            } catch (e) {
+                showPE(e.message);
+                btn.disabled = false;
+                btn.textContent = 'Pay with M-Pesa';
             }
         }
 
-        function pollPaymentStatus(sessionId) {
-            const statusEl = document.getElementById('payment-status');
-            statusEl.style.display = 'block';
-            statusEl.textContent = 'Waiting for payment...';
-
-            const poll = async () => {
+        function pollSS(sid, pkg) {
+            (async function p() {
                 try {
-                    const response = await fetch(`/api/portal/{{ brand.slug }}/sessions/${sessionId}`);
-                    const data = await response.json();
-
-                    if (data.status === 'active') {
-                        // Payment successful - redirect to success page
-                        window.location.href = `/portal/{{ brand.slug }}/success/${sessionId}`;
+                    var r = await fetch('/api/portal/{{ brand.slug }}/sessions/' + sid);
+                    var d = await r.json();
+                    if (d.status === 'active') {
+                        hideLoader();
+                        showStatus('success', pkg ? pkg.name : 'Your Package', pkg ? pkg.dur + (pkg.speed ? ' · ' + pkg.speed : '') : 'Enjoy your internet!');
+                        setTimeout(function() {
+                            window.location.href = '/portal/{{ brand.slug }}/success/' + sid;
+                        }, 3000);
                         return;
-                    } else if (data.status === 'failed' || data.status === 'expired') {
-                        showError('Payment failed or timed out. Please try again.');
-                        return;
-                    } else if (data.status === 'pending_payment') {
-                        // Still waiting, continue polling
-                        setTimeout(poll, 3000);
                     }
-                } catch (error) {
-                    showError('Error checking payment status');
+                    if (d.status === 'failed' || d.status === 'expired') {
+                        hideLoader();
+                        showStatus('fail', null, null);
+                        document.getElementById('ov-fail-msg').textContent = 'Payment failed or timed out. Please try again.';
+                        return;
+                    }
+                    if (d.status === 'pending_payment') setTimeout(p, 3000);
+                } catch (e) {
+                    hideLoader();
+                    showStatus('fail', null, null);
+                    document.getElementById('ov-fail-msg').textContent = 'Error checking payment status. Please try again.';
                 }
-            };
-
-            setTimeout(poll, 3000);
+            })();
         }
 
-        function showError(message) {
-            const errorEl = document.getElementById('payment-error');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('payment-submit').disabled = false;
-            document.getElementById('payment-submit').textContent = 'Pay with M-Pesa';
+        function showPE(m) {
+            var e = document.getElementById('pm-err');
+            e.textContent = m;
+            e.classList.add('show');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard Portal initialized');
-        });
-
-        // Listen for live updates from onboarding wizard
-        window.addEventListener('message', function(event) {
-            if (!event.data || !event.data.type) return;
-            const data = event.data;
-            const root = document.documentElement;
-
-            if (data.type === 'UPDATE_PALETTE' && data.colors) {
-                root.style.setProperty('--bg-primary', data.colors.bgStart);
-                root.style.setProperty('--bg-secondary', data.colors.card);
-                root.style.setProperty('--text-primary', data.colors.text);
-                root.style.setProperty('--text-secondary', data.colors.textDim);
-                root.style.setProperty('--accent-primary', data.colors.primary);
-                root.style.setProperty('--accent-secondary', data.colors.primaryDark);
-                root.style.setProperty('--success', data.colors.accent);
-                // Auto-detect button text color based on primary color brightness
-                var hex = data.colors.primary.replace('#', '');
-                if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-                var r2 = parseInt(hex.substring(0,2),16), g2 = parseInt(hex.substring(2,4),16), b2 = parseInt(hex.substring(4,6),16);
-                var brightness = (r2*299 + g2*587 + b2*114) / 1000;
-                root.style.setProperty('--btn-text', brightness > 140 ? '#1a1a1a' : '#ffffff');
+        window.addEventListener('message', function(ev) {
+            if (!ev.data || !ev.data.type) return;
+            var d = ev.data, r = document.documentElement;
+            if (d.type === 'UPDATE_PALETTE' && d.colors) {
+                r.style.setProperty('--bg', d.colors.bg);
+                r.style.setProperty('--surface', d.colors.card);
+                r.style.setProperty('--border', d.colors.cardBorder);
+                r.style.setProperty('--text', d.colors.text);
+                r.style.setProperty('--dim', d.colors.textDim);
+                r.style.setProperty('--accent', d.colors.primary);
+                r.style.setProperty('--accent2', d.colors.primaryDark);
             }
-
-            if (data.type === 'UPDATE_BRAND') {
-                var nameEl = document.querySelector('.brand-info h2');
-                if (nameEl && data.name) nameEl.textContent = data.name;
-                var tagEl = document.querySelector('.brand-info .tagline, .brand-subtitle');
-                if (tagEl && data.tagline !== undefined) tagEl.textContent = data.tagline || 'INTERNET ACCESS';
-                var locEl = document.querySelector('.brand-location');
-                if (locEl && data.location !== undefined) locEl.textContent = data.location || '';
-                if (data.emoji) {
-                    var emojiEl = document.querySelector('.brand-icon');
-                    if (emojiEl) emojiEl.textContent = data.emoji;
+            if (d.type === 'UPDATE_BRAND') {
+                if (d.name) { document.getElementById('b-name').textContent = d.name; document.title = d.name + ' - WiFi Access'; }
+                if (d.tagline !== undefined) document.getElementById('b-tag').textContent = d.tagline || 'INTERNET ACCESS';
+                if (d.emoji) document.getElementById('b-logo').textContent = d.emoji;
+                if (d.logo_url) document.getElementById('b-logo').innerHTML = '<img src="' + d.logo_url + '" style="width:100%;height:100%;object-fit:cover">';
+            }
+            if (d.type === 'UPDATE_TYPOGRAPHY' && d.font) {
+                r.style.setProperty('--f', "'" + d.font + "',system-ui,sans-serif");
+                var link = document.getElementById('gfont');
+                if (link) link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(d.font) + ':wght@400;500;600;700;800&display=swap';
+            }
+            if (d.type === 'UPDATE_CARD_STYLE') {
+                if (d.radius) r.style.setProperty('--r', d.radius);
+            }
+            if (d.type === 'UPDATE_COMPONENTS') {
+                var v = document.getElementById('vbox');
+                if (v) v.style.display = d.saved_number_login !== false ? '' : 'none';
+            }
+            if (d.type === 'UPDATE_BACKGROUND') {
+                if (d.image_url) {
+                    r.style.setProperty('--bg-img', 'url(' + d.image_url + ')');
+                    r.style.setProperty('--show-bg', '1');
+                    document.body.classList.add('has-bg');
+                } else {
+                    r.style.setProperty('--bg-img', 'none');
+                    r.style.setProperty('--show-bg', '0');
+                    document.body.classList.remove('has-bg');
                 }
-                if (data.logo_url) {
-                    var iconEl = document.querySelector('.brand-icon');
-                    if (iconEl) { iconEl.innerHTML = '<img src="' + data.logo_url + '" style="width:100%;height:100%;object-fit:contain;border-radius:inherit" />'; }
-                }
-                if (data.name) document.title = data.name + ' - WiFi Access';
-            }
-
-            if (data.type === 'UPDATE_TYPOGRAPHY') {
-                if (data.font) {
-                    root.style.setProperty('--font-display', "'" + data.font + "', sans-serif");
-                    root.style.setProperty('--font-body', "'" + data.font + "', sans-serif");
-                    var oldLink = document.querySelector('link[href*="fonts.googleapis.com"]');
-                    var newLink = document.createElement('link');
-                    newLink.rel = 'stylesheet';
-                    newLink.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(data.font) + ':wght@400;500;600;700&display=swap';
-                    if (oldLink) { oldLink.replaceWith(newLink); } else { document.head.appendChild(newLink); }
-                    document.body.style.fontFamily = "'" + data.font + "', sans-serif";
-                }
-                if (data.heading_size) root.style.setProperty('--heading-size', data.heading_size);
-                if (data.body_size) root.style.setProperty('--body-size', data.body_size);
-                if (data.font_weight) root.style.setProperty('--font-weight', data.font_weight);
-                if (data.letter_spacing !== undefined) root.style.setProperty('--letter-spacing', data.letter_spacing);
-                if (data.heading_case) {
-                    document.querySelectorAll('.content-header, h2, h3').forEach(function(el) {
-                        el.style.textTransform = data.heading_case;
-                    });
-                }
-            }
-
-            if (data.type === 'UPDATE_CARD_STYLE') {
-                if (data.radius) root.style.setProperty('--radius', data.radius);
-                if (data.style) {
-                    var cards = document.querySelectorAll('.package-item');
-                    cards.forEach(function(card) {
-                        card.classList.remove('card-glass', 'card-outline', 'card-minimal', 'card-floating', 'card-sharp');
-                        card.classList.add('card-' + data.style);
-                    });
-                    root.style.setProperty('--card-style', data.style);
-                }
-                if (data.elevation !== undefined) root.style.setProperty('--card-elevation', data.elevation);
-                if (data.size) {
-                    var sizeMap = { compact: '12px 16px', comfortable: '16px 20px', large: '20px 24px' };
-                    root.style.setProperty('--card-padding', sizeMap[data.size] || '16px 20px');
-                }
-            }
-
-            if (data.type === 'UPDATE_BUTTON_STYLE') {
-                root.style.setProperty('--btn-style', data.style || 'rounded');
-                var radiusMap = { rounded: '10px', pill: '50px', sharp: '2px' };
-                root.style.setProperty('--btn-radius', radiusMap[data.style] || '10px');
-            }
-
-            if (data.type === 'UPDATE_LAYOUT' && data.sections) {
-                var sectionMap = {
-                    hero: '.brand-header',
-                    logo: '.brand-icon',
-                    welcome_text: '.content-header',
-                    packages: '.package-list',
-                    footer: '.portal-footer'
-                };
-                Object.keys(sectionMap).forEach(function(key) {
-                    var el = document.querySelector(sectionMap[key]);
-                    if (el) el.style.display = data.sections.includes(key) ? '' : 'none';
-                });
-            }
-
-            if (data.type === 'UPDATE_COMPONENTS') {
-                var voucherBox = document.querySelector('.voucher-box');
-                if (voucherBox) voucherBox.style.display = data.saved_number_login !== false ? '' : 'none';
-            }
-
-            if (data.type === 'UPDATE_NETWORK') {
-                var banner = document.querySelector('.network-banner');
-                if (banner) {
-                    banner.style.display = data.show_banner ? 'flex' : 'none';
-                    if (data.message) {
-                        var msgEl = banner.querySelector('.banner-text, span');
-                        if (msgEl) msgEl.textContent = data.message;
-                    }
-                }
-            }
-
-            if (data.type === 'UPDATE_OVERLAY') {
-                if (data.opacity !== undefined) root.style.setProperty('--overlay-opacity', data.opacity);
-                if (data.color) root.style.setProperty('--overlay-color', data.color);
-            }
-
-            if (data.updateType === 'UPDATE_BACKGROUND') {
-                if (data.type === 'solid' && data.value) {
-                    root.style.setProperty('--bg-primary', data.value);
-                } else if (data.type === 'gradient' && data.gradient) {
-                    root.style.setProperty('--bg-primary', data.gradient);
-                } else if (data.type === 'image' && data.url) {
-                    root.style.setProperty('--bg-primary', 'url(' + data.url + ') center/cover');
-                }
+                if (d.blur !== undefined) r.style.setProperty('--ov-blur', d.blur + 'px');
+                else if (d.overlay_opacity !== undefined) r.style.setProperty('--ov-blur', (d.overlay_opacity * 20) + 'px');
             }
         });
     </script>

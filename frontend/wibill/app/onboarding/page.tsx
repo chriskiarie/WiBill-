@@ -1,1405 +1,602 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface Package {
-  n: string;
-  d: string;
-  s: string;
-  p: number;
-  star: boolean;
-}
-
-interface Voucher {
-  prefix: string;
-  dur: string;
-  val: number;
-}
+import {
+  Building, Wifi, Anchor, Waves,
+  Cpu, Film, Paintbrush, Sunset,
+  Snowflake, Apple, Box, Flower2,
+  TreePine, Tent, Moon as MoonIcon, Coffee,
+} from 'lucide-react';
 
 interface Features {
-  mpesa: boolean;
-  card: boolean;
-  sms: boolean;
-  login: boolean;
-  countdown: boolean;
-  voucher: boolean;
-  loyalty: boolean;
-  referral: boolean;
-  announcement: boolean;
-  customFooter: boolean;
-  shareButton: boolean;
-  termsCheck: boolean;
+  mpesa: boolean; voucher: boolean; sms: boolean; login: boolean;
+  countdown: boolean; termsCheck: boolean; shareButton: boolean;
+  announcement: boolean; customFooter: boolean;
 }
 
 interface State {
   step: number;
-  tpl: 'spotlight' | 'dashboard' | 'stories';
-  shape: string;
-  size: 'compact' | 'comfortable' | 'large';
+  tpl: string;
   palette: number;
-  name: string;
-  tag: string;
-  loc: string;
-  emoji: string;
-  phone: string;
   font: string;
-  showSB: boolean;
-  sbMsg: string;
-  pkgs: Package[];
+  name: string; tag: string; loc: string; emoji: string; phone: string;
   feats: Features;
-  vouchers: Voucher[];
-  loyaltyRate: number;
-  loyaltyValue: number;
-  loyaltyMin: number;
-  loyaltyName: string;
-  loyaltyIcon: string;
-  refReward: number;
-  refDiscount: number;
-  refMax: number;
-  annMsg: string;
-  annStyle: 'info' | 'promo' | 'urgent' | 'success';
-  annPos: 'top' | 'above-pay';
-  footerTxt: string;
-  footerLinkLabel: string;
-  footerLinkUrl: string;
-  devMode: 'phone' | 'desktop';
 }
 
+const CATEGORIES = [
+  { id: 'business', name: 'Business' },
+  { id: 'entertainment', name: 'Entertainment' },
+  { id: 'minimal', name: 'Minimal' },
+  { id: 'local', name: 'Local' },
+];
+
+const TEMPLATES = [
+  { id: 'executive-light', name: 'Executive Light', category: 'business', desc: 'Clean light theme for professional services', badge: 'New', icon: Building, colors: { bg: '#ffffff', header: '#2D3436', card: '#f0f0f0', accent: '#0984e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'modern-isp', name: 'Modern ISP', category: 'business', desc: 'Bold modern theme for tech-forward ISPs', badge: 'Popular', icon: Wifi, colors: { bg: '#0d1117', header: '#00E676', card: '#161b22', accent: '#58a6ff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'corporate-blue', name: 'Corporate Blue', category: 'business', desc: 'Trustworthy blue theme for enterprise', badge: null, icon: Anchor, colors: { bg: '#1e1e2f', header: '#1a73e8', card: '#252540', accent: '#8ab4f8', text: '#e0e0e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'ocean-deep', name: 'Ocean Deep', category: 'business', desc: 'Deep blue ocean inspired calm theme', badge: null, icon: Waves, colors: { bg: '#03045E', header: '#0077B6', card: '#023E8A', accent: '#00B4D8', text: '#e0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'cyberpunk', name: 'Cyberpunk', category: 'entertainment', desc: 'Dark futuristic theme with vibrant accents', badge: null, icon: Cpu, colors: { bg: '#0d0d0d', header: '#ff6b35', card: '#1a1a1a', accent: '#ffd700', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'streaming-portal', name: 'Streaming Portal', category: 'entertainment', desc: 'Netflix-inspired dark theme', badge: 'Popular', icon: Film, colors: { bg: '#141414', header: '#e50914', card: '#1f1f1f', accent: '#ffffff', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.35)' } },
+  { id: 'rgb-wave', name: 'RGB Wave', category: 'entertainment', desc: 'Colorful RGB theme for tech events', badge: 'New', icon: Paintbrush, colors: { bg: '#0a0a1a', header: '#ff0080', card: '#150030', accent: '#7000ff', text: '#f0f0ff', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'sunset-vibes', name: 'Sunset Vibes', category: 'entertainment', desc: 'Warm sunset gradient theme', badge: null, icon: Sunset, colors: { bg: '#1a0a0a', header: '#FF6B6B', card: '#2d1b1b', accent: '#FFE66D', text: '#f0e8e0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'glass-morphism', name: 'Glass', category: 'minimal', desc: 'Modern glassmorphism design', badge: 'Popular', icon: Snowflake, colors: { bg: '#0f172a', header: '#ffffff', card: 'rgba(255,255,255,0.06)', accent: '#60a5fa', text: '#f0f0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'apple-style', name: 'Apple Style', category: 'minimal', desc: 'Clean Apple-inspired minimal design', badge: null, icon: Apple, colors: { bg: '#f5f5f7', header: '#1d1d1f', card: '#ffffff', accent: '#0071e3', text: '#1d1d1f', textDim: 'rgba(0,0,0,0.35)' } },
+  { id: 'material-design', name: 'Material', category: 'minimal', desc: 'Google Material Design 3 inspired', badge: null, icon: Box, colors: { bg: '#1c1b1f', header: '#6750A4', card: '#2b2930', accent: '#D0BCFF', text: '#e6e1e5', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'cherry-blossom', name: 'Cherry Blossom', category: 'minimal', desc: 'Soft pink theme with elegance', badge: 'New', icon: Flower2, colors: { bg: '#1a1014', header: '#FFB7C5', card: '#2d1a20', accent: '#d4a0a0', text: '#f0e8ec', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'safari', name: 'Safari', category: 'local', desc: 'Earthy tones inspired by the savannah', badge: null, icon: TreePine, colors: { bg: '#2a1f14', header: '#C4873B', card: '#3a2d1e', accent: '#E8B84B', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'afro-modern', name: 'Afro Modern', category: 'local', desc: 'Bold African patterns meets modern design', badge: 'New', icon: Tent, colors: { bg: '#1a0f0a', header: '#E85D26', card: '#2d1a10', accent: '#F5A623', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'nairobi-night', name: 'Nairobi Night', category: 'local', desc: 'City lights inspired dark theme', badge: null, icon: MoonIcon, colors: { bg: '#0a0a14', header: '#6C3EB8', card: '#15152a', accent: '#B388FF', text: '#e8e0f0', textDim: 'rgba(255,255,255,0.3)' } },
+  { id: 'coffee-shop', name: 'Coffee Shop', category: 'local', desc: 'Warm brown theme perfect for cafes', badge: 'New', icon: Coffee, colors: { bg: '#1C1512', header: '#D4A574', card: '#2d2018', accent: '#8B5E3C', text: '#f0e8d8', textDim: 'rgba(255,255,255,0.3)' } },
+];
+
+const FONTS = [
+  { id: 'Playfair Display', cat: 'Serif' },
+  { id: 'Orbitron', cat: 'Futuristic' },
+  { id: 'Bebas Neue', cat: 'Condensed' },
+  { id: 'Dancing Script', cat: 'Cursive' },
+  { id: 'JetBrains Mono', cat: 'Monospace' },
+  { id: 'Abril Fatface', cat: 'Display' },
+  { id: 'Fredoka', cat: 'Playful' },
+  { id: 'Unbounded', cat: 'Geometric' },
+  { id: 'Rubik Glitch', cat: 'Glitch' },
+  { id: 'Cormorant Garamond', cat: 'Book' },
+  { id: 'Bangers', cat: 'Comic' },
+  { id: 'Zilla Slab', cat: 'Slab' },
+];
+
+const STEPS = [
+  { t: 'Choose Layout', s: 'Pick a template for your portal' },
+  { t: 'Brand', s: 'Your WiFi name and tagline' },
+  { t: 'Color Palette', s: 'Choose your color scheme' },
+  { t: 'Typography', s: 'Select your heading font' },
+  { t: 'Features', s: 'Toggle portal components' },
+  { t: 'Preview & Launch', s: 'See it live, then go live' },
+];
+
 const PALS = [
-  {
-    n: 'Midnight Indigo',
-    s: 'Dark & Premium',
-    c: ['#0c0c1a', '#1a1040', '#5b4fff', '#8b73ff'],
-    bg: '#0c0c1a',
-    card: 'rgba(255,255,255,.06)',
-    cardborder: 'rgba(255,255,255,.12)',
-    cardhl: 'linear-gradient(135deg,rgba(232,184,75,.5),rgba(139,115,255,.3))',
-    cardborderhl: 'rgba(232,184,75,.6)',
-    text: '#e8e6ff',
-    textdim: 'rgba(232,230,255,.5)',
-    btn: '#5b4fff',
-    btntxt: '#ffffff',
-    hltxt: '#c7d2fe',
-    accent: '#8b73ff',
-    statusbg: 'rgba(16,185,129,.15)',
-    statusborder: 'rgba(16,185,129,.4)',
-    statustxt: '#6ee7b7',
-    cardhlbg: false,
-  },
-  {
-    n: 'Nairobi Sun',
-    s: 'Warm & Vibrant',
-    c: ['#fff7ed', '#fed7aa', '#f97316', '#9a3412'],
-    bg: '#fff7ed',
-    card: '#ffffff',
-    cardborder: '#fed7aa',
-    cardhl: '#f97316',
-    cardborderhl: '#f97316',
-    cardhlbg: true,
-    text: '#431407',
-    textdim: '#a1520b',
-    btn: '#f97316',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#ea6b03',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
-  {
-    n: 'Ocean Deep',
-    s: 'Cool & Trustworthy',
-    c: ['#f0f9ff', '#bae6fd', '#0ea5e9', '#0c4a6e'],
-    bg: '#f0f9ff',
-    card: '#ffffff',
-    cardborder: '#bae6fd',
-    cardhl: '#0c4a6e',
-    cardborderhl: '#0c4a6e',
-    cardhlbg: true,
-    text: '#0c4a6e',
-    textdim: '#0369a1',
-    btn: '#0ea5e9',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#0284c7',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
-  {
-    n: 'Forest Night',
-    s: 'Natural & Calm',
-    c: ['#052e16', '#14532d', '#16a34a', '#86efac'],
-    bg: '#052e16',
-    card: 'rgba(255,255,255,.07)',
-    cardborder: 'rgba(134,239,172,.15)',
-    cardhl: 'rgba(22,163,74,.3)',
-    cardborderhl: 'rgba(134,239,172,.5)',
-    text: '#dcfce7',
-    textdim: 'rgba(220,252,231,.5)',
-    btn: '#16a34a',
-    btntxt: '#ffffff',
-    hltxt: '#bbf7d0',
-    accent: '#22c55e',
-    statusbg: 'rgba(16,185,129,.2)',
-    statusborder: 'rgba(16,185,129,.5)',
-    statustxt: '#6ee7b7',
-    cardhlbg: false,
-  },
-  {
-    n: 'Rose Quartz',
-    s: 'Elegant & Warm',
-    c: ['#fff1f2', '#fecdd3', '#f43f5e', '#4c0519'],
-    bg: '#fff1f2',
-    card: '#ffffff',
-    cardborder: '#fecdd3',
-    cardhl: '#f43f5e',
-    cardborderhl: '#f43f5e',
-    cardhlbg: true,
-    text: '#4c0519',
-    textdim: '#881337',
-    btn: '#f43f5e',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#e11d48',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
-  {
-    n: 'Obsidian Slate',
-    s: 'Corporate & Sharp',
-    c: ['#f8fafc', '#e2e8f0', '#1e293b', '#0f172a'],
-    bg: '#f8fafc',
-    card: '#ffffff',
-    cardborder: '#e2e8f0',
-    cardhl: '#1e293b',
-    cardborderhl: '#1e293b',
-    cardhlbg: true,
-    text: '#0f172a',
-    textdim: '#64748b',
-    btn: '#1e293b',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#334155',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
-  {
-    n: 'Amber Dusk',
-    s: 'Bold & Inviting',
-    c: ['#fffbeb', '#fef3c7', '#d97706', '#78350f'],
-    bg: '#fffbeb',
-    card: '#ffffff',
-    cardborder: '#fde68a',
-    cardhl: '#d97706',
-    cardborderhl: '#d97706',
-    cardhlbg: true,
-    text: '#451a03',
-    textdim: '#92400e',
-    btn: '#b45309',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#d97706',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
-  {
-    n: 'Electric Violet',
-    s: 'Gen-Z & Electric',
-    c: ['#faf5ff', '#ede9fe', '#7c3aed', '#2e1065'],
-    bg: '#faf5ff',
-    card: '#ffffff',
-    cardborder: '#ddd6fe',
-    cardhl: '#7c3aed',
-    cardborderhl: '#7c3aed',
-    cardhlbg: true,
-    text: '#2e1065',
-    textdim: '#6d28d9',
-    btn: '#7c3aed',
-    btntxt: '#ffffff',
-    hltxt: '#ffffff',
-    accent: '#6d28d9',
-    statusbg: 'rgba(16,185,129,.1)',
-    statusborder: 'rgba(16,185,129,.35)',
-    statustxt: '#065f46',
-  },
+  { n: 'Dark Indigo' }, { n: 'Sunset Orange' }, { n: 'Sky Blue' }, { n: 'Forest Green' },
+  { n: 'Rose' }, { n: 'Slate' }, { n: 'Amber' }, { n: 'Purple' },
 ];
 
-const PALETTE_TOKENS = PALS.map((p) => ({
-  name: p.n,
-  primary: p.btn,
-  primaryDark: p.cardborderhl,
-  bgStart: p.bg,
-  bgEnd: p.bg,
-  text: p.text,
-  textDim: p.textdim,
-  card: p.card,
-  cardBorder: p.cardborder,
-  cardHl: p.cardhl,
-  accent: p.accent,
-  accentLight: p.cardhl,
-}));
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Bebas+Neue&family=Dancing+Script:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Abril+Fatface&family=Fredoka:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&family=Rubik+Glitch&family=Cormorant+Garamond:wght@400;500;600;700&family=Bangers&family=Zilla+Slab:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#000;color:#f0f0f0;min-height:100vh;font-size:16px;line-height:1.5;overflow:hidden}
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
 
-const PAY_FEATS = [
-  { k: 'mpesa', n: 'M-Pesa STK Push', d: 'Instant Safaricom prompt' },
-  { k: 'card', n: 'Card Payment', d: 'Visa / Mastercard' },
-  { k: 'voucher', n: 'Voucher / Scratch Card', d: 'Prepaid code redemption' },
-  { k: 'sms', n: 'SMS Confirmation', d: 'Text receipt after payment' },
-];
+.sidebar{background:#000;padding:28px 20px;display:flex;flex-direction:column;border-right:1px solid #141414}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;padding:0 4px}
+.logo-mark{width:32px;height:32px;background:#E8B84B;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:#000}
+.logo-text{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.steps{flex:1;display:flex;flex-direction:column;gap:2px}
+.step{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.step:hover{background:rgba(255,255,255,.03)}
+.step.active{background:rgba(232,184,75,.08);border-color:rgba(232,184,75,.2)}
+.step.done .snum{background:#22c55e!important;color:#000!important;border-color:#22c55e!important}
+.snum{width:26px;height:26px;border-radius:50%;border:1.5px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace;color:#666;transition:all .3s}
+.step.active .snum{background:#E8B84B!important;color:#000!important;border-color:#E8B84B!important}
+.sinfo .slabel{font-size:14px;font-weight:600;color:rgba(255,255,255,.9)}
+.sinfo .sdesc{font-size:12px;color:#666;margin-top:3px}
+.sconn{height:14px;width:1px;background:#141414;margin-left:24px}
+.sidebar-footer{margin-top:auto;padding-top:20px;border-top:1px solid #141414}
+.prog-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:8px;display:flex;justify-content:space-between}
+.prog-label span{color:#E8B84B;font-weight:700}
+.prog-track{background:#141414;border-radius:99px;height:3px;overflow:hidden}
+.prog-fill{height:100%;background:#E8B84B;border-radius:99px;transition:width .5s}
 
-const PORTAL_FEATS = [
-  { k: 'login', n: 'Saved Number Login', d: 'Return users skip re-typing' },
-  { k: 'countdown', n: 'Session Countdown Timer', d: 'Shows time remaining while online' },
-  { k: 'termsCheck', n: 'Terms & Conditions Checkbox', d: 'Users agree before paying' },
-  { k: 'shareButton', n: 'Share WiFi Button', d: 'Lets users share hotspot with friends' },
-];
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:20px 28px;border-bottom:1px solid #141414;gap:16px}
+.ttitle{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tsub{font-size:14px;color:#666;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-center{text-align:center;overflow:hidden;min-width:0}
+.tbtns{display:flex;gap:10px}
+.btn{padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s;display:flex;align-items:center;gap:8px;font-family:'Inter',sans-serif}
+.btn-ghost{background:transparent;border:1px solid #141414;color:#666}
+.btn-ghost:hover{border-color:#2a2a2a;color:#f0f0f0}
+.btn-primary{background:#E8B84B;color:#000}
+.btn-primary:hover{background:#d4a534}
+.btn-green{background:#22c55e;color:#000}
+.btn-green:hover{background:#1da64e}
 
-const LOYALTY_FEATS = [
-  { k: 'loyalty', n: 'Loyalty Points', d: 'Earn points, redeem for free data' },
-  { k: 'referral', n: 'Referral Program', d: 'Users earn rewards for bringing friends' },
-];
+.content{padding:24px 28px;overflow-y:auto;height:calc(100vh - 69px)}
+.panel{display:none}.panel.active{display:block}
 
-const ANNOUNCE_FEATS = [
-  { k: 'announcement', n: 'Announcement Banner', d: 'Promos, outage alerts, offers' },
-  { k: 'customFooter', n: 'Custom Footer', d: 'Terms link, branding, contact' },
-];
+.card{background:#0a0a0a;border:1px solid #141414;border-radius:12px;padding:20px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.card-title::after{content:'';flex:1;height:1px;background:#141414}
 
-const STEP_META = [
-  null,
-  { 
-    t: 'Choose Layout', 
-    s: 'Select the baseline structure for your captive portal network.' 
-  },
-  { 
-    t: 'Brand & Colors', 
-    s: 'Define your identity, palette, and typography' 
-  },
-  { 
-    t: 'Features & Extras', 
-    s: 'Payments, loyalty, vouchers, referrals and more' 
-  },
-  { 
-    t: 'Preview & Export', 
-    s: 'See exactly what customers see, then export or share' 
-  },
-];
+.card-tpl{min-height:calc(100vh - 69px - 48px - 14px);display:flex;flex-direction:column;overflow:hidden}
+.card-tpl .tpl-grid{flex:1;display:flex;align-items:center;justify-content:center;gap:20px;padding:0;min-height:0}
+.tpl-card{border-radius:20px;cursor:pointer;transition:all .5s cubic-bezier(.34,1.56,.64,1);position:relative;width:170px;flex-shrink:0}
+.tpl-card:hover{transform:translateY(-4px)}
+.tpl-card.active{width:320px}
+.tpl-card.active ~ .tpl-card{width:140px;opacity:.5;filter:blur(.5px)}
+.tpl-card.active:hover{transform:none}
 
-const CSS_STYLES = `
-  *{margin:0;padding:0;box-sizing:border-box}
-  :root{
-    --ink:#EDEBE6;--ink2:#8C8A84;--muted:#6B6964;--surface:#0D0D0B;--white:#0D0D0B;
-    --border:#2A2A27;--accent:#E8B84B;--accent-light:rgba(232,184,75,0.1);--green:#22c55e;--red:#E5707A;
-    --radius:10px;--shadow:none;
-  }
-  body{font-family:'Inter',sans-serif;background:#000;color:var(--ink);min-height:100vh;font-size:15px}
-  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-  .sidebar{background:#000;color:#fff;padding:1.75rem 1.5rem;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
-  .xbill-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
-  .xbill-logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;color:#fff}
-  .xbill-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-.02em}
-  .xbill-logo-sub{font-size:.7rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-top:.05rem}
-  .steps{display:flex;flex-direction:column;gap:2px}
-  .step{display:flex;align-items:center;gap:.85rem;padding:.8rem 1rem;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent}
-  .step:hover:not(.active){background:rgba(255,255,255,.04)}
-  .step.active{background:rgba(232,184,75,.15);border-color:rgba(232,184,75,.3)}
-  .step.done .snum{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
-  .snum{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;font-family:'Space Mono',monospace;transition:all .3s;color:rgba(255,255,255,.5)}
-  .step.active .snum{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
-  .sinfo .slabel{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.85)}
-  .sinfo .sdesc{font-size:.68rem;color:rgba(255,255,255,.35);margin-top:.08rem}
-  .conn{width:1px;height:18px;background:rgba(255,255,255,.08);margin-left:calc(1rem + 13px - .5px)}
-  .sidebar-footer{margin-top:auto;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.06)}
-  .prog-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center}
-  .prog-label span{color:var(--accent);font-weight:700}
-  .prog-track{background:rgba(255,255,255,.08);border-radius:99px;height:3px;overflow:hidden}
-  .prog-fill{height:100%;background:#E8B84B;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
-  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:1.25rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-  .ttitle{font-family:'Syne',sans-serif;font-size:2rem;font-weight:900;letter-spacing:-.03em;line-height:1.2;color:var(--ink)}
-  .tsub{font-size:.95rem;color:var(--muted);margin-top:.3rem;line-height:1.5;max-width:500px}
-  .tbtns{display:flex;gap:.6rem;align-items:center}
-  .btn{padding:.55rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif;transition:all .2s;display:flex;align-items:center;gap:.4rem}
-  .btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--ink2)}
-  .btn-ghost:hover{border-color:#3A3A37;background:var(--surface)}
-  .btn-primary{background:var(--accent);color:#fff}
-  .btn-primary:hover{background:#c99a2e;transform:translateY(-1px)}
-  .btn-green{background:var(--green);color:#fff}
-  .btn-green:hover{background:#0da271}
-  .content{padding:2.5rem 3rem;overflow-y:auto;max-height:calc(100vh - 100px)}
-  .panel{display:none}.panel.active{display:block}
-  .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;margin-bottom:1.1rem}
-  .card-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
-  .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
-  .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
-  .tpl-card{border:2px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);position:relative;background:var(--white)}
-  .tpl-card:hover{border-color:rgba(232,184,75,.6);transform:translateY(-12px);box-shadow:0 28px 56px rgba(0,0,0,.18)}
-  .tpl-card.sel{border:3px solid var(--accent);box-shadow:0 0 0 2px rgba(232,184,75,.3),0 20px 60px rgba(232,184,75,.25),0 0 100px rgba(232,184,75,.12);transform:translateY(-6px)}
-  .tpl-card.sel::before{content:'';position:absolute;inset:-40px;background:radial-gradient(circle,rgba(232,184,75,.15),transparent 70%);z-index:-1;filter:blur(32px);pointer-events:none}
-  .tpl-card .tpl-thumb{transition:transform .4s ease}
-  .tpl-card:hover .tpl-thumb{transform:scale(1.03)}
-  .tpl-badge{position:absolute;top:.75rem;right:.75rem;background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:.4rem .85rem;border-radius:99px;font-family:'Space Mono',monospace;opacity:0;transition:opacity .3s;box-shadow:0 6px 16px rgba(232,184,75,.4);z-index:5}
-  .tpl-card.sel .tpl-badge{opacity:1}
-  .tpl-thumb{height:320px;overflow:hidden;position:relative;scrollbar-width:none;-ms-overflow-style:none}
-  .tpl-thumb::-webkit-scrollbar{display:none}
-  .tpl-label{padding:1.25rem 1.5rem;font-size:1rem;font-weight:700;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
-  .tpl-label small{font-weight:400;color:var(--muted);font-size:.85rem}
-  .tpl-label .tpl-personality{display:flex;flex-direction:column;align-items:flex-end;gap:.15rem}
-  .tpl-label .tpl-personality-main{font-size:1rem;font-weight:700;color:var(--ink)}
-  .tpl-label .tpl-personality-sub{font-size:.75rem;color:var(--muted);font-weight:500;letter-spacing:.05em}
-  .tpl-tip{margin-top:1.5rem;padding:1rem;background:#0a0a0a;border-radius:12px;font-size:.85rem;color:#8C8A84;line-height:1.6;border-left:4px solid var(--accent)}
-  .tpl-tip strong{color:#EDEBE6;font-weight:700;display:block;margin-bottom:.4rem}
-  .opt-row{display:flex;align-items:center;gap:1rem;margin-bottom:.85rem}
-  .opt-label{font-size:.82rem;font-weight:600;color:var(--ink2);min-width:150px}
-  .opt-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
-  .opt-group{display:flex;gap:.45rem;flex:1;flex-wrap:wrap}
-  .opt-btn{padding:.45rem 1rem;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;transition:all .2s;color:var(--ink2);white-space:nowrap}
-  .opt-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .field{display:flex;align-items:flex-start;gap:1rem;margin-bottom:.9rem}
-  .field-label{font-size:.82rem;font-weight:600;min-width:150px;padding-top:.4rem;color:var(--ink2)}
-  .field-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
-  .field input,.field select,.field textarea{flex:1;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:'Figtree',sans-serif;color:var(--ink);background:var(--white);outline:none;transition:border .2s}
-  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
-  .field textarea{resize:vertical;min-height:60px}
-  .pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem}
-  .pal{border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1);position:relative}
-  .pal:hover{transform:translateY(-4px);border-color:rgba(232,184,75,.4);box-shadow:0 12px 28px rgba(0,0,0,.12)}
-  .pal.sel{border-color:var(--accent);box-shadow:0 0 0 1px rgba(232,184,75,.25),0 12px 32px rgba(232,184,75,.18)}
-  .pal.sel::before{content:'';position:absolute;inset:-20px;background:radial-gradient(circle,rgba(232,184,75,.1),transparent 60%);z-index:-1;filter:blur(20px);pointer-events:none}
-  .pal-swatches{display:flex;height:36px}
-  .pal-sw{flex:1}
-  .pal-name{font-size:.72rem;font-weight:700;padding:.45rem .75rem;background:#0D0D0B;color:var(--ink)}
-  .pal-name small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
+/* Phone frame */
+.tpl-phone{background:#1a1a1a;border-radius:20px;padding:8px;box-shadow:0 4px 14px rgba(0,0,0,.5),0 0 0 1px #2a2a2a;position:relative;transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+.tpl-card.active .tpl-phone{box-shadow:0 0 0 2px #E8B84B,0 12px 32px rgba(232,184,75,.3),0 0 60px rgba(232,184,75,.1)}
+.tpl-phone::before{content:'';position:absolute;top:12px;left:50%;transform:translateX(-50%);width:50px;height:5px;background:#1a1a1a;border-radius:99px;z-index:10;border:1px solid #2a2a2a}
+.tpl-phone::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:100%;height:18px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-radius:14px 14px 0 0;pointer-events:none}
+.tpl-screen{border-radius:14px;overflow:hidden;background:#000;aspect-ratio:375/812}
+.tpl-screen iframe{width:100%;height:100%;border:none;pointer-events:none;display:block;overflow:hidden}
+.tpl-screen iframe::-webkit-scrollbar{display:none;width:0}
+.tpl-screen iframe body::-webkit-scrollbar{display:none}
 
-  .feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
-  .feat{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;transition:all .2s;cursor:pointer}
-  .feat:hover{border-color:rgba(232,184,75,.2);background:#111}
-  .feat.on{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.03)}
-  .feat-info .fn{font-size:.83rem;font-weight:600}
-  .feat-info .fd{font-size:.7rem;color:var(--muted);margin-top:.1rem}
-  .sw{position:relative;width:38px;height:20px;flex-shrink:0;margin-left:1rem}
-  .sw input{opacity:0;width:0;height:0}
-  .sw-track{position:absolute;inset:0;background:#2A2A27;border-radius:99px;cursor:pointer;transition:.3s}
-  .sw-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-  input:checked+.sw-track{background:var(--green)}
-  input:checked+.sw-track::before{transform:translateX(18px)}
-  .infobox{background:#0a0a0a;border:1px solid #2A2A27;border-radius:9px;padding:.7rem 1rem;font-size:.79rem;color:#8C8A84;display:flex;gap:.5rem;align-items:flex-start;margin-bottom:.85rem;line-height:1.4}
-  .infobox-amber{background:#1a1400;border:1px solid #3D2A06;color:#E8B84B}
-  .infobox-green{background:#0a1a0a;border:1px solid #14532d;color:#22c55e}
-  .preview-shell{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.1rem}
-  .prev-toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem}
-  .prev-toolbar span{font-size:.78rem;font-weight:700}
-  .dev-btn{background:none;border:1.5px solid var(--border);border-radius:7px;padding:.3rem .7rem;font-size:.73rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;color:var(--muted);transition:all .2s}
-  .dev-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .prev-note{margin-left:auto;font-size:.7rem;color:var(--muted);font-family:'Space Mono',monospace}
-  .prev-stage{padding:2rem;background:#0a0a0a;display:flex;justify-content:center;align-items:flex-start;min-height:640px;overflow:hidden}
-  .device-phone{width:390px;border-radius:44px;overflow:hidden;background:#111;padding:12px;box-shadow:0 0 0 2px #333,0 25px 60px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.05);position:relative;transition:all .4s;scrollbar-width:none;-ms-overflow-style:none}
-  .device-phone::-webkit-scrollbar{display:none}
-  .device-phone::before{content:'';position:absolute;top:22px;left:50%;transform:translateX(-50%);width:70px;height:8px;background:#111;border-radius:99px;z-index:10;border:1.5px solid #333}
-  .phone-screen{border-radius:34px;overflow:hidden;background:#111;height:720px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
-  .phone-screen::-webkit-scrollbar{display:none}
-  .device-desktop{width:780px;border-radius:12px;overflow:hidden;background:#2a2a2a;padding:10px 10px 0;box-shadow:0 0 0 1.5px #444,0 20px 50px rgba(0,0,0,.3);scrollbar-width:none;-ms-overflow-style:none}
-  .device-desktop::-webkit-scrollbar{display:none}
-  .desktop-bar{height:28px;display:flex;align-items:center;gap:.45rem;padding:0 .7rem;margin-bottom:8px}
-  .desktop-dot{width:9px;height:9px;border-radius:50%}
-  .desktop-url{flex:1;background:rgba(255,255,255,.08);border-radius:4px;height:16px;display:flex;align-items:center;padding:0 .5rem}
-  .desktop-url span{font-size:.5rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace}
-  .desktop-screen{border-radius:6px 6px 0 0;overflow:hidden;height:540px;overflow-y:auto;background:#111;scrollbar-width:none;-ms-overflow-style:none}
-  .desktop-screen::-webkit-scrollbar{display:none}
-  .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
-  .exp-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);text-align:center;position:relative}
-  .exp-card:hover{border-color:var(--accent);transform:translateY(-6px);background:rgba(232,184,75,0.05);box-shadow:0 12px 32px rgba(232,184,75,.15)}
-  .exp-card::after{content:'';position:absolute;inset:-1px;background:radial-gradient(circle at top right,rgba(232,184,75,.08),transparent 70%);border-radius:var(--radius);opacity:0;transition:opacity .25s;pointer-events:none}
-  .exp-card:hover::after{opacity:1}
-  .exp-icon{font-size:1.7rem;margin-bottom:.55rem;transition:transform .3s}
-  .exp-card:hover .exp-icon{transform:scale(1.15)}
-  .exp-card h3{font-size:.88rem;font-weight:700;margin-bottom:.25rem;font-family:'Syne',sans-serif;color:var(--ink)}
-  .exp-card p{font-size:.75rem;color:var(--muted);line-height:1.4}
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
-  .modal-bg.open{display:flex}
-  .modal{background:#0D0D0B;border-radius:20px;padding:2rem;width:520px;max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,.25);border:0.5px solid #2A2A27}
-  .modal h2{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:.4rem}
-  .modal p{font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.5}
-  .modal-step{display:flex;align-items:flex-start;gap:.75rem;background:var(--surface);border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem}
-  .modal-step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Space Mono',monospace;margin-top:.05rem}
-  .modal-step-info strong{font-size:.82rem;font-weight:700;display:block}
-  .modal-step-info span{font-size:.75rem;color:var(--muted)}
-  .modal-divider{text-align:center;font-size:.75rem;color:var(--muted);margin:.75rem 0;font-weight:600}
-  .modal-code{background:#0f172a;color:#94a3b8;padding:1rem 1.1rem;border-radius:9px;font-size:.78rem;font-family:'Space Mono',monospace;word-break:break-all;line-height:1.6;margin-bottom:1rem;cursor:pointer;transition:background .2s}
-  .modal-code:hover{background:#1e293b}
-  .modal-btns{display:flex;gap:.65rem;margin-bottom:1rem}
-  .modal-dismiss{text-align:center;font-size:.78rem;color:var(--muted);cursor:pointer;text-decoration:underline}
+/* Selected glow */
+.tpl-card.active .tpl-glow{position:absolute;inset:-16px;border-radius:32px;background:radial-gradient(ellipse,rgba(232,184,75,.2),transparent 70%);pointer-events:none;z-index:-1;animation:glow-pulse 2s ease-in-out infinite}
 
-  .preview-modal-overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.3);
-    backdrop-filter:blur(12px);
-    -webkit-backdrop-filter:blur(12px);
-    z-index:100;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity .3s cubic-bezier(.4,0,.2,1);
-    padding:1rem;
-  }
+@keyframes glow-pulse{0%,100%{opacity:.6}50%{opacity:1}}
 
-  .preview-modal-overlay.active{
-    opacity:1;
-    pointer-events:auto;
-  }
+/* Label */
+.tpl-label{text-align:center;margin-top:12px;font-size:14px;font-weight:600;color:#f0f0f0;transition:all .3s}
+.tpl-card:not(.active) .tpl-label{font-size:12px;margin-top:8px}
+.tpl-label small{display:block;font-size:11px;color:#666;font-weight:400;margin-top:2px}
+.tpl-card:not(.active) .tpl-label small{display:none}
 
-  .preview-modal-box{
-    background:rgba(13,13,11,.98);
-    backdrop-filter:blur(20px);
-    -webkit-backdrop-filter:blur(20px);
-    border:0.5px solid #2A2A27;
-    border-radius:24px;
-    box-shadow:0 25px 50px rgba(0,0,0,.5);
-    width:90vw;
-    max-width:1100px;
-    height:85vh;
-    max-height:800px;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-    transform:scale(.92);
-    transition:transform .3s cubic-bezier(.4,0,.2,1);
-  }
+/* Checkmark */
+.tpl-check{position:absolute;top:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:#E8B84B;color:#000;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;z-index:20;font-family:'DM Mono',monospace;box-shadow:0 2px 8px rgba(232,184,75,.4)}
+.tpl-card.active .tpl-check{display:flex}
 
-  .preview-modal-overlay.active .preview-modal-box{
-    transform:scale(1);
-  }
+.font-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.font-card{border:1px solid #141414;border-radius:10px;padding:14px 10px;cursor:pointer;transition:all .2s;text-align:center}
+.font-card:hover{border-color:#2a2a2a}
+.font-card.sel{border-color:#E8B84B;box-shadow:0 0 0 1px rgba(232,184,75,.2)}
+.font-card .fn-name{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.font-card .fn-sample{font-size:24px;color:#f0f0f0;line-height:1.2;min-height:1.4em;display:flex;align-items:center;justify-content:center;font-weight:600}
+.font-card .fn-cat{font-size:11px;color:#666;margin-top:6px}
 
-  .preview-modal-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:1.5rem 2rem;
-    border-bottom:0.5px solid #2A2A27;
-    background:#0D0D0B;
-  }
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:16px;max-width:820px;margin:0 auto;height:100%}
+.gallery-grid .gal-card:last-child:nth-child(4){grid-column:2}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.gal-card{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:12px;overflow:hidden;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);text-align:left;display:flex;flex-direction:column;height:100%}
+.gal-card:hover{border-color:rgba(255,255,255,.15);box-shadow:0 0 0 1px rgba(255,255,255,.05);transform:translateY(-1px)}
+.gal-card.sel{border-color:#fff;box-shadow:0 0 18px rgba(255,255,255,.25),0 0 0 1px #fff;transform:translateY(-3px) scale(1.03);position:relative;z-index:2}
+.gal-preview{flex:1;position:relative;overflow:hidden;min-height:0}
+.gal-info{padding:10px 12px 12px;display:flex;flex-direction:column}
+.gal-info .gi-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.gal-info .gi-row .gi-icon{width:14px;height:14px;flex-shrink:0}
+.gal-info .gi-name{font-size:14px;font-weight:600;color:#f0f0f0}
+.gal-badge{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.gal-badge.popular{background:rgba(232,184,75,.1);color:#E8B84B}
+.gal-badge.trending{background:rgba(34,197,94,.1);color:#22c55e}
+.gal-badge.new{background:rgba(255,255,255,.05);color:#666}
+.gal-desc{font-size:12px;color:#666;margin:0;line-height:1.4}
+.gal-dots{display:flex;gap:4px;margin-top:auto;padding-top:8px}
+.gal-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,.08)}
+.cat-tabs{display:flex;gap:4px;justify-content:center;margin-bottom:28px;background:#0a0a0a;border-radius:10px;padding:3px;width:fit-content;margin-left:auto;margin-right:auto}
+.cat-tab{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;font-family:'Inter',sans-serif}
+.cat-tab.on{background:#E8B84B;color:#000}
+.cat-tab.off{background:transparent;color:#666}
+.cat-tab.off:hover{color:#f0f0f0}
 
-  .preview-modal-title{
-    display:flex;
-    flex-direction:column;
-    gap:.25rem;
-  }
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field-label{font-size:14px;font-weight:600;color:#666}
+.field-label small{display:block;font-size:12px;color:#666;font-weight:400;margin-top:2px}
+.field input{width:100%;padding:12px 14px;border:1px solid #141414;border-radius:10px;font-size:15px;font-family:'Inter',sans-serif;color:#f0f0f0;background:#000;outline:none;transition:border .2s}
+.field input:focus{border-color:#E8B84B}
+.field input::placeholder{color:#444}
 
-  .preview-modal-title h3{
-    font-family:'Syne',sans-serif;
-    font-size:1.2rem;
-    font-weight:800;
-    color:#EDEBE6;
-    letter-spacing:-.01em;
-  }
+.opt-row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.opt-label{font-size:13px;font-weight:600;color:#666;min-width:130px}
+.opt-group{display:flex;gap:8px;flex-wrap:wrap}
+.opt-btn{padding:8px 16px;border-radius:8px;border:1px solid #141414;background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:#666;transition:all .15s;font-family:'Inter',sans-serif}
+.opt-btn:hover{border-color:#2a2a2a;color:#f0f0f0}
+.opt-btn.on{background:#E8B84B;color:#000;border-color:#E8B84B}
 
-  .preview-modal-title h3 span{
-    color:#E8B84B;
-    text-transform:capitalize;
-  }
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.feat{display:flex;align-items:center;justify-content:space-between;background:#000;border:1px solid #141414;border-radius:10px;padding:12px 14px;transition:border .2s;cursor:pointer}
+.feat.on{border-color:rgba(34,197,94,.3)}
+.feat-info .fn{font-size:14px;font-weight:600}
+.feat-info .fd{font-size:12px;color:#666;margin-top:2px}
+.sw{position:relative;width:38px;height:20px;flex-shrink:0;margin-left:12px}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;inset:0;background:#2a2a2a;border-radius:99px;cursor:pointer;transition:.3s}
+.sw-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#666;transition:.3s}
+input:checked+.sw-track{background:#E8B84B}
+input:checked+.sw-track::before{background:#000;transform:translateX(18px)}
 
-  .preview-modal-title p{
-    font-size:.82rem;
-    color:#6B6964;
-    line-height:1.4;
-  }
+.prev-shell{background:#0a0a0a;border:1px solid #141414;border-radius:12px;overflow:hidden}
+.prev-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #141414}
+.prev-toolbar span{font-size:13px;font-weight:700;color:#666}
+.dev-btn{background:none;border:1px solid #141414;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#666;transition:all .15s;font-family:'Inter',sans-serif}
+.dev-btn.on{background:#E8B84B;color:#000;border-color:#E8B84B}
+.prev-note{margin-left:auto;font-size:11px;color:#666;font-family:'DM Mono',monospace}
+.prev-stage{padding:24px;background:#000;display:flex;justify-content:center;align-items:flex-start;min-height:520px}
+.device-phone{width:340px;border-radius:36px;overflow:hidden;background:#111;padding:10px;box-shadow:0 0 0 1px #2a2a2a,0 25px 50px rgba(0,0,0,.5);position:relative}
+.device-phone::before{content:'';position:absolute;top:16px;left:50%;transform:translateX(-50%);width:64px;height:7px;background:#111;border-radius:99px;z-index:10;border:1px solid #2a2a2a}
+.phone-screen{border-radius:26px;overflow:hidden;background:#000;aspect-ratio:390/844;overflow:hidden}
+.phone-screen::-webkit-scrollbar{display:none}
+.device-desktop{width:700px;border-radius:10px;overflow:hidden;background:#1a1a1a;padding:10px 10px 0;box-shadow:0 0 0 1px #2a2a2a,0 25px 50px rgba(0,0,0,.4)}
+.desktop-bar{height:28px;display:flex;align-items:center;gap:8px;padding:0 12px;margin-bottom:8px}
+.desktop-dot{width:9px;height:9px;border-radius:50%}
+.desktop-url{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:16px;display:flex;align-items:center;padding:0 10px}
+.desktop-url span{font-size:8px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace}
+.desktop-screen{border-radius:6px 6px 0 0;overflow:hidden;aspect-ratio:1280/720;background:#000}
+.desktop-screen::-webkit-scrollbar{display:none}
 
-  .preview-modal-close{
-    background:rgba(239,68,68,.1);
-    border:1px solid rgba(239,68,68,.2);
-    border-radius:10px;
-    padding:.6rem;
-    cursor:pointer;
-    transition:all .2s;
-    color:#6b7280;
-    flex-shrink:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    width:40px;
-    height:40px;
-  }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#0a0a0a;border:1px solid #141414;border-radius:16px;width:90vw;max-width:960px;height:85vh;max-height:750px;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #141414}
+.modal-header h3{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;letter-spacing:-.2px}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#666;padding:6px 10px;border-radius:8px;transition:all .2s}
+.modal-close:hover{background:#141414;color:#f0f0f0}
+.modal-content{flex:1;overflow:hidden;background:#000;padding:14px}
+.modal-content iframe{width:100%;height:100%;border:none;border-radius:8px;background:#fff}
 
-  .preview-modal-close:hover{
-    background:rgba(239,68,68,.15);
-    border-color:rgba(239,68,68,.4);
-    color:#ef4444;
-  }
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.summary-item{padding:12px;background:#000;border:1px solid #141414;border-radius:10px;text-align:center}
+.summary-item .sm-label{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.summary-item .sm-val{font-size:16px;font-weight:600;color:#f0f0f0}
 
-  .preview-modal-content{
-    flex:1;
-    overflow:hidden;
-    background:#000;
-    position:relative;
-  }
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#f0f0f0;padding:12px 24px;border-radius:99px;font-size:14px;font-weight:500;z-index:200;transition:all .3s;box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap;border:1px solid #2a2a2a}
 
-  .preview-modal-content iframe{
-    width:100%;
-    height:100%;
-    border:none;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-  }
+.nav-side{position:fixed;right:28px;top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:10px;align-items:center}
+.nav-next{width:54px;height:54px;border-radius:50%;background:#E8B84B;color:#000;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 16px rgba(232,184,75,.3);font-family:'Inter',sans-serif;font-weight:700}
+.nav-next:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(232,184,75,.4)}
+.nav-back{background:transparent;border:1px solid #141414;color:#666;cursor:pointer;border-radius:50%;width:34px;height:34px;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.nav-back:hover{border-color:#2a2a2a;color:#f0f0f0}
 
-  .preview-modal-content iframe::-webkit-scrollbar{
-    display:none;
-  }
-
-  .toast{
-    position:fixed;
-    bottom:-100px;
-    left:50%;
-    transform:translateX(-50%);
-    background:#1a1a1a;
-    color:#fff;
-    padding:.8rem 1.4rem;
-    border-radius:99px;
-    font-size:.85rem;
-    font-weight:600;
-    z-index:200;
-    transition:bottom .3s cubic-bezier(.4,0,.2,1);
-    box-shadow:0 12px 32px rgba(0,0,0,.25);
-    display:flex;
-    align-items:center;
-    gap:.5rem;
-  }
-
-  .toast.show{
-    bottom:2rem;
-  }
-
-  @media(max-width:860px){
-    .app{grid-template-columns:1fr}
-    .sidebar{display:none}
-    .tpl-grid{grid-template-columns:1fr}
-    .pal-grid{grid-template-columns:1fr 1fr}
-    .feat-grid{grid-template-columns:1fr}
-    .export-grid{grid-template-columns:1fr}
-    .device-phone{width:100%}
-    .device-desktop{width:100%}
-    .preview-modal-box{width:95vw;height:90vh;max-width:none;max-height:none}
-  }
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .feat-grid,.font-grid{grid-template-columns:1fr 1fr}
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .device-phone{width:100%}
+  .device-desktop{width:100%}
+  .ttitle{font-size:18px}
+  .content{padding:16px}
+  .card-tpl{min-height:auto}
+  .card-tpl .tpl-grid{flex-wrap:wrap;gap:16px}
+  .tpl-card{width:150px}
+  .tpl-card.active{width:280px}
+  .tpl-card.active ~ .tpl-card{width:120px}
+}
+@media(min-width:420px) and (max-width:860px){
+  .card-tpl{min-height:auto}
+  .card-tpl .tpl-grid{flex-wrap:wrap;gap:14px}
+  .tpl-card{width:140px}
+  .tpl-card.active{width:260px}
+  .tpl-card.active ~ .tpl-card{width:110px}
+}
 `;
 
-export default function XbillPortalWizard() {
-  // Role guard: redirect platform_admin to Batcave, no token → login
+export default function OnboardingWizard() {
   const router = useRouter();
   useEffect(() => {
     const role = localStorage.getItem('wb_role');
     const token = localStorage.getItem('wb_token');
-    if (!token) {
-      router.replace('/login');
-      return;
-    }
-    if (role === 'platform_admin') {
-      router.replace('/admin');
-      return;
-    }
+    if (!token) { router.replace('/login'); return; }
+    if (role === 'platform_admin') { router.replace('/admin'); return; }
   }, [router]);
 
   const [S, setS] = useState<State>({
-    step: 1,
-    tpl: 'spotlight',
-    shape: '16px',
-    size: 'compact',
-    palette: 0,
-    name: 'Vertex WiFi',
-    tag: 'Fast, affordable internet for everyone.',
-    loc: 'Nairobi CBD',
-    emoji: '📡',
-    phone: '+254 700 123 456',
-    font: 'Syne',
-    showSB: true,
-    sbMsg: '✅ Internet is live and fast right now',
-    pkgs: [
-      { n: '1 Hour', d: '60 min', s: '10 Mbps', p: 20, star: false },
-      { n: '6 Hours', d: '6 hrs', s: 'Unlimited', p: 80, star: true },
-      { n: 'Daily', d: '24 hrs', s: 'Unlimited', p: 150, star: false },
-      { n: 'Weekly', d: '7 days', s: 'Unlimited', p: 500, star: false },
-    ],
-    feats: {
-      mpesa: true,
-      card: false,
-      sms: true,
-      login: true,
-      countdown: true,
-      voucher: false,
-      loyalty: false,
-      referral: false,
-      announcement: false,
-      customFooter: false,
-      shareButton: false,
-      termsCheck: false,
-    },
-    vouchers: [
-      { prefix: 'VX1H', dur: '1 Hour', val: 20 },
-      { prefix: 'VX6H', dur: '6 Hours', val: 80 },
-    ],
-    loyaltyRate: 1,
-    loyaltyValue: 0.5,
-    loyaltyMin: 100,
-    loyaltyName: 'Stars',
-    loyaltyIcon: '⭐',
-    refReward: 20,
-    refDiscount: 10,
-    refMax: 10,
-    annMsg: '🎉 Weekend Special: Buy any package today and get DOUBLE data. Offer ends midnight!',
-    annStyle: 'promo',
-    annPos: 'top',
-    footerTxt: 'Terms & Privacy · Vertex WiFi © 2025',
-    footerLinkLabel: 'View Terms',
-    footerLinkUrl: 'https://example.com/terms',
-    devMode: 'phone',
+    step: 1, tpl: 'dashboard', palette: 0, font: 'Playfair Display',
+    name: 'Vertex WiFi', tag: 'Fast, affordable internet for everyone.',
+    loc: 'Nairobi CBD', emoji: '📡', phone: '+254 700 123 456',
+    feats: { mpesa:true, voucher:false, sms:true, login:true, countdown:true,
+             termsCheck:false, shareButton:false, announcement:false, customFooter:false },
   });
 
+  const [gallerySel, setGallerySel] = useState<string|null>(null);
+  const [activePreview, setActivePreview] = useState<string|null>(null);
+  const [devMode, setDevMode] = useState<'phone'|'desktop'>('phone');
   const [toastMsg, setToastMsg] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [activePreview, setActivePreview] = useState<'spotlight' | 'dashboard' | 'stories' | null>(null);
-  
-  const iframeRefs = useRef<{
-    spotlight: HTMLIFrameElement | null;
-    dashboard: HTMLIFrameElement | null;
-    stories: HTMLIFrameElement | null;
-  }>({
-    spotlight: null,
-    dashboard: null,
-    stories: null,
-  });
+  const [activeCategory, setActiveCategory] = useState('business');
 
-  const toast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3200);
+  const filteredTemplates = TEMPLATES.filter(t => t.category === activeCategory);
+
+  const templateToPalette = (id: string): number => {
+    const map: Record<string, number> = {
+      'executive-light': 5, 'modern-isp': 3, 'corporate-blue': 2, 'ocean-deep': 2,
+      'cyberpunk': 6, 'streaming-portal': 4, 'rgb-wave': 7, 'sunset-vibes': 1,
+      'glass-morphism': 0, 'apple-style': 5, 'material-design': 7, 'cherry-blossom': 4,
+      'safari': 6, 'afro-modern': 1, 'nairobi-night': 7, 'coffee-shop': 6,
+    };
+    return map[id] ?? 0;
   };
 
-  const updateState = (updates: Partial<State>) => {
-    setS(prev => ({ ...prev, ...updates }));
-  };
-
-  const broadcastPaletteUpdate = (paletteIdx: number) => {
-    const palette = PALETTE_TOKENS[paletteIdx];
-    const iframeIds: Array<'spotlight' | 'dashboard' | 'stories'> = ['spotlight', 'dashboard', 'stories'];
-    
-    iframeIds.forEach((id) => {
-      const frame = iframeRefs.current[id];
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage({
-          type: 'UPDATE_PALETTE',
-          colors: palette,
-        }, '*');
-      }
-    });
-  };
-
-  const broadcastBrandNameUpdate = (brandName: string) => {
-    const iframeIds: Array<'spotlight' | 'dashboard' | 'stories'> = ['spotlight', 'dashboard', 'stories'];
-    
-    iframeIds.forEach((id) => {
-      const frame = iframeRefs.current[id];
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage({
-          type: 'UPDATE_BRAND_NAME',
-          name: brandName,
-        }, '*');
-      }
-    });
-  };
-
-  const broadcastTypographyUpdate = (fontFamily: string) => {
-    const iframeIds: Array<'spotlight' | 'dashboard' | 'stories'> = ['spotlight', 'dashboard', 'stories'];
-    
-    iframeIds.forEach((id) => {
-      const frame = iframeRefs.current[id];
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage({
-          type: 'UPDATE_TYPOGRAPHY',
-          font: fontFamily,
-        }, '*');
-      }
-    });
-  };
-
-  const broadcastCardStyleUpdate = (cardRadius: string, cardSize: string) => {
-    const iframeIds: Array<'spotlight' | 'dashboard' | 'stories'> = ['spotlight', 'dashboard', 'stories'];
-    
-    iframeIds.forEach((id) => {
-      const frame = iframeRefs.current[id];
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage({
-          type: 'UPDATE_CARD_STYLE',
-          radius: cardRadius,
-          size: cardSize,
-        }, '*');
-      }
-    });
-  };
-
-  const handlePaletteSelect = (paletteIdx: number) => {
-    updateState({ palette: paletteIdx });
-    broadcastPaletteUpdate(paletteIdx);
-  };
-
-  const handleNameChange = (newName: string) => {
-    updateState({ name: newName });
-    broadcastBrandNameUpdate(newName);
-  };
-
-  const handleFontChange = (newFont: string) => {
-    updateState({ font: newFont });
-    broadcastTypographyUpdate(newFont);
-  };
-
-  const handleShapeChange = (newShape: string) => {
-    updateState({ shape: newShape });
-    broadcastCardStyleUpdate(newShape, S.size);
-  };
-
-  const handleSizeChange = (newSize: 'compact' | 'comfortable' | 'large') => {
-    updateState({ size: newSize });
-    broadcastCardStyleUpdate(S.shape, newSize);
-  };
-
-  const rgba = (hex: string, a: number): string => {
-    let h = hex.replace('#', '');
-    if (h.length === 3) h = h.split('').map(c => c + c).join('');
-    if (h.length !== 6) return `rgba(128,128,128,${a})`;
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    return `rgba(${r},${g},${b},${a})`;
-  };
-
-  const goto = (n: number) => {
-    if (n < 1 || n > 4) return;
-    updateState({ step: n });
-  };
-
-  const toggleFeat = (k: keyof Features, v: boolean) => {
-    const newFeats = { ...S.feats, [k]: v };
-    updateState({ feats: newFeats });
-  };
-
-
-  // ============ BUILD PREVIEW URL FUNCTION ============
-  const buildPreviewUrl = (template: string): string => {
-    const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const params = new URLSearchParams({
-      name: S.name,
-      tag: S.tag,
-      emoji: S.emoji,
-      loc: S.loc,
-      phone: S.phone,
-      font: S.font,
-      palette: S.palette.toString(),
-      shape: S.shape,
-      size: S.size,
-      packages: encodeURIComponent(JSON.stringify(S.pkgs)),
-      showSB: S.showSB.toString(),
-      sbMsg: S.sbMsg,
-    });
-    return `${API}/api/v1/portal-previews/${template}?${params.toString()}`;
-  };
-  // ============ END BUILD PREVIEW URL ============
-
-  // ============ NEW RENDER PREVIEW FUNCTION ============
-  const renderPreview = (): React.ReactNode => {
-    if (S.devMode === 'phone') {
-      return (
-        <div className="device-phone">
-          <div className="phone-screen">
-            <iframe 
-              key={`phone-${S.tpl}-${S.palette}-${S.font}-${S.name}-${S.tag}-${S.loc}-${S.emoji}-${S.size}-${S.shape}-${S.showSB}-${S.pkgs.length}`}
-              src={buildPreviewUrl(S.tpl)}
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-              title="Mobile Preview"
-              sandbox="allow-same-origin"
-            />
+  function TemplatePreview({ colors }: { colors: typeof TEMPLATES[0]['colors'] }) {
+    const isLight = ['#ffffff', '#f5f5f7'].includes(colors.bg);
+    return (
+      <div style={{ width:'100%', height:'100%', background:colors.bg, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ height:44, background:colors.header, display:'flex', alignItems:'center', padding:'0 10px', gap:6, flexShrink:0 }}>
+          <div style={{ width:18, height:18, borderRadius:4, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.15)' }} />
+          <div style={{ width:50, height:7, borderRadius:3, background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)' }} />
+        </div>
+        <div style={{ padding:'6px 8px', display:'flex', flexDirection:'column', gap:5, flex:1 }}>
+          <div style={{ width:'65%', height:6, borderRadius:2, background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)' }} />
+          <div style={{ width:'40%', height:4, borderRadius:2, background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)' }} />
+          <div style={{ display:'flex', gap:4, marginTop:3, flex:1 }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{ flex:1, background:colors.card, borderRadius:6, padding:4, display:'flex', flexDirection:'column', gap:2, border:`1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}` }}>
+                <div style={{ width:'60%', height:3, borderRadius:1, background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)' }} />
+                <div style={{ width:'80%', height:2, borderRadius:1, background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' }} />
+                <div style={{ flex:1 }} />
+                <div style={{ height:8, borderRadius:3, background:colors.accent, opacity:.85 }} />
+              </div>
+            ))}
           </div>
         </div>
-      );
-    } else {
-      return (
-        <div className="device-desktop">
-          <div className="desktop-bar">
-            <div className="desktop-dot" style={{ background: '#ff5f57' }}></div>
-            <div className="desktop-dot" style={{ background: '#febc2e' }}></div>
-            <div className="desktop-dot" style={{ background: '#28c840' }}></div>
-            <div className="desktop-url">
-              <span>wibill.co.ke/portal/{S.name.toLowerCase().replace(/\s/g, '-')}</span>
-            </div>
-          </div>
-          <div className="desktop-screen">
-            <iframe 
-              key={`desktop-${S.tpl}-${S.palette}-${S.font}-${S.name}-${S.tag}-${S.loc}-${S.emoji}-${S.size}-${S.shape}-${S.showSB}-${S.pkgs.length}`}
-              src={buildPreviewUrl(S.tpl)}
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-              title="Desktop Preview"
-              sandbox="allow-same-origin"
-            />
-          </div>
-        </div>
-      );
-    }
-  };
-  // ============ END NEW RENDER PREVIEW ============
+      </div>
+    );
+  }
 
-  const downloadPortal = () => {
-    toast('Portal HTML download initiated ✓');
-  };
+  const upd = (u: Partial<State>) => setS(p => ({ ...p, ...u }));
+  const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200); };
 
-  const copyConfig = () => {
-    toast('Config JSON copied ✓');
-  };
+  const prevUrl = (tpl: string) => `/${tpl}.html?palette=${S.palette}&font=${encodeURIComponent(S.font)}`;
 
-  const calculateDurationHours = (durationStr: string): number => {
-    const str = durationStr.toLowerCase().trim();
-    const match = str.match(/(\d+)/);
-    if (!match) return 1;
-    
-    const num = parseInt(match[1]);
-    
-    if (str.includes('min')) return Math.ceil(num / 60);
-    if (str.includes('hr') || str.includes('hour')) return num;
-    if (str.includes('day')) return num * 24;
-    if (str.includes('week')) return num * 168;
-    if (str.includes('month')) return num * 720;
-    
-    return num;
-  };
+  const goto = (n: number) => { if (n >= 1 && n <= 6) upd({ step: n }); };
+
+  const toggleFeat = (k: keyof Features) => upd({ feats: { ...S.feats, [k]: !S.feats[k] } });
 
   const saveAndLaunch = async () => {
     try {
-      toast('💾 Saving portal configuration...');
-
+      toast('Saving portal configuration...');
       const token = localStorage.getItem('wb_token');
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-
+      if (!token) throw new Error('No auth token');
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-      const portalConfig = {
-        template_id: S.tpl,
-        palette_index: S.palette,
-        font_family: S.font,
-        card_radius: S.shape,
-        layout_size: S.size,
-        name: S.name,
-        tagline: S.tag,
-        location: S.loc,
-        emoji: S.emoji,
-        support_phone: S.phone,
-        show_status_banner: S.showSB,
-        status_message: S.sbMsg,
-        enabled_features: {
-          mpesa_stk: S.feats.mpesa,
-          card_payments: S.feats.card,
-          vouchers: S.feats.voucher,
-          sms_receipts: S.feats.sms,
-        },
-      };
-
-      console.log('📤 POST /api/portal-config with payload:', portalConfig);
-
-      const configResponse = await fetch(`${apiBase}/api/portal-config`, {
+      const res = await fetch(`${apiBase}/api/portal-config`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(portalConfig),
+        headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          template_id: S.tpl, palette_index: S.palette, font_family: S.font,
+          name: S.name, tagline: S.tag, location: S.loc, emoji: S.emoji, support_phone: S.phone,
+          enabled_features: { mpesa_stk: S.feats.mpesa, vouchers: S.feats.voucher, sms_receipts: S.feats.sms },
+        }),
       });
-
-      if (!configResponse.ok) {
-        const errData = await configResponse.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(errData.detail || `Portal config save failed (${configResponse.status})`);
-      }
-
-      const configResult = await configResponse.json();
-      console.log('✅ Portal config saved:', configResult);
-
-      // ── Create packages from wizard defaults ──
-      for (let i = 0; i < S.pkgs.length; i++) {
-        const p = S.pkgs[i]
-        const dh = parseInt(p.d) || 1
-        await fetch(`${apiBase}/api/packages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            name: p.n,
-            price_ksh: p.p,
-            duration_hours: p.d.includes('hr') ? dh : dh * 24,
-            duration_label: p.d,
-            max_devices: 1,
-            display_order: i,
-          }),
-        }).catch(() => {})
-      }
-
-      // ── Refresh user data in localStorage ──
-      try {
-        const meRes = await fetch(`${apiBase}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (meRes.ok) {
-          const me = await meRes.json()
-          localStorage.setItem('wb_user', JSON.stringify({
-            email: me.email,
-            role: me.role,
-            tenant_id: me.tenant_id,
-            tenant_name: me.tenant_name,
-            tenant_slug: me.tenant_slug,
-            onboarding_complete: me.onboarding_complete,
-          }))
-        }
-      } catch {}
-
+      if (!res.ok) throw new Error('Save failed');
       sessionStorage.setItem('onboarding_done', 'true');
-      
-      toast(`🚀 Portal live! Redirecting to your dashboard...`);
-      
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
-
-    } catch (err: any) {
-      console.error('❌ Launch failed:', err);
-      toast('❌ ' + (err.message || 'Something went wrong'));
-    }
+      toast('Portal live! Redirecting...');
+      setTimeout(() => router.push('/dashboard'), 2000);
+    } catch (err: any) { toast('❌ ' + (err.message || 'Error')); }
   };
 
-  const pct = Math.round((S.step / 4) * 100);
-  const stepMeta = STEP_META[S.step] || { t: '', s: '' };
+  const sm = STEPS[S.step - 1];
 
   const templates = [
-    { 
-      id: 'spotlight' as const, 
-      label: 'Spotlight Dark',
-      personality: 'Premium • Hero Focused',
-      sub: 'Hero header · Premium feel' 
-    },
-    { 
-      id: 'dashboard' as const, 
-      label: 'Dashboard Light',
-      personality: 'Business • Structured',
-      sub: 'Sidebar nav · Organized' 
-    },
-    { 
-      id: 'stories' as const, 
-      label: 'Stories Flow',
-      personality: 'Mobile First • Engagement',
-      sub: 'Horizontal cards · Mobile-first' 
-    },
+    { id:'dashboard', label:'Dashboard', sub:'Compact grid · Modal' },
+    { id:'spotlight', label:'Spotlight', sub:'Hero header · Premium' },
+    { id:'split', label:'Split', sub:'Split-screen · Brand' },
+    { id:'bento', label:'Bento', sub:'Asymmetric · Apple-style' },
   ];
 
   return (
     <div>
-      <style dangerouslySetInnerHTML={{ __html: CSS_STYLES }} />
-      
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="app">
         <aside className="sidebar">
-          <div className="xbill-logo">
-            <div className="xbill-logo-mark">
-              <span style={{ color: '#E8B84B' }}>X</span><span style={{ color: '#fff' }}>w</span><span style={{ color: '#E8B84B' }}>B</span>
-            </div>
-            <div>
-              <div className="xbill-logo-text">WiBill</div>
-              <div className="xbill-logo-sub">Portal Wizard</div>
-            </div>
+          <div className="logo">
+            <div className="logo-mark">W</div>
+            <div><div className="logo-text">WiBill</div><div className="logo-sub">Portal Wizard</div></div>
           </div>
           <div className="steps">
-            {[1, 2, 3, 4].map((step) => (
-              <div key={step}>
-                <div
-                  className={`step ${S.step === step ? 'active' : ''} ${S.step > step ? 'done' : ''}`}
-                  onClick={() => goto(step)}
-                >
-                  <div className="snum">{S.step > step ? '✓' : step}</div>
-                  <div className="sinfo">
-                    <span className="slabel">{STEP_META[step]?.t.split(' & ')[0] || ''}</span>
-                    <span className="sdesc">{STEP_META[step]?.s.split(' & ')[0] || ''}</span>
-                  </div>
+            {STEPS.map((s, i) => (
+              <div key={i}>
+                <div className={`step ${S.step === i+1 ? 'active' : ''} ${S.step > i+1 ? 'done' : ''}`} onClick={() => goto(i+1)}>
+                  <div className="snum">{S.step > i+1 ? '✓' : i+1}</div>
+                  <div className="sinfo"><span className="slabel">{s.t}</span><span className="sdesc">{s.s}</span></div>
                 </div>
-                {step < 4 && <div className="conn"></div>}
+                {i < 5 && <div className="sconn"></div>}
               </div>
             ))}
           </div>
           <div className="sidebar-footer">
-            <div className="prog-label">
-              Progress <span>{pct}%</span>
-            </div>
-            <div className="prog-track">
-              <div className="prog-fill" style={{ width: `${pct}%` }}></div>
-            </div>
+            <div className="prog-label">Progress <span>{Math.round((S.step/6)*100)}%</span></div>
+            <div className="prog-track"><div className="prog-fill" style={{ width:`${Math.round((S.step/6)*100)}%` }}></div></div>
           </div>
         </aside>
 
-        <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <main style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
           <div className="topbar">
-            <div>
-              <div className="ttitle">{stepMeta.t}</div>
-              <div className="tsub">{stepMeta.s}</div>
-            </div>
-            <div className="tbtns">
-              {S.step > 1 && (
-                <button className="btn btn-ghost" onClick={() => goto(S.step - 1)}>
-                  ← Back
-                </button>
-              )}
-              {S.step < 4 && (
-                <button className="btn btn-primary" onClick={() => goto(S.step + 1)}>
-                  Next →
-                </button>
-              )}
-              {S.step === 4 && (
-                <button className="btn btn-primary" onClick={saveAndLaunch} style={{ fontSize: 14, padding: '0.65rem 1.5rem' }}>
-                  Launch dashboard →
-                </button>
-              )}
-            </div>
+            <div></div>
+            <div className="tb-center"><div className="ttitle">{sm.t}</div><div className="tsub">{sm.s}</div></div>
+            <div></div>
           </div>
 
           <div className="content">
+            {/* STEP 1: Layout */}
             {S.step === 1 && (
-              <>
-                <div className="card">
-                  <div className="card-title">Portal Layout</div>
-                  <div className="tpl-grid">
-                    {templates.map((tpl) => (
-                      <div
-                        key={tpl.id}
-                        className={`tpl-card ${S.tpl === tpl.id ? 'sel' : ''}`}
-                        onClick={() => updateState({ tpl: tpl.id })}
-                      >
-                        <span className="tpl-badge">✓ Selected</span>
-                        <div 
-                          className="tpl-thumb"
-                          style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setActivePreview(tpl.id); 
-                          }}
-                        >
-                          <div style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background: 'transparent',
-                            transition: 'background .3s',
-                            zIndex: 20,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            opacity: 0,
-                            pointerEvents: 'none'
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.15)';
-                            (e.currentTarget as HTMLElement).style.opacity = '1';
-                            (e.currentTarget as HTMLElement).style.pointerEvents = 'auto';
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.background = 'transparent';
-                            (e.currentTarget as HTMLElement).style.opacity = '0';
-                            (e.currentTarget as HTMLElement).style.pointerEvents = 'none';
-                          }}>
-                            <span style={{
-                              background: '#fff',
-                              color: '#000',
-                              padding: '0.5rem 1rem',
-                              borderRadius: '9999px',
-                              fontWeight: 600,
-                              fontSize: '0.85rem',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                              transition: 'all .2s',
-                            }}>
-                              Click to Preview
-                            </span>
-                          </div>
-                          <iframe 
-                            key={`template-${tpl.id}-${S.palette}-${S.font}-${S.name}-${S.tag}-${S.loc}-${S.emoji}-${S.pkgs.length}`}
-                            src={buildPreviewUrl(tpl.id)}
-                            className="w-full h-full border-none pointer-events-none" 
-                            title={`${tpl.label} Preview`}
-                            tabIndex={-1}
-                            style={{ display: 'block', width: '100%', height: '100%', border: 'none' }}
-                            sandbox="allow-same-origin"
-                          />
-                        </div>
-                        <div className="tpl-label">
-                          <div>
-                            {tpl.label} <small>{tpl.sub}</small>
-                          </div>
-                          <div className="tpl-personality">
-                            <div className="tpl-personality-main">◆</div>
-                            <div className="tpl-personality-sub">{tpl.personality}</div>
-                          </div>
+              <div className="card card-tpl">
+                <div className="card-title">Choose your template</div>
+                <div className="tpl-grid">
+                  {templates.map(t => (
+                    <div key={t.id} className={`tpl-card ${S.tpl === t.id ? 'active' : ''}`} onClick={() => upd({ tpl: t.id })}>
+                      <div className="tpl-glow"></div>
+                      <div className="tpl-check">✓</div>
+                      <div className="tpl-phone">
+                        <div className="tpl-screen">
+                          <iframe key={`t-${t.id}-${S.palette}-${S.font}`} src={prevUrl(t.id)} loading="lazy" title={t.label} scrolling="no" />
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="tpl-label">{t.label}<small>{t.sub}</small></div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-title">Package Card Shape</div>
-                  <div className="opt-row">
-                    <div className="opt-label">Corner style</div>
-                    <div className="opt-group">
-                      {[
-                        { v: '16px', l: 'Rounded' },
-                        { v: '99px', l: 'Pill / Oval' },
-                        { v: '6px', l: 'Sharp' },
-                        { v: '0px', l: 'Square' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.v}
-                          className={`opt-btn ${S.shape === opt.v ? 'on' : ''}`}
-                          onClick={() => handleShapeChange(opt.v)}
-                        >
-                          {opt.l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="opt-row" style={{ marginBottom: 0 }}>
-                    <div className="opt-label">
-                      Card size<small>How big the package cards are</small>
-                    </div>
-                    <div className="opt-group">
-                      {[
-                        { v: 'compact' as const, l: 'Compact' },
-                        { v: 'comfortable' as const, l: 'Comfortable' },
-                        { v: 'large' as const, l: 'Large' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.v}
-                          className={`opt-btn ${S.size === opt.v ? 'on' : ''}`}
-                          onClick={() => handleSizeChange(opt.v)}
-                        >
-                          {opt.l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
+            {/* STEP 2: Brand */}
             {S.step === 2 && (
-              <>
-                <div className="card">
-                  <div className="card-title">ISP Identity</div>
-                  <div className="field">
-                    <div className="field-label">
-                      Hotspot name<small>Your WiFi zone name</small>
-                    </div>
-                    <input
-                      value={S.name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      placeholder="e.g. Westlands WiFi Hub"
-                    />
-                  </div>
-                  <div className="field">
-                    <div className="field-label">
-                      Tagline<small>One line below the name</small>
-                    </div>
-                    <input
-                      value={S.tag}
-                      onChange={(e) => updateState({ tag: e.target.value })}
-                      placeholder="e.g. Stay connected, pay less"
-                    />
-                  </div>
-                  <div className="field">
-                    <div className="field-label">
-                      Location / Area<small>Shown as context</small>
-                    </div>
-                    <input
-                      value={S.loc}
-                      onChange={(e) => updateState({ loc: e.target.value })}
-                      placeholder="e.g. Westlands, Nairobi"
-                    />
-                  </div>
-                  <div className="field">
-                    <div className="field-label">
-                      Logo / Icon<small>Emoji or 2 initials</small>
-                    </div>
-                    <input
-                      value={S.emoji}
-                      onChange={(e) => updateState({ emoji: e.target.value })}
-                      style={{ maxWidth: '90px' }}
-                    />
-                  </div>
-                  <div className="field" style={{ marginBottom: 0 }}>
-                    <div className="field-label">
-                      ISP Contact<small>Support number / WhatsApp</small>
-                    </div>
-                    <input
-                      value={S.phone}
-                      onChange={(e) => updateState({ phone: e.target.value })}
-                      placeholder="+254 700 000 000"
-                    />
-                  </div>
+              <div className="card" style={{ maxWidth: 480 }}>
+                <div className="card-title">Brand Identity</div>
+                <div className="field">
+                  <div className="field-label">WiFi Name <small>The name users see on the portal</small></div>
+                  <input value={S.name} onChange={e => upd({ name: e.target.value })} placeholder="My WiFi" />
                 </div>
-
-                <div className="card">
-                  <div className="card-title">Color Palette</div>
-                  <div className="pal-grid">
-                    {PALS.map((p, i) => (
-                      <div
-                        key={i}
-                        className={`pal ${S.palette === i ? 'sel' : ''}`}
-                        onClick={() => handlePaletteSelect(i)}
-                      >
-                        <div className="pal-swatches">
-                          {p.c.map((c, j) => (
-                            <div key={j} className="pal-sw" style={{ background: c }}></div>
-                          ))}
-                        </div>
-                        <div className="pal-name">
-                          {p.n}<small>{p.s}</small>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="field">
+                  <div className="field-label">Tagline <small>Brief description under the name</small></div>
+                  <input value={S.tag} onChange={e => upd({ tag: e.target.value })} placeholder="Fast, reliable internet" />
                 </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-title">Typography</div>
-                  <div className="opt-row" style={{ marginBottom: 0 }}>
-                    <div className="opt-label">Heading font</div>
-                    <select
-                      className="opt-btn on"
-                      style={{ flex: 1, cursor: 'pointer', padding: '.5rem .9rem' }}
-                      value={S.font}
-                      onChange={(e) => handleFontChange(e.target.value)}
-                    >
-                      <option value="Syne">Syne — Bold & Geometric</option>
-                      <option value="Cabinet Grotesk">Cabinet Grotesk — Punchy Modern</option>
-                      <option value="Space Mono">Space Mono — Techy Mono</option>
-                      <option value="Figtree">Figtree — Clean & Friendly</option>
-                    </select>
-                  </div>
+                <div className="field">
+                  <div className="field-label">Location <small>Hotspot area</small></div>
+                  <input value={S.loc} onChange={e => upd({ loc: e.target.value })} placeholder="Nairobi, Kenya" />
                 </div>
-              </>
+                <div className="field">
+                  <div className="field-label">Support Phone <small>For user assistance</small></div>
+                  <input value={S.phone} onChange={e => upd({ phone: e.target.value })} placeholder="+254 700 123 456" />
+                </div>
+                <div className="field">
+                  <div className="field-label">Emoji <small>Brand icon shown in the header</small></div>
+                  <input value={S.emoji} onChange={e => upd({ emoji: e.target.value })} style={{ maxWidth: 80 }} />
+                </div>
+              </div>
             )}
 
+            {/* STEP 3: Colors - Template Gallery */}
             {S.step === 3 && (
-              <>
-                <div className="card">
-                  <div className="card-title">Payment Methods</div>
-                  <div className="feat-grid">
-                    {PAY_FEATS.map((f) => (
-                      <div
-                        key={f.k}
-                        className={`feat ${S.feats[f.k as keyof Features] ? 'on' : ''}`}
-                      >
-                        <div className="feat-info">
-                          <div className="fn">{f.n}</div>
-                          <div className="fd">{f.d}</div>
+              <div style={{ display:'flex', flexDirection:'column', height:'calc(100vh - 69px - 48px)', overflow:'hidden' }}>
+                <div style={{ textAlign:'center', padding:'14px 20px 0' }}>
+                  <div className="cat-tabs">
+                    {CATEGORIES.map(cat => (
+                      <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`cat-tab ${activeCategory === cat.id ? 'on' : 'off'}`}>
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ flex:1, overflow:'hidden', padding:'0 20px 20px' }}>
+                  <div className="gallery-grid">
+                    {filteredTemplates.map((t, i) => (
+                      <div key={t.id} className={`gal-card ${gallerySel === t.id ? 'sel' : ''}`}
+                        onClick={() => { setGallerySel(t.id); upd({ palette: templateToPalette(t.id) }); }}>
+                        <div className="gal-preview">
+                          <TemplatePreview colors={t.colors} />
                         </div>
-                        <label className="sw">
-                          <input
-                            type="checkbox"
-                            checked={S.feats[f.k as keyof Features]}
-                            onChange={(e) => toggleFeat(f.k as keyof Features, e.target.checked)}
-                          />
-                          <span className="sw-track"></span>
-                        </label>
+                        <div className="gal-info">
+                          <div className="gi-row">
+                            <t.icon size={14} style={{ color:t.colors.header, flexShrink:0 }} />
+                            <span className="gi-name">{t.name}</span>
+                            {t.badge && (
+                              <span className={`gal-badge ${t.badge.toLowerCase()}`}>{t.badge}</span>
+                            )}
+                          </div>
+                          <p className="gal-desc">{t.desc}</p>
+                          <div className="gal-dots">
+                            {[t.colors.header, t.colors.accent, t.colors.card].map((c, j) => (
+                              <div key={j} className="gal-dot" style={{ background:c }} />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-title">Portal Features</div>
-                  <div className="feat-grid">
-                    {PORTAL_FEATS.map((f) => (
-                      <div
-                        key={f.k}
-                        className={`feat ${S.feats[f.k as keyof Features] ? 'on' : ''}`}
-                      >
-                        <div className="feat-info">
-                          <div className="fn">{f.n}</div>
-                          <div className="fd">{f.d}</div>
-                        </div>
-                        <label className="sw">
-                          <input
-                            type="checkbox"
-                            checked={S.feats[f.k as keyof Features]}
-                            onChange={(e) => toggleFeat(f.k as keyof Features, e.target.checked)}
-                          />
-                          <span className="sw-track"></span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-title">Network Status Banner</div>
-                  <div className="infobox">
-                    <span>💡</span>
-                    <span>Show customers whether the internet is working before they pay.</span>
-                  </div>
-                  <div className="opt-row">
-                    <div className="opt-label">Status indicator</div>
-                    <div className="opt-group">
-                      <button
-                        className={`opt-btn ${S.showSB ? 'on' : ''}`}
-                        onClick={() => updateState({ showSB: true })}
-                      >
-                        Show Status
-                      </button>
-                      <button
-                        className={`opt-btn ${!S.showSB ? 'on' : ''}`}
-                        onClick={() => updateState({ showSB: false })}
-                      >
-                        Hide
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
+            {/* STEP 4: Typography */}
             {S.step === 4 && (
+              <div className="card">
+                <div className="card-title">Typography</div>
+                <p style={{ fontSize:12, color:'#666', marginBottom:14, lineHeight:1.5 }}>
+                  Pick a heading font that matches your brand personality. The sample shows how "WiFi" looks in each font.
+                </p>
+                <div className="font-grid">
+                  {FONTS.map(f => (
+                    <div key={f.id} className={`font-card ${S.font === f.id ? 'sel' : ''}`} onClick={() => upd({ font: f.id })}>
+                      <div className="fn-name">{f.id}</div>
+                      <div className="fn-sample" style={{ fontFamily: `'${f.id}',sans-serif`, fontWeight: 600 }}>WiFi</div>
+                      <div className="fn-cat">{f.cat}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 5: Features */}
+            {S.step === 5 && (
+              <div className="card">
+                <div className="card-title">Features</div>
+                <p style={{ fontSize:12, color:'#666', marginBottom:14, lineHeight:1.5 }}>
+                  Toggle the portal components you want enabled. You'll set up packages and pricing from your dashboard.
+                </p>
+                <div className="feat-grid">
+                  {[
+                    { k:'mpesa' as const, n:'M-Pesa STK Push', d:'Instant Safaricom payment prompt' },
+                    { k:'voucher' as const, n:'Voucher Codes', d:'Pre-paid code redemption' },
+                    { k:'sms' as const, n:'SMS Receipts', d:'Text receipt after payment' },
+                    { k:'login' as const, n:'Saved Number Login', d:'Return users skip re-typing' },
+                    { k:'countdown' as const, n:'Session Timer', d:'Shows time remaining online' },
+                    { k:'termsCheck' as const, n:'Terms Checkbox', d:'Users agree before paying' },
+                    { k:'shareButton' as const, n:'Share WiFi', d:'Share hotspot with friends' },
+                    { k:'announcement' as const, n:'Announcement Banner', d:'Promos and outage alerts' },
+                  ].map(f => (
+                    <div key={f.k} className={`feat ${S.feats[f.k]?'on':''}`} onClick={() => toggleFeat(f.k)}>
+                      <div className="feat-info"><div className="fn">{f.n}</div><div className="fd">{f.d}</div></div>
+                      <label className="sw"><input type="checkbox" checked={S.feats[f.k]} readOnly /><span className="sw-track"></span></label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 6: Preview & Launch */}
+            {S.step === 6 && (
               <>
-                <div className="preview-shell">
+                <div className="prev-shell">
                   <div className="prev-toolbar">
-                    <span>Live Preview</span>
-                    <button
-                      className={`dev-btn ${S.devMode === 'phone' ? 'on' : ''}`}
-                      onClick={() => updateState({ devMode: 'phone' })}
-                    >
-                      📱 Phone
-                    </button>
-                    <button
-                      className={`dev-btn ${S.devMode === 'desktop' ? 'on' : ''}`}
-                      onClick={() => updateState({ devMode: 'desktop' })}
-                    >
-                      🖥 Desktop
-                    </button>
-                    <span className="prev-note">
-                      {S.devMode === 'phone' ? '390 × 720 · mobile' : '780 × 540 · desktop'}
-                    </span>
+                    <span>Preview</span>
+                    <button className={`dev-btn ${devMode==='phone'?'on':''}`} onClick={() => setDevMode('phone')}>📱 Phone</button>
+                    <button className={`dev-btn ${devMode==='desktop'?'on':''}`} onClick={() => setDevMode('desktop')}>🖥 Desktop</button>
+                    <button className="dev-btn" style={{ marginLeft:'auto', color:'#E8B84B' }} onClick={() => setActivePreview(S.tpl)}>⛶ Full</button>
+                    <div className="prev-note">{devMode==='phone' ? '390×844' : '1280×720'}</div>
                   </div>
-                  <div className="prev-stage">{renderPreview()}</div>
+                  <div className="prev-stage">
+                    {devMode === 'phone' ? (
+                      <div className="device-phone"><div className="phone-screen">
+                        <iframe key={`p-${S.tpl}-${S.palette}-${S.font}`} src={prevUrl(S.tpl)} style={{ width:'100%', height:'100%', border:'none' }} title="Preview" />
+                      </div></div>
+                    ) : (
+                      <div className="device-desktop">
+                        <div className="desktop-bar">
+                          <div className="desktop-dot" style={{ background:'#ff5f57' }}></div>
+                          <div className="desktop-dot" style={{ background:'#febc2e' }}></div>
+                          <div className="desktop-dot" style={{ background:'#28c840' }}></div>
+                          <div className="desktop-url"><span>wibill.co.ke/portal/{S.name.toLowerCase().replace(/\s/g,'-')}</span></div>
+                        </div>
+                        <div className="desktop-screen">
+                          <iframe key={`p-${S.tpl}-${S.palette}-${S.font}-d`} src={prevUrl(S.tpl)} style={{ width:'100%', height:'100%', border:'none' }} title="Desktop Preview" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="export-grid">
-                  <div className="exp-card" onClick={downloadPortal}>
-                    <div className="exp-icon">📥</div>
-                    <h3>Download Portal HTML</h3>
-                    <p>Drop directly into your MikroTik hotspot server folder</p>
+                <div className="card" style={{ marginTop:12 }}>
+                  <div className="card-title">Summary</div>
+                  <div className="summary-grid">
+                    <div className="summary-item"><div className="sm-label">Template</div><div className="sm-val">{templates.find(t=>t.id===S.tpl)?.label}</div></div>
+                    <div className="summary-item"><div className="sm-label">Palette</div><div className="sm-val">{PALS[S.palette].n}</div></div>
+                    <div className="summary-item"><div className="sm-label">Font</div><div className="sm-val">{S.font}</div></div>
+                    <div className="summary-item"><div className="sm-label">Features</div><div className="sm-val">{Object.values(S.feats).filter(Boolean).length} enabled</div></div>
                   </div>
-                  <div className="exp-card" onClick={copyConfig}>
-                    <div className="exp-icon">📋</div>
-                    <h3>Copy Config JSON</h3>
-                    <p>Use in WiBill backend for dynamic server-side rendering</p>
-                  </div>
+                  <button className="btn btn-green" onClick={saveAndLaunch} style={{ width:'100%', justifyContent:'center', marginTop:14, padding:'10px 0' }}>
+                    🚀 Save & Launch Portal
+                  </button>
                 </div>
               </>
             )}
@@ -1407,105 +604,31 @@ export default function XbillPortalWizard() {
         </main>
       </div>
 
-      {/* GLASSMORPHISM PREVIEW MODAL */}
-      <div 
-        className={`preview-modal-overlay ${activePreview ? 'active' : ''}`}
-        onClick={() => setActivePreview(null)}
-      >
-        <div 
-          className="preview-modal-box"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="preview-modal-header">
-            <div className="preview-modal-title">
-              <h3>Live Preview: <span>{activePreview}</span></h3>
-              <p>Interact with the portal exactly as your customers will see it.</p>
-            </div>
-            <button 
-              className="preview-modal-close"
-              onClick={() => setActivePreview(null)}
-              aria-label="Close preview"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
+      {/* Side navigation */}
+      <div className="nav-side">
+        {S.step > 1 && (
+          <button className="nav-back" onClick={() => goto(S.step-1)} title="Back">←</button>
+        )}
+        {S.step < 6 ? (
+          <button className="nav-next" onClick={() => goto(S.step+1)} title="Next">→</button>
+        ) : (
+          <button className="nav-next" onClick={saveAndLaunch} title="Launch Portal">✓</button>
+        )}
+      </div>
+
+      <div className={`modal-overlay ${activePreview?'open':''}`} onClick={() => setActivePreview(null)}>
+        <div className="modal-box" onClick={e => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Preview: {activePreview}</h3>
+            <button className="modal-close" onClick={() => setActivePreview(null)}>×</button>
           </div>
-          <div className="preview-modal-content">
-            {activePreview && (
-              <iframe 
-                key={`modal-${activePreview}-${S.palette}-${S.font}-${S.name}-${S.tag}-${S.loc}-${S.emoji}-${S.size}-${S.shape}-${S.showSB}-${S.pkgs.length}`}
-                src={buildPreviewUrl(activePreview)}
-                title={`${activePreview} preview`}
-                sandbox="allow-same-origin"
-              />
-            )}
+          <div className="modal-content">
+            {activePreview && <iframe key={`m-${activePreview}-${S.palette}-${S.font}`} src={prevUrl(activePreview)} title="Preview" />}
           </div>
         </div>
       </div>
 
-      {/* SHARE MODAL */}
-      <div className={`modal-bg ${showModal ? 'open' : ''}`} onClick={() => setShowModal(false)}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <h2>Share WiBill Wizard with ISPs</h2>
-          <p>Any ISP can open this link, design their portal in minutes, and download a production-ready HTML file.</p>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <div className="modal-step">
-              <div className="modal-step-num">1</div>
-              <div className="modal-step-info">
-                <strong>Option A — Share this HTML file directly</strong>
-                <span>Download and send the wizard HTML file via WhatsApp, email, or Drive.</span>
-              </div>
-            </div>
-            <div className="modal-step">
-              <div className="modal-step-num">2</div>
-              <div className="modal-step-info">
-                <strong>Option B — Host on GitHub Pages (free)</strong>
-                <span>Upload to a GitHub repo → enable Pages → share the URL forever.</span>
-              </div>
-            </div>
-            <div className="modal-step">
-              <div className="modal-step-num">3</div>
-              <div className="modal-step-info">
-                <strong>Option C — WiBill Cloud (coming soon)</strong>
-                <span>One click → hosted link at wibill.co.ke/wizard.</span>
-              </div>
-            </div>
-          </div>
-          <div className="modal-divider">GitHub Pages URL (after hosting)</div>
-          <div className="modal-code" onClick={() => {
-            navigator.clipboard.writeText('https://your-username.github.io/wibill-wizard/');
-            toast('GitHub URL copied — update with your actual URL');
-          }}>
-            https://your-username.github.io/wibill-wizard/ ← click to copy
-          </div>
-          <div className="modal-btns">
-            <button className="btn btn-primary" onClick={() => {
-              toast('Download initiated ✓');
-              setShowModal(false);
-            }}>
-              📥 Download Wizard File
-            </button>
-            <button className="btn btn-ghost" onClick={() => {
-              navigator.clipboard.writeText('https://your-username.github.io/wibill-wizard/');
-              toast('GitHub URL copied ✓');
-            }}>
-              📋 Copy GitHub URL
-            </button>
-            <button className="btn btn-ghost" onClick={() => setShowModal(false)}>
-              Close
-            </button>
-          </div>
-          <div className="modal-dismiss" onClick={() => setShowModal(false)}>
-            dismiss
-          </div>
-        </div>
-      </div>
-
-      {/* TOAST */}
-      <div className={`toast ${toastMsg ? 'show' : ''}`}>
-        ✓ <span>{toastMsg}</span>
-      </div>
+      <div className="toast" style={{ bottom: toastMsg ? 24 : -80 }}>{toastMsg}</div>
     </div>
   );
 }

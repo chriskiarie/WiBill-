@@ -2,11 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=375, initial-scale=1.0">
+    <title>Spotlight Portal - Mobile Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 375px; overflow-x: hidden; }
+    </style>
+</head>
+<body>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if brand %}{{ brand.name }}{% else %}Spotlight Portal{% endif %} - WiFi Access</title>
+    <title>Demo WiFi - WiFi Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link id="gfont" href="https://fonts.googleapis.com/css2?family={{ (font or 'Inter')|replace(' ', '+') }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link id="gfont" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
     (function(){
         var palettes=[
@@ -38,20 +50,20 @@
     </script>
     <style>
         :root {
-            --bg: {{ palette.bg }};
-            --surface: {{ palette.card }};
-            --border: {{ palette.cardBorder }};
-            --text: {{ palette.text }};
-            --dim: {{ palette.textDim }};
-            --accent: {{ palette.primary }};
-            --accent2: {{ palette.primaryDark }};
+            --bg: #0c0c1a;
+            --surface: rgba(255,255,255,.06);
+            --border: rgba(255,255,255,.12);
+            --text: #e8e6ff;
+            --dim: rgba(232,230,255,.5);
+            --accent: #5b4fff;
+            --accent2: rgba(91,79,255,.6);
             --white: #fff;
             --ok: #10b981;
             --ok-bg: rgba(16,185,129,.12);
             --err: #ef4444;
             --err-bg: rgba(239,68,68,.12);
-            --r: {{ radius }};
-            --f: '{{ font or "Inter" }}', system-ui, sans-serif;
+            --r: 16px;
+            --f: 'Inter', system-ui, sans-serif;
             --bg-img: none;
             --show-bg: 0;
             --ov-blur: 0px;
@@ -63,8 +75,8 @@
         body::before {
             content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
             background:
-                radial-gradient(circle at 20% 15%,rgba({{ palette.primary }},.07) 0%,transparent 50%),
-                radial-gradient(circle at 80% 85%,rgba({{ palette.primary }},.05) 0%,transparent 50%);
+                radial-gradient(circle at 20% 15%,rgba(#5b4fff,.07) 0%,transparent 50%),
+                radial-gradient(circle at 80% 85%,rgba(#5b4fff,.05) 0%,transparent 50%);
         }
         body::after {
             content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -109,20 +121,20 @@
         /* ── Package Card ── */
         .c{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
         .c:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
-        .c.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba({{ palette.primary }},.04))}
+        .c.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba(#5b4fff,.04))}
         .cb{position:absolute;top:8px;right:8px;padding:2px 7px;background:var(--accent);color:var(--white);border-radius:99px;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 
         /* WiFi Icon Styles */
         .ci{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
         .ci svg{width:22px;height:22px;position:relative;z-index:1}
         .ci::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:.12}
-        .ci.t1{background:linear-gradient(135deg,rgba({{ palette.primary }},.15),rgba({{ palette.primary }},.05));border:1px solid rgba({{ palette.primary }},.2)}
+        .ci.t1{background:linear-gradient(135deg,rgba(#5b4fff,.15),rgba(#5b4fff,.05));border:1px solid rgba(#5b4fff,.2)}
         .ci.t1 svg{color:var(--accent)}
-        .ci.t2{background:linear-gradient(135deg,rgba({{ palette.primary }},.2),rgba({{ palette.primary }},.08));border:1px solid rgba({{ palette.primary }},.25)}
+        .ci.t2{background:linear-gradient(135deg,rgba(#5b4fff,.2),rgba(#5b4fff,.08));border:1px solid rgba(#5b4fff,.25)}
         .ci.t2 svg{color:var(--accent)}
-        .ci.t3{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ci.t3{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba(#5b4fff,.25)}
         .ci.t3 svg{color:var(--white)}
-        .ci.t4{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ci.t4{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba(#5b4fff,.25)}
         .ci.t4 svg{color:var(--white)}
 
         .cn{font-size:.88rem;font-weight:700}
@@ -141,7 +153,7 @@
 
         .fi{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--f);font-size:.9rem;outline:none;transition:border-color .15s,box-shadow .15s}
         .fi::placeholder{color:var(--dim);opacity:.5}
-        .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.1)}
+        .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(#5b4fff,.1)}
 
         /* ── Circular Button ── */
         .act-btn-wrap{display:flex;justify-content:center;margin-top:4px}
@@ -149,13 +161,13 @@
             width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
             background:linear-gradient(135deg,var(--accent),var(--accent2));
             color:var(--white);display:flex;align-items:center;justify-content:center;
-            box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
+            box-shadow:0 4px 16px rgba(#5b4fff,.3);
             transition:all .2s ease;position:relative;overflow:hidden;
         }
         .act-btn::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent);opacity:0;transition:opacity .2s}
-        .act-btn:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba({{ palette.primary }},.4)}
+        .act-btn:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba(#5b4fff,.4)}
         .act-btn:hover::before{opacity:1}
-        .act-btn:active{transform:scale(.9);box-shadow:0 2px 8px rgba({{ palette.primary }},.3)}
+        .act-btn:active{transform:scale(.9);box-shadow:0 2px 8px rgba(#5b4fff,.3)}
         .act-btn:active::before{opacity:0}
         .act-btn svg{width:20px;height:20px;position:relative;z-index:1}
         .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -207,7 +219,7 @@
             transition:border-color .15s,box-shadow .15s;
         }
         .pm-input::placeholder{color:rgba(255,255,255,.3)}
-        .pm-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.2)}
+        .pm-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(#5b4fff,.2)}
 
         .pm-err{padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#fca5a5;font-size:.8rem;margin-bottom:12px;display:none}
         .pm-err.show{display:block}
@@ -218,7 +230,7 @@
             font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;
             letter-spacing:.02em;
         }
-        .pm-submit:hover{box-shadow:0 4px 20px rgba({{ palette.primary }},.4);transform:translateY(-1px)}
+        .pm-submit:hover{box-shadow:0 4px 20px rgba(#5b4fff,.4);transform:translateY(-1px)}
         .pm-submit:active{transform:translateY(0) scale(.98)}
         .pm-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
@@ -296,53 +308,101 @@
     <div class="bg-overlay"></div>
     <div class="tb">
         <div class="br">
-            <div class="bl" id="b-logo">{{ brand.emoji or '📡' }}</div>
-            <div><div class="bn" id="b-name">{{ brand.name or 'WiFi Portal' }}</div><div class="bt" id="b-tag">INTERNET ACCESS</div></div>
+            <div class="bl" id="b-logo">📡</div>
+            <div><div class="bn" id="b-name">Demo WiFi</div><div class="bt" id="b-tag">INTERNET ACCESS</div></div>
         </div>
         <div class="tm">
-            <div class="tl"><div class="td {% if not network_up %}off{% endif %}"></div>{% if network_up %}Online{% else %}Offline{% endif %}</div>
-            {% if brand.location %}<div class="tl">{{ brand.location }}</div>{% endif %}
+            <div class="tl"><div class="td "></div>Online</div>
+            <div class="tl">Nairobi, Kenya</div>
         </div>
     </div>
 
-    {% if network_up %}
+    
     <div class="hero">
         <div class="hero-badge">WiFi Access Portal</div>
-        <div class="hero-emoji">{{ brand.emoji or '📡' }}</div>
-        <h1>{{ brand.name or 'WiFi Portal' }}</h1>
-        <p>{{ brand.tagline or 'Fast, reliable internet access' }}</p>
-        {% if brand.location %}<p class="hero-loc">📍 {{ brand.location }}</p>{% endif %}
+        <div class="hero-emoji">📡</div>
+        <h1>Demo WiFi</h1>
+        <p>Fast, reliable internet</p>
+        <p class="hero-loc">📍 Nairobi, Kenya</p>
     </div>
 
     <div class="wrap">
         <div class="sec-label">Choose Your Plan</div>
 
         <div class="grid" id="pkg-grid">
-            {% for pkg in packages %}
-            <div class="c {% if pkg.star %}feat{% endif %}" data-cs data-idx="{{ loop.index }}" data-name="{{ pkg.name }}" data-price="{{ pkg.price_ksh }}" data-dur="{{ pkg.duration_label }}" data-speed="{{ pkg.speed or '' }}" data-id="{{ pkg.id or loop.index }}" onclick="openPay(this)">
-                {% if pkg.star %}<div class="cb">Popular</div>{% endif %}
-                <div class="ci t{{ [loop.index, 4] | min }}">
-                    {% if loop.index <= 1 %}
+            
+            <div class="c " data-cs data-idx="1" data-name="1 Hour" data-price="20" data-dur="60 min" data-speed="Up to 5 Mbps" data-id="1" onclick="openPay(this)">
+                
+                <div class="ci t1">
+                    
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% elif loop.index == 2 %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% elif loop.index == 3 %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% else %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% endif %}
+                    
                 </div>
-                <div class="cn">{{ pkg.name }}</div>
+                <div class="cn">1 Hour</div>
                 <div class="cm">
-                    <span>⏱ {{ pkg.duration_label }}</span>
-                    {% if pkg.speed %}<span>{{ pkg.speed }}</span>{% endif %}
+                    <span>⏱ 60 min</span>
+                    <span>Up to 5 Mbps</span>
                 </div>
                 <div class="cp">
                     <div class="cpl">Price</div>
-                    <div class="cpv"><span class="cpc">KES</span>{{ pkg.price_ksh }}</div>
+                    <div class="cpv"><span class="cpc">KES</span>20</div>
                 </div>
             </div>
-            {% endfor %}
+            
+            <div class="c " data-cs data-idx="2" data-name="6 Hours" data-price="80" data-dur="6 hrs" data-speed="Up to 10 Mbps" data-id="2" onclick="openPay(this)">
+                
+                <div class="ci t2">
+                    
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    
+                </div>
+                <div class="cn">6 Hours</div>
+                <div class="cm">
+                    <span>⏱ 6 hrs</span>
+                    <span>Up to 10 Mbps</span>
+                </div>
+                <div class="cp">
+                    <div class="cpl">Price</div>
+                    <div class="cpv"><span class="cpc">KES</span>80</div>
+                </div>
+            </div>
+            
+            <div class="c feat" data-cs data-idx="3" data-name="Daily" data-price="150" data-dur="24 hrs" data-speed="Up to 15 Mbps" data-id="3" onclick="openPay(this)">
+                <div class="cb">Popular</div>
+                <div class="ci t3">
+                    
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                    
+                </div>
+                <div class="cn">Daily</div>
+                <div class="cm">
+                    <span>⏱ 24 hrs</span>
+                    <span>Up to 15 Mbps</span>
+                </div>
+                <div class="cp">
+                    <div class="cpl">Price</div>
+                    <div class="cpv"><span class="cpc">KES</span>150</div>
+                </div>
+            </div>
+            
+            <div class="c " data-cs data-idx="4" data-name="Weekly" data-price="500" data-dur="7 days" data-speed="Up to 20 Mbps" data-id="4" onclick="openPay(this)">
+                
+                <div class="ci t4">
+                    
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/><circle cx="12" cy="20" r="1"/></svg>
+                    
+                </div>
+                <div class="cn">Weekly</div>
+                <div class="cm">
+                    <span>⏱ 7 days</span>
+                    <span>Up to 20 Mbps</span>
+                </div>
+                <div class="cp">
+                    <div class="cpl">Price</div>
+                    <div class="cpv"><span class="cpc">KES</span>500</div>
+                </div>
+            </div>
+            
         </div>
 
         <div class="recon">
@@ -380,18 +440,9 @@
         </div>
     </div>
 
-    {% if brand.footer_text or brand.terms_url %}
-    <div class="ft">{% if brand.footer_text %}{{ brand.footer_text }}{% endif %}{% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}</div>
-    {% endif %}
+    
 
-    {% else %}
-    <div class="op">
-        <div class="oi">🌐</div>
-        <h2 class="ot">Network Offline</h2>
-        <p class="om">The internet connection is currently unavailable. Please check back shortly or contact support.</p>
-        {% if brand.support_number %}<a href="tel:{{ brand.support_number }}" class="btn bp" style="width:auto;padding:12px 24px">Contact Support</a>{% endif %}
-    </div>
-    {% endif %}
+    
 
     <!-- ═══ PAYMENT MODAL ═══ -->
     <div id="pmod" class="pov">
@@ -576,7 +627,7 @@
         async function pay() {
             var id = document.getElementById('pm-id').value;
             var ph = document.getElementById('pm-phone').value.trim();
-            var slug = '{{ brand.slug }}';
+            var slug = 'demo-wifi';
             var pkg = pkgData[id];
             if (!ph) { showPE('Please enter your phone number'); return; }
             if (!/^(254|0)7\d{8}$/.test(ph)) { showPE('Invalid phone. Use 2547XXXXXXXX or 07XXXXXXXX'); return; }
@@ -613,13 +664,13 @@
         function pollSS(sid, pkg) {
             (async function p() {
                 try {
-                    var r = await fetch('/api/portal/{{ brand.slug }}/sessions/' + sid);
+                    var r = await fetch('/api/portal/demo-wifi/sessions/' + sid);
                     var d = await r.json();
                     if (d.status === 'active') {
                         hideLoader();
                         showStatus('success', pkg ? pkg.name : 'Your Package', pkg ? pkg.dur + (pkg.speed ? ' · ' + pkg.speed : '') : 'Enjoy your internet!');
                         setTimeout(function() {
-                            window.location.href = '/portal/{{ brand.slug }}/success/' + sid;
+                            window.location.href = '/portal/demo-wifi/success/' + sid;
                         }, 3000);
                         return;
                     }
@@ -689,5 +740,7 @@
             }
         });
     </script>
+</body>
+</html>
 </body>
 </html>

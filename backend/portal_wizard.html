@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HonestBill — Portal Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&family=Syne:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Raleway:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0e0e14;--ink2:#3a3a4a;--muted:#8888a0;--surface:#f5f4f1;--white:#ffffff;
+  --border:#e4e2dd;--accent:#5b4fff;--accent-light:#ede9ff;--green:#10b981;--red:#ef4444;
+  --radius:14px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'Figtree',sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;font-size:15px}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--ink);color:#fff;padding:1.75rem 1.5rem;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.xbill-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
+.xbill-logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;color:#fff}
+.xbill-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.02em}
+.xbill-logo-sub{font-size:.65rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-top:.05rem}
+.steps{display:flex;flex-direction:column;gap:2px}
+.step{display:flex;align-items:center;gap:.85rem;padding:.8rem 1rem;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.step:hover:not(.active){background:rgba(255,255,255,.04)}
+.step.active{background:rgba(91,79,255,.15);border-color:rgba(91,79,255,.3)}
+.step.done .snum{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+.snum{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;font-family:'Space Mono',monospace;transition:all .3s;color:rgba(255,255,255,.5)}
+.step.active .snum{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
+.sinfo .slabel{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.85)}
+.sinfo .sdesc{font-size:.68rem;color:rgba(255,255,255,.35);margin-top:.08rem}
+.conn{width:1px;height:18px;background:rgba(255,255,255,.08);margin-left:calc(1rem + 13px - .5px)}
+.sidebar-footer{margin-top:auto;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.06)}
+.prog-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center}
+.prog-label span{color:var(--accent);font-weight:700}
+.prog-track{background:rgba(255,255,255,.08);border-radius:99px;height:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8b73ff);border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.ttitle{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:-.02em}
+.tsub{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.tbtns{display:flex;gap:.6rem;align-items:center}
+.btn{padding:.55rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif;transition:all .2s;display:flex;align-items:center;gap:.4rem}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--ink2)}
+.btn-ghost:hover{border-color:#bbb;background:var(--surface)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#4a3fee;transform:translateY(-1px)}
+
+/* ── CONTENT ── */
+.content{padding:1.75rem 2rem;overflow-y:auto;max-height:calc(100vh - 57px)}
+.panel{display:none}.panel.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;margin-bottom:1.1rem}
+.card-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── TEMPLATE CARDS ── */
+.tpl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.tpl-card{border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .25s;position:relative}
+.tpl-card:hover{border-color:#aaa;transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.tpl-card.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,255,.15)}
+.tpl-badge{position:absolute;top:.55rem;right:.55rem;background:var(--accent);color:#fff;font-size:.6rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;font-family:'Space Mono',monospace;opacity:0;transition:opacity .2s;z-index:5}
+.tpl-card.sel .tpl-badge{opacity:1}
+.tpl-thumb{height:200px;overflow:hidden;position:relative;background:#f0f0f0}
+.tpl-thumb iframe{width:375px;height:812px;border:none;transform:scale(.46);transform-origin:top left;pointer-events:none}
+.tpl-label{padding:.65rem 1rem;font-size:.8rem;font-weight:700;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
+.tpl-label small{font-weight:400;color:var(--muted);font-size:.7rem}
+
+/* ── SHAPE / LAYOUT ── */
+.opt-row{display:flex;align-items:center;gap:1rem;margin-bottom:.85rem}
+.opt-label{font-size:.82rem;font-weight:600;color:var(--ink2);min-width:150px}
+.opt-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
+.opt-group{display:flex;gap:.45rem;flex:1;flex-wrap:wrap}
+.opt-btn{padding:.45rem 1rem;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;transition:all .2s;color:var(--ink2);white-space:nowrap}
+.opt-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* ── FONT CARDS ── */
+.font-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.font-card{border:2px solid var(--border);border-radius:10px;padding:.85rem;cursor:pointer;transition:all .2s;text-align:center}
+.font-card:hover{transform:translateY(-2px);border-color:#bbb}
+.font-card.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,255,.15)}
+.font-card .fn-name{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+.font-card .fn-sample{font-size:1.1rem;color:var(--ink);line-height:1.3;min-height:2.6em;display:flex;align-items:center;justify-content:center}
+.font-card .fn-abc{font-size:.7rem;color:var(--muted);margin-top:.25rem;font-weight:500}
+
+/* ── PALETTE CARDS ── */
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem}
+.pal{border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s}
+.pal:hover{transform:translateY(-2px);border-color:#bbb}
+.pal.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,255,.15)}
+.pal-swatches{display:flex;height:36px}
+.pal-sw{flex:1}
+.pal-name{font-size:.72rem;font-weight:700;padding:.45rem .75rem;background:#fff;color:var(--ink)}
+.pal-name small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
+
+/* ── FIELD INPUTS ── */
+.field{display:flex;align-items:flex-start;gap:1rem;margin-bottom:.9rem}
+.field-label{font-size:.82rem;font-weight:600;min-width:150px;padding-top:.4rem;color:var(--ink2)}
+.field-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
+.field input,.field select,.field textarea{flex:1;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:'Figtree',sans-serif;color:var(--ink);background:var(--white);outline:none;transition:border .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+
+/* ── TOGGLES ── */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
+.feat{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;transition:border .2s}
+.feat.on{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.03)}
+.feat-info .fn{font-size:.83rem;font-weight:600}
+.feat-info .fd{font-size:.7rem;color:var(--muted);margin-top:.1rem}
+.sw{position:relative;width:38px;height:20px;flex-shrink:0;margin-left:1rem}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;inset:0;background:#ddd;border-radius:99px;cursor:pointer;transition:.3s}
+.sw-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+input:checked+.sw-track{background:var(--green)}
+input:checked+.sw-track::before{transform:translateX(18px)}
+
+/* ── IMAGE UPLOAD ── */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:2rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:.75rem}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-light)}
+.upload-zone.has-image{padding:.5rem;border-style:solid;border-color:var(--border)}
+.upload-zone .preview-img{width:100%;height:120px;object-fit:cover;border-radius:8px;display:block}
+.upload-zone .remove-img{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:var(--red);border:none;color:#fff;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center}
+.upload-icon{font-size:2rem;margin-bottom:.5rem}
+.upload-text{font-size:.82rem;color:var(--ink2);font-weight:600}
+.upload-hint{font-size:.7rem;color:var(--muted);margin-top:.25rem}
+
+/* ── PREVIEW STEP ── */
+.preview-shell{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.1rem}
+.prev-toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem}
+.prev-toolbar span{font-size:.78rem;font-weight:700}
+.dev-btn{background:none;border:1.5px solid var(--border);border-radius:7px;padding:.3rem .7rem;font-size:.73rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;color:var(--muted);transition:all .2s}
+.dev-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.prev-note{margin-left:auto;font-size:.7rem;color:var(--muted);font-family:'Space Mono',monospace}
+.prev-stage{padding:2rem;background:repeating-linear-gradient(45deg,#f0efe9,#f0efe9 10px,#eae9e3 10px,#eae9e3 20px);display:flex;justify-content:center;align-items:flex-start;min-height:640px}
+.device-phone{width:390px;border-radius:44px;overflow:hidden;background:#111;padding:12px;box-shadow:0 0 0 2px #333,0 25px 60px rgba(0,0,0,.4);position:relative}
+.device-phone::before{content:'';position:absolute;top:22px;left:50%;transform:translateX(-50%);width:70px;height:8px;background:#111;border-radius:99px;z-index:10;border:1.5px solid #333}
+.phone-screen{border-radius:34px;overflow:hidden;background:#fff;height:720px;overflow-y:auto}
+.phone-screen::-webkit-scrollbar{display:none}
+.device-desktop{width:780px;border-radius:12px;overflow:hidden;background:#2a2a2a;padding:10px 10px 0;box-shadow:0 0 0 1.5px #444,0 20px 50px rgba(0,0,0,.3)}
+.desktop-bar{height:28px;display:flex;align-items:center;gap:.45rem;padding:0 .7rem;margin-bottom:8px}
+.desktop-dot{width:9px;height:9px;border-radius:50%}
+.desktop-url{flex:1;background:rgba(255,255,255,.08);border-radius:4px;height:16px;display:flex;align-items:center;padding:0 .5rem}
+.desktop-url span{font-size:.5rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace}
+.desktop-screen{border-radius:6px 6px 0 0;overflow:hidden;height:540px;overflow-y:auto;background:#fff}
+.desktop-screen::-webkit-scrollbar{display:none}
+
+/* ── SECTION DIVIDER ── */
+.section-divider{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:1.25rem 0 .75rem;display:flex;align-items:center;gap:.5rem}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .tpl-grid{grid-template-columns:1fr}
+  .pal-grid{grid-template-columns:1fr 1fr}
+  .feat-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="xbill-logo">
+    <div class="xbill-logo-mark">X</div>
+    <div>
+      <div class="xbill-logo-text">HonestBill</div>
+      <div class="xbill-logo-sub">Portal Wizard</div>
+    </div>
+  </div>
+  <div class="steps" id="step-nav">
+    <div class="step active" onclick="goto(1)">
+      <div class="snum" id="sn1">1</div>
+      <div class="sinfo"><span class="slabel">Template</span><span class="sdesc">Layout structure</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step" onclick="goto(2)">
+      <div class="snum" id="sn2">2</div>
+      <div class="sinfo"><span class="slabel">Brand &amp; Colors</span><span class="sdesc">Identity &amp; palette</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step" onclick="goto(3)">
+      <div class="snum" id="sn3">3</div>
+      <div class="sinfo"><span class="slabel">Packages</span><span class="sdesc">Plans &amp; pricing</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step" onclick="goto(4)">
+      <div class="snum" id="sn4">4</div>
+      <div class="sinfo"><span class="slabel">Features</span><span class="sdesc">Payments &amp; more</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step" onclick="goto(5)">
+      <div class="snum" id="sn5">5</div>
+      <div class="sinfo"><span class="slabel">Preview &amp; Export</span><span class="sdesc">See &amp; share</span></div>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="prog-label">Progress <span id="prog-pct">20%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:20%"></div></div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main style="display:flex;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div><div class="ttitle" id="ttitle">Choose Your Template</div><div class="tsub" id="tsub">Pick the structural layout for your captive portal</div></div>
+    <div class="tbtns">
+      <button class="btn btn-ghost" id="btn-back" onclick="goto(S.step-1)" style="display:none">← Back</button>
+      <button class="btn btn-primary" id="btn-next" onclick="goto(S.step+1)">Next →</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- ═══ STEP 1: TEMPLATE ═══ -->
+  <div class="panel active" id="p1">
+    <div class="card">
+      <div class="card-title">Portal Layout</div>
+      <div class="tpl-grid" id="tpl-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Package Card Shape</div>
+      <div class="opt-row">
+        <div class="opt-label">Corner style</div>
+        <div class="opt-group" data-key="corner">
+          <button class="opt-btn on" onclick="setOpt(this,'corner','rounded')">Rounded</button>
+          <button class="opt-btn" onclick="setOpt(this,'corner','pill')">Pill / Oval</button>
+          <button class="opt-btn" onclick="setOpt(this,'corner','sharp')">Sharp</button>
+          <button class="opt-btn" onclick="setOpt(this,'corner','square')">Square</button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <div class="opt-label">Card size<small>How big the package cards are</small></div>
+        <div class="opt-group" data-key="size">
+          <button class="opt-btn on" onclick="setOpt(this,'size','compact')">Compact</button>
+          <button class="opt-btn" onclick="setOpt(this,'size','comfortable')">Comfortable</button>
+          <button class="opt-btn" onclick="setOpt(this,'size','large')">Large</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: BRAND & COLORS ═══ -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <div class="card-title">Brand Identity</div>
+      <div class="field">
+        <div class="field-label">WiFi Name<small>The name users see</small></div>
+        <input type="text" id="brand-name" placeholder="My WiFi" oninput="updateBrand()">
+      </div>
+      <div class="field">
+        <div class="field-label">Tagline<small>Brief description</small></div>
+        <input type="text" id="brand-tagline" placeholder="Fast, reliable internet" oninput="updateBrand()">
+      </div>
+      <div class="field">
+        <div class="field-label">Location<small>Where this hotspot is</small></div>
+        <input type="text" id="brand-location" placeholder="Nairobi, Kenya" oninput="updateBrand()">
+      </div>
+      <div class="field">
+        <div class="field-label">Support Phone<small>For user assistance</small></div>
+        <input type="tel" id="brand-phone" placeholder="+254 700 123 456" oninput="updateBrand()">
+      </div>
+      <div class="field">
+        <div class="field-label">Emoji / Logo<small>Brand icon</small></div>
+        <input type="text" id="brand-emoji" placeholder="📡" oninput="updateBrand()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Typography</div>
+      <div class="font-grid" id="font-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Color Palette</div>
+      <div class="pal-grid" id="pal-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Background Image</div>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">Drop image here or click to upload</div>
+        <div class="upload-hint">JPG, PNG, WebP — or paste URL below</div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+      <div class="field" style="margin-top:.5rem">
+        <div class="field-label">Image URL</div>
+        <input type="text" id="bg-url-input" placeholder="https://example.com/image.jpg" onchange="applyBgFromUrl()">
+      </div>
+      <div class="opt-row">
+        <div class="opt-label">Background Blur<small>Soften the background</small></div>
+        <div style="flex:1;display:flex;align-items:center;gap:.75rem">
+          <input type="range" id="blur-slider" min="0" max="20" step="1" value="0" style="flex:1;accent-color:var(--accent)" oninput="applyBlur(this.value)">
+          <span id="blur-val" style="font-size:.78rem;font-weight:700;color:var(--accent);min-width:30px;text-align:right">0px</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: PACKAGES ═══ -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <div class="card-title">Package Plans</div>
+      <div class="infobox">Add the internet packages users can purchase. Drag to reorder.</div>
+      <div class="pkg-hdr"><span>Name</span><span>Duration</span><span>Speed</span><span>Price (KES)</span><span>★</span><span></span></div>
+      <div class="pkg-list" id="pkg-list"></div>
+      <button class="add-pkg" onclick="addPkg()">+ Add Package</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: FEATURES ═══ -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <div class="card-title">Payment Methods</div>
+      <div class="feat-grid">
+        <div class="feat on" onclick="toggleFeat(this,'mpesa_stk')">
+          <div class="feat-info"><div class="fn">M-Pesa STK Push</div><div class="fd">Direct payment to your till</div></div>
+          <label class="sw"><input type="checkbox" checked><div class="sw-track"></div></label>
+        </div>
+        <div class="feat" onclick="toggleFeat(this,'vouchers')">
+          <div class="feat-info"><div class="fn">Voucher Codes</div><div class="fd">Pre-paid redemption</div></div>
+          <label class="sw"><input type="checkbox"><div class="sw-track"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Components</div>
+      <div class="feat-grid">
+        <div class="feat on" onclick="toggleFeat(this,'network_status')">
+          <div class="feat-info"><div class="fn">Network Status</div><div class="fd">Show online/offline indicator</div></div>
+          <label class="sw"><input type="checkbox" checked><div class="sw-track"></div></label>
+        </div>
+        <div class="feat on" onclick="toggleFeat(this,'location_badge')">
+          <div class="feat-info"><div class="fn">Location Badge</div><div class="fd">Show location in top bar</div></div>
+          <label class="sw"><input type="checkbox" checked><div class="sw-track"></div></label>
+        </div>
+        <div class="feat on" onclick="toggleFeat(this,'announcement')">
+          <div class="feat-info"><div class="fn">Announcement Banner</div><div class="fd">Show custom messages</div></div>
+          <label class="sw"><input type="checkbox" checked><div class="sw-track"></div></label>
+        </div>
+        <div class="feat on" onclick="toggleFeat(this,'footer')">
+          <div class="feat-info"><div class="fn">Footer</div><div class="fd">Terms &amp; privacy link</div></div>
+          <label class="sw"><input type="checkbox" checked><div class="sw-track"></div></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5: PREVIEW ═══ -->
+  <div class="panel" id="p5">
+    <div class="preview-shell">
+      <div class="prev-toolbar">
+        <span>Preview</span>
+        <button class="dev-btn on" onclick="setDevice('phone',this)">📱 Phone</button>
+        <button class="dev-btn" onclick="setDevice('desktop',this)">🖥 Desktop</button>
+        <div class="prev-note" id="prev-note">390 × 844</div>
+      </div>
+      <div class="prev-stage" id="prev-stage">
+        <div class="device-phone" id="device-frame">
+          <div class="phone-screen" id="phone-screen"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.6rem;justify-content:center">
+      <button class="btn btn-primary" onclick="exportConfig()">Export Config</button>
+      <button class="btn btn-ghost" onclick="openFullPreview()" target="_blank">Open Full Preview</button>
+    </div>
+  </div>
+
+  </div>
+</main>
+
+</div>
+
+<script>
+/* ═══ STATE ═══ */
+var S = {
+  step: 1,
+  template: 'dashboard',
+  palette: 0,
+  font: 'Inter',
+  corner: 'rounded',
+  size: 'compact',
+  bgImage: null,
+  blur: 0,
+  brand: { name:'', tagline:'', location:'', phone:'', emoji:'📡' },
+  pkgs: [
+    {name:'1 Hour',dur:'60 min',speed:'Up to 5 Mbps',price:20,star:false},
+    {name:'6 Hours',dur:'6 hrs',speed:'Up to 10 Mbps',price:80,star:false},
+    {name:'Daily',dur:'24 hrs',speed:'Up to 15 Mbps',price:150,star:true},
+    {name:'Weekly',dur:'7 days',speed:'Up to 20 Mbps',price:500,star:false}
+  ],
+  features: { mpesa_stk:true, vouchers:false, network_status:true, location_badge:true, announcement:true, footer:true }
+};
+
+var TPLS = [
+  {id:'dashboard',name:'Dashboard',desc:'Compact 2-col grid · Modal · Loading',file:'portal_views/dashboard.html'},
+  {id:'spotlight',name:'Spotlight',desc:'Hero header · Premium feel',file:'portal_views/spotlight.html'},
+  {id:'split',name:'Split',desc:'Split-screen · Brand + packages',file:'portal_views/split.html'},
+  {id:'bento',name:'Bento',desc:'Asymmetric grid · Apple-style',file:'portal_views/bento.html'}
+];
+
+var FONTS = [
+  {id:'Inter',name:'Inter',category:'Sans-serif',sample:'Aa Bb Cc'},
+  {id:'Space Grotesk',name:'Space Grotesk',category:'Geometric',sample:'Aa Bb Cc'},
+  {id:'Playfair Display',name:'Playfair Display',category:'Serif',sample:'Aa Bb Cc'},
+  {id:'Orbitron',name:'Orbitron',category:'Futuristic',sample:'Aa Bb Cc'},
+  {id:'Syne',name:'Syne',category:'Expressive',sample:'Aa Bb Cc'},
+  {id:'Figtree',name:'Figtree',category:'Friendly',sample:'Aa Bb Cc'},
+  {id:'DM Sans',name:'DM Sans',category:'Minimal',sample:'Aa Bb Cc'},
+  {id:'Poppins',name:'Poppins',category:'Geometric',sample:'Aa Bb Cc'},
+  {id:'Raleway',name:'Raleway',category:'Elegant',sample:'Aa Bb Cc'},
+  {id:'Montserrat',name:'Montserrat',category:'Versatile',sample:'Aa Bb Cc'},
+  {id:'Outfit',name:'Outfit',category:'Modern',sample:'Aa Bb Cc'},
+  {id:'Sora',name:'Sora',category:'Contemporary',sample:'Aa Bb Cc'}
+];
+
+var PALETTES = [
+  {name:'Midnight Indigo',c1:'#0c0c1a',c2:'#5b4fff',c3:'#8b73ff'},
+  {name:'Nairobi Sun',c1:'#fff7ed',c2:'#f97316',c3:'#fb923c'},
+  {name:'Ocean Deep',c1:'#f0f9ff',c2:'#0ea5e9',c3:'#38bdf8'},
+  {name:'Forest Night',c1:'#052e16',c2:'#16a34a',c3:'#22c55e'},
+  {name:'Rose Quartz',c1:'#fff1f2',c2:'#f43f5e',c3:'#fb7185'},
+  {name:'Obsidian Slate',c1:'#f8fafc',c2:'#1e293b',c3:'#334155'},
+  {name:'Amber Dusk',c1:'#fffbeb',c2:'#b45309',c3:'#d97706'},
+  {name:'Electric Violet',c1:'#faf5ff',c2:'#7c3aed',c3:'#8b5cf6'}
+];
+
+var PALETTE_COLORS = [
+  {bg:'#0c0c1a',card:'rgba(255,255,255,.06)',cardBorder:'rgba(255,255,255,.12)',text:'#e8e6ff',textDim:'rgba(232,230,255,.5)',primary:'#5b4fff',primaryDark:'rgba(91,79,255,.6)'},
+  {bg:'#fff7ed',card:'#ffffff',cardBorder:'#fed7aa',text:'#431407',textDim:'#a1520b',primary:'#f97316',primaryDark:'#f97316'},
+  {bg:'#f0f9ff',card:'#ffffff',cardBorder:'#bae6fd',text:'#0c4a6e',textDim:'#0369a1',primary:'#0ea5e9',primaryDark:'#0c4a6e'},
+  {bg:'#052e16',card:'rgba(255,255,255,.07)',cardBorder:'rgba(134,239,172,.15)',text:'#dcfce7',textDim:'rgba(220,252,231,.5)',primary:'#16a34a',primaryDark:'rgba(134,239,172,.5)'},
+  {bg:'#fff1f2',card:'#ffffff',cardBorder:'#fecdd3',text:'#4c0519',textDim:'#881337',primary:'#f43f5e',primaryDark:'#f43f5e'},
+  {bg:'#f8fafc',card:'#ffffff',cardBorder:'#e2e8f0',text:'#0f172a',textDim:'#64748b',primary:'#1e293b',primaryDark:'#1e293b'},
+  {bg:'#fffbeb',card:'#ffffff',cardBorder:'#fde68a',text:'#451a03',textDim:'#92400e',primary:'#b45309',primaryDark:'#d97706'},
+  {bg:'#faf5ff',card:'#ffffff',cardBorder:'#ddd6fe',text:'#2e1065',textDim:'#6d28d9',primary:'#7c3aed',primaryDark:'#7c3aed'}
+];
+
+var STEP_TITLES = [
+  ['Choose Your Template','Pick the structural layout for your captive portal'],
+  ['Brand & Colors','Set your identity, palette, and background'],
+  ['Package Plans','Define what users can purchase'],
+  ['Features','Toggle payments, components & more'],
+  ['Preview & Export','See exactly what customers see, then export']
+];
+
+/* ═══ INIT ═══ */
+function init(){
+  buildTemplateGrid();
+  buildFontGrid();
+  buildPaletteGrid();
+  buildPkgList();
+  refreshPreview();
+}
+
+/* ═══ TEMPLATE GRID ═══ */
+function buildTemplateGrid(){
+  var g=document.getElementById('tpl-grid');
+  g.innerHTML='';
+  TPLS.forEach(function(t){
+    var d=document.createElement('div');
+    d.className='tpl-card'+(t.id===S.template?' sel':'');
+    d.dataset.tpl=t.id;
+    d.onclick=function(){selectTpl(t.id)};
+    d.innerHTML='<div class="tpl-badge">✓ Selected</div>'+
+      '<div class="tpl-thumb"><iframe src="'+t.file+'?palette='+S.palette+'&font='+encodeURIComponent(S.font)+'" loading="lazy"></iframe></div>'+
+      '<div class="tpl-label"><span>'+t.name+'</span><small>'+t.desc+'</small></div>';
+    g.appendChild(d);
+  });
+}
+
+function selectTpl(id){
+  S.template=id;
+  document.querySelectorAll('.tpl-card').forEach(function(c){c.classList.toggle('sel',c.dataset.tpl===id)});
+  refreshPreview();
+}
+
+/* ═══ PALETTE GRID ═══ */
+function buildPaletteGrid(){
+  var g=document.getElementById('pal-grid');
+  g.innerHTML='';
+  PALETTES.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.className='pal'+(i===S.palette?' sel':'');
+    d.onclick=function(){selectPal(i)};
+    d.innerHTML='<div class="pal-swatches"><div class="pal-sw" style="background:'+p.c1+'"></div><div class="pal-sw" style="background:'+p.c2+'"></div><div class="pal-sw" style="background:'+p.c3+'"></div></div>'+
+      '<div class="pal-name">'+p.name+'<small>Palette '+(i+1)+'</small></div>';
+    g.appendChild(d);
+  });
+}
+
+/* ═══ FONT GRID ═══ */
+function buildFontGrid(){
+  var g=document.getElementById('font-grid');
+  g.innerHTML='';
+  FONTS.forEach(function(f){
+    var d=document.createElement('div');
+    d.className='font-card'+(f.id===S.font?' sel':'');
+    d.dataset.font=f.id;
+    d.onclick=function(){selectFont(f.id)};
+    d.innerHTML='<div class="fn-name">'+f.name+'</div>'+
+      '<div class="fn-sample" style="font-family:\''+f.id+'\',sans-serif">'+f.sample+'</div>'+
+      '<div class="fn-abc">'+f.category+'</div>';
+    g.appendChild(d);
+  });
+}
+
+function selectFont(id){
+  S.font=id;
+  document.querySelectorAll('.font-card').forEach(function(c){c.classList.toggle('sel',c.dataset.font===id)});
+  document.querySelectorAll('#tpl-grid iframe').forEach(function(f){f.src=f.src.split('?')[0]+'?palette='+S.palette+'&font='+encodeURIComponent(id)});
+  refreshPreview();
+}
+
+function selectPal(i){
+  S.palette=i;
+  document.querySelectorAll('.pal').forEach(function(c,idx){c.classList.toggle('sel',idx===i)});
+  document.querySelectorAll('#tpl-grid iframe').forEach(function(f){f.src=f.src.split('?')[0]+'?palette='+i+'&font='+encodeURIComponent(S.font)});
+  refreshPreview();
+}
+
+/* ═══ OPTIONS ═══ */
+function setOpt(el,key,val){
+  S[key]=val;
+  el.parentElement.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('on')});
+  el.classList.add('on');
+}
+
+/* ═══ BRAND ═══ */
+function updateBrand(){
+  S.brand.name=document.getElementById('brand-name').value;
+  S.brand.tagline=document.getElementById('brand-tagline').value;
+  S.brand.location=document.getElementById('brand-location').value;
+  S.brand.phone=document.getElementById('brand-phone').value;
+  S.brand.emoji=document.getElementById('brand-emoji').value||'📡';
+}
+
+/* ═══ IMAGE ═══ */
+function setupUpload(){
+  var zone=document.getElementById('upload-zone');
+  var fi=document.getElementById('file-input');
+  zone.onclick=function(e){if(e.target.classList.contains('remove-img'))return;fi.click()};
+  fi.onchange=function(e){handleFile(e.target.files[0])};
+  zone.ondragover=function(e){e.preventDefault();zone.style.borderColor='var(--accent)';zone.style.background='var(--accent-light)'};
+  zone.ondragleave=function(){zone.style.borderColor='';zone.style.background=''};
+  zone.ondrop=function(e){e.preventDefault();zone.style.borderColor='';zone.style.background='';handleFile(e.dataTransfer.files[0])};
+}
+
+function handleFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    S.bgImage=ev.target.result;
+    var z=document.getElementById('upload-zone');
+    z.classList.add('has-image');
+    z.innerHTML='<img class="preview-img" src="'+ev.target.result+'" alt="BG"><button class="remove-img" onclick="removeImg(event)">&times;</button>';
+    refreshPreview();
+  };
+  r.readAsDataURL(file);
+}
+
+function applyBgFromUrl(){
+  var url=document.getElementById('bg-url-input').value.trim();
+  if(!url){S.bgImage=null;refreshPreview();return}
+  S.bgImage=url;
+  var z=document.getElementById('upload-zone');
+  z.classList.add('has-image');
+  z.innerHTML='<img class="preview-img" src="'+url+'" alt="BG"><button class="remove-img" onclick="removeImg(event)">&times;</button>';
+  refreshPreview();
+}
+
+function removeImg(e){
+  e.stopPropagation();
+  S.bgImage=null;
+  var z=document.getElementById('upload-zone');
+  z.classList.remove('has-image');
+  z.innerHTML='<div class="upload-icon">🖼️</div><div class="upload-text">Drop image here or click to upload</div><div class="upload-hint">JPG, PNG, WebP — or paste URL below</div>';
+  document.getElementById('bg-url-input').value='';
+  document.getElementById('file-input').value='';
+  refreshPreview();
+}
+
+function applyBlur(v){S.blur=parseInt(v);document.getElementById('blur-val').textContent=v+'px';refreshPreview()}
+
+/* ═══ PACKAGES ═══ */
+function buildPkgList(){
+  var el=document.getElementById('pkg-list');
+  el.innerHTML='';
+  S.pkgs.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.className='pkg-row';
+    d.innerHTML='<input value="'+p.name+'" placeholder="Name" oninput="S.pkgs['+i+'].name=this.value">'+
+      '<input value="'+p.dur+'" placeholder="24 hrs" oninput="S.pkgs['+i+'].dur=this.value">'+
+      '<input value="'+p.speed+'" placeholder="10 Mbps" oninput="S.pkgs['+i+'].speed=this.value">'+
+      '<input type="number" value="'+p.price+'" placeholder="150" oninput="S.pkgs['+i+'].price=parseInt(this.value)">'+
+      '<button class="pkg-star'+(p.star?' on':'')+'" onclick="toggleStar('+i+')">★</button>'+
+      '<button class="pkg-del" onclick="delPkg('+i+')">×</button>';
+    el.appendChild(d);
+  });
+}
+
+function addPkg(){
+  S.pkgs.push({name:'New Plan',dur:'1 hr',speed:'5 Mbps',price:50,star:false});
+  buildPkgList();
+}
+
+function delPkg(i){
+  S.pkgs.splice(i,1);
+  buildPkgList();
+}
+
+function toggleStar(i){
+  S.pkgs[i].star=!S.pkgs[i].star;
+  buildPkgList();
+}
+
+/* ═══ FEATURES ═══ */
+function toggleFeat(el,key){
+  el.classList.toggle('on');
+  S.features[key]=el.classList.contains('on');
+}
+
+/* ═══ NAVIGATION ═══ */
+function goto(n){
+  if(n<1||n>5)return;
+  S.step=n;
+  document.querySelectorAll('.step').forEach(function(s,i){
+    s.classList.remove('active','done');
+    if(i+1===n)s.classList.add('active');
+    else if(i+1<n)s.classList.add('done');
+  });
+  document.querySelectorAll('.snum').forEach(function(s,i){
+    if(i+1<n)s.textContent='✓';
+    else s.textContent=i+1;
+  });
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('p'+n).classList.add('active');
+  var t=STEP_TITLES[n-1];
+  document.getElementById('ttitle').textContent=t[0];
+  document.getElementById('tsub').textContent=t[1];
+  document.getElementById('btn-back').style.display=n===1?'none':'';
+  document.getElementById('btn-next').style.display=n===5?'none':'';
+  document.getElementById('btn-next').textContent=n===4?'Preview →':'Next →';
+  document.getElementById('prog-pct').textContent=(n*20)+'%';
+  document.getElementById('prog-fill').style.width=(n*20)+'%';
+  if(n===5)refreshPreview();
+}
+
+/* ═══ PREVIEW ═══ */
+function refreshPreview(){
+  var tpl=TPLS.find(function(x){return x.id===S.template})||TPLS[0];
+  var params='palette='+S.palette+'&font='+encodeURIComponent(S.font)+'&blur='+S.blur;
+  if(S.bgImage)params+='&bgimg='+encodeURIComponent(S.bgImage);
+  var el=document.getElementById('phone-screen');
+  if(el)el.innerHTML='<iframe src="'+tpl.file+'?'+params+'" style="width:375px;height:812px;border:none;transform:scale(.92);transform-origin:top left"></iframe>';
+}
+
+function setDevice(type,btn){
+  document.querySelectorAll('.dev-btn').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');
+  var frame=document.getElementById('device-frame');
+  var note=document.getElementById('prev-note');
+  if(type==='phone'){
+    frame.className='device-phone';
+    frame.innerHTML='<div class="phone-screen" id="phone-screen"></div>';
+    note.textContent='390 × 844';
+  }else{
+    frame.className='device-desktop';
+    frame.innerHTML='<div class="desktop-bar"><div class="desktop-dot" style="background:#ff5f57"></div><div class="desktop-dot" style="background:#febc2e"></div><div class="desktop-dot" style="background:#28c840"></div><div class="desktop-url"><span>pay.honestbill.co.ke/portal/demo-wifi</span></div></div><div class="desktop-screen" id="phone-screen"></div>';
+    note.textContent='1280 × 720';
+  }
+  refreshPreview();
+}
+
+function openFullPreview(){
+  var tpl=TPLS.find(function(x){return x.id===S.template})||TPLS[0];
+  var params='palette='+S.palette+'&font='+encodeURIComponent(S.font)+'&blur='+S.blur;
+  if(S.bgImage)params+='&bgimg='+encodeURIComponent(S.bgImage);
+  window.open(tpl.file+'?'+params,'_blank');
+}
+
+function exportConfig(){
+  var cfg={template_id:S.template,palette_index:S.palette,font:S.font,corner:S.corner,size:S.size,bg_image:S.bgImage,blur:S.blur,brand:S.brand,pkgs:S.pkgs,features:S.features};
+  var json=JSON.stringify(cfg,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='portal-config.json';
+  a.click();
+}
+
+/* ═══ INIT ═══ */
+setupUpload();
+init();
+</script>
+</body>
+</html>

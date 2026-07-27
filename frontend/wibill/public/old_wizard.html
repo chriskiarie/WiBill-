@@ -1,0 +1,1470 @@
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xbill — Portal Wizard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=Figtree:wght@300;400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Cabinet+Grotesk:wght@400;500;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0e0e14;--ink2:#3a3a4a;--muted:#8888a0;--surface:#f5f4f1;--white:#ffffff;
+  --border:#e4e2dd;--accent:#5b4fff;--accent-light:#ede9ff;--green:#10b981;--red:#ef4444;
+  --radius:14px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'Figtree',sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;font-size:15px}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--ink);color:#fff;padding:1.75rem 1.5rem;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.xbill-logo{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
+.xbill-logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;color:#fff}
+.xbill-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.02em}
+.xbill-logo-sub{font-size:.65rem;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.12em;margin-top:.05rem}
+.steps{display:flex;flex-direction:column;gap:2px}
+.step{display:flex;align-items:center;gap:.85rem;padding:.8rem 1rem;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.step:hover:not(.active){background:rgba(255,255,255,.04)}
+.step.active{background:rgba(91,79,255,.15);border-color:rgba(91,79,255,.3)}
+.step.done .snum{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+.snum{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;font-family:'Space Mono',monospace;transition:all .3s;color:rgba(255,255,255,.5)}
+.step.active .snum{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
+.sinfo .slabel{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.85)}
+.sinfo .sdesc{font-size:.68rem;color:rgba(255,255,255,.35);margin-top:.08rem}
+.conn{width:1px;height:18px;background:rgba(255,255,255,.08);margin-left:calc(1rem + 13px - .5px)}
+.sidebar-footer{margin-top:auto;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.06)}
+.prog-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center}
+.prog-label span{color:var(--accent);font-weight:700}
+.prog-track{background:rgba(255,255,255,.08);border-radius:99px;height:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8b73ff);border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.ttitle{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:-.02em}
+.tsub{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.tbtns{display:flex;gap:.6rem;align-items:center}
+.btn{padding:.55rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif;transition:all .2s;display:flex;align-items:center;gap:.4rem}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--ink2)}
+.btn-ghost:hover{border-color:#bbb;background:var(--surface)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#4a3fee;transform:translateY(-1px)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#0da271}
+
+/* CONTENT */
+.content{padding:1.75rem 2rem;overflow-y:auto;max-height:calc(100vh - 57px)}
+.panel{display:none}.panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.4rem;margin-bottom:1.1rem}
+.card-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* TEMPLATE CARDS */
+.tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.tpl-card{border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .25s;position:relative}
+.tpl-card:hover{border-color:#aaa;transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.tpl-card.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,255,.15)}
+.tpl-badge{position:absolute;top:.55rem;right:.55rem;background:var(--accent);color:#fff;font-size:.6rem;font-weight:700;padding:.2rem .55rem;border-radius:99px;font-family:'Space Mono',monospace;opacity:0;transition:opacity .2s}
+.tpl-card.sel .tpl-badge{opacity:1}
+.tpl-thumb{height:160px;overflow:hidden;position:relative}
+.tpl-label{padding:.65rem 1rem;font-size:.8rem;font-weight:700;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--white)}
+.tpl-label small{font-weight:400;color:var(--muted);font-size:.7rem}
+
+/* TEMPLATE THUMBS */
+.t1{background:#0c0c1a;height:100%}
+.t1-hero{height:70px;background:linear-gradient(135deg,#1a1040 0%,#2d1b69 50%,#0c0c1a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.5rem;position:relative}
+.t1-hero::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:20px;background:#0c0c1a;clip-path:ellipse(55% 100% at 50% 100%)}
+.t1-name{font-size:.65rem;font-weight:800;color:#fff;font-family:'Syne',sans-serif;letter-spacing:.05em}
+.t1-tag{font-size:.45rem;color:rgba(255,255,255,.5);margin-top:.1rem}
+.t1-cards{display:flex;flex-direction:column;gap:.35rem;padding:.4rem .5rem}
+.t1-pkg{border-radius:6px;padding:.45rem .55rem;display:flex;align-items:center;justify-content:space-between}
+.t1-pkg:nth-child(1){background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.t1-pkg:nth-child(2){background:linear-gradient(135deg,rgba(91,79,255,.4),rgba(139,115,255,.2));border:1px solid rgba(91,79,255,.5)}
+.t1-pkg:nth-child(3){background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.t1-pname{font-size:.5rem;font-weight:700;color:#e2e0ff}
+.t1-pdur{font-size:.4rem;color:rgba(255,255,255,.4);margin-top:.05rem}
+.t1-pprice{font-size:.65rem;font-weight:800;color:#a5b4fc;font-family:'Space Mono',monospace}
+.t1-btn{margin:.5rem;background:linear-gradient(135deg,#5b4fff,#8b73ff);border-radius:5px;padding:.3rem;text-align:center;font-size:.5rem;font-weight:700;color:#fff}
+.t2{background:#f8f7f3;display:flex;height:100%}
+.t2-left{width:40px;background:#1c1c2e;display:flex;flex-direction:column;align-items:center;padding:.5rem .25rem;gap:.4rem}
+.t2-avatar{width:24px;height:24px;background:#5b4fff;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:800;color:#fff}
+.t2-nav-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15)}
+.t2-nav-dot.a{background:rgba(91,79,255,.8)}
+.t2-right{flex:1;padding:.5rem;display:flex;flex-direction:column;gap:.3rem}
+.t2-header{display:flex;justify-content:space-between;align-items:center}
+.t2-isp{font-size:.55rem;font-weight:800;color:#1c1c2e;font-family:'Syne',sans-serif}
+.t2-signal{font-size:.45rem;color:#10b981;background:#d1fae5;padding:.1rem .35rem;border-radius:99px;font-weight:700}
+.t2-grid{display:grid;grid-template-columns:1fr 1fr;gap:.25rem;flex:1}
+.t2-pkg{background:#fff;border-radius:5px;padding:.4rem;border:1px solid #eee;display:flex;flex-direction:column;gap:.1rem}
+.t2-pkg.highlight{background:#1c1c2e;border-color:#1c1c2e}
+.t2-pname{font-size:.48rem;font-weight:700;color:#1c1c2e}
+.t2-pkg.highlight .t2-pname{color:#fff}
+.t2-speed{font-size:.4rem;color:#888;margin-top:.05rem}
+.t2-pkg.highlight .t2-speed{color:rgba(255,255,255,.5)}
+.t2-price{font-size:.6rem;font-weight:800;color:#5b4fff;margin-top:.15rem;font-family:'Space Mono',monospace}
+.t2-pkg.highlight .t2-price{color:#a5b4fc}
+.t2-btn{background:#5b4fff;border-radius:4px;padding:.25rem;text-align:center;font-size:.45rem;font-weight:700;color:#fff;margin-top:.25rem}
+.t3{background:#fff;height:100%}
+.t3-top{height:55px;background:#111;padding:.5rem;display:flex;align-items:center;gap:.5rem}
+.t3-logo{width:22px;height:22px;background:#f97316;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800;color:#fff}
+.t3-info .t3-name{font-size:.55rem;font-weight:800;color:#fff;font-family:'Syne',sans-serif}
+.t3-info .t3-live{font-size:.4rem;color:#10b981;font-weight:600}
+.t3-scroll{display:flex;gap:.35rem;padding:.5rem;overflow-x:hidden}
+.t3-pkg{flex-shrink:0;width:62px;border-radius:8px;padding:.5rem .4rem;display:flex;flex-direction:column;gap:.15rem}
+.t3-pkg:nth-child(1){background:#fef3c7;border:1.5px solid #fcd34d}
+.t3-pkg:nth-child(2){background:#1c1c2e;border:2px solid #f97316}
+.t3-pkg:nth-child(3){background:#f0fdf4;border:1.5px solid #86efac}
+.t3-pkg:nth-child(4){background:#ede9ff;border:1.5px solid #a5b4fc}
+.t3-pname{font-size:.5rem;font-weight:800}
+.t3-pkg:nth-child(1) .t3-pname{color:#92400e}
+.t3-pkg:nth-child(2) .t3-pname{color:#f97316}
+.t3-pkg:nth-child(3) .t3-pname{color:#166534}
+.t3-pkg:nth-child(4) .t3-pname{color:#4c1d95}
+.t3-dur{font-size:.4rem;color:#888;margin-bottom:.1rem}
+.t3-pkg:nth-child(2) .t3-dur{color:rgba(255,255,255,.4)}
+.t3-price{font-size:.62rem;font-weight:800;font-family:'Space Mono',monospace;color:#1c1c2e}
+.t3-pkg:nth-child(2) .t3-price{color:#fff}
+.t3-btn{background:#111;border-radius:4px;padding:.25rem;text-align:center;font-size:.45rem;font-weight:700;color:#fff;margin:.5rem}
+
+/* SHAPE / LAYOUT */
+.opt-row{display:flex;align-items:center;gap:1rem;margin-bottom:.85rem}
+.opt-label{font-size:.82rem;font-weight:600;color:var(--ink2);min-width:150px}
+.opt-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
+.opt-group{display:flex;gap:.45rem;flex:1;flex-wrap:wrap}
+.opt-btn{padding:.45rem 1rem;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-size:.78rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;transition:all .2s;color:var(--ink2);white-space:nowrap}
+.opt-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* BRAND INPUTS */
+.field{display:flex;align-items:flex-start;gap:1rem;margin-bottom:.9rem}
+.field-label{font-size:.82rem;font-weight:600;min-width:150px;padding-top:.4rem;color:var(--ink2)}
+.field-label small{display:block;font-size:.68rem;color:var(--muted);font-weight:400}
+.field input,.field select,.field textarea{flex:1;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:'Figtree',sans-serif;color:var(--ink);background:var(--white);outline:none;transition:border .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:60px}
+
+/* PALETTE */
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem}
+.pal{border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s}
+.pal:hover{transform:translateY(-2px);border-color:#bbb}
+.pal.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,255,.15)}
+.pal-swatches{display:flex;height:36px}
+.pal-sw{flex:1}
+.pal-name{font-size:.72rem;font-weight:700;padding:.45rem .75rem;background:#fff;color:var(--ink)}
+.pal-name small{display:block;font-size:.62rem;color:var(--muted);font-weight:400}
+
+/* PACKAGES */
+.pkg-hdr{display:grid;grid-template-columns:1.4fr 1fr .9fr .9fr auto auto;gap:.4rem;margin-bottom:.5rem;padding:0 .5rem}
+.pkg-hdr span{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pkg-list{display:flex;flex-direction:column;gap:.55rem;margin-bottom:.75rem}
+.pkg-row{display:grid;grid-template-columns:1.4fr 1fr .9fr .9fr auto auto;gap:.4rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.65rem .5rem}
+.pkg-row input{border:1.5px solid var(--border);border-radius:7px;padding:.38rem .6rem;font-size:.8rem;background:var(--white);width:100%;outline:none;font-family:'Figtree',sans-serif;transition:border .2s}
+.pkg-row input:focus{border-color:var(--accent)}
+.pkg-star{background:none;border:1.5px solid var(--border);border-radius:6px;padding:.35rem .55rem;cursor:pointer;font-size:.75rem;transition:all .2s;color:var(--muted)}
+.pkg-star.on{background:#fef9c3;border-color:#fcd34d;color:#b45309}
+.pkg-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1rem;padding:.2rem;transition:color .2s;line-height:1}
+.pkg-del:hover{color:var(--red)}
+.add-pkg{background:transparent;border:1.5px dashed var(--border);border-radius:10px;padding:.6rem;width:100%;font-size:.8rem;color:var(--muted);cursor:pointer;font-family:'Figtree',sans-serif;font-weight:600;transition:all .2s}
+.add-pkg:hover{border-color:var(--accent);color:var(--accent)}
+
+/* FEATURE TOGGLES */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem}
+.feat{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;transition:border .2s}
+.feat.on{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.03)}
+.feat-info .fn{font-size:.83rem;font-weight:600}
+.feat-info .fd{font-size:.7rem;color:var(--muted);margin-top:.1rem}
+.sw{position:relative;width:38px;height:20px;flex-shrink:0;margin-left:1rem}
+.sw input{opacity:0;width:0;height:0}
+.sw-track{position:absolute;inset:0;background:#ddd;border-radius:99px;cursor:pointer;transition:.3s}
+.sw-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+input:checked+.sw-track{background:var(--green)}
+input:checked+.sw-track::before{transform:translateX(18px)}
+
+/* VOUCHER CONFIG */
+.voucher-config{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:.75rem}
+.voucher-config-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.75rem}
+.vc-row{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:.5rem;margin-bottom:.5rem;padding:0 .25rem}
+.vc-row span{font-size:.68rem;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.vc-entry{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:.5rem;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:.5rem .4rem}
+.vc-entry input{border:1.5px solid var(--border);border-radius:6px;padding:.3rem .5rem;font-size:.78rem;background:var(--surface);width:100%;outline:none;font-family:'Figtree',sans-serif}
+.vc-entry input:focus{border-color:var(--accent)}
+.vc-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:1rem;transition:color .2s}
+.vc-del:hover{color:var(--red)}
+.add-vc{background:transparent;border:1.5px dashed var(--border);border-radius:8px;padding:.45rem;width:100%;font-size:.75rem;color:var(--muted);cursor:pointer;font-family:'Figtree',sans-serif;font-weight:600;transition:all .2s;margin-top:.35rem}
+.add-vc:hover{border-color:var(--accent);color:var(--accent)}
+
+/* LOYALTY CONFIG */
+.loyalty-config{background:linear-gradient(135deg,#fefce8,#fffbeb);border:1px solid #fde68a;border-radius:10px;padding:1rem;margin-top:.75rem}
+.lc-row{display:flex;gap:.75rem;flex-wrap:wrap}
+.lc-field{flex:1;min-width:140px}
+.lc-field label{font-size:.72rem;font-weight:700;color:var(--ink2);display:block;margin-bottom:.35rem}
+.lc-field input,.lc-field select{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:.82rem;font-family:'Figtree',sans-serif;outline:none}
+.lc-field input:focus,.lc-field select:focus{border-color:var(--accent)}
+
+/* REFERRAL CONFIG */
+.referral-config{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #86efac;border-radius:10px;padding:1rem;margin-top:.75rem}
+
+/* ANNOUNCEMENT CONFIG */
+.announcement-config{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #93c5fd;border-radius:10px;padding:1rem;margin-top:.75rem}
+.ac-row{display:flex;flex-direction:column;gap:.6rem}
+.ac-field label{font-size:.72rem;font-weight:700;color:var(--ink2);display:block;margin-bottom:.35rem}
+.ac-field input,.ac-field select,.ac-field textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.45rem .7rem;font-size:.82rem;font-family:'Figtree',sans-serif;outline:none}
+.ac-field input:focus,.ac-field select:focus,.ac-field textarea:focus{border-color:var(--accent)}
+.ac-field textarea{resize:vertical;min-height:52px}
+
+/* PREVIEW STEP */
+.preview-shell{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.1rem}
+.prev-toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem}
+.prev-toolbar span{font-size:.78rem;font-weight:700}
+.dev-btn{background:none;border:1.5px solid var(--border);border-radius:7px;padding:.3rem .7rem;font-size:.73rem;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;color:var(--muted);transition:all .2s}
+.dev-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.prev-note{margin-left:auto;font-size:.7rem;color:var(--muted);font-family:'Space Mono',monospace}
+.prev-stage{padding:2rem;background:repeating-linear-gradient(45deg,#f0efe9,#f0efe9 10px,#eae9e3 10px,#eae9e3 20px);display:flex;justify-content:center;align-items:flex-start;min-height:640px}
+
+/* PHONE FRAME */
+.device-phone{width:390px;border-radius:44px;overflow:hidden;background:#111;padding:12px;box-shadow:0 0 0 2px #333,0 25px 60px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.05);position:relative;transition:all .4s}
+.device-phone::before{content:'';position:absolute;top:22px;left:50%;transform:translateX(-50%);width:70px;height:8px;background:#111;border-radius:99px;z-index:10;border:1.5px solid #333}
+.phone-screen{border-radius:34px;overflow:hidden;background:#fff;height:720px;overflow-y:auto}
+.phone-screen::-webkit-scrollbar{display:none}
+
+/* DESKTOP FRAME */
+.device-desktop{width:780px;border-radius:12px;overflow:hidden;background:#2a2a2a;padding:10px 10px 0;box-shadow:0 0 0 1.5px #444,0 20px 50px rgba(0,0,0,.3)}
+.desktop-bar{height:28px;display:flex;align-items:center;gap:.45rem;padding:0 .7rem;margin-bottom:8px}
+.desktop-dot{width:9px;height:9px;border-radius:50%}
+.desktop-url{flex:1;background:rgba(255,255,255,.08);border-radius:4px;height:16px;display:flex;align-items:center;padding:0 .5rem}
+.desktop-url span{font-size:.5rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace}
+.desktop-screen{border-radius:6px 6px 0 0;overflow:hidden;height:540px;overflow-y:auto;background:#fff}
+.desktop-screen::-webkit-scrollbar{display:none}
+
+/* EXPORT CARDS */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.exp-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;cursor:pointer;transition:all .2s;text-align:center}
+.exp-card:hover{border-color:var(--accent);transform:translateY(-2px);background:#f0eeff}
+.exp-icon{font-size:1.7rem;margin-bottom:.55rem}
+.exp-card h3{font-size:.88rem;font-weight:700;margin-bottom:.25rem;font-family:'Syne',sans-serif}
+.exp-card p{font-size:.75rem;color:var(--muted);line-height:1.4}
+
+/* SHARE MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px;padding:2rem;width:520px;max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,.25)}
+.modal h2{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:.4rem}
+.modal p{font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.5}
+.modal-steps{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.25rem}
+.modal-step{display:flex;align-items:flex-start;gap:.75rem;background:var(--surface);border-radius:10px;padding:.85rem 1rem}
+.modal-step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Space Mono',monospace;margin-top:.05rem}
+.modal-step-info strong{font-size:.82rem;font-weight:700;display:block}
+.modal-step-info span{font-size:.75rem;color:var(--muted)}
+.modal-code{background:#0f172a;color:#94a3b8;padding:1rem 1.1rem;border-radius:9px;font-size:.78rem;font-family:'Space Mono',monospace;word-break:break-all;line-height:1.6;margin-bottom:1rem;cursor:pointer;transition:background .2s}
+.modal-code:hover{background:#1e293b}
+.modal-btns{display:flex;gap:.65rem}
+.modal-dismiss{margin-top:.75rem;text-align:center;font-size:.78rem;color:var(--muted);cursor:pointer;text-decoration:underline}
+.modal-divider{text-align:center;font-size:.75rem;color:var(--muted);margin:.75rem 0;font-weight:600}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.75rem;right:1.75rem;background:var(--ink);color:#fff;padding:.8rem 1.4rem;border-radius:10px;font-size:.82rem;font-weight:500;box-shadow:0 8px 25px rgba(0,0,0,.2);transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);z-index:999;display:flex;align-items:center;gap:.5rem}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* INFO BOX */
+.infobox{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:.7rem 1rem;font-size:.79rem;color:#1d4ed8;display:flex;gap:.5rem;align-items:flex-start;margin-bottom:.85rem;line-height:1.4}
+.infobox-amber{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.infobox-green{background:#f0fdf4;border:1px solid #86efac;color:#166534}
+
+/* SECTION DIVIDER */
+.section-divider{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:1.25rem 0 .75rem;display:flex;align-items:center;gap:.5rem}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .tpl-grid{grid-template-columns:1fr}
+  .pal-grid{grid-template-columns:1fr 1fr}
+  .feat-grid{grid-template-columns:1fr}
+  .export-grid{grid-template-columns:1fr}
+  .device-phone{width:100%}
+  .device-desktop{width:100%}
+}
+</style>
+<style></style><style></style><style></style><style>#adspace:not([style^="position: absolute; left: -5000px"]) {display: none !important;}
+#AdContainer:not([style^="position: absolute; left: -5000px"]) {display: none !important;}
+#ad-header:not([style^="position: absolute; left: -5000px"]) {display: none !important;}
+#ad_space:not([style^="position: absolute; left: -5000px"]) {display: none !important;}
+</style><style>.phxBtnShake{animation-name:phxVideoSniffBtnShake;animation-duration:.8s;animation-iteration-count:2}@keyframes phxVideoSniffBtnShake{0%{transform:translateX(0)}6%{transform:translateX(-5px)}12%{transform:translateX(0)}18%{transform:translateX(5px)}24%{transform:translateX(0)}30%{transform:translateX(-5px)}36%{transform:translateX(0)}42%{transform:translateX(5px)}48%{transform:translateX(0)}54%{transform:translateX(-5px)}60%{transform:translateX(0)}66%{transform:translateX(5px)}72%{transform:translateX(0)}100%{transform:translateX(0)}}</style><style>.phxRotate{animation:myRotate 1s linear infinite}@keyframes myRotate{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}</style></head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="xbill-logo">
+    <div class="xbill-logo-mark">X</div>
+    <div>
+      <div class="xbill-logo-text">Xbill</div>
+      <div class="xbill-logo-sub">Portal Wizard</div>
+    </div>
+  </div>
+  <div class="steps" id="step-nav">
+    <div class="step done" onclick="goto(1)">
+      <div class="snum" id="sn1">✓</div>
+      <div class="sinfo"><span class="slabel">Template</span><span class="sdesc">Layout structure</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step done" onclick="goto(2)">
+      <div class="snum" id="sn2">✓</div>
+      <div class="sinfo"><span class="slabel">Brand &amp; Colors</span><span class="sdesc">Identity &amp; palette</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step done" onclick="goto(3)">
+      <div class="snum" id="sn3">✓</div>
+      <div class="sinfo"><span class="slabel">Packages</span><span class="sdesc">Plans &amp; pricing</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step done" onclick="goto(4)">
+      <div class="snum" id="sn4">✓</div>
+      <div class="sinfo"><span class="slabel">Features</span><span class="sdesc">Payments, loyalty &amp; more</span></div>
+    </div>
+    <div class="conn"></div>
+    <div class="step active" onclick="goto(5)">
+      <div class="snum" id="sn5">5</div>
+      <div class="sinfo"><span class="slabel">Preview &amp; Export</span><span class="sdesc">See &amp; share</span></div>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="prog-label">Progress <span id="prog-pct">100%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width: 100%;"></div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main style="display:flex;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div><div class="ttitle" id="ttitle">Preview &amp; Export</div><div class="tsub" id="tsub">See exactly what customers see, then export or share</div></div>
+    <div class="tbtns">
+      <button class="btn btn-ghost" id="btn-back" style="" onclick="goto(S.step-1)">← Back</button>
+      <button class="btn btn-primary" id="btn-next" onclick="goto(S.step+1)" style="display: none;">Next →</button>
+      <button class="btn btn-green" id="btn-share" style="" onclick="openModal()">⬆ Share Wizard</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <!-- STEP 1: TEMPLATE -->
+  <div class="panel" id="p1">
+    <div class="card">
+      <div class="card-title">Portal Layout</div>
+      <div class="tpl-grid">
+        <div class="tpl-card" data-tpl="spotlight" onclick="selTpl('spotlight',this)">
+          <span class="tpl-badge">Selected</span>
+          <div class="tpl-thumb">
+            <div class="t1" style="height:100%;display:flex;flex-direction:column">
+              <div class="t1-hero">
+                <div class="t1-name">VERTEX WiFi</div>
+                <div class="t1-tag">Ultrafast · Nairobi CBD</div>
+              </div>
+              <div class="t1-cards" style="flex:1">
+                <div class="t1-pkg"><div><div class="t1-pname">1 Hour</div><div class="t1-pdur">60 min · 10 Mbps</div></div><div class="t1-pprice">20</div></div>
+                <div class="t1-pkg"><div><div class="t1-pname" style="color:#c7d2fe">6 Hours ★</div><div class="t1-pdur">6 hrs · Unlimited</div></div><div class="t1-pprice" style="color:#c7d2fe">80</div></div>
+                <div class="t1-pkg"><div><div class="t1-pname">Daily Pass</div><div class="t1-pdur">24 hrs · Unlimited</div></div><div class="t1-pprice">150</div></div>
+              </div>
+              <div class="t1-btn">📱 Pay with M-Pesa</div>
+            </div>
+          </div>
+          <div class="tpl-label">Spotlight Dark <small>Hero header · Premium feel</small></div>
+        </div>
+        <div class="tpl-card sel" data-tpl="dashboard" onclick="selTpl('dashboard',this)">
+          <span class="tpl-badge">Selected</span>
+          <div class="tpl-thumb">
+            <div class="t2" style="height:100%">
+              <div class="t2-left">
+                <div class="t2-avatar">V</div>
+                <div class="t2-nav-dot a"></div>
+                <div class="t2-nav-dot"></div>
+                <div class="t2-nav-dot"></div>
+              </div>
+              <div class="t2-right">
+                <div class="t2-header" style="margin-bottom:.35rem">
+                  <div class="t2-isp">VERTEX WiFi</div>
+                  <div class="t2-signal">● LIVE</div>
+                </div>
+                <div style="font-size:.42rem;color:#888;margin-bottom:.4rem">Select a package to get connected</div>
+                <div class="t2-grid">
+                  <div class="t2-pkg"><div class="t2-pname">1 Hour</div><div class="t2-speed">10 Mbps</div><div class="t2-price">KES 20</div><div class="t2-btn">Select</div></div>
+                  <div class="t2-pkg highlight"><div class="t2-pname">6 Hours</div><div class="t2-speed">Unlimited</div><div class="t2-price" style="color:#f97316">KES 80</div><div class="t2-btn" style="background:#f97316">★ Best</div></div>
+                  <div class="t2-pkg"><div class="t2-pname">Daily</div><div class="t2-speed">Unlimited</div><div class="t2-price">KES 150</div><div class="t2-btn">Select</div></div>
+                  <div class="t2-pkg"><div class="t2-pname">Weekly</div><div class="t2-speed">Unlimited</div><div class="t2-price">KES 500</div><div class="t2-btn">Select</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tpl-label">Dashboard Light <small>Sidebar nav · Organized</small></div>
+        </div>
+        <div class="tpl-card" data-tpl="stories" onclick="selTpl('stories',this)">
+          <span class="tpl-badge">Selected</span>
+          <div class="tpl-thumb">
+            <div class="t3" style="height:100%;display:flex;flex-direction:column">
+              <div class="t3-top">
+                <div class="t3-logo">V</div>
+                <div class="t3-info"><div class="t3-name">VERTEX WiFi</div><div class="t3-live">● Internet is live</div></div>
+              </div>
+              <div style="padding:.5rem;flex:1">
+                <div style="font-size:.45rem;color:#888;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.45rem;font-weight:700">Swipe to browse plans</div>
+                <div class="t3-scroll">
+                  <div class="t3-pkg"><div class="t3-pname">1 Hour</div><div class="t3-dur">60 min</div><div class="t3-price">KES 20</div></div>
+                  <div class="t3-pkg"><div class="t3-pname">6 Hrs ★</div><div class="t3-dur">Best value</div><div class="t3-price">KES 80</div></div>
+                  <div class="t3-pkg"><div class="t3-pname">Daily</div><div class="t3-dur">24 hrs</div><div class="t3-price">KES 150</div></div>
+                  <div class="t3-pkg"><div class="t3-pname">Weekly</div><div class="t3-dur">7 days</div><div class="t3-price">KES 500</div></div>
+                </div>
+              </div>
+              <div class="t3-btn" style="margin:.4rem .5rem">📱 Pay with M-Pesa</div>
+            </div>
+          </div>
+          <div class="tpl-label">Stories Flow <small>Horizontal cards · Mobile-first</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Package Card Shape</div>
+      <div class="opt-row">
+        <div class="opt-label">Corner style</div>
+        <div class="opt-group" id="shape-group">
+          <button class="opt-btn on" data-v="16px" onclick="setOpt('shape',this)">Rounded</button>
+          <button class="opt-btn" data-v="99px" onclick="setOpt('shape',this)">Pill / Oval</button>
+          <button class="opt-btn" data-v="6px" onclick="setOpt('shape',this)">Sharp</button>
+          <button class="opt-btn" data-v="0px" onclick="setOpt('shape',this)">Square</button>
+        </div>
+      </div>
+      <div class="opt-row" style="margin-bottom:0">
+        <div class="opt-label">Card size<small>How big the package cards are</small></div>
+        <div class="opt-group" id="size-group">
+          <button class="opt-btn on" data-v="compact" onclick="setOpt('size',this)">Compact</button>
+          <button class="opt-btn" data-v="comfortable" onclick="setOpt('size',this)">Comfortable</button>
+          <button class="opt-btn" data-v="large" onclick="setOpt('size',this)">Large</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: BRAND & COLORS -->
+  <div class="panel" id="p2">
+    <div class="card">
+      <div class="card-title">ISP Identity</div>
+      <div class="field">
+        <div class="field-label">Hotspot name<small>Your WiFi zone name</small></div>
+        <input id="f-name" value="Vertex WiFi" oninput="renderPortal()" placeholder="e.g. Westlands WiFi Hub">
+      </div>
+      <div class="field">
+        <div class="field-label">Tagline<small>One line below the name</small></div>
+        <input id="f-tag" value="Fast, affordable internet for everyone." oninput="renderPortal()" placeholder="e.g. Stay connected, pay less">
+      </div>
+      <div class="field">
+        <div class="field-label">Location / Area<small>Shown as context</small></div>
+        <input id="f-loc" value="Nairobi CBD" oninput="renderPortal()" placeholder="e.g. Westlands, Nairobi">
+      </div>
+      <div class="field">
+        <div class="field-label">Logo / Icon<small>Emoji or 2 initials</small></div>
+        <input id="f-emoji" value="📡" oninput="renderPortal()" style="max-width:90px">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <div class="field-label">ISP Contact<small>Support number / WhatsApp</small></div>
+        <input id="f-phone" value="+254 700 123 456" oninput="renderPortal()" placeholder="+254 700 000 000">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Color Palette</div>
+      <div class="pal-grid" id="pal-grid">
+    <div class="pal sel" onclick="selPal(0)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#0c0c1a"></div><div class="pal-sw" style="background:#1a1040"></div><div class="pal-sw" style="background:#5b4fff"></div><div class="pal-sw" style="background:#8b73ff"></div></div>
+      <div class="pal-name">Midnight Indigo<small>Dark &amp; Premium</small></div>
+    </div>
+    <div class="pal" onclick="selPal(1)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#fff7ed"></div><div class="pal-sw" style="background:#fed7aa"></div><div class="pal-sw" style="background:#f97316"></div><div class="pal-sw" style="background:#9a3412"></div></div>
+      <div class="pal-name">Nairobi Sun<small>Warm &amp; Vibrant</small></div>
+    </div>
+    <div class="pal" onclick="selPal(2)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#f0f9ff"></div><div class="pal-sw" style="background:#bae6fd"></div><div class="pal-sw" style="background:#0ea5e9"></div><div class="pal-sw" style="background:#0c4a6e"></div></div>
+      <div class="pal-name">Ocean Deep<small>Cool &amp; Trustworthy</small></div>
+    </div>
+    <div class="pal" onclick="selPal(3)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#052e16"></div><div class="pal-sw" style="background:#14532d"></div><div class="pal-sw" style="background:#16a34a"></div><div class="pal-sw" style="background:#86efac"></div></div>
+      <div class="pal-name">Forest Night<small>Natural &amp; Calm</small></div>
+    </div>
+    <div class="pal" onclick="selPal(4)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#fff1f2"></div><div class="pal-sw" style="background:#fecdd3"></div><div class="pal-sw" style="background:#f43f5e"></div><div class="pal-sw" style="background:#4c0519"></div></div>
+      <div class="pal-name">Rose Quartz<small>Elegant &amp; Warm</small></div>
+    </div>
+    <div class="pal" onclick="selPal(5)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#f8fafc"></div><div class="pal-sw" style="background:#e2e8f0"></div><div class="pal-sw" style="background:#1e293b"></div><div class="pal-sw" style="background:#0f172a"></div></div>
+      <div class="pal-name">Obsidian Slate<small>Corporate &amp; Sharp</small></div>
+    </div>
+    <div class="pal" onclick="selPal(6)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#fffbeb"></div><div class="pal-sw" style="background:#fef3c7"></div><div class="pal-sw" style="background:#d97706"></div><div class="pal-sw" style="background:#78350f"></div></div>
+      <div class="pal-name">Amber Dusk<small>Bold &amp; Inviting</small></div>
+    </div>
+    <div class="pal" onclick="selPal(7)">
+      <div class="pal-swatches"><div class="pal-sw" style="background:#faf5ff"></div><div class="pal-sw" style="background:#ede9fe"></div><div class="pal-sw" style="background:#7c3aed"></div><div class="pal-sw" style="background:#2e1065"></div></div>
+      <div class="pal-name">Electric Violet<small>Gen-Z &amp; Electric</small></div>
+    </div></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Typography</div>
+      <div class="opt-row" style="margin-bottom:0">
+        <div class="opt-label">Heading font</div>
+        <select class="opt-btn on" style="flex:1;cursor:pointer;padding:.5rem .9rem" id="f-font" onchange="renderPortal()">
+          <option value="Syne">Syne — Bold &amp; Geometric</option>
+          <option value="Cabinet Grotesk">Cabinet Grotesk — Punchy Modern</option>
+          <option value="Space Mono">Space Mono — Techy Mono</option>
+          <option value="Figtree">Figtree — Clean &amp; Friendly</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: PACKAGES -->
+  <div class="panel" id="p3">
+    <div class="card">
+      <div class="card-title">Internet Packages</div>
+      <div class="pkg-hdr">
+        <span>Plan Name</span><span>Duration</span><span>Speed</span><span>Price (KES)</span><span>★</span><span></span>
+      </div>
+      <div class="pkg-list" id="pkg-list">
+    <div class="pkg-row">
+      <input value="1 Hour" oninput="S.pkgs[0].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="60 min" oninput="S.pkgs[0].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="10 Mbps" oninput="S.pkgs[0].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="10" oninput="S.pkgs[0].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(0)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(0)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="6 Hours" oninput="S.pkgs[1].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="6 hrs" oninput="S.pkgs[1].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="Unlimited" oninput="S.pkgs[1].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="20" oninput="S.pkgs[1].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star on" onclick="toggleStar(1)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(1)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="Daily" oninput="S.pkgs[2].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="24 hrs" oninput="S.pkgs[2].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="Unlimited" oninput="S.pkgs[2].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="40" oninput="S.pkgs[2].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(2)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(2)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="Weekly" oninput="S.pkgs[3].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="7 days" oninput="S.pkgs[3].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="Unlimited" oninput="S.pkgs[3].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="250" oninput="S.pkgs[3].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(3)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(3)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="12 hour Plan" oninput="S.pkgs[4].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="12 hr" oninput="S.pkgs[4].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="15 Mbps" oninput="S.pkgs[4].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="30" oninput="S.pkgs[4].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(4)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(4)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="3 hour Plan" oninput="S.pkgs[5].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="3 hr" oninput="S.pkgs[5].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="15 Mbps" oninput="S.pkgs[5].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="15" oninput="S.pkgs[5].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(5)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(5)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="Daily Offer Plan" oninput="S.pkgs[6].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="24 hrs" oninput="S.pkgs[6].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="Unlimited " oninput="S.pkgs[6].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="60" oninput="S.pkgs[6].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(6)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(6)">×</button>
+    </div>
+    <div class="pkg-row">
+      <input value="New Plan" oninput="S.pkgs[7].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="1 hr" oninput="S.pkgs[7].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="10 Mbps" oninput="S.pkgs[7].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="50" oninput="S.pkgs[7].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star" onclick="toggleStar(7)" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(7)">×</button>
+    </div></div>
+      <button class="add-pkg" onclick="addPkg()">+ Add Package</button>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Network Status Banner</div>
+      <div class="infobox"><span>💡</span><span>Show customers whether the internet is working before they pay. Unique feature — competitors don't have it.</span></div>
+      <div class="opt-row">
+        <div class="opt-label">Status indicator</div>
+        <div class="opt-group">
+          <button class="opt-btn on" id="sb-on" onclick="setSB(true)">Show Status</button>
+          <button class="opt-btn" id="sb-off" onclick="setSB(false)">Hide</button>
+        </div>
+      </div>
+      <div class="field" id="sb-msg-row" style="margin-bottom:0">
+        <div class="field-label">Online message</div>
+        <input id="f-sbmsg" value="✅ Internet is live and fast right now" oninput="renderPortal()">
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: FEATURES -->
+  <div class="panel" id="p4">
+    <div class="card">
+      <div class="card-title">Payment Methods</div>
+      <div class="feat-grid" id="pay-feat-grid">
+      <div class="feat on" id="ft-mpesa">
+        <div class="feat-info"><div class="fn">M-Pesa STK Push</div><div class="fd">Instant Safaricom prompt</div></div>
+        <label class="sw"><input type="checkbox" checked="" onchange="toggleFeat('mpesa',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-card">
+        <div class="feat-info"><div class="fn">Card Payment</div><div class="fd">Visa / Mastercard</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('card',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-voucher">
+        <div class="feat-info"><div class="fn">Voucher / Scratch Card</div><div class="fd">Prepaid code redemption</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('voucher',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat on" id="ft-sms">
+        <div class="feat-info"><div class="fn">SMS Confirmation</div><div class="fd">Text receipt after payment</div></div>
+        <label class="sw"><input type="checkbox" checked="" onchange="toggleFeat('sms',this.checked)"><span class="sw-track"></span></label>
+      </div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Portal Features</div>
+      <div class="feat-grid" id="portal-feat-grid">
+      <div class="feat on" id="ft-login">
+        <div class="feat-info"><div class="fn">Saved Number Login</div><div class="fd">Return users skip re-typing</div></div>
+        <label class="sw"><input type="checkbox" checked="" onchange="toggleFeat('login',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat on" id="ft-countdown">
+        <div class="feat-info"><div class="fn">Session Countdown Timer</div><div class="fd">Shows time remaining while online</div></div>
+        <label class="sw"><input type="checkbox" checked="" onchange="toggleFeat('countdown',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-termsCheck">
+        <div class="feat-info"><div class="fn">Terms &amp; Conditions Checkbox</div><div class="fd">Users agree before paying</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('termsCheck',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-shareButton">
+        <div class="feat-info"><div class="fn">Share WiFi Button</div><div class="fd">Lets users share hotspot with friends</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('shareButton',this.checked)"><span class="sw-track"></span></label>
+      </div></div>
+
+      <!-- VOUCHER CONFIG -->
+      <div id="voucher-config-wrap" style="display:none">
+        <div class="section-divider">Voucher Settings</div>
+        <div class="voucher-config">
+          <div class="voucher-config-title">Voucher Batches — ISPs create these codes in advance</div>
+          <div class="vc-row" style="margin-bottom:.4rem;padding:0 .25rem">
+            <span>Code Prefix</span><span>Duration</span><span>Value (KES)</span><span></span>
+          </div>
+          <div id="vc-list">
+    <div class="vc-entry" style="margin-bottom:.4rem">
+      <input value="VX1H" oninput="S.vouchers[0].prefix=this.value" placeholder="PREFIX">
+      <input value="1 Hour" oninput="S.vouchers[0].dur=this.value" placeholder="Duration">
+      <input type="number" value="20" oninput="S.vouchers[0].val=+this.value" placeholder="Price">
+      <button class="vc-del" onclick="removeVoucher(0)">×</button>
+    </div>
+    <div class="vc-entry" style="margin-bottom:.4rem">
+      <input value="VX6H" oninput="S.vouchers[1].prefix=this.value" placeholder="PREFIX">
+      <input value="6 Hours" oninput="S.vouchers[1].dur=this.value" placeholder="Duration">
+      <input type="number" value="80" oninput="S.vouchers[1].val=+this.value" placeholder="Price">
+      <button class="vc-del" onclick="removeVoucher(1)">×</button>
+    </div></div>
+          <button class="add-vc" onclick="addVoucher()">+ Add Voucher Batch</button>
+          <div class="infobox" style="margin-top:.75rem;margin-bottom:0">
+            <span>🎟</span><span>Customers enter a scratch-card code. The portal validates it against your backend and grants access. Xbill handles the validation API.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Loyalty &amp; Rewards</div>
+      <div class="feat-grid" id="loyalty-feat-grid">
+      <div class="feat" id="ft-loyalty">
+        <div class="feat-info"><div class="fn">Loyalty Points</div><div class="fd">Earn points, redeem for free data</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('loyalty',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-referral">
+        <div class="feat-info"><div class="fn">Referral Program</div><div class="fd">Users earn rewards for bringing friends</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('referral',this.checked)"><span class="sw-track"></span></label>
+      </div></div>
+
+      <!-- LOYALTY POINTS CONFIG -->
+      <div id="loyalty-config-wrap" style="display:none">
+        <div class="section-divider">Loyalty Point Rules</div>
+        <div class="loyalty-config">
+          <div class="lc-row">
+            <div class="lc-field">
+              <label>Points per KES spent</label>
+              <input type="number" id="lc-rate" value="1" min="1" oninput="renderPortal()" placeholder="1">
+            </div>
+            <div class="lc-field">
+              <label>KES value per point</label>
+              <input type="number" id="lc-value" value="0.5" step="0.1" oninput="renderPortal()" placeholder="0.5">
+            </div>
+            <div class="lc-field">
+              <label>Minimum to redeem</label>
+              <input type="number" id="lc-min" value="100" oninput="renderPortal()" placeholder="100 points">
+            </div>
+          </div>
+          <div class="lc-row" style="margin-top:.6rem">
+            <div class="lc-field">
+              <label>Points name (displayed to users)</label>
+              <input type="text" id="lc-name" value="Stars" oninput="renderPortal()" placeholder="e.g. Stars, Tokens, Points">
+            </div>
+            <div class="lc-field">
+              <label>Points icon / emoji</label>
+              <input type="text" id="lc-icon" value="⭐" oninput="renderPortal()" style="max-width:80px">
+            </div>
+          </div>
+          <div class="infobox infobox-amber" style="margin-top:.75rem;margin-bottom:0">
+            <span>⭐</span><span>Returning users see their point balance and can redeem them for free packages. Points reset every 90 days by default.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REFERRAL CONFIG -->
+      <div id="referral-config-wrap" style="display:none">
+        <div class="section-divider">Referral Program Settings</div>
+        <div class="referral-config">
+          <div class="lc-row">
+            <div class="lc-field">
+              <label>Referrer reward (KES)</label>
+              <input type="number" id="ref-reward" value="20" oninput="renderPortal()" placeholder="20">
+            </div>
+            <div class="lc-field">
+              <label>Referee discount (KES)</label>
+              <input type="number" id="ref-discount" value="10" oninput="renderPortal()" placeholder="10">
+            </div>
+            <div class="lc-field">
+              <label>Max referrals per user</label>
+              <input type="number" id="ref-max" value="10" oninput="renderPortal()" placeholder="10">
+            </div>
+          </div>
+          <div class="infobox infobox-green" style="margin-top:.75rem;margin-bottom:0">
+            <span>🔗</span><span>Users share a personal referral code. When a new user signs up and buys a package, both get credited. Xbill tracks and pays out automatically.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Announcements &amp; Promotions</div>
+      <div class="feat-grid" id="announce-feat-grid">
+      <div class="feat on" id="ft-announcement">
+        <div class="feat-info"><div class="fn">Announcement Banner</div><div class="fd">Promos, outage alerts, offers</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('announcement',this.checked)"><span class="sw-track"></span></label>
+      </div>
+      <div class="feat" id="ft-customFooter">
+        <div class="feat-info"><div class="fn">Custom Footer</div><div class="fd">Terms link, branding, contact</div></div>
+        <label class="sw"><input type="checkbox" onchange="toggleFeat('customFooter',this.checked)"><span class="sw-track"></span></label>
+      </div></div>
+
+      <div id="announcement-config-wrap" style="display: block;">
+        <div class="section-divider">Announcement Banner</div>
+        <div class="announcement-config">
+          <div class="ac-row">
+            <div class="ac-field">
+              <label>Banner message</label>
+              <textarea id="ann-msg" oninput="renderPortal()" placeholder="e.g. 🎉 Weekend offer: Get 50% extra data on all packages! Valid Sat–Sun only.">🎉 Weekend Special: Buy any package today and get DOUBLE data. Offer ends midnight!</textarea>
+            </div>
+            <div style="display:flex;gap:.6rem">
+              <div class="ac-field" style="flex:1">
+                <label>Banner style</label>
+                <select id="ann-style" onchange="renderPortal()">
+                  <option value="info">ℹ️ Info (blue)</option>
+                  <option value="promo">🎉 Promo (purple)</option>
+                  <option value="urgent">🔥 Urgent (red)</option>
+                  <option value="success">✅ Success (green)</option>
+                </select>
+              </div>
+              <div class="ac-field" style="flex:1">
+                <label>Position</label>
+                <select id="ann-pos" onchange="renderPortal()">
+                  <option value="top">Top of page</option>
+                  <option value="above-pay">Above payment</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="custom-footer-wrap" style="display:none;margin-top:.75rem">
+        <div class="section-divider">Custom Footer</div>
+        <div class="announcement-config">
+          <div class="ac-row">
+            <div class="ac-field">
+              <label>Footer text</label>
+              <input type="text" id="footer-txt" value="Terms &amp; Privacy · Vertex WiFi © 2025" oninput="renderPortal()">
+            </div>
+            <div class="ac-field">
+              <label>Footer link label</label>
+              <input type="text" id="footer-link-label" value="View Terms" oninput="renderPortal()">
+            </div>
+            <div class="ac-field">
+              <label>Footer link URL</label>
+              <input type="text" id="footer-link-url" value="https://example.com/terms" oninput="renderPortal()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: PREVIEW & EXPORT -->
+  <div class="panel active" id="p5">
+    <div class="preview-shell">
+      <div class="prev-toolbar">
+        <span>Live Preview</span>
+        <button class="dev-btn on" onclick="setDev('phone',this)">📱 Phone</button>
+        <button class="dev-btn" onclick="setDev('desktop',this)">🖥 Desktop</button>
+        <span class="prev-note" id="prev-note">390 × 720 · mobile</span>
+      </div>
+      <div class="prev-stage" id="prev-stage"><div class="device-phone"><div class="phone-screen"><div style="background:#0c0c1a;min-height:700px;font-family:'Figtree',sans-serif;display:flex;position:relative">
+      <div style="position:absolute;top:0;left:0;right:0;z-index:5"><div style="background:rgba(16,185,129,.15);border-bottom:2px solid rgba(16,185,129,.4);padding:.55rem 1.2rem;font-size:.8rem;font-weight:700;color:#6ee7b7;text-align:center;letter-spacing:.01em">✅ Internet is live and fast right now</div></div>
+      <div style="position:absolute;top:2.5rem;left:0;right:0;z-index:4"><div style="background:#eff6ff;border-bottom:2px solid #93c5fd;padding:.6rem 1.2rem;font-size:.8rem;font-weight:600;color:#1d4ed8;line-height:1.4">🎉 Weekend Special: Buy any package today and get DOUBLE data. Offer ends midnight!</div></div>
+      <div style="width:70px;background:#0e0e14;display:flex;flex-direction:column;align-items:center;padding:1.25rem .5rem;gap:.75rem;flex-shrink:0">
+        <div style="width:42px;height:42px;background:#5b4fff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;color:#fff;margin-bottom:.5rem">MT</div>
+        <div style="width:8px;height:8px;border-radius:50%;background:#5b4fff"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12)"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12)"></div>
+        <div style="margin-top:auto;font-size:.55rem;color:rgba(255,255,255,.25);text-align:center;line-height:1.4;writing-mode:vertical-rl;transform:rotate(180deg)">WiFi Portal</div>
+      </div>
+      <div style="flex:1;padding:4.5rem 1.25rem 1.25rem;overflow-y:auto">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#e8e6ff;line-height:1.1">MTAANInet</div>
+            <div style="font-size:.78rem;color:rgba(232,230,255,.5);margin-top:.2rem">Magongo,Mombasa · Fast, affordable internet for everyone.</div>
+          </div>
+          <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);border-radius:99px;padding:.3rem .75rem;font-size:.7rem;font-weight:700;color:#6ee7b7;white-space:nowrap">● LIVE</div>
+        </div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(232,230,255,.5);margin-bottom:.75rem">Internet Packages</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem"><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">1 Hour</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">60 min</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>10 Mbps</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 10</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(91,79,255,.6);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      <div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(232,230,255,.5);margin-bottom:.35rem">★ Most Popular</div>
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">6 Hours</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">6 hrs</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>Unlimited</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 20</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">Daily</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">24 hrs</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>Unlimited</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 40</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">Weekly</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">7 days</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>Unlimited</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 250</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">12 hour Plan</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">12 hr</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>15 Mbps</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 30</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">3 hour Plan</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">3 hr</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>15 Mbps</div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 15</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">Daily Offer Plan</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">24 hrs</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>Unlimited </div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 60</div>
+      
+    </div><div style="background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      
+      <div style="font-size:14px;font-weight:800;color:#e8e6ff;font-family:'Syne',sans-serif;margin-bottom:.2rem">Weekly Offer plan </div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-bottom:.15rem">7 days</div>
+      <div style="font-size:.68rem;color:rgba(232,230,255,.5);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:#5b4fff;display:inline-block"></span>Unlimited </div>
+      <div style="font-size:22px;font-weight:800;color:#8b73ff;font-family:'Syne',sans-serif;line-height:1">KES 300</div>
+      
+    </div></div>
+        <div style="margin-top:1.25rem"><button onclick="startMpesa()" style="display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.85rem;background:#5b4fff;color:#ffffff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;margin-bottom:.55rem;font-family:'Syne',sans-serif;letter-spacing:.01em">📱 Pay with M-Pesa</button>
+    <div style="border-top:1px solid rgba(232,230,255,0.08);padding-top:.85rem;margin-top:.35rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(232,230,255,.5);margin-bottom:.55rem">Your M-Pesa Number</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+        <input id="mpesa-num" placeholder="+254 700 000 000" style="flex:1;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.12);border-radius:9px;font-size:.88rem;background:rgba(255,255,255,.06);color:#e8e6ff;outline:none;font-family:'Figtree',sans-serif">
+        <button onclick="saveNum()" style="padding:.65rem 1rem;background:#5b4fff;color:#ffffff;border:none;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Figtree',sans-serif">Save</button>
+      </div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5)">💾 Your number is saved locally for next time</div>
+    </div>
+    <div style="border-top:1px solid rgba(232,230,255,0.08);padding-top:.85rem;margin-top:.35rem;text-align:center">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(232,230,255,.5);margin-bottom:.45rem">Session Time Remaining</div>
+      <div style="font-size:2rem;font-weight:800;color:#5b4fff;font-family:'Space Mono',monospace;letter-spacing:.05em">05:42:18</div>
+      <div style="font-size:.72rem;color:rgba(232,230,255,.5);margin-top:.25rem">6 Hours · Unlimited data</div>
+    </div></div>
+        <div style="text-align:center;margin-top:1rem;font-size:.7rem;color:rgba(232,230,255,0.3)">Powered by <strong style="color:#8b73ff">Xbill</strong> · <span style="color:#8b73ff">+254790421380</span></div>
+      </div>
+    </div></div></div></div>
+    </div>
+    <div class="export-grid">
+      <div class="exp-card" onclick="downloadPortal()"><div class="exp-icon">📥</div><h3>Download Portal HTML</h3><p>Drop directly into your MikroTik hotspot server folder</p></div>
+      <div class="exp-card" onclick="openModal()"><div class="exp-icon">🔗</div><h3>Share Wizard Link</h3><p>Send any ISP a link — they design their own portal in minutes</p></div>
+      <div class="exp-card" onclick="copyConfig()"><div class="exp-icon">📋</div><h3>Copy Config JSON</h3><p>Use in Xbill backend for dynamic server-side rendering</p></div>
+      <div class="exp-card" onclick="toast('Coming soon: deploy directly from wizard')"><div class="exp-icon">🚀</div><h3>Deploy to Xbill Cloud</h3><p>Get a hosted URL in 30 seconds — coming soon</p></div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</main>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-bg open" id="share-modal">
+  <div class="modal">
+    <h2>Share Xbill Wizard with ISPs</h2>
+    <p>Any ISP can open this link, design their portal in minutes, and download a production-ready HTML file. No account needed.</p>
+    <div class="modal-steps">
+      <div class="modal-step">
+        <div class="modal-step-num">1</div>
+        <div class="modal-step-info">
+          <strong>Option A — Share this HTML file directly</strong>
+          <span>Download and send the wizard HTML file via WhatsApp, email, or Drive. ISPs open it in any browser — works 100% offline.</span>
+        </div>
+      </div>
+      <div class="modal-step">
+        <div class="modal-step-num">2</div>
+        <div class="modal-step-info">
+          <strong>Option B — Host on GitHub Pages (free)</strong>
+          <span>Upload to a GitHub repo → enable Pages → share the URL forever. ISPs get a permanent link they can bookmark.</span>
+        </div>
+      </div>
+      <div class="modal-step">
+        <div class="modal-step-num">3</div>
+        <div class="modal-step-info">
+          <strong>Option C — Xbill Cloud (coming soon)</strong>
+          <span>One click → hosted link at xbill.co.ke/wizard. ISPs design, you see all submissions in your dashboard.</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-divider">GitHub Pages URL (after hosting)</div>
+    <div class="modal-code" id="share-url-display" onclick="copyShareLink()">https://your-username.github.io/xbill-wizard/  ← click to copy</div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="downloadWizard()">📥 Download Wizard File</button>
+      <button class="btn btn-ghost" onclick="copyShareLink()">📋 Copy GitHub URL</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+    <div class="modal-dismiss" onclick="closeModal()">dismiss</div>
+  </div>
+</div>
+
+<div class="toast" id="toast-el">✓ <span id="toast-txt">Done</span></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const S = {
+  step:1, tpl:'spotlight', shape:'16px', size:'compact', palette:0,
+  name:'Vertex WiFi', tag:'Fast, affordable internet for everyone.', loc:'Nairobi CBD',
+  emoji:'📡', phone:'+254 700 123 456', font:'Syne', showSB:true,
+  sbMsg:'✅ Internet is live and fast right now',
+  pkgs:[
+    {n:'1 Hour',d:'60 min',s:'10 Mbps',p:20,star:false},
+    {n:'6 Hours',d:'6 hrs',s:'Unlimited',p:80,star:true},
+    {n:'Daily',d:'24 hrs',s:'Unlimited',p:150,star:false},
+    {n:'Weekly',d:'7 days',s:'Unlimited',p:500,star:false},
+  ],
+  feats:{
+    mpesa:true, card:false, sms:true, login:true, countdown:true,
+    voucher:false, loyalty:false, referral:false, announcement:false,
+    customFooter:false, shareButton:false, termsCheck:false
+  },
+  vouchers:[
+    {prefix:'VX1H',dur:'1 Hour',val:20},
+    {prefix:'VX6H',dur:'6 Hours',val:80},
+  ],
+  loyaltyRate:1, loyaltyValue:0.5, loyaltyMin:100, loyaltyName:'Stars', loyaltyIcon:'⭐',
+  refReward:20, refDiscount:10, refMax:10,
+  annMsg:'🎉 Weekend Special: Buy any package today and get DOUBLE data. Offer ends midnight!',
+  annStyle:'promo', annPos:'top',
+  footerTxt:'Terms & Privacy · Vertex WiFi © 2025', footerLinkLabel:'View Terms', footerLinkUrl:'https://example.com/terms',
+  devMode:'phone',
+};
+
+// ─── PALETTES ─────────────────────────────────────────────────────────────────
+const PALS = [
+  {n:'Midnight Indigo',s:'Dark & Premium',c:['#0c0c1a','#1a1040','#5b4fff','#8b73ff'],bg:'#0c0c1a',card:'rgba(255,255,255,.06)',cardborder:'rgba(255,255,255,.12)',cardhl:'linear-gradient(135deg,rgba(91,79,255,.5),rgba(139,115,255,.3))',cardborderhl:'rgba(91,79,255,.6)',text:'#e8e6ff',textdim:'rgba(232,230,255,.5)',btn:'#5b4fff',btntxt:'#ffffff',hltxt:'#c7d2fe',accent:'#8b73ff',statusbg:'rgba(16,185,129,.15)',statusborder:'rgba(16,185,129,.4)',statustxt:'#6ee7b7'},
+  {n:'Nairobi Sun',s:'Warm & Vibrant',c:['#fff7ed','#fed7aa','#f97316','#9a3412'],bg:'#fff7ed',card:'#ffffff',cardborder:'#fed7aa',cardhl:'#f97316',cardborderhl:'#f97316',cardhlbg:true,text:'#431407',textdim:'#a1520b',btn:'#f97316',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#ea6b03',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+  {n:'Ocean Deep',s:'Cool & Trustworthy',c:['#f0f9ff','#bae6fd','#0ea5e9','#0c4a6e'],bg:'#f0f9ff',card:'#ffffff',cardborder:'#bae6fd',cardhl:'#0c4a6e',cardborderhl:'#0c4a6e',cardhlbg:true,text:'#0c4a6e',textdim:'#0369a1',btn:'#0ea5e9',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#0284c7',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+  {n:'Forest Night',s:'Natural & Calm',c:['#052e16','#14532d','#16a34a','#86efac'],bg:'#052e16',card:'rgba(255,255,255,.07)',cardborder:'rgba(134,239,172,.15)',cardhl:'rgba(22,163,74,.3)',cardborderhl:'rgba(134,239,172,.5)',text:'#dcfce7',textdim:'rgba(220,252,231,.5)',btn:'#16a34a',btntxt:'#ffffff',hltxt:'#bbf7d0',accent:'#22c55e',statusbg:'rgba(16,185,129,.2)',statusborder:'rgba(16,185,129,.5)',statustxt:'#6ee7b7'},
+  {n:'Rose Quartz',s:'Elegant & Warm',c:['#fff1f2','#fecdd3','#f43f5e','#4c0519'],bg:'#fff1f2',card:'#ffffff',cardborder:'#fecdd3',cardhl:'#f43f5e',cardborderhl:'#f43f5e',cardhlbg:true,text:'#4c0519',textdim:'#881337',btn:'#f43f5e',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#e11d48',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+  {n:'Obsidian Slate',s:'Corporate & Sharp',c:['#f8fafc','#e2e8f0','#1e293b','#0f172a'],bg:'#f8fafc',card:'#ffffff',cardborder:'#e2e8f0',cardhl:'#1e293b',cardborderhl:'#1e293b',cardhlbg:true,text:'#0f172a',textdim:'#64748b',btn:'#1e293b',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#334155',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+  {n:'Amber Dusk',s:'Bold & Inviting',c:['#fffbeb','#fef3c7','#d97706','#78350f'],bg:'#fffbeb',card:'#ffffff',cardborder:'#fde68a',cardhl:'#d97706',cardborderhl:'#d97706',cardhlbg:true,text:'#451a03',textdim:'#92400e',btn:'#b45309',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#d97706',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+  {n:'Electric Violet',s:'Gen-Z & Electric',c:['#faf5ff','#ede9fe','#7c3aed','#2e1065'],bg:'#faf5ff',card:'#ffffff',cardborder:'#ddd6fe',cardhl:'#7c3aed',cardborderhl:'#7c3aed',cardhlbg:true,text:'#2e1065',textdim:'#6d28d9',btn:'#7c3aed',btntxt:'#ffffff',hltxt:'#ffffff',accent:'#6d28d9',statusbg:'rgba(16,185,129,.1)',statusborder:'rgba(16,185,129,.35)',statustxt:'#065f46'},
+];
+
+const PAY_FEATS = [
+  {k:'mpesa',n:'M-Pesa STK Push',d:'Instant Safaricom prompt'},
+  {k:'card',n:'Card Payment',d:'Visa / Mastercard'},
+  {k:'voucher',n:'Voucher / Scratch Card',d:'Prepaid code redemption'},
+  {k:'sms',n:'SMS Confirmation',d:'Text receipt after payment'},
+];
+const PORTAL_FEATS = [
+  {k:'login',n:'Saved Number Login',d:'Return users skip re-typing'},
+  {k:'countdown',n:'Session Countdown Timer',d:'Shows time remaining while online'},
+  {k:'termsCheck',n:'Terms & Conditions Checkbox',d:'Users agree before paying'},
+  {k:'shareButton',n:'Share WiFi Button',d:'Lets users share hotspot with friends'},
+];
+const LOYALTY_FEATS = [
+  {k:'loyalty',n:'Loyalty Points',d:'Earn points, redeem for free data'},
+  {k:'referral',n:'Referral Program',d:'Users earn rewards for bringing friends'},
+];
+const ANNOUNCE_FEATS = [
+  {k:'announcement',n:'Announcement Banner',d:'Promos, outage alerts, offers'},
+  {k:'customFooter',n:'Custom Footer',d:'Terms link, branding, contact'},
+];
+
+const STEP_META = [null,
+  {t:'Choose Your Template',s:'Pick the structural layout for your captive portal'},
+  {t:'Brand & Colors',s:'Define your identity, palette, and typography'},
+  {t:'Packages & Pricing',s:'Configure your internet plans'},
+  {t:'Features & Extras',s:'Payments, loyalty, vouchers, referrals and more'},
+  {t:'Preview & Export',s:'See exactly what customers see, then export or share'},
+];
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  buildPalGrid();
+  buildPkgList();
+  buildFeatGrids();
+  buildVoucherList();
+  goto(1);
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function goto(n){
+  if(n<1||n>5)return;
+  S.step=n;
+  document.querySelectorAll('.step').forEach((el,i)=>{
+    el.classList.remove('active','done');
+    const sn=el.querySelector('.snum');
+    if(i+1<n){el.classList.add('done');sn.textContent='✓';}
+    else if(i+1===n){el.classList.add('active');sn.textContent=i+1;}
+    else{sn.textContent=i+1;}
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p'+n).classList.add('active');
+  document.getElementById('ttitle').textContent=STEP_META[n].t;
+  document.getElementById('tsub').textContent=STEP_META[n].s;
+  document.getElementById('btn-back').style.display=n>1?'':'none';
+  document.getElementById('btn-next').style.display=n<5?'':'none';
+  document.getElementById('btn-share').style.display=n===5?'':'none';
+  const pct=Math.round(n/5*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  if(n===5){setTimeout(renderPreview,50);}
+}
+
+// ─── CONTROLS ─────────────────────────────────────────────────────────────────
+function selTpl(v,el){S.tpl=v;document.querySelectorAll('.tpl-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');renderPortal();}
+function setOpt(key,el){S[key]=el.dataset.v;el.closest('.opt-group').querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderPortal();}
+function selPal(i){S.palette=i;document.querySelectorAll('.pal').forEach(p=>p.classList.remove('sel'));document.querySelectorAll('.pal')[i].classList.add('sel');renderPortal();}
+function setSB(v){S.showSB=v;document.getElementById('sb-on').classList.toggle('on',v);document.getElementById('sb-off').classList.toggle('on',!v);document.getElementById('sb-msg-row').style.opacity=v?1:.4;renderPortal();}
+function addPkg(){S.pkgs.push({n:'New Plan',d:'1 hr',s:'10 Mbps',p:50,star:false});buildPkgList();renderPortal();}
+function removePkg(i){if(S.pkgs.length<=1){toast('Need at least 1 package');return;}S.pkgs.splice(i,1);buildPkgList();renderPortal();}
+function toggleStar(i){S.pkgs[i].star=!S.pkgs[i].star;document.querySelectorAll('.pkg-star')[i].classList.toggle('on',S.pkgs[i].star);renderPortal();}
+function toggleFeat(k,v){
+  S.feats[k]=v;
+  document.getElementById('ft-'+k)?.classList.toggle('on',v);
+  // show/hide sub-configs
+  if(k==='voucher') document.getElementById('voucher-config-wrap').style.display=v?'block':'none';
+  if(k==='loyalty') document.getElementById('loyalty-config-wrap').style.display=v?'block':'none';
+  if(k==='referral') document.getElementById('referral-config-wrap').style.display=v?'block':'none';
+  if(k==='announcement') document.getElementById('announcement-config-wrap').style.display=v?'block':'none';
+  if(k==='customFooter') document.getElementById('custom-footer-wrap').style.display=v?'block':'none';
+  renderPortal();
+}
+function setDev(v,el){S.devMode=v;document.querySelectorAll('.dev-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('prev-note').textContent=v==='phone'?'390 × 720 · mobile':'780 × 540 · desktop';renderPreview();}
+function addVoucher(){S.vouchers.push({prefix:'VX',dur:'1 Hour',val:20});buildVoucherList();}
+function removeVoucher(i){S.vouchers.splice(i,1);buildVoucherList();}
+
+// ─── BUILDERS ─────────────────────────────────────────────────────────────────
+function buildPalGrid(){
+  document.getElementById('pal-grid').innerHTML=PALS.map((p,i)=>`
+    <div class="pal${i===0?' sel':''}" onclick="selPal(${i})">
+      <div class="pal-swatches">${p.c.map(c=>`<div class="pal-sw" style="background:${c}"></div>`).join('')}</div>
+      <div class="pal-name">${p.n}<small>${p.s}</small></div>
+    </div>`).join('');
+}
+function buildPkgList(){
+  document.getElementById('pkg-list').innerHTML=S.pkgs.map((p,i)=>`
+    <div class="pkg-row">
+      <input value="${p.n}" oninput="S.pkgs[${i}].n=this.value;renderPortal()" placeholder="Plan name">
+      <input value="${p.d}" oninput="S.pkgs[${i}].d=this.value;renderPortal()" placeholder="6 hrs">
+      <input value="${p.s}" oninput="S.pkgs[${i}].s=this.value;renderPortal()" placeholder="10 Mbps">
+      <input type="number" value="${p.p}" oninput="S.pkgs[${i}].p=+this.value;renderPortal()" placeholder="80">
+      <button class="pkg-star${p.star?' on':''}" onclick="toggleStar(${i})" title="Mark as popular">★</button>
+      <button class="pkg-del" onclick="removePkg(${i})">×</button>
+    </div>`).join('');
+}
+function buildFeatGrids(){
+  function grid(arr,id){
+    document.getElementById(id).innerHTML=arr.map(f=>`
+      <div class="feat${S.feats[f.k]?' on':''}" id="ft-${f.k}">
+        <div class="feat-info"><div class="fn">${f.n}</div><div class="fd">${f.d}</div></div>
+        <label class="sw"><input type="checkbox" ${S.feats[f.k]?'checked':''} onchange="toggleFeat('${f.k}',this.checked)"><span class="sw-track"></span></label>
+      </div>`).join('');
+  }
+  grid(PAY_FEATS,'pay-feat-grid');
+  grid(PORTAL_FEATS,'portal-feat-grid');
+  grid(LOYALTY_FEATS,'loyalty-feat-grid');
+  grid(ANNOUNCE_FEATS,'announce-feat-grid');
+}
+function buildVoucherList(){
+  document.getElementById('vc-list').innerHTML=S.vouchers.map((v,i)=>`
+    <div class="vc-entry" style="margin-bottom:.4rem">
+      <input value="${v.prefix}" oninput="S.vouchers[${i}].prefix=this.value" placeholder="PREFIX">
+      <input value="${v.dur}" oninput="S.vouchers[${i}].dur=this.value" placeholder="Duration">
+      <input type="number" value="${v.val}" oninput="S.vouchers[${i}].val=+this.value" placeholder="Price">
+      <button class="vc-del" onclick="removeVoucher(${i})">×</button>
+    </div>`).join('');
+}
+
+// ─── SYNC LIVE INPUTS ─────────────────────────────────────────────────────────
+function sync(){
+  const g=id=>document.getElementById(id);
+  if(g('f-name'))S.name=g('f-name').value||'WiFi Zone';
+  if(g('f-tag'))S.tag=g('f-tag').value;
+  if(g('f-loc'))S.loc=g('f-loc').value;
+  if(g('f-emoji'))S.emoji=g('f-emoji').value||'📡';
+  if(g('f-phone'))S.phone=g('f-phone').value;
+  if(g('f-font'))S.font=g('f-font').value;
+  if(g('f-sbmsg'))S.sbMsg=g('f-sbmsg').value;
+  if(g('lc-rate'))S.loyaltyRate=+g('lc-rate').value||1;
+  if(g('lc-value'))S.loyaltyValue=+g('lc-value').value||0.5;
+  if(g('lc-min'))S.loyaltyMin=+g('lc-min').value||100;
+  if(g('lc-name'))S.loyaltyName=g('lc-name').value||'Stars';
+  if(g('lc-icon'))S.loyaltyIcon=g('lc-icon').value||'⭐';
+  if(g('ref-reward'))S.refReward=+g('ref-reward').value||20;
+  if(g('ref-discount'))S.refDiscount=+g('ref-discount').value||10;
+  if(g('ann-msg'))S.annMsg=g('ann-msg').value;
+  if(g('ann-style'))S.annStyle=g('ann-style').value;
+  if(g('ann-pos'))S.annPos=g('ann-pos').value;
+  if(g('footer-txt'))S.footerTxt=g('footer-txt').value;
+  if(g('footer-link-label'))S.footerLinkLabel=g('footer-link-label').value;
+  if(g('footer-link-url'))S.footerLinkUrl=g('footer-link-url').value;
+}
+
+// ─── PORTAL HTML GENERATOR ────────────────────────────────────────────────────
+function renderPortal(){sync();renderPreview();}
+function renderPreview(){
+  if(S.step!==5)return;
+  const html=buildPortalHTML(false);
+  const stage=document.getElementById('prev-stage');
+  if(S.devMode==='phone'){
+    stage.innerHTML=`<div class="device-phone"><div class="phone-screen">${html}</div></div>`;
+  }else{
+    stage.innerHTML=`<div class="device-desktop"><div class="desktop-bar"><div class="desktop-dot" style="background:#ff5f57"></div><div class="desktop-dot" style="background:#febc2e"></div><div class="desktop-dot" style="background:#28c840"></div><div class="desktop-url"><span>xbill.co.ke/portal/${S.name.toLowerCase().replace(/\s/g,'-')}</span></div></div><div class="desktop-screen">${html}</div></div>`;
+  }
+}
+
+function buildPortalHTML(forExport){
+  sync();
+  const P=PALS[S.palette];
+  const r=S.shape;
+  const isRow=S.tpl==='stories';
+  const isDashboard=S.tpl==='dashboard';
+  const isSpotlight=S.tpl==='spotlight';
+  const sz=S.size==='large'?1.2:S.size==='comfortable'?1.05:1;
+  const cardPad=`${Math.round(12*sz)}px ${Math.round(14*sz)}px`;
+
+  // Announcement banner colors
+  const annColors={
+    info:{bg:'#eff6ff',border:'#93c5fd',text:'#1d4ed8'},
+    promo:{bg:'#faf5ff',border:'#c4b5fd',text:'#6d28d9'},
+    urgent:{bg:'#fef2f2',border:'#fca5a5',text:'#991b1b'},
+    success:{bg:'#f0fdf4',border:'#86efac',text:'#166534'},
+  };
+  const aC=annColors[S.annStyle]||annColors.info;
+
+  // STATUS BAR
+  const statusBar=S.showSB?`<div style="background:${P.statusbg};border-bottom:2px solid ${P.statusborder};padding:.55rem 1.2rem;font-size:.8rem;font-weight:700;color:${P.statustxt};text-align:center;letter-spacing:.01em">${S.sbMsg}</div>`:'';
+
+  // ANNOUNCEMENT at top
+  const announcementTop=(S.feats.announcement&&S.annPos==='top')?`<div style="background:${aC.bg};border-bottom:2px solid ${aC.border};padding:.6rem 1.2rem;font-size:.8rem;font-weight:600;color:${aC.text};line-height:1.4">${S.annMsg}</div>`:'';
+
+  // PACKAGES
+  const pkgCards=S.pkgs.map(p=>{
+    const hl=p.star;
+    const bg=hl?(P.cardhlbg?P.cardhl:P.card):P.card;
+    const bd=hl?P.cardborderhl:P.cardborder;
+    const tx=hl?(P.cardhlbg?P.hltxt:P.text):P.text;
+    const txd=hl?(P.cardhlbg?rgba(P.hltxt,.65):P.textdim):P.textdim;
+    const px=hl?(P.cardhlbg?P.hltxt:P.accent):P.accent;
+    const minW=isRow?'min-width:130px;flex:0 0 auto;':'';
+    return `<div style="${minW}background:${bg};border:2px solid ${bd};border-radius:${r};padding:${cardPad};cursor:pointer;transition:transform .2s;text-align:center" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+      ${hl?`<div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:${txd};margin-bottom:.35rem">★ Most Popular</div>`:''}
+      <div style="font-size:${Math.round(14*sz)}px;font-weight:800;color:${tx};font-family:'${S.font}',sans-serif;margin-bottom:.2rem">${p.n}</div>
+      <div style="font-size:.72rem;color:${txd};margin-bottom:.15rem">${p.d}</div>
+      <div style="font-size:.68rem;color:${txd};margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.3rem"><span style="width:5px;height:5px;border-radius:50%;background:${P.btn};display:inline-block"></span>${p.s}</div>
+      <div style="font-size:${Math.round(22*sz)}px;font-weight:800;color:${px};font-family:'${S.font}',sans-serif;line-height:1">KES ${p.p}</div>
+      ${S.feats.loyalty?`<div style="font-size:.6rem;color:${txd};margin-top:.35rem">${S.loyaltyIcon} Earn ${Math.round(p.p*S.loyaltyRate)} ${S.loyaltyName}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // PKG WRAPPER
+  let pkgWrap;
+  if(isRow){pkgWrap=`<div style="display:flex;gap:.7rem;overflow-x:auto;padding-bottom:.5rem;-webkit-overflow-scrolling:touch">${pkgCards}</div>`;}
+  else{const cols=S.size==='large'?1:2;pkgWrap=`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:.7rem">${pkgCards}</div>`;}
+
+  // PAYMENT BUTTONS
+  const mpesaBtn=S.feats.mpesa?`<button onclick="startMpesa()" style="display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.85rem;background:${P.btn};color:${P.btntxt};border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;margin-bottom:.55rem;font-family:'${S.font}',sans-serif;letter-spacing:.01em">📱 Pay with M-Pesa</button>`:'' ;
+  const cardBtn=S.feats.card?`<button style="display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.75rem;background:transparent;color:${P.text};border:1.5px solid ${P.cardborder};border-radius:10px;font-size:.88rem;font-weight:600;cursor:pointer;margin-bottom:.55rem;font-family:'Figtree',sans-serif">💳 Pay by Card</button>`:'' ;
+  const vouchBtn=S.feats.voucher?`<button onclick="enterVoucher()" style="display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.7rem;background:transparent;color:${P.textdim};border:1.5px dashed ${P.cardborder};border-radius:10px;font-size:.83rem;font-weight:500;cursor:pointer;margin-bottom:.55rem;font-family:'Figtree',sans-serif">🎟 Enter Voucher Code</button>`:'' ;
+
+  // TERMS CHECKBOX
+  const termsHtml=S.feats.termsCheck?`<div style="display:flex;align-items:flex-start;gap:.5rem;padding:.55rem 0;margin-bottom:.5rem"><input type="checkbox" id="terms-cb" style="margin-top:.15rem;accent-color:${P.btn}"><label for="terms-cb" style="font-size:.75rem;color:${P.textdim};line-height:1.4;cursor:pointer">I agree to the <span style="color:${P.accent};text-decoration:underline;cursor:pointer">Terms & Conditions</span></label></div>`:'';
+
+  // ANNOUNCEMENT above pay
+  const announcementAbovePay=(S.feats.announcement&&S.annPos==='above-pay')?`<div style="background:${aC.bg};border:1px solid ${aC.border};border-radius:10px;padding:.6rem .9rem;font-size:.8rem;font-weight:600;color:${aC.text};line-height:1.4;margin-bottom:.75rem">${S.annMsg}</div>`:'';
+
+  // LOYALTY BLOCK
+  const loyaltyHtml=S.feats.loyalty?`
+    <div style="border:1.5px solid ${P.cardborder};border-radius:12px;padding:.9rem;margin-bottom:.75rem;background:${rgba(P.btn,.05)}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div style="font-size:.75rem;font-weight:700;color:${P.text}">${S.loyaltyIcon} Your ${S.loyaltyName}</div>
+        <div style="font-size:.7rem;color:${P.textdim}">240 pts available</div>
+      </div>
+      <div style="background:rgba(0,0,0,.06);border-radius:99px;height:6px;overflow:hidden;margin-bottom:.4rem">
+        <div style="width:48%;height:100%;background:${P.btn};border-radius:99px"></div>
+      </div>
+      <div style="font-size:.68rem;color:${P.textdim};display:flex;justify-content:space-between">
+        <span>240 / 500 to next reward</span>
+        <span style="color:${P.accent};cursor:pointer;font-weight:600">Redeem →</span>
+      </div>
+    </div>`:'' ;
+
+  // REFERRAL BLOCK
+  const referralHtml=S.feats.referral?`
+    <div style="border:1.5px solid ${P.cardborder};border-radius:12px;padding:.9rem;margin-bottom:.75rem">
+      <div style="font-size:.75rem;font-weight:700;color:${P.text};margin-bottom:.35rem">🔗 Refer a Friend · Earn KES ${S.refReward}</div>
+      <div style="display:flex;gap:.5rem">
+        <div style="flex:1;background:${rgba(P.btn,.08)};border-radius:8px;padding:.45rem .8rem;font-size:.78rem;font-weight:700;color:${P.text};letter-spacing:.05em;font-family:'Space Mono',monospace">VX-K7M2P</div>
+        <button style="background:${P.btn};color:${P.btntxt};border:none;border-radius:8px;padding:.45rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap">Copy</button>
+      </div>
+      <div style="font-size:.68rem;color:${P.textdim};margin-top:.35rem">Friends get KES ${S.refDiscount} off their first package</div>
+    </div>`:'' ;
+
+  // LOGIN / SAVED NUMBER
+  const loginSection=S.feats.login?`
+    <div style="border-top:1px solid ${rgba(P.text,.08)};padding-top:.85rem;margin-top:.35rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${P.textdim};margin-bottom:.55rem">Your M-Pesa Number</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+        <input id="mpesa-num" placeholder="+254 700 000 000" style="flex:1;padding:.65rem .9rem;border:1.5px solid ${P.cardborder};border-radius:9px;font-size:.88rem;background:${P.card};color:${P.text};outline:none;font-family:'Figtree',sans-serif">
+        <button onclick="saveNum()" style="padding:.65rem 1rem;background:${P.btn};color:${P.btntxt};border:none;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Figtree',sans-serif">Save</button>
+      </div>
+      <div style="font-size:.72rem;color:${P.textdim}">💾 Your number is saved locally for next time</div>
+    </div>`:'' ;
+
+  // SESSION TIMER (shown after login)
+  const timerHtml=S.feats.countdown?`
+    <div style="border-top:1px solid ${rgba(P.text,.08)};padding-top:.85rem;margin-top:.35rem;text-align:center">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${P.textdim};margin-bottom:.45rem">Session Time Remaining</div>
+      <div style="font-size:2rem;font-weight:800;color:${P.btn};font-family:'Space Mono',monospace;letter-spacing:.05em">05:42:18</div>
+      <div style="font-size:.72rem;color:${P.textdim};margin-top:.25rem">6 Hours · Unlimited data</div>
+    </div>`:'' ;
+
+  // SHARE BUTTON
+  const shareBtn=S.feats.shareButton?`<button onclick="shareWifi()" style="display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.65rem;background:transparent;color:${P.textdim};border:1.5px solid ${P.cardborder};border-radius:10px;font-size:.8rem;font-weight:600;cursor:pointer;margin-top:.5rem">📤 Share this WiFi</button>`:'';
+
+  // FOOTER
+  const footerContent=S.feats.customFooter
+    ?`<div>🔒 Secured by Daraja M-Pesa &nbsp;·&nbsp; <a href="${S.footerLinkUrl}" style="color:${P.accent};font-weight:600;text-decoration:none">${S.footerLinkLabel}</a></div><div style="margin-top:.2rem">${S.footerTxt}</div>`
+    :`<div>Need help? <span style="color:${P.accent};font-weight:600;cursor:pointer">${S.phone}</span></div><div style="margin-top:.2rem">Powered by <strong style="color:${P.accent}">Xbill</strong> · Secured by Daraja M-Pesa</div>`;
+  const footer=`<div style="text-align:center;padding:.75rem 1.2rem 1.5rem;font-size:.7rem;color:${rgba(P.text,.35)};line-height:1.6">${footerContent}</div>`;
+
+  // Payment section combined
+  const paySection=`${loyaltyHtml}${referralHtml}${announcementAbovePay}${termsHtml}${mpesaBtn}${cardBtn}${vouchBtn}${loginSection}${timerHtml}${shareBtn}`;
+
+  // SPOTLIGHT TEMPLATE
+  if(isSpotlight){
+    return `<div style="background:${P.bg};min-height:700px;font-family:'Figtree',sans-serif">
+      ${announcementTop}
+      ${statusBar}
+      <div style="background:linear-gradient(160deg,${P.c?.[1]||P.bg} 0%,${P.bg} 100%);padding:2.5rem 1.5rem 4rem;text-align:center;position:relative">
+        <div style="font-size:3rem;margin-bottom:.75rem">${S.emoji}</div>
+        <div style="font-family:'${S.font}',sans-serif;font-size:1.6rem;font-weight:800;color:${P.text};line-height:1.1;margin-bottom:.35rem">${S.name}</div>
+        <div style="font-size:.85rem;color:${P.textdim};margin-bottom:.5rem">${S.tag}</div>
+        <div style="display:inline-flex;align-items:center;gap:.35rem;background:${rgba(P.text,.07)};border-radius:99px;padding:.3rem .8rem;font-size:.72rem;color:${P.textdim}">
+          <span style="width:6px;height:6px;border-radius:50%;background:${P.btn};display:inline-block;animation:pulse 1.5s infinite"></span>${S.loc}
+        </div>
+      </div>
+      <div style="padding:1.4rem;margin-top:-2rem;position:relative">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${P.textdim};margin-bottom:.75rem">Select a package</div>
+        ${pkgWrap}
+        <div style="margin-top:1.4rem">${paySection}</div>
+      </div>
+      ${footer}
+      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}</style>
+    </div>`;
+  }
+
+  // DASHBOARD TEMPLATE
+  if(isDashboard){
+    const sb=S.name.length>1?S.name.substring(0,2).toUpperCase():'WF';
+    return `<div style="background:${P.bg};min-height:700px;font-family:'Figtree',sans-serif;display:flex;position:relative">
+      ${statusBar?`<div style="position:absolute;top:0;left:0;right:0;z-index:5">${statusBar}</div>`:''}
+      ${announcementTop?`<div style="position:absolute;top:${S.showSB?'2.5rem':'0'};left:0;right:0;z-index:4">${announcementTop}</div>`:''}
+      <div style="width:70px;background:#0e0e14;display:flex;flex-direction:column;align-items:center;padding:1.25rem .5rem;gap:.75rem;flex-shrink:0">
+        <div style="width:42px;height:42px;background:${P.btn};border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'${S.font}',sans-serif;font-weight:800;font-size:.9rem;color:#fff;margin-bottom:.5rem">${sb}</div>
+        <div style="width:8px;height:8px;border-radius:50%;background:${P.btn}"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12)"></div>
+        <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.12)"></div>
+        <div style="margin-top:auto;font-size:.55rem;color:rgba(255,255,255,.25);text-align:center;line-height:1.4;writing-mode:vertical-rl;transform:rotate(180deg)">WiFi Portal</div>
+      </div>
+      <div style="flex:1;padding:${(S.showSB||S.feats.announcement)?'4.5rem':'1.25rem'} 1.25rem 1.25rem;overflow-y:auto">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem">
+          <div>
+            <div style="font-family:'${S.font}',sans-serif;font-size:1.3rem;font-weight:800;color:${P.text};line-height:1.1">${S.name}</div>
+            <div style="font-size:.78rem;color:${P.textdim};margin-top:.2rem">${S.loc} · ${S.tag}</div>
+          </div>
+          <div style="background:${P.statusbg};border:1px solid ${P.statusborder};border-radius:99px;padding:.3rem .75rem;font-size:.7rem;font-weight:700;color:${P.statustxt};white-space:nowrap">● LIVE</div>
+        </div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${P.textdim};margin-bottom:.75rem">Internet Packages</div>
+        ${pkgWrap}
+        <div style="margin-top:1.25rem">${paySection}</div>
+        <div style="text-align:center;margin-top:1rem;font-size:.7rem;color:${rgba(P.text,.3)}">Powered by <strong style="color:${P.accent}">Xbill</strong> · <span style="color:${P.accent}">${S.phone}</span></div>
+      </div>
+    </div>`;
+  }
+
+  // STORIES TEMPLATE
+  return `<div style="background:${P.bg};min-height:700px;font-family:'Figtree',sans-serif">
+    <div style="background:#0e0e14;padding:1rem 1.25rem;display:flex;align-items:center;gap:.85rem">
+      <div style="width:42px;height:42px;background:${P.btn};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${S.emoji}</div>
+      <div style="flex:1">
+        <div style="font-family:'${S.font}',sans-serif;font-size:1rem;font-weight:800;color:#fff">${S.name}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.45);margin-top:.1rem">${S.loc}</div>
+      </div>
+      <div style="font-size:.7rem;font-weight:700;color:#10b981;background:rgba(16,185,129,.15);padding:.3rem .7rem;border-radius:99px">● Live</div>
+    </div>
+    ${announcementTop}
+    ${statusBar}
+    <div style="padding:1.25rem">
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${P.textdim};margin-bottom:.75rem">Swipe to browse · Tap to select</div>
+      ${pkgWrap}
+      <div style="margin-top:1.4rem">${paySection}</div>
+    </div>
+    ${footer}
+  </div>`;
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function rgba(hex,a){
+  hex=hex.replace('#','');
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  if(hex.length!==6)return `rgba(128,128,128,${a})`;
+  const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+const adjustOp=rgba;
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function downloadPortal(){
+  sync();
+  const P=PALS[S.palette];
+  const innerHtml=buildPortalHTML(true);
+  const full=`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${S.name} — Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(S.font)}:wght@400;700;800&family=Figtree:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;background:${P.bg}}
+.wrap{width:100%;max-width:480px;min-height:100vh}
+</style>
+</head>
+<body>
+<div class="wrap">${innerHtml}</div>
+<script>
+const saved=JSON.parse(localStorage.getItem('xbill-nums')||'[]');
+function startMpesa(){
+  const num=document.getElementById('mpesa-num');
+  const n=num?num.value:'';
+  if(!n){alert('Enter your M-Pesa number first');return;}
+  alert('STK Push sent to '+n+'\\nConnect Xbill backend (Daraja API) to activate.');
+}
+function saveNum(){
+  const num=document.getElementById('mpesa-num');
+  if(!num||!num.value)return;
+  if(!saved.includes(num.value)){saved.push(num.value);localStorage.setItem('xbill-nums',JSON.stringify(saved));}
+  alert('Number saved! Will appear next time you visit.');
+}
+function enterVoucher(){
+  const v=prompt('Enter your voucher code:');
+  if(v)alert('Validating: '+v+'\\nConnect Xbill backend to activate.');
+}
+function shareWifi(){
+  if(navigator.share){navigator.share({title:'${S.name}',text:'Connect to ${S.name} WiFi',url:window.location.href});}
+  else{navigator.clipboard.writeText(window.location.href).then(()=>alert('Link copied! Share with friends.'));}
+}
+<\/script>
+</body>
+</html>`;
+  const blob=new Blob([full],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${S.name.replace(/\s+/g,'-').toLowerCase()}-portal.html`;
+  a.click();
+  toast('Portal HTML downloaded ✓');
+}
+
+function downloadWizard(){
+  // Download the current wizard file itself so ISPs can open it offline
+  const src=document.documentElement.outerHTML;
+  const blob=new Blob([src],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='xbill-portal-wizard.html';
+  a.click();
+  toast('Wizard file downloaded — share it with any ISP ✓');
+  closeModal();
+}
+
+function copyConfig(){
+  sync();
+  const cfg=JSON.stringify({version:'2.0',template:S.tpl,palette:{index:S.palette,name:PALS[S.palette].n},shape:S.shape,size:S.size,brand:{name:S.name,tagline:S.tag,location:S.loc,emoji:S.emoji,phone:S.phone},font:S.font,statusBanner:{enabled:S.showSB,message:S.sbMsg},packages:S.pkgs,features:S.feats,vouchers:S.vouchers,loyalty:{rate:S.loyaltyRate,value:S.loyaltyValue,min:S.loyaltyMin,name:S.loyaltyName,icon:S.loyaltyIcon},referral:{reward:S.refReward,discount:S.refDiscount,max:S.refMax},announcement:{message:S.annMsg,style:S.annStyle,position:S.annPos},customFooter:{text:S.footerTxt,linkLabel:S.footerLinkLabel,linkUrl:S.footerLinkUrl}},null,2);
+  navigator.clipboard.writeText(cfg).then(()=>toast('Config JSON copied ✓'));
+}
+
+function openModal(){document.getElementById('share-modal').classList.add('open');}
+function closeModal(){document.getElementById('share-modal').classList.remove('open');}
+function copyShareLink(){
+  const url='https://your-username.github.io/xbill-wizard/';
+  navigator.clipboard.writeText(url).then(()=>{toast('GitHub URL copied — update with your actual URL');closeModal();});
+}
+
+function toast(msg){
+  const t=document.getElementById('toast-el');
+  document.getElementById('toast-txt').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+init();
+</script>
+
+
+</body></html>

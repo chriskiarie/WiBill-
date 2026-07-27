@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if brand %}{{ brand.name }}{% else %}Spotlight Portal{% endif %} - WiFi Access</title>
+    <title>{% if brand %}{{ brand.name }}{% else %}Portal{% endif %} - WiFi Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link id="gfont" href="https://fonts.googleapis.com/css2?family={{ (font or 'Inter')|replace(' ', '+') }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -30,10 +30,20 @@
             r.style.setProperty('--accent2',c.primaryDark);
         }
         var bgImg=p.get('bgimg');
-        if(bgImg){r.style.setProperty('--bg-img','url('+decodeURIComponent(bgImg)+')');r.style.setProperty('--show-bg','1');document.body.classList.add('has-bg');}
-        var blur=p.get('blur');if(blur!==null)r.style.setProperty('--ov-blur',blur+'px');else r.style.setProperty('--ov-blur','0px');
+        if(bgImg){
+            r.style.setProperty('--bg-img','url('+decodeURIComponent(bgImg)+')');
+            r.style.setProperty('--show-bg','1');
+            document.body.classList.add('has-bg');
+        }
+        var blur=p.get('blur');
+        if(blur!==null)r.style.setProperty('--ov-blur',blur+'px');
+        else r.style.setProperty('--ov-blur','0px');
         var fn=p.get('font');
-        if(fn){var link=document.getElementById('gfont');if(link)link.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(fn)+':wght@400;500;600;700;800&display=swap';r.style.setProperty('--f',"'"+fn+"',system-ui,sans-serif");}
+        if(fn){
+            var link=document.getElementById('gfont');
+            if(link)link.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(fn)+':wght@400;500;600;700;800&display=swap';
+            r.style.setProperty('--f',"'"+fn+"',system-ui,sans-serif");
+        }
     })();
     </script>
     <style>
@@ -60,93 +70,175 @@
         html{font-size:16px;-webkit-font-smoothing:antialiased}
         body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
-        body::before {
-            content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-            background:
-                radial-gradient(circle at 20% 15%,rgba({{ palette.primary }},.07) 0%,transparent 50%),
-                radial-gradient(circle at 80% 85%,rgba({{ palette.primary }},.05) 0%,transparent 50%);
-        }
+        /* Background image */
         body::after {
             content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
             background:var(--bg-img) center/cover no-repeat fixed;
             opacity:var(--show-bg);
             image-rendering:auto;
         }
-        body>.bg-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));display:calc(var(--show-bg) * block)}
-        body>*{position:relative;z-index:1}
-        body.has-bg .c,body.has-bg .hero,body.has-bg .recon-card,body.has-bg .vs{background:rgba(255,255,255,.08)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.15)!important}
-        body.has-bg .tb{background:rgba(255,255,255,.06)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-color:rgba(255,255,255,.1)!important}
-        body.has-bg input,body.has-bg .fi,body.has-bg .vni{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.12)!important;color:var(--text)!important}
+        body>.bg-overlay{
+            position:fixed;inset:0;z-index:0;pointer-events:none;
+            backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));
+            display:calc(var(--show-bg) * block);
+        }
+        /* Glass effect when bg active */
+        body.has-bg .row,
+        body.has-bg .rcard,
+        body.has-bg .vs{
+            background:rgba(255,255,255,.08)!important;
+            backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+            border-color:rgba(255,255,255,.15)!important;
+        }
+        body.has-bg .rp-header{
+            background:rgba(255,255,255,.06)!important;
+            backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+            border-color:rgba(255,255,255,.1)!important;
+        }
+        body.has-bg .lp{
+            background:rgba(0,0,0,.3)!important;
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        }
+        body.has-bg .lp::before{
+            background:var(--bg-img) center/cover no-repeat;
+            opacity:.3;
+        }
+        body.has-bg input,body.has-bg .fi,body.has-bg .vni{
+            background:rgba(255,255,255,.08)!important;
+            border-color:rgba(255,255,255,.12)!important;
+            color:var(--text)!important;
+        }
 
-        /* ── Top Bar ── */
-        .tb{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
-        .br{display:flex;align-items:center;gap:10px;min-width:0}
-        .bl{width:40px;height:40px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--white);overflow:hidden}
-        .bl img{width:100%;height:100%;object-fit:cover}
-        .bn{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .bt{font-size:.6rem;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-        .tm{display:flex;gap:6px;flex-shrink:0}
-        .tl{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:99px;font-size:.7rem;font-weight:500;color:var(--dim)}
-        .td{width:5px;height:5px;border-radius:50%;background:var(--ok)}
-        .td.off{background:var(--err)}
+        /* ── Split Layout ── */
+        .split{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
 
-        /* ── Hero ── */
-        .hero{text-align:center;padding:20px 16px 16px}
-        .hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:99px;font-size:.65rem;color:var(--white);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-        .hero-emoji{font-size:2.8rem;margin-bottom:8px;display:inline-block;animation:bounce 4s ease-in-out infinite}
-        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-        .hero h1{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
-        .hero p{font-size:.82rem;color:var(--dim)}
-        .hero-loc{font-size:.75rem;color:var(--dim);margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px}
+        /* ── Left Panel (Brand) ── */
+        .lp{
+            position:sticky;top:0;height:100vh;
+            display:flex;flex-direction:column;justify-content:center;align-items:center;
+            padding:3rem;text-align:center;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            overflow:hidden;
+        }
+        .lp::before{
+            content:'';position:absolute;inset:0;
+            background:
+                radial-gradient(circle at 30% 20%,rgba(255,255,255,.12) 0%,transparent 50%),
+                radial-gradient(circle at 70% 80%,rgba(0,0,0,.15) 0%,transparent 50%);
+            pointer-events:none;
+        }
+        body.has-bg .lp::before{
+            background:var(--bg-img) center/cover no-repeat;
+            opacity:.15;
+        }
+        .lp::after{
+            content:'';position:absolute;bottom:-40%;right:-20%;
+            width:500px;height:500px;border-radius:50%;
+            background:rgba(255,255,255,.06);
+            filter:blur(60px);pointer-events:none;
+            animation:orbFloat 8s ease-in-out infinite;
+        }
+        @keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px)}}
 
-        .wrap{max-width:520px;margin:0 auto;padding:14px}
-        .sec-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);text-align:center;margin-bottom:10px}
+        .lp-brand{position:relative;z-index:1}
+        .lp-logo{
+            width:72px;height:72px;border-radius:18px;
+            background:rgba(255,255,255,.15);backdrop-filter:blur(12px);
+            display:flex;align-items:center;justify-content:center;
+            font-size:2rem;color:var(--white);margin:0 auto 1.2rem;
+            border:1px solid rgba(255,255,255,.2);
+            overflow:hidden;
+        }
+        .lp-logo img{width:100%;height:100%;object-fit:cover}
+        .lp-name{font-size:1.8rem;font-weight:800;color:var(--white);letter-spacing:-.02em;margin-bottom:.4rem}
+        .lp-tag{font-size:.85rem;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:1.5rem}
+        .lp-loc{font-size:.8rem;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;justify-content:center}
 
-        /* ── Package Grid ── */
-        .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .grid .c:last-child:nth-child(odd){grid-column:1/-1;max-width:50%;margin:0 auto}
+        .lp-status{
+            position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);
+            display:flex;align-items:center;gap:6px;
+            padding:6px 14px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);
+            border-radius:99px;font-size:.7rem;font-weight:600;color:rgba(255,255,255,.8);
+            border:1px solid rgba(255,255,255,.15);
+        }
+        .lp-dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+        .lp-dot.off{background:var(--err)}
 
-        /* ── Package Card ── */
-        .c{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
-        .c:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
-        .c.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba({{ palette.primary }},.04))}
-        .cb{position:absolute;top:8px;right:8px;padding:2px 7px;background:var(--accent);color:var(--white);border-radius:99px;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+        /* ── Right Panel (Packages) ── */
+        .rp{display:flex;flex-direction:column;overflow-y:auto}
 
-        /* WiFi Icon Styles */
-        .ci{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative}
-        .ci svg{width:22px;height:22px;position:relative;z-index:1}
-        .ci::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:.12}
-        .ci.t1{background:linear-gradient(135deg,rgba({{ palette.primary }},.15),rgba({{ palette.primary }},.05));border:1px solid rgba({{ palette.primary }},.2)}
-        .ci.t1 svg{color:var(--accent)}
-        .ci.t2{background:linear-gradient(135deg,rgba({{ palette.primary }},.2),rgba({{ palette.primary }},.08));border:1px solid rgba({{ palette.primary }},.25)}
-        .ci.t2 svg{color:var(--accent)}
-        .ci.t3{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
-        .ci.t3 svg{color:var(--white)}
-        .ci.t4{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
-        .ci.t4 svg{color:var(--white)}
+        .rp-header{
+            position:sticky;top:0;z-index:10;
+            padding:1.2rem 1.5rem;
+            background:rgba({{ palette.primary }},.03);
+            backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+            border-bottom:1px solid var(--border);
+        }
+        .rp-title{font-size:1rem;font-weight:700;letter-spacing:-.01em}
+        .rp-sub{font-size:.75rem;color:var(--dim);margin-top:2px}
 
-        .cn{font-size:.88rem;font-weight:700}
-        .cm{font-size:.68rem;color:var(--dim);display:flex;gap:6px;flex-wrap:wrap}
-        .cp{text-align:center;margin-top:auto;padding-top:4px}
-        .cpl{font-size:.55rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:1px}
-        .cpv{font-size:1.15rem;font-weight:800;color:var(--accent)}
-        .cpc{font-size:.6rem;font-weight:600;color:var(--dim);margin-right:1px}
+        .rp-content{padding:1.2rem;flex:1;display:flex;flex-direction:column;gap:10px}
 
-        /* ── Reconnect Section ── */
-        .recon{margin-top:18px;display:flex;flex-direction:column;gap:12px}
-        .recon-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
-        .recon-label{font-size:.75rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
-        .recon-label svg{width:14px;height:14px;color:var(--accent);flex-shrink:0}
-        .recon-sub{font-size:.68rem;color:var(--dim);margin-top:-4px}
+        /* ── Package Row ── */
+        .row{
+            display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+            padding:14px 16px;background:var(--surface);border:1px solid var(--border);
+            border-radius:var(--r);transition:all .2s;cursor:pointer;
+            position:relative;overflow:hidden;
+        }
+        .row:hover{border-color:var(--accent);transform:translateX(3px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+        .row.feat{border-color:var(--accent);background:linear-gradient(90deg,var(--surface),rgba({{ palette.primary }},.04))}
+        .row.feat::before{
+            content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+            background:linear-gradient(180deg,var(--accent),var(--accent2));
+        }
+        .rbadge{
+            position:absolute;top:8px;right:8px;
+            padding:2px 7px;background:var(--accent);color:var(--white);
+            border-radius:99px;font-size:.5rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+        }
 
-        .fi{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--f);font-size:.9rem;outline:none;transition:border-color .15s,box-shadow .15s}
+        .ri{
+            width:44px;height:44px;border-radius:12px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        }
+        .ri svg{width:22px;height:22px}
+        .ri.t1{background:rgba({{ palette.primary }},.1);border:1px solid rgba({{ palette.primary }},.2)}
+        .ri.t1 svg{color:var(--accent)}
+        .ri.t2{background:rgba({{ palette.primary }},.15);border:1px solid rgba({{ palette.primary }},.25)}
+        .ri.t2 svg{color:var(--accent)}
+        .ri.t3{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ri.t3 svg{color:var(--white)}
+        .ri.t4{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;box-shadow:0 2px 8px rgba({{ palette.primary }},.25)}
+        .ri.t4 svg{color:var(--white)}
+
+        .rm{min-width:0}
+        .rn{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rd{font-size:.7rem;color:var(--dim);display:flex;gap:8px;margin-top:2px}
+        .rd span{display:flex;align-items:center;gap:3px}
+
+        .rp-price{text-align:right;flex-shrink:0}
+        .rp-label{font-size:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+        .rp-val{font-size:1.1rem;font-weight:800;color:var(--accent)}
+        .rp-cur{font-size:.55rem;font-weight:600;color:var(--dim);margin-right:1px}
+
+        /* ── Bottom Sections ── */
+        .rp-bottom{padding:0 1.2rem 1.2rem;display:flex;flex-direction:column;gap:10px}
+
+        .sec-hdr{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);padding:0 2px}
+
+        .rcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+        .rcard-label{font-size:.75rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+        .rcard-label svg{width:14px;height:14px;color:var(--accent);flex-shrink:0}
+        .rcard-sub{font-size:.68rem;color:var(--dim);margin-top:-4px}
+
+        .fi{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--f);font-size:.88rem;outline:none;transition:border-color .15s,box-shadow .15s}
         .fi::placeholder{color:var(--dim);opacity:.5}
         .fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.1)}
 
-        /* ── Circular Button ── */
-        .act-btn-wrap{display:flex;justify-content:center;margin-top:4px}
+        .act-btn-wrap{display:flex;justify-content:center;margin-top:2px}
         .act-btn{
-            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+            width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
             background:linear-gradient(135deg,var(--accent),var(--accent2));
             color:var(--white);display:flex;align-items:center;justify-content:center;
             box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
@@ -157,7 +249,7 @@
         .act-btn:hover::before{opacity:1}
         .act-btn:active{transform:scale(.9);box-shadow:0 2px 8px rgba({{ palette.primary }},.3)}
         .act-btn:active::before{opacity:0}
-        .act-btn svg{width:20px;height:20px;position:relative;z-index:1}
+        .act-btn svg{width:18px;height:18px;position:relative;z-index:1}
         .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
         /* ── Voucher ── */
@@ -166,14 +258,17 @@
         .vs.er{border-color:var(--err);box-shadow:0 0 16px rgba(239,68,68,.12)}
         .vh{display:flex;align-items:center;gap:7px}
         .vi{width:24px;height:24px;border-radius:5px;background:var(--accent);color:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-        .vt{font-size:.85rem;font-weight:700}
+        .vt{font-size:.82rem;font-weight:700}
         .vd{font-size:.68rem;color:var(--dim);margin-top:-4px}
         .vr{display:flex;gap:6px;align-items:stretch}
-        .vni{flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'SF Mono',monospace;font-size:.95rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;outline:none;transition:border-color .15s}
-        .vni::placeholder{letter-spacing:1px;font-size:.75rem;font-weight:400;text-transform:none}
+        .vni{flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'SF Mono',monospace;font-size:.92rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;outline:none;transition:border-color .15s}
+        .vni::placeholder{letter-spacing:1px;font-size:.72rem;font-weight:400;text-transform:none}
         .vni:focus{border-color:var(--accent)}
         .vm{margin-top:4px;padding:8px 10px;border-radius:6px;font-size:.72rem;font-weight:500;display:none}
         .vm.show{display:block}.vm.ok{background:var(--ok-bg);color:var(--ok)}.vm.er{background:var(--err-bg);color:var(--err)}
+
+        .ft{text-align:center;padding:12px;font-size:.65rem;color:var(--dim);border-top:1px solid var(--border)}
+        .ft a{color:var(--accent);text-decoration:none;font-weight:600}
 
         /* ═══ PAYMENT MODAL ═══ */
         .pov{display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;padding:16px}
@@ -188,7 +283,6 @@
         .pm-close:hover{background:rgba(255,255,255,.15);color:var(--white)}
 
         .pm-body{padding:20px}
-
         .pm-pkg{display:flex;align-items:center;gap:12px;padding:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:16px}
         .pm-pkg-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0}
         .pm-pkg-icon svg{width:20px;height:20px;color:var(--white)}
@@ -201,52 +295,38 @@
 
         .pm-field{margin-bottom:14px}
         .pm-label{display:block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-bottom:6px}
-        .pm-input{
-            width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-            border-radius:var(--r);color:var(--white);font-family:var(--f);font-size:.95rem;outline:none;
-            transition:border-color .15s,box-shadow .15s;
-        }
+        .pm-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r);color:var(--white);font-family:var(--f);font-size:.95rem;outline:none;transition:border-color .15s,box-shadow .15s}
         .pm-input::placeholder{color:rgba(255,255,255,.3)}
         .pm-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba({{ palette.primary }},.2)}
 
         .pm-err{padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#fca5a5;font-size:.8rem;margin-bottom:12px;display:none}
         .pm-err.show{display:block}
 
-        .pm-submit{
-            width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-            color:var(--white);border:none;border-radius:var(--r);font-family:var(--f);
-            font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;
-            letter-spacing:.02em;
-        }
+        .pm-submit{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--white);border:none;border-radius:var(--r);font-family:var(--f);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.02em}
         .pm-submit:hover{box-shadow:0 4px 20px rgba({{ palette.primary }},.4);transform:translateY(-1px)}
         .pm-submit:active{transform:translateY(0) scale(.98)}
         .pm-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
-        /* ═══ LOADING SEQUENCE ═══ */
+        /* ═══ LOADING ═══ */
         .load-ov{display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center}
         .load-ov.on{display:flex}
         .load-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
         .load-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;padding:20px}
-
         .mpesa-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#4caf50,#2e7d32);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(76,175,80,.3);animation:logoFloat 2s ease-in-out infinite}
         @keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
         .mpesa-logo svg{width:36px;height:36px;color:var(--white)}
-
         .load-title{font-size:1.1rem;font-weight:700;color:var(--white)}
         .load-sub{font-size:.85rem;color:rgba(255,255,255,.6);max-width:260px;line-height:1.5}
-
         .load-ring{width:48px;height:48px;position:relative}
         .load-ring::before,.load-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
         .load-ring::before{border-top-color:var(--accent);animation:spin 1s linear infinite}
         .load-ring::after{border-right-color:rgba(255,255,255,.2);animation:spin 1.5s linear infinite reverse}
         @keyframes spin{to{transform:rotate(360deg)}}
-
         .load-dots{display:flex;gap:6px}
         .load-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:dotPulse 1.4s ease-in-out infinite}
         .load-dot:nth-child(2){animation-delay:.2s}
         .load-dot:nth-child(3){animation-delay:.4s}
         @keyframes dotPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-
         .load-phone{font-size:.8rem;color:rgba(255,255,255,.5);margin-top:4px}
         .load-phone span{color:var(--white);font-weight:600}
 
@@ -270,7 +350,6 @@
         .sov.suc .so-btn{background:var(--ok);color:var(--white)}
         .sov.fai .so-btn{background:var(--err);color:var(--white)}
         .so-btn:hover{transform:scale(1.03)}
-
         @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 
         /* ── Offline ── */
@@ -279,117 +358,131 @@
         .ot{font-size:1.3rem;font-weight:700;margin-bottom:10px}
         .om{font-size:.9rem;color:var(--dim);max-width:320px;margin-bottom:20px;line-height:1.6}
 
-        .ft{text-align:center;padding:16px;border-top:1px solid var(--border);font-size:.7rem;color:var(--dim)}
-        .ft a{color:var(--accent);text-decoration:none;font-weight:600}
-
-        @media(min-width:420px){.grid{grid-template-columns:repeat(3,1fr);gap:10px}.grid .c:last-child:nth-child(odd){max-width:33.33%}}
-        @media(min-width:600px){.wrap{max-width:600px}.grid{gap:14px}.c{padding:16px}.cn{font-size:1rem}.cpv{font-size:1.3rem}}
+        /* ── Mobile ── */
+        @media(max-width:768px){
+            .split{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+            .lp{
+                position:relative;height:auto;min-height:auto;
+                padding:2rem 1.5rem;
+            }
+            .lp::after{display:none}
+            .lp-status{position:static;transform:none;margin-top:1.2rem}
+            .rp{min-height:0}
+        }
         @media(max-width:360px){
-            .wrap{padding:10px}.hero{padding:14px 10px 12px}.hero h1{font-size:1.15rem}
-            .grid{gap:8px}.c{padding:10px;gap:6px}.ci{width:34px;height:34px}.ci svg{width:18px;height:18px}
-            .cn{font-size:.8rem}.cpv{font-size:1rem}.cm{font-size:.6rem}
-            .act-btn{width:46px;height:46px}.act-btn svg{width:18px;height:18px}
+            .lp{padding:1.5rem 1rem}
+            .lp-name{font-size:1.4rem}
+            .rp-content{padding:10px}
+            .row{padding:12px;gap:10px}
+            .ri{width:38px;height:38px;border-radius:10px}
+            .ri svg{width:18px;height:18px}
+            .rn{font-size:.82rem}
+            .rp-val{font-size:1rem}
+            .act-btn{width:44px;height:44px}
+            .act-btn svg{width:16px;height:16px}
         }
     </style>
 </head>
 <body>
     <div class="bg-overlay"></div>
-    <div class="tb">
-        <div class="br">
-            <div class="bl" id="b-logo">{{ brand.emoji or '📡' }}</div>
-            <div><div class="bn" id="b-name">{{ brand.name or 'WiFi Portal' }}</div><div class="bt" id="b-tag">INTERNET ACCESS</div></div>
-        </div>
-        <div class="tm">
-            <div class="tl"><div class="td {% if not network_up %}off{% endif %}"></div>{% if network_up %}Online{% else %}Offline{% endif %}</div>
-            {% if brand.location %}<div class="tl">{{ brand.location }}</div>{% endif %}
-        </div>
-    </div>
-
     {% if network_up %}
-    <div class="hero">
-        <div class="hero-badge">WiFi Access Portal</div>
-        <div class="hero-emoji">{{ brand.emoji or '📡' }}</div>
-        <h1>{{ brand.name or 'WiFi Portal' }}</h1>
-        <p>{{ brand.tagline or 'Fast, reliable internet access' }}</p>
-        {% if brand.location %}<p class="hero-loc">📍 {{ brand.location }}</p>{% endif %}
-    </div>
-
-    <div class="wrap">
-        <div class="sec-label">Choose Your Plan</div>
-
-        <div class="grid" id="pkg-grid">
-            {% for pkg in packages %}
-            <div class="c {% if pkg.star %}feat{% endif %}" data-cs data-idx="{{ loop.index }}" data-name="{{ pkg.name }}" data-price="{{ pkg.price_ksh }}" data-dur="{{ pkg.duration_label }}" data-speed="{{ pkg.speed or '' }}" data-id="{{ pkg.id or loop.index }}" onclick="openPay(this)">
-                {% if pkg.star %}<div class="cb">Popular</div>{% endif %}
-                <div class="ci t{{ [loop.index, 4] | min }}">
-                    {% if loop.index <= 1 %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% elif loop.index == 2 %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% elif loop.index == 3 %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% else %}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/><circle cx="12" cy="20" r="1"/></svg>
-                    {% endif %}
-                </div>
-                <div class="cn">{{ pkg.name }}</div>
-                <div class="cm">
-                    <span>⏱ {{ pkg.duration_label }}</span>
-                    {% if pkg.speed %}<span>{{ pkg.speed }}</span>{% endif %}
-                </div>
-                <div class="cp">
-                    <div class="cpl">Price</div>
-                    <div class="cpv"><span class="cpc">KES</span>{{ pkg.price_ksh }}</div>
-                </div>
+    <div class="split">
+        <div class="lp">
+            <div class="lp-brand">
+                <div class="lp-logo" id="b-logo">{{ brand.emoji or '📡' }}</div>
+                <h1 class="lp-name" id="b-name">{{ brand.name or 'WiFi Portal' }}</h1>
+                <p class="lp-tag" id="b-tag">{{ brand.tagline or 'Fast, reliable internet' }}</p>
+                {% if brand.location %}<p class="lp-loc">📍 {{ brand.location }}</p>{% endif %}
             </div>
-            {% endfor %}
-        </div>
-
-        <div class="recon">
-            <div class="recon-card">
-                <div class="recon-label">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    M-Pesa Reconnect
-                </div>
-                <div class="recon-sub">Enter the M-Pesa confirmation code from your payment</div>
-                <input type="text" id="mpesa-code" class="fi" placeholder="e.g. QHK3X7B9ABC" maxlength="20" autocomplete="off">
-                <div class="act-btn-wrap">
-                    <button class="act-btn" id="mpesa-btn" onclick="reconnectMpesa()" title="Reconnect">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    </button>
-                </div>
-                <div id="mpesa-msg" class="vm"></div>
-            </div>
-
-            <div class="vs" id="vbox">
-                <div class="vh">
-                    <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
-                    <span class="vt">Voucher Code</span>
-                </div>
-                <div class="vd">Enter your voucher code to reconnect instantly</div>
-                <div class="vr">
-                    <input type="text" id="vcode" class="vni" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
-                </div>
-                <div class="act-btn-wrap">
-                    <button class="act-btn" id="vbtn" onclick="redeem()" title="Activate">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    </button>
-                </div>
-                <div id="vmsg" class="vm"></div>
+            <div class="lp-status">
+                <div class="lp-dot"></div>
+                <span>Online</span>
             </div>
         </div>
-    </div>
 
-    {% if brand.footer_text or brand.terms_url %}
-    <div class="ft">{% if brand.footer_text %}{{ brand.footer_text }}{% endif %}{% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}</div>
-    {% endif %}
+        <div class="rp">
+            <div class="rp-header">
+                <div class="rp-title">Choose Your Plan</div>
+                <div class="rp-sub">Select the package that works for you</div>
+            </div>
+
+            <div class="rp-content" id="pkg-grid">
+                {% for pkg in packages %}
+                <div class="row {% if pkg.star %}feat{% endif %}" data-id="{{ pkg.id or loop.index }}" data-name="{{ pkg.name }}" data-price="{{ pkg.price_ksh }}" data-dur="{{ pkg.duration_label }}" data-speed="{{ pkg.speed or '' }}" onclick="openPay(this)">
+                    {% if pkg.star %}<div class="rbadge">Popular</div>{% endif %}
+                    <div class="ri t{{ [loop.index, 4] | min }}">
+                        {% if loop.index <= 1 %}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>
+                        {% elif loop.index == 2 %}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                        {% elif loop.index == 3 %}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                        {% else %}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/><circle cx="12" cy="20" r="1"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="rm">
+                        <div class="rn">{{ pkg.name }}</div>
+                        <div class="rd">
+                            <span>⏱ {{ pkg.duration_label }}</span>
+                            {% if pkg.speed %}<span>{{ pkg.speed }}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="rp-price">
+                        <div class="rp-label">Price</div>
+                        <div class="rp-val"><span class="rp-cur">KES</span>{{ pkg.price_ksh }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="rp-bottom">
+                <div class="sec-hdr">Already paid? Reconnect here</div>
+                <div class="rcard">
+                    <div class="rcard-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        M-Pesa Reconnect
+                    </div>
+                    <div class="rcard-sub">Enter the M-Pesa confirmation code from your payment</div>
+                    <input type="text" id="mpesa-code" class="fi" placeholder="e.g. QHK3X7B9ABC" maxlength="20" autocomplete="off">
+                    <div class="act-btn-wrap">
+                        <button class="act-btn" id="mpesa-btn" onclick="reconnectMpesa()" title="Reconnect">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        </button>
+                    </div>
+                    <div id="mpesa-msg" class="vm"></div>
+                </div>
+
+                <div class="vs" id="vbox">
+                    <div class="vh">
+                        <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
+                        <span class="vt">Voucher Code</span>
+                    </div>
+                    <div class="vd">Enter your voucher code to reconnect instantly</div>
+                    <div class="vr">
+                        <input type="text" id="vcode" class="vni" placeholder="e.g. ABC12345" maxlength="20" autocomplete="off">
+                    </div>
+                    <div class="act-btn-wrap">
+                        <button class="act-btn" id="vbtn" onclick="redeem()" title="Activate">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </button>
+                    </div>
+                    <div id="vmsg" class="vm"></div>
+                </div>
+
+                {% if brand.footer_text or brand.terms_url %}
+                <div class="ft">{% if brand.footer_text %}{{ brand.footer_text }}{% endif %}{% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
     {% else %}
     <div class="op">
         <div class="oi">🌐</div>
         <h2 class="ot">Network Offline</h2>
         <p class="om">The internet connection is currently unavailable. Please check back shortly or contact support.</p>
-        {% if brand.support_number %}<a href="tel:{{ brand.support_number }}" class="btn bp" style="width:auto;padding:12px 24px">Contact Support</a>{% endif %}
+        {% if brand.support_number %}<a href="tel:{{ brand.support_number }}" style="width:auto;padding:12px 24px;background:var(--accent);color:var(--white);border-radius:var(--r);text-decoration:none;font-weight:600;display:inline-block">Contact Support</a>{% endif %}
     </div>
     {% endif %}
 
@@ -426,7 +519,7 @@
         </div>
     </div>
 
-    <!-- ═══ LOADING SEQUENCE ═══ -->
+    <!-- ═══ LOADING ═══ -->
     <div id="loader" class="load-ov">
         <div class="load-bg"></div>
         <div class="load-content">
@@ -466,7 +559,7 @@
 
     <script>
         var pkgData = {};
-        document.querySelectorAll('#pkg-grid .c').forEach(function(el) {
+        document.querySelectorAll('#pkg-grid .row').forEach(function(el) {
             pkgData[el.dataset.id] = {
                 name: el.dataset.name,
                 price: el.dataset.price,
@@ -590,12 +683,7 @@
                 var r = await fetch('/api/portal/' + slug + '/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        package_id: id,
-                        phone_number: ph,
-                        mac_address: p.get('mac') || '',
-                        ip_address: p.get('ip') || ''
-                    })
+                    body: JSON.stringify({ package_id: id, phone_number: ph, mac_address: p.get('mac') || '', ip_address: p.get('ip') || '' })
                 });
                 var d = await r.json();
                 if (!r.ok) throw new Error(d.detail || 'Failed');
@@ -618,9 +706,7 @@
                     if (d.status === 'active') {
                         hideLoader();
                         showStatus('success', pkg ? pkg.name : 'Your Package', pkg ? pkg.dur + (pkg.speed ? ' · ' + pkg.speed : '') : 'Enjoy your internet!');
-                        setTimeout(function() {
-                            window.location.href = '/portal/{{ brand.slug }}/success/' + sid;
-                        }, 3000);
+                        setTimeout(function() { window.location.href = '/portal/{{ brand.slug }}/success/' + sid; }, 3000);
                         return;
                     }
                     if (d.status === 'failed' || d.status === 'expired') {
@@ -658,7 +744,7 @@
             }
             if (d.type === 'UPDATE_BRAND') {
                 if (d.name) { document.getElementById('b-name').textContent = d.name; document.title = d.name + ' - WiFi Access'; }
-                if (d.tagline !== undefined) document.getElementById('b-tag').textContent = d.tagline || 'INTERNET ACCESS';
+                if (d.tagline !== undefined) document.getElementById('b-tag').textContent = d.tagline || 'FAST INTERNET';
                 if (d.emoji) document.getElementById('b-logo').textContent = d.emoji;
                 if (d.logo_url) document.getElementById('b-logo').innerHTML = '<img src="' + d.logo_url + '" style="width:100%;height:100%;object-fit:cover">';
             }
@@ -687,7 +773,10 @@
                 if (d.blur !== undefined) r.style.setProperty('--ov-blur', d.blur + 'px');
                 else if (d.overlay_opacity !== undefined) r.style.setProperty('--ov-blur', (d.overlay_opacity * 20) + 'px');
             }
-        });
+                r.style.setProperty('--f', "'" + d.font + "',system-ui,sans-serif");
+                var link = document.getElementById('gfont');
+                if (link) link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(d.font) + ':wght@400;500;600;700;800&display=swap';
+            }
     </script>
 </body>
 </html>
