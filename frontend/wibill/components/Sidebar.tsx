@@ -62,7 +62,9 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
   const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null)
   const [brandHover, setBrandHover] = useState(false)
   const [liveData, setLiveData] = useState({ revenue: 0, sessions: 0, loaded: false })
-  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('wb_feature_flags') || '{}') } catch { return {} }
+  })
   const [unreadCount, setUnreadCount] = useState(0)
 
   const isAdmin = pathname.startsWith('/admin')
@@ -107,13 +109,32 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       .catch(() => setLiveData(p => ({ ...p, loaded: true })))
     fetch(`${API}/api/tenants/feature-flags`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setFeatureFlags(d) })
+      .then(d => {
+        if (d) {
+          setFeatureFlags(d)
+          localStorage.setItem('wb_feature_flags', JSON.stringify(d))
+        }
+      })
       .catch(() => {})
     fetch(`${API}/api/notifications/unread-count`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setUnreadCount(d.unread ?? 0) })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('wb_token')
+    if (!token) return
+    fetch(`${API}/api/tenants/feature-flags`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setFeatureFlags(d)
+          localStorage.setItem('wb_feature_flags', JSON.stringify(d))
+        }
+      })
+      .catch(() => {})
+  }, [pathname])
 
   useEffect(() => {
     if (!collapsed) setTimeout(updateIndicator, 50)

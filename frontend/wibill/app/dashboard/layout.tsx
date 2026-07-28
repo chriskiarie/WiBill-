@@ -9,7 +9,7 @@ import { DashboardProvider } from '@/context/DashboardContext'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-const DISMISS_KEY = 'wb_invoice_notice_dismissed'
+
 
 function DashboardToast() {
   const searchParams = useSearchParams()
@@ -40,14 +40,6 @@ function DashboardToast() {
 
 type StkState = 'idle' | 'sending' | 'sent' | 'completed' | 'failed'
 
-function computeOverdueDays(nextInvoiceDate?: string | null): number {
-  if (!nextInvoiceDate) return 0
-  const due = new Date(nextInvoiceDate)
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
-  return Math.max(0, diff)
-}
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token, hydrated } = useAuth()
   const router = useRouter()
@@ -58,9 +50,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [ispName, setIspName] = useState('')
   const [nextInvoiceDate, setNextInvoiceDate] = useState<string | null>(null)
   const [lastPaidDate, setLastPaidDate] = useState<string | null>(null)
-  const [daysOverdue, setDaysOverdue] = useState(0)
-  const [preInvoiceDays, setPreInvoiceDays] = useState<number | null>(null)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   // Mobile state
   const isMobile = useIsMobile()
@@ -123,39 +112,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setReady(true)
     })
   }, [token, hydrated])
-
-  // Live overdue counter
-  useEffect(() => {
-    if (invoiceStatus !== 'paused') return
-    setDaysOverdue(computeOverdueDays(nextInvoiceDate))
-    const id = setInterval(() => setDaysOverdue(computeOverdueDays(nextInvoiceDate)), 60000)
-    return () => clearInterval(id)
-  }, [invoiceStatus, nextInvoiceDate])
-
-  // Pre-invoice notice: compute days until next invoice due
-  useEffect(() => {
-    if (!nextInvoiceDate) return
-    const due = new Date(nextInvoiceDate)
-    const now = new Date()
-    const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    if (diff > 0 && diff <= 7) {
-      setPreInvoiceDays(diff)
-    } else {
-      setPreInvoiceDays(null)
-    }
-  }, [nextInvoiceDate])
-
-  // Check dismissal (24h suppression)
-  useEffect(() => {
-    try {
-      const val = localStorage.getItem(DISMISS_KEY)
-      if (val) {
-        const ts = parseInt(val, 10)
-        if (Date.now() - ts < 86400000) { setBannerDismissed(true) }
-        else { localStorage.removeItem(DISMISS_KEY) }
-      }
-    } catch {}
-  }, [])
 
   // STK push polling
   useEffect(() => {
@@ -297,7 +253,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const sidebarWidth = 228
   const isPaused = invoiceStatus === 'paused'
-  const isOverdue = invoiceStatus === 'overdue'
 
   return (
     <DashboardProvider>
@@ -307,59 +262,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          paddingTop: isOverdue ? 48 : (preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed ? 44 : 0),
           paddingBottom: isMobile ? 64 : 0,
         }}>
-          {/* ── OVERDUE BANNER ── */}
-          {isOverdue && (
-            <div style={{
-              position: 'fixed', top: 0, left: isMobile ? 0 : sidebarWidth, right: 0, zIndex: 9999,
-              height: 48, background: 'rgba(232,184,75,0.08)',
-              borderBottom: '1px solid rgba(232,184,75,0.25)',
-              display: 'flex', alignItems: 'center', padding: isMobile ? '0 12px' : '0 24px', gap: 6,
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#E8B84B' }}>⚠ Invoice overdue</span>
-              <span style={{ fontSize: 12, color: '#6B6964' }}>
-                · Payment of KES {feeDue.toLocaleString()} was due · 
-              </span>
-              <a href="/dashboard/billing" style={{
-                background: '#E8B84B', color: '#3D2A06', border: 'none', borderRadius: 6,
-                padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
-              }}>Pay now →</a>
-              <a href="mailto:support@honestbill.co.ke" style={{
-                fontSize: 11, color: '#6B6964', textDecoration: 'none', marginLeft: 8,
-              }} onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                 onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>Contact support</a>
-            </div>
-          )}
-
-          {/* ── PRE-INVOICE NOTICE BANNER ── */}
-          {!isOverdue && !isPaused && preInvoiceDays !== null && preInvoiceDays <= 7 && !bannerDismissed && (
-            <div style={{
-              position: 'fixed', top: 0, left: isMobile ? 0 : sidebarWidth, right: 0, zIndex: 9998,
-              height: 44, background: 'rgba(232,184,75,0.06)',
-              borderBottom: '1px solid rgba(232,184,75,0.15)',
-              display: 'flex', alignItems: 'center', padding: isMobile ? '0 12px' : '0 24px', gap: 8,
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              <span style={{ fontSize: 12, color: '#E8B84B' }}>📄</span>
-              <span style={{ fontSize: 12, color: '#8C8A84' }}>
-                Your invoice of <strong style={{ color: '#EDEBE6' }}>KES {feeDue.toLocaleString()}</strong> is due in <strong style={{ color: '#E8B84B' }}>{preInvoiceDays} {preInvoiceDays === 1 ? 'day' : 'days'}</strong>. Pay early to avoid interruption.
-              </span>
-              <a href="/dashboard/billing" style={{
-                background: 'none', border: '0.5px solid rgba(232,184,75,0.3)', borderRadius: 5,
-                padding: '3px 10px', color: '#E8B84B', fontSize: 11, cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
-              }}>Pay now →</a>
-              <button onClick={() => { localStorage.setItem(DISMISS_KEY, String(Date.now())); setBannerDismissed(true) }} style={{
-                marginLeft: 'auto', background: 'none', border: 'none', color: '#3A3A37',
-                cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '2px 4px',
-              }}>✕</button>
-            </div>
-          )}
-
           {children}
 
           {/* ── PAUSED OVERLAY — FULL-SCREEN LOCK ── */}
@@ -398,9 +302,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 0',
                 }}>
                   <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Amount Due</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 22, fontWeight: 500, color: '#E8B84B' }}>KES {feeDue.toLocaleString()}</div></div>
-                  <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Due Date</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(nextInvoiceDate)}</div></div>
-                  <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Days Overdue</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 18, fontWeight: 500, color: '#E5707A' }}>{daysOverdue} {daysOverdue === 1 ? 'day' : 'days'}</div></div>
-                  <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Paused Since</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(lastPaidDate)}</div></div>
+                   <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Due Date</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(nextInvoiceDate)}</div></div>
+                   <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Paused Since</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(lastPaidDate)}</div></div>
                 </div>
 
                 {/* ── M-Pesa Paybill card ── */}
