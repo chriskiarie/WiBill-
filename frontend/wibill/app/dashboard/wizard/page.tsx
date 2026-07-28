@@ -123,6 +123,7 @@ export default function PortalWizard() {
   const [accentColor, setAccentColor] = useState('#5b4fff')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null)
+  const [stickerDataUrl, setStickerDataUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -136,7 +137,19 @@ export default function PortalWizard() {
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
 
-  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}`
+  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}${stickerDataUrl ? `&sticker_url=${encodeURIComponent(stickerDataUrl)}` : ''}`
+
+  useEffect(() => {
+    if (!selectedSticker) { setStickerDataUrl(null); return }
+    fetch(selectedSticker)
+      .then(r => r.blob())
+      .then(blob => {
+        const reader = new FileReader()
+        reader.onloadend = () => setStickerDataUrl(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+      .catch(() => setStickerDataUrl(null))
+  }, [selectedSticker])
 
   useEffect(() => {
     const savedToken = localStorage.getItem('wb_token')
@@ -196,7 +209,7 @@ export default function PortalWizard() {
     return () => clearTimeout(timer)
   }, [tpl, palette, font, name, tagline, location, emoji, phone, heroTitle, sectionHeading, primaryColor, secondaryColor, accentColor, logoUrl])
 
-  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${heroTitle}-${sectionHeading}-${logoUrl}`
+  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${heroTitle}-${sectionHeading}-${logoUrl}-${selectedSticker || ''}`
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -206,7 +219,7 @@ export default function PortalWizard() {
       iframe.src = previewUrl
     }, 200)
     return () => clearTimeout(timer)
-  }, [previewKey])
+  }, [previewKey, stickerDataUrl])
 
   function buildConfig() {
     return {
@@ -465,7 +478,7 @@ export default function PortalWizard() {
                     <button key={st.name} onClick={() => { setEmoji(st.name); setSelectedSticker(st.src); setLogoUrl(null) }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: active ? '1px solid #E8B84B' : '1px solid #141414',
-                      background: active ? 'rgba(232,184,75,0.1)' : '#000', cursor: 'pointer',
+                      background: active ? 'rgba(232,184,75,0.15)' : 'rgba(255,255,255,0.06)', cursor: 'pointer',
                     }} title={st.name}>
                       <img src={st.src} style={{ width: 24, height: 24, objectFit: 'contain' }} alt={st.name} />
                     </button>
