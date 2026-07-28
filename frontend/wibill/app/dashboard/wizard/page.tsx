@@ -717,38 +717,38 @@ export default function PortalWizard() {
         </div>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' }}>
             <div style={{
-              width: 460, borderRadius: 40, background: '#111', padding: 8,
+              width: 380, borderRadius: 44, background: '#111', padding: 12,
               boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
             }}>
               <div style={{
-                position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+                position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
                 width: 80, height: 6, background: '#111', borderRadius: 99, zIndex: 10,
                 border: '1px solid #2a2a2a',
               }} />
-              <div style={{ width: 444, height: 990, borderRadius: 28, overflow: 'hidden', background: '#000', position: 'relative' }}>
+              <div style={{ width: 356, height: 760, borderRadius: 32, overflow: 'hidden', background: '#000', position: 'relative' }}>
                 {previewLoading && (
                   <div style={{
                     position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', gap: 12,
-                    background: '#000', borderRadius: 28,
+                    background: '#000', borderRadius: 32,
                   }}>
                     <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', animation: 'spin 0.8s linear infinite' }} />
                     <div style={{ fontSize: 12, color: '#555' }}>Updating preview...</div>
                   </div>
                 )}
-                <div style={{ width: 436, height: 970, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ width: 344, height: 750, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
                   {React.createElement('iframe', {
                     key: previewKey,
                     ref: iframeRef,
                     src: previewUrl,
                     onLoad: () => setPreviewLoading(false),
                     scrolling: 'no',
-                    style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(1.163)', transformOrigin: 'top left' },
+                    style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.917)', transformOrigin: 'top left' },
                     title: 'Portal Preview',
                   })}
                 </div>
               </div>
-              <div style={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 130, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
               </div>
             </div>
