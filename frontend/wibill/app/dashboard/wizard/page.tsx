@@ -137,7 +137,7 @@ export default function PortalWizard() {
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
 
-  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}${stickerDataUrl ? `&sticker_url=${encodeURIComponent(stickerDataUrl)}` : ''}`
+  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${(logoUrl || stickerDataUrl) ? `&logo_url=${encodeURIComponent(logoUrl || stickerDataUrl || '')}` : ''}`
 
   useEffect(() => {
     if (!selectedSticker) { setStickerDataUrl(null); return }
@@ -430,10 +430,8 @@ export default function PortalWizard() {
                 textAlign: 'center', marginBottom: 20,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}>
-                {logoUrl ? (
-                  <img src={logoUrl} style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Logo" />
-                ) : selectedSticker ? (
-                  <img src={selectedSticker} style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Sticker" />
+                {(logoUrl || selectedSticker) ? (
+                  <img src={logoUrl || selectedSticker || ''} style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Logo" />
                 ) : null}
                 <div style={{ fontFamily: `'${font}',sans-serif`, fontSize: 18, fontWeight: 700, color: '#e8e6ff' }}>{name || 'Your WiFi'}</div>
                 <div style={{ fontSize: 12, color: 'rgba(232,230,255,0.5)' }}>{tagline || 'Tagline'}</div>
@@ -477,8 +475,8 @@ export default function PortalWizard() {
                   return (
                     <button key={st.name} onClick={() => { setEmoji(st.name); setSelectedSticker(st.src); setLogoUrl(null) }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: active ? '1px solid #E8B84B' : '1px solid #141414',
-                      background: active ? 'rgba(232,184,75,0.15)' : 'rgba(255,255,255,0.06)', cursor: 'pointer',
+                      border: active ? '1px solid #E8B84B' : '1px solid #2a2a2a',
+                      background: active ? 'rgba(232,184,75,0.15)' : 'rgba(255,255,255,0.1)', cursor: 'pointer',
                     }} title={st.name}>
                       <img src={st.src} style={{ width: 24, height: 24, objectFit: 'contain' }} alt={st.name} />
                     </button>
