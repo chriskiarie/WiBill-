@@ -93,6 +93,7 @@ async def get_current_status(
         "amount_due": float(invoice.amount_due),
         "due_date": invoice.due_date.isoformat(),
         "days_left": days_left,
+        "days_overdue": max(0, -days_left) if days_left is not None else 0,
         "is_locked": tenant.is_locked,
         "locked_reason": tenant.locked_reason,
         "paid_date": invoice.paid_date.isoformat() if invoice.paid_date else None,

@@ -25,6 +25,7 @@ from app.models.session import Session as DBSession
 from app.models.transaction import Transaction
 from app.services.session_service import create_session, expire_session
 from app.services.mpesa_service import initiate_session_payment
+from app.api.routes.auth import get_current_user
 
 from app.services.mikrotik_service import create_mikrotik_user
 
@@ -267,7 +268,8 @@ async def get_session_status(
 async def activate_session(
     slug: str,
     session_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Activate session on MikroTik after payment confirmed
@@ -304,7 +306,12 @@ async def activate_session(
     # Verify authorization
     if tenant.slug != slug:
         raise HTTPException(status_code=403, detail="Unauthorized")
-    
+
+    # Verify user owns this tenant
+    user_tenant_id = getattr(current_user, "tenant_id", None)
+    if user_tenant_id and str(user_tenant_id) != str(session.tenant_id):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
     if session.status == "active":
         return {"message": "Session already active"}
     

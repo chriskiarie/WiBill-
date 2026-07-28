@@ -10,7 +10,9 @@ from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel
 import logging
+import uuid
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.mpesa_config import MpesaConfig
 from app.services.mpesa_service import (

@@ -31,7 +31,7 @@ class LoyaltyConfig(BaseModel):
 
 
 @router.get("/config")
-async def get_loyalty_config():
+async def get_loyalty_config(current_user=Depends(get_current_user)):
     return {
         "points_per_100_kes": POINTS_PER_100_KES,
         "redemption_threshold_points": REDEMPTION_THRESHOLD_POINTS,
@@ -40,7 +40,7 @@ async def get_loyalty_config():
 
 
 @router.post("/config")
-async def update_loyalty_config(payload: LoyaltyConfig):
+async def update_loyalty_config(payload: LoyaltyConfig, current_user=Depends(get_current_user)):
     return {
         "points_per_100_kes": payload.points_per_100_kes,
         "redemption_threshold_points": payload.redemption_threshold_points,

@@ -461,7 +461,7 @@ export default function IspDashboard() {
                   Account overdue — {invoice.amount_due ? ksh(invoice.amount_due) : ''} due
                 </div>
                 <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.red, marginTop: 2 }}>
-                  {invoice.days_overdue || invoice.days_left || '?'} days overdue
+                  {invoice.days_overdue || Math.abs(invoice.days_left || 0) || '?'} days overdue
                   {invoice.is_locked ? ' · Portal suspended' : ''}
                 </div>
               </div>

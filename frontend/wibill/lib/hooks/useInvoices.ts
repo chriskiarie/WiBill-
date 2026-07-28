@@ -23,6 +23,7 @@ export interface InvoiceStatus {
   amount_due: number
   due_date: string | null
   days_left: number | null
+  days_overdue?: number | null
   is_locked: boolean
   locked_reason: string | null
   paid_date?: string | null
