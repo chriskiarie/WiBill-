@@ -43,6 +43,7 @@ export default function PackagesPage() {
   const [toggling, setToggling] = useState<string | null>(null)
   const [bulkUpdating, setBulkUpdating] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
+  const [loadingDemo, setLoadingDemo] = useState(false)
 
   const fetchPackages = async () => {
     if (!token) return
@@ -92,6 +93,25 @@ export default function PackagesPage() {
     setEditingPackage(null)
     setFormData({ name: '', duration_hours: 1, duration_label: '1 hr', price_ksh: 0, max_devices: 1, is_active: true })
     setShowModal(true)
+  }
+
+  const loadDemoPackages = async () => {
+    setLoadingDemo(true)
+    const demos = [
+      { name: 'Hourly', duration_hours: 1, duration_label: '1 hr', price_ksh: 10, max_devices: 1, is_active: true },
+      { name: 'Multi-Hour', duration_hours: 3, duration_label: '3 hrs', price_ksh: 20, max_devices: 1, is_active: true },
+      { name: 'Daily Bundle', duration_hours: 24, duration_label: '24 hrs', price_ksh: 50, max_devices: 1, is_active: true },
+    ]
+    try {
+      const created: PackageT[] = []
+      for (const d of demos) {
+        const newPkg = await api.createPackage(d)
+        created.push({ ...newPkg, is_active: true })
+      }
+      setPackages(created)
+      showToast('Demo packages loaded', { type: 'success' })
+    } catch (err) { showToast('Failed to load demo packages', { type: 'error', message: (err as Error).message }) }
+    finally { setLoadingDemo(false) }
   }
 
   const openEdit = (pkg: PackageT) => {
@@ -159,9 +179,14 @@ export default function PackagesPage() {
             <Package size={32} color={C.mute} />
             <div style={{ fontSize: 11, fontWeight: 600, color: C.dim }}>No packages yet</div>
             <div style={{ fontSize: 11, color: C.mute, textAlign: 'center', maxWidth: 280 }}>Create your first internet package so users can buy access on the portal.</div>
-            <button onClick={openCreate} style={{ marginTop: 8, padding: '8px 14px', background: C.gold, color: '#000', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Plus size={14} /> Create Package
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button onClick={openCreate} style={{ padding: '8px 14px', background: C.gold, color: '#000', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Plus size={14} /> Create Package
+              </button>
+              <button onClick={loadDemoPackages} disabled={loadingDemo} style={{ padding: '8px 14px', background: 'transparent', border: `0.5px solid ${C.mute}`, borderRadius: 6, cursor: loadingDemo ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 700, color: C.dim, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {loadingDemo ? 'Loading...' : 'Load Demo Packages'}
+              </button>
+            </div>
           </div>
         )}
 
