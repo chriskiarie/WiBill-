@@ -17,6 +17,7 @@ interface Transaction {
 
 export default function AdminRevenue() {
   const [txns, setTxns] = useState<Transaction[]>([]);
+  const [tenants, setTenants] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -25,11 +26,19 @@ export default function AdminRevenue() {
     if (!token) return;
     setRefreshing(true);
     try {
-      const r = await fetch(`${API}/api/mpesa/admin/transactions?limit=2000`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await r.json();
-      setTxns(Array.isArray(d) ? d : []);
+      const h = { Authorization: `Bearer ${token}` };
+      const [txnR, tenantR] = await Promise.all([
+        fetch(`${API}/api/mpesa/admin/transactions?limit=2000`, { headers: h }),
+        fetch(`${API}/api/admin/tenants`, { headers: h }),
+      ]);
+      const txnData = await txnR.json();
+      const tenantData = await tenantR.json();
+      setTxns(Array.isArray(txnData) ? txnData : []);
+      const nameMap: Record<string, string> = {};
+      if (Array.isArray(tenantData)) {
+        tenantData.forEach((t: any) => { nameMap[t.id] = t.name || t.slug || t.id; });
+      }
+      setTenants(nameMap);
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
@@ -164,10 +173,10 @@ export default function AdminRevenue() {
       {/* PRIMARY KPIs - THE BIG NUMBERS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
-          { label: 'Total Collected', value: formatCurrency(totalGMV), color: C.gold, icon: '💰', change: '+12.5%' },
-          { label: 'Platform Fees', value: formatCurrency(totalFees), color: C.gold, icon: '💸', change: '+8.2%' },
-          { label: 'ISP Payouts', value: formatCurrency(totalPayouts), color: C.green, icon: '✓', change: '+14.1%' },
-          { label: 'Outstanding', value: formatCurrency(outstanding), color: C.gold, icon: '⏳', change: 'pending' },
+          { label: 'Total Collected', value: formatCurrency(totalGMV), color: C.gold, icon: '💰', change: '' },
+          { label: 'Platform Fees', value: formatCurrency(totalFees), color: C.gold, icon: '💸', change: '' },
+          { label: 'ISP Payouts', value: formatCurrency(totalPayouts), color: C.green, icon: '✓', change: '' },
+          { label: 'Outstanding', value: formatCurrency(outstanding), color: C.gold, icon: '⏳', change: '' },
         ].map((metric, i) => (
           <div key={i} style={{
             background: C.card,
@@ -389,7 +398,7 @@ export default function AdminRevenue() {
 
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginBottom: '2px' }}>
-                      {id === 'unknown' ? 'Unassigned' : `ISP-${id.slice(0, 12)}`}
+                      {id === 'unknown' ? 'Unassigned' : (tenants[id] || `ISP-${id.slice(0, 8)}`)}
                     </div>
                     <div style={{
                       height: '4px',

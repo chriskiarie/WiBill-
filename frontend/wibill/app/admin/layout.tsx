@@ -12,6 +12,7 @@ const NAV_OPERATIONS = [
   { href: '/admin/isps', label: 'ISP Network', icon: <Radio size={16} /> },
   { href: '/admin/billing', label: 'Billing', icon: <Receipt size={16} /> },
   { href: '/admin/transactions', label: 'Transactions', icon: <ArrowRightLeft size={16} /> },
+  { href: '/admin/revenue', label: 'Revenue', icon: <Receipt size={16} /> },
 ];
 
 const NAV_PLATFORM = [
@@ -30,12 +31,14 @@ const pageNames: Record<string, string> = {
   '/admin/isps': 'ISP Network',
   '/admin/billing': 'Billing',
   '/admin/transactions': 'Transactions',
+  '/admin/revenue': 'Revenue',
   '/admin/feature-flags': 'Feature Flags',
   '/admin/invoices': 'Invoices',
   '/admin/comms': 'Comms',
   '/admin/audit-log': 'Audit Log',
   '/admin/system': 'Settings',
 };
+
 
 function renderNavItem(n: { href: string; label: string; icon: React.ReactNode; exact?: boolean }, path: string) {
   const active = n.exact ? path === n.href : path.startsWith(n.href);

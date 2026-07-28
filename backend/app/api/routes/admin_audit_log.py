@@ -3,11 +3,12 @@ Audit Log - read-only view of admin actions.
 """
 from typing import List, Optional
 import uuid
+import json
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 
 from app.core.database import get_db
 from app.models.admin_user import AdminUser
@@ -45,7 +46,7 @@ async def list_audit_logs(
             action=l.action,
             target_type=l.target_type,
             target_id=l.target_id,
-            details=l.details,
+            details=l.details if isinstance(l.details, dict) else (json.loads(l.details) if isinstance(l.details, str) and l.details else None),
             created_at=l.created_at.isoformat() if l.created_at else ""
         )
         for l in logs
@@ -56,6 +57,5 @@ async def audit_log_count(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    from sqlalchemy import func
     result = await db.execute(select(func.count(AuditLog.id)))
     return {"count": result.scalar()}

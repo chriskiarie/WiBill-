@@ -3,7 +3,7 @@ backend/app/api/routes/mpesa.py
 M-Pesa payment endpoints -- Phase 4C
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
@@ -361,6 +361,7 @@ async def mpesa_callback(
 async def admin_list_transactions(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=5000),
 ):
     """ADMIN: List all M-Pesa transactions."""
     role = getattr(current_user, "role", None)
@@ -369,7 +370,7 @@ async def admin_list_transactions(
 
     from app.models.mpesa_transaction import MpesaTransaction
     result = await db.execute(
-        select(MpesaTransaction).order_by(MpesaTransaction.created_at.desc()).limit(100)
+        select(MpesaTransaction).order_by(MpesaTransaction.created_at.desc()).limit(limit)
     )
     txns = result.scalars().all()
 

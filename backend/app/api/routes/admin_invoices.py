@@ -90,6 +90,19 @@ async def mark_invoice_paid(
     if body.monthly_fee_ksh:
         tenant.monthly_fee_ksh = body.monthly_fee_ksh
 
+    # Also update the Invoice record if one exists for this month
+    inv_result = await db.execute(
+        select(Invoice).where(
+            Invoice.tenant_id == tenant.id,
+            Invoice.month == now.month,
+            Invoice.year == now.year,
+        )
+    )
+    invoice = inv_result.scalar_one_or_none()
+    if invoice:
+        invoice.status = InvoiceStatus.PAID
+        invoice.paid_date = now
+
     await db.commit()
     return {"ok": True, "invoice_status": "active"}
 
@@ -115,6 +128,22 @@ async def update_invoice_status(
     if new_status == "active" and not tenant.last_paid_date:
         tenant.last_paid_date = datetime.now(timezone.utc)
 
+    # Also update the Invoice record if one exists for this month
+    now = datetime.now(timezone.utc)
+    inv_result = await db.execute(
+        select(Invoice).where(
+            Invoice.tenant_id == tenant.id,
+            Invoice.month == now.month,
+            Invoice.year == now.year,
+        )
+    )
+    invoice = inv_result.scalar_one_or_none()
+    if invoice:
+        status_map = {"active": "paid", "pending": "due", "overdue": "overdue", "paused": "due"}
+        inv_status = status_map.get(new_status)
+        if inv_status:
+            invoice.status = inv_status
+
     await db.commit()
     return {"ok": True, "invoice_status": new_status}
 
@@ -139,6 +168,17 @@ async def create_invoice(
 
     now = datetime.now(timezone.utc)
     due = now + timedelta(days=body.due_days)
+
+    # Check for existing invoice this month to prevent duplicates
+    existing = await db.execute(
+        select(Invoice).where(
+            Invoice.tenant_id == tenant.id,
+            Invoice.month == now.month,
+            Invoice.year == now.year,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Invoice already exists for this month")
 
     # Update tenant billing fields
     tenant.monthly_fee_ksh = body.monthly_fee_ksh

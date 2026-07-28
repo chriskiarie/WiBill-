@@ -4,6 +4,9 @@ Reads/writes feature flags directly on the Tenant model columns.
 """
 from typing import Optional
 import uuid
+import json
+import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -16,6 +19,29 @@ from app.models.tenant import Tenant
 from app.api.routes.auth import get_current_user, require_platform_admin, require_isp_admin
 
 router = APIRouter(tags=["admin-feature-flags"])
+logger = logging.getLogger("honestbill.admin.feature_flags")
+
+async def _log_flag_action(db, actor, action, tenant_id, details=None):
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text as sa_text
+        async with engine.begin() as conn:
+            await conn.execute(sa_text(
+                "INSERT INTO audit_logs (id, actor_id, actor_email, action, target_type, target_id, details, created_at) "
+                "VALUES (:id, :actor_id, :actor_email, :action, :target_type, :target_id, :details, :created_at)"
+            ), {
+                "id": uuid.uuid4(),
+                "actor_id": str(actor.id),
+                "actor_email": actor.email,
+                "action": action,
+                "target_type": "tenant",
+                "target_id": str(tenant_id),
+                "details": json.dumps(details) if details else None,
+                "created_at": datetime.utcnow(),
+            })
+    except Exception as e:
+        logger.warning(f"audit_log skipped ({action}): {e}")
+
 
 TENANT_FEATURE_COLS = [
     "has_vouchers", "has_campaigns", "has_loyalty",
@@ -90,6 +116,7 @@ async def update_feature_flags(
             setattr(tenant, col, bool(body[label]))
 
     await db.commit()
+    await _log_flag_action(db, current_user, 'update_feature_flags', tenant_id, {"flags": {k: body.get(k) for k in body if k in [FEATURE_LABEL_MAP[c] for c in TENANT_FEATURE_COLS]}})
     return {"ok": True}
 
 
@@ -116,5 +143,6 @@ async def update_tier(
         tenant.has_loyalty = False
 
     await db.commit()
+    await _log_flag_action(db, current_user, 'update_tier', tenant_id, {"tier": "premium" if new_premium else "free", "campaigns": tenant.has_campaigns, "loyalty": tenant.has_loyalty})
     return {"ok": True, "tier": "premium" if new_premium else "free"}
 

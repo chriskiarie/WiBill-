@@ -188,7 +188,8 @@ export default function AdminInvoicesPage() {
   const outstanding = invoices.filter(i => (i.invoice_status || 'active') !== 'active').reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
   const overdue = invoices.filter(i => i.invoice_status === 'overdue' || i.invoice_status === 'paused').reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
   const collected = invoices.filter(i => i.invoice_status === 'active' && i.last_paid_date).reduce((s, i) => s + (i.monthly_fee_ksh || 0), 0)
-  const commission = collected * 0.1
+  const commission = collected * 0.10
+  const monthLabel = new Date().toLocaleString('en-KE', { month: 'long', year: 'numeric' })
 
   return (
     <div style={{ background: 'transparent', color: C.text, fontSize: 13, padding: 0, width: '100%', minHeight: '100%' }}>
@@ -240,7 +241,7 @@ export default function AdminInvoicesPage() {
           {[
             { label: 'Outstanding', value: formatKsh(outstanding), sub: `${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length} ISP${invoices.filter(i => (i.invoice_status || 'active') !== 'active').length !== 1 ? 's' : ''} unpaid`, cls: 'warn' },
             { label: 'Overdue', value: formatKsh(overdue), sub: `${invoices.filter(i => i.invoice_status === 'overdue' || i.invoice_status === 'paused').length} ISP >30 days`, cls: 'danger' },
-            { label: 'Collected (June)', value: formatKsh(collected), sub: `${invoices.filter(i => i.invoice_status === 'active' && i.last_paid_date).length} payments received`, cls: 'ok' },
+            { label: `Collected (${monthLabel.split(' ')[0]})`, value: formatKsh(collected), sub: `${invoices.filter(i => i.invoice_status === 'active' && i.last_paid_date).length} payments received`, cls: 'ok' },
             { label: 'Your 10% fee', value: formatKsh(commission), sub: 'Commission this month', cls: 'gold' },
           ].map((s, i) => (
             <div key={i} style={{
@@ -499,7 +500,7 @@ export default function AdminInvoicesPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           fontSize: 11, color: C.mute, background: 'rgba(0,0,0,0.2)',
         }}>
-          <span>Showing {filtered.length} of {invoices.length} ISPs · June 2026</span>
+          <span>Showing {filtered.length} of {invoices.length} ISPs · {monthLabel}</span>
           <span>Platform commission: <strong style={{ color: C.gold, fontFamily: '"DM Mono", monospace' }}>{formatKsh(commission)}</strong></span>
         </div>
       </div>

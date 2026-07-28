@@ -248,7 +248,7 @@ export default function AdminDashboard() {
       }));
       setError('');
     } catch { setError('Dashboard stream unavailable.'); } finally { setLoading(false); setRefreshing(false); }
-  }, [now]);
+  }, []);
 
   useEffect(() => { load(); }, []);
 
@@ -273,8 +273,6 @@ export default function AdminDashboard() {
   const systemNodes = [
     { label: 'API Gateway', value: 'ONLINE', tone: 'good' as const },
     { label: 'Database', value: 'ONLINE', tone: 'good' as const },
-    { label: 'M-Pesa', value: 'SANDBOX', tone: 'warn' as const },
-    { label: 'MikroTik', value: 'NOT CONFIGURED', tone: 'neutral' as const },
     { label: 'Captive Portal', value: 'ACTIVE', tone: 'good' as const },
   ];
 
@@ -409,7 +407,7 @@ export default function AdminDashboard() {
                   border: `1px solid ${a.border}`,
                   boxShadow: `0 0 12px ${C.gold}20`,
                 }}><DollarSign size={18} /></div>
-                <TrendChip value={stats.revenue_today > 0 ? 12 : undefined} />
+                <TrendChip value={undefined} />
               </div>
               {/* Label */}
               <div style={{
@@ -439,7 +437,7 @@ export default function AdminDashboard() {
                 {isZero ? (
                   <><span style={{ color: C.mute }}>&mdash;</span> vs yesterday</>
                 ) : (
-                  <><span style={{ color: C.green }}>▲ 12%</span> vs yesterday</>
+                  <><span style={{ color: C.mute }}>today&apos;s total</span></>
                 )}
               </div>
             </div>

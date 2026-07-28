@@ -189,7 +189,7 @@ export default function FeatureFlagsPage() {
                       </button>
                     </div>
                     <div style={{ padding: '8px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: i < filtered.length - 1 ? `1px solid ${C.line}` : 'none', borderLeft: `1px solid ${C.line}`, background: i % 2 === 0 ? 'transparent' : C.line }}>
-                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: isPremium ? C.gold : C.mute }}>{isPremium ? 'KES 0' : '—'}</span>
+                      <span style={{ fontFamily: '"DM Mono", monospace', fontSize: 12, color: isPremium ? C.gold : C.mute }}>{isPremium ? (tenant.monthly_fee_ksh ? `KES ${tenant.monthly_fee_ksh.toLocaleString()}` : 'KES 0') : '—'}</span>
                     </div>
                     {FEATURES.map(f => {
                       const enabled = tenant.flags[f];

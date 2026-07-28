@@ -286,7 +286,8 @@ async def suspend_tenant(
         raise HTTPException(status_code=404, detail="Tenant not found")
     
     tenant.is_active = False
-    tenant.is_locked = True
+    tenant.locked_reason = "suspended"
+    tenant.locked_at = datetime.utcnow()
     db.add(tenant)
     await log_action(db, current_user, 'suspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
     await db.commit()
@@ -311,11 +312,11 @@ async def unsuspend_tenant(
     
     tenant.is_active = True
     tenant.is_locked = False
+    tenant.locked_reason = None
+    tenant.locked_at = None
     db.add(tenant)
     await log_action(db, current_user, 'unsuspend_tenant', 'tenant', tenant_id, {'name': tenant.name})
-    await db.commit()
-    await db.refresh(tenant)
-    
+
     # Also activate admin users
     from app.models.admin_user import AdminUser as AU
     from sqlalchemy import update as sa_update
@@ -325,6 +326,7 @@ async def unsuspend_tenant(
         .values(is_active=True)
     )
     await db.commit()
+    await db.refresh(tenant)
     
     return TenantResponse(id=tenant.id, slug=tenant.slug, name=tenant.name, is_active=tenant.is_active, commission_rate=float(tenant.commission_rate), balance_ksh=float(tenant.balance_ksh), created_at=tenant.created_at)
 
@@ -370,8 +372,7 @@ async def approve_tenant(
         raise HTTPException(status_code=404, detail="Tenant not found")
     
     tenant.is_active = True
-    if hasattr(tenant, 'pending_approval'):
-        tenant.pending_approval = False
+    tenant.status = "active"
 
     db.add(tenant)
     await log_action(db, current_user, 'approve_tenant', 'tenant', tenant_id, {'name': tenant.name})
@@ -663,7 +664,7 @@ async def get_system_logs(
 
     with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
         all_lines = f.readlines()
-    recent = all_lines[-lines:]
+    recent = all_lines[-min(lines, 500):]
     return {"logs": [l.rstrip("\n") for l in recent]}
 
 
@@ -850,7 +851,7 @@ async def create_api_key(
     import hashlib
     raw_key = f"hb_{secrets.token_urlsafe(32)}"
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-    key_prefix = raw_key[:10]
+    key_prefix = raw_key[:8]
 
     key = ApiKey(
         id=uuid.uuid4(),
