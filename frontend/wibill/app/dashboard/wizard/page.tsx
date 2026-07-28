@@ -405,9 +405,9 @@ export default function PortalWizard() {
                           </div>
                         </div>
                       </div>
-                      <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: active ? '#f0f0f0' : '#999', marginBottom: 2 }}>{t.label}</div>
-                        <div style={{ fontSize: 11, color: '#555' }}>{t.desc}</div>
+                        <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+                          <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#f0f0f0' : '#999', marginBottom: 2 }}>{t.label}</div>
+                          <div style={{ fontSize: 13, color: '#555' }}>{t.desc}</div>
                       </div>
                       {active && <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#E8B84B', color: '#000', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>}
                     </button>
@@ -715,44 +715,44 @@ export default function PortalWizard() {
             {sel?.label || 'Portal'} — {snaps?.n || 'Custom'}
           </span>
         </div>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' }}>
-          <div style={{
-            width: 360, borderRadius: 44, background: '#111', padding: 12,
-            boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
-          }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' }}>
             <div style={{
-              position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
-              width: 70, height: 7, background: '#111', borderRadius: 99, zIndex: 10,
-              border: '1px solid #2a2a2a',
-            }} />
-            <div style={{ width: 336, height: 700, borderRadius: 32, overflow: 'hidden', background: '#000', position: 'relative' }}>
-              {previewLoading && (
-                <div style={{
-                  position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 12,
-                  background: '#000', borderRadius: 32,
-                }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', animation: 'spin 0.8s linear infinite' }} />
-                  <div style={{ fontSize: 10, color: '#555' }}>Updating preview...</div>
+              width: 480, borderRadius: 48, background: '#111', padding: 14,
+              boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
+                width: 90, height: 7, background: '#111', borderRadius: 99, zIndex: 10,
+                border: '1px solid #2a2a2a',
+              }} />
+              <div style={{ width: 452, height: 980, borderRadius: 36, overflow: 'hidden', background: '#000', position: 'relative' }}>
+                {previewLoading && (
+                  <div style={{
+                    position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 12,
+                    background: '#000', borderRadius: 36,
+                  }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ fontSize: 12, color: '#555' }}>Updating preview...</div>
+                  </div>
+                )}
+                <div style={{ width: 432, height: 960, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
+                  {React.createElement('iframe', {
+                    key: previewKey,
+                    ref: iframeRef,
+                    src: previewUrl,
+                    onLoad: () => setPreviewLoading(false),
+                    scrolling: 'no',
+                    style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(1.152)', transformOrigin: 'top left' },
+                    title: 'Portal Preview',
+                  })}
                 </div>
-              )}
-              <div style={{ width: 323, height: 700, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
-                {React.createElement('iframe', {
-                  key: previewKey,
-                  ref: iframeRef,
-                  src: previewUrl,
-                  onLoad: () => setPreviewLoading(false),
-                  scrolling: 'no',
-                  style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.862)', transformOrigin: 'top left' },
-                  title: 'Portal Preview',
-                })}
+              </div>
+              <div style={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 150, height: 5, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
               </div>
             </div>
-            <div style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: 130, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
-            </div>
           </div>
-        </div>
       </div>
 
       <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#f0f0f0', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid #2a2a2a', bottom: toastMsg ? 24 : -80 }}>
