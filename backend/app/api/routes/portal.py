@@ -142,10 +142,18 @@ async def preview_portal(template_id: str, request: Request):
         "tagline": params.get("tag", DEMO_BRAND["tagline"]),
         "location": params.get("loc", DEMO_BRAND["location"]),
         "support_phone": params.get("phone", DEMO_BRAND["support_phone"]),
-        "support_number": params.get("phone", DEMO_BRAND["support_phone"]),  # alias for templates
+        "support_number": params.get("phone", DEMO_BRAND["support_phone"]),
+        "support_email": params.get("support_email", ""),
+        "whatsapp": params.get("whatsapp", ""),
+        "website_url": params.get("website_url", ""),
         "logo_url": params.get("logo_url"),
         "hero_title": params.get("hero_title", "Choose Your Plan"),
         "section_heading": params.get("section_heading", "Internet Packages"),
+        "footer_text": params.get("footer_text", ""),
+        "terms_url": params.get("terms_url", ""),
+        "facebook_url": params.get("facebook_url", ""),
+        "twitter_url": params.get("twitter_url", ""),
+        "instagram_url": params.get("instagram_url", ""),
     }
 
     # 4. Parse Network Status

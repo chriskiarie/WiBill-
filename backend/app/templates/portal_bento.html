@@ -378,8 +378,21 @@
                 <div id="vmsg" class="vm"></div>
             </div>
 
-            {% if brand.footer_text or brand.terms_url %}
-            <div class="ft">{% if brand.footer_text %}{{ brand.footer_text }}{% endif %}{% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}</div>
+            {% if brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url %}
+            <div class="ft">
+                {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
+                {% if brand.support_email %} · <a href="mailto:{{ brand.support_email }}">{{ brand.support_email }}</a>{% endif %}
+                {% if brand.whatsapp %} · <a href="https://wa.me/{{ brand.whatsapp | replace('+','') | replace(' ','') }}" target="_blank">WhatsApp</a>{% endif %}
+                {% if brand.website_url %} · <a href="{{ brand.website_url }}" target="_blank">Website</a>{% endif %}
+                {% if brand.terms_url %} <a href="{{ brand.terms_url }}">Terms & Privacy</a>{% endif %}
+                {% if brand.facebook_url or brand.twitter_url or brand.instagram_url %}
+                <div style="margin-top:6px;display:flex;gap:12px;justify-content:center">
+                    {% if brand.facebook_url %}<a href="{{ brand.facebook_url }}" target="_blank" style="color:var(--dim)">Facebook</a>{% endif %}
+                    {% if brand.twitter_url %}<a href="{{ brand.twitter_url }}" target="_blank" style="color:var(--dim)">Twitter</a>{% endif %}
+                    {% if brand.instagram_url %}<a href="{{ brand.instagram_url }}" target="_blank" style="color:var(--dim)">Instagram</a>{% endif %}
+                </div>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
     </div>
@@ -390,6 +403,7 @@
         <h2 class="ot">Network Offline</h2>
         <p class="om">The internet connection is currently unavailable. Please check back shortly or contact support.</p>
         {% if brand.support_number %}<a href="tel:{{ brand.support_number }}" style="padding:12px 24px;background:var(--accent);color:var(--white);border-radius:var(--r);text-decoration:none;font-weight:600;display:inline-block">Contact Support</a>{% endif %}
+        {% if brand.whatsapp %}<a href="https://wa.me/{{ brand.whatsapp | replace('+','') | replace(' ','') }}" target="_blank" style="padding:12px 24px;border:1px solid var(--dim);color:var(--dim);border-radius:var(--r);text-decoration:none;font-weight:600;display:inline-block;margin-left:8px">WhatsApp</a>{% endif %}
     </div>
     {% endif %}
 

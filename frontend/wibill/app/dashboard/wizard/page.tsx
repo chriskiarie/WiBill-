@@ -116,8 +116,16 @@ export default function PortalWizard() {
   const [location, setLocation] = useState('')
   const [emoji, setEmoji] = useState('📡')
   const [phone, setPhone] = useState('')
+  const [supportEmail, setSupportEmail] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [facebookUrl, setFacebookUrl] = useState('')
+  const [twitterUrl, setTwitterUrl] = useState('')
+  const [instagramUrl, setInstagramUrl] = useState('')
   const [heroTitle, setHeroTitle] = useState('')
   const [sectionHeading, setSectionHeading] = useState('')
+  const [footerText, setFooterText] = useState('')
+  const [termsUrl, setTermsUrl] = useState('')
   const [primaryColor, setPrimaryColor] = useState('#5b4fff')
   const [secondaryColor, setSecondaryColor] = useState('#0c0c1a')
   const [accentColor, setAccentColor] = useState('#5b4fff')
@@ -137,7 +145,7 @@ export default function PortalWizard() {
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
 
-  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${(logoUrl || stickerDataUrl) ? `&logo_url=${encodeURIComponent(logoUrl || stickerDataUrl || '')}` : ''}`
+  const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${(logoUrl || stickerDataUrl) ? `&logo_url=${encodeURIComponent(logoUrl || stickerDataUrl || '')}` : ''}${supportEmail ? `&support_email=${encodeURIComponent(supportEmail)}` : ''}${whatsapp ? `&whatsapp=${encodeURIComponent(whatsapp)}` : ''}${websiteUrl ? `&website_url=${encodeURIComponent(websiteUrl)}` : ''}${facebookUrl ? `&facebook_url=${encodeURIComponent(facebookUrl)}` : ''}${twitterUrl ? `&twitter_url=${encodeURIComponent(twitterUrl)}` : ''}${instagramUrl ? `&instagram_url=${encodeURIComponent(instagramUrl)}` : ''}${footerText ? `&footer_text=${encodeURIComponent(footerText)}` : ''}${termsUrl ? `&terms_url=${encodeURIComponent(termsUrl)}` : ''}`
 
   useEffect(() => {
     if (!selectedSticker) { setStickerDataUrl(null); return }
@@ -175,9 +183,17 @@ export default function PortalWizard() {
               if (pc.brand.location !== undefined) setLocation(pc.brand.location)
               if (pc.brand.emoji !== undefined && pc.brand.emoji !== null) setEmoji(pc.brand.emoji)
               if (pc.brand.support_phone !== undefined) setPhone(pc.brand.support_phone)
+              if (pc.brand.support_email !== undefined) setSupportEmail(pc.brand.support_email)
+              if (pc.brand.whatsapp !== undefined) setWhatsapp(pc.brand.whatsapp)
+              if (pc.brand.website_url !== undefined) setWebsiteUrl(pc.brand.website_url)
+              if (pc.brand.facebook_url !== undefined) setFacebookUrl(pc.brand.facebook_url)
+              if (pc.brand.twitter_url !== undefined) setTwitterUrl(pc.brand.twitter_url)
+              if (pc.brand.instagram_url !== undefined) setInstagramUrl(pc.brand.instagram_url)
               if (pc.brand.logo_url !== undefined) setLogoUrl(pc.brand.logo_url)
               if (pc.brand.hero_title !== undefined) setHeroTitle(pc.brand.hero_title)
               if (pc.brand.section_heading !== undefined) setSectionHeading(pc.brand.section_heading)
+              if (pc.brand.footer_text !== undefined) setFooterText(pc.brand.footer_text)
+              if (pc.brand.terms_url !== undefined) setTermsUrl(pc.brand.terms_url)
             }
             if (pc.typography?.font_family) setFont(pc.typography.font_family)
             if (pc.theme) {
@@ -204,12 +220,12 @@ export default function PortalWizard() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('wb_portal_draft', JSON.stringify({ tpl, palette, font, name, tagline, location, emoji, phone, heroTitle, sectionHeading, primaryColor, secondaryColor, accentColor, logoUrl }))
+      localStorage.setItem('wb_portal_draft', JSON.stringify({ tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl }))
     }, 1000)
     return () => clearTimeout(timer)
-  }, [tpl, palette, font, name, tagline, location, emoji, phone, heroTitle, sectionHeading, primaryColor, secondaryColor, accentColor, logoUrl])
+  }, [tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl])
 
-  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${heroTitle}-${sectionHeading}-${logoUrl}-${selectedSticker || ''}`
+  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${supportEmail}-${whatsapp}-${websiteUrl}-${facebookUrl}-${twitterUrl}-${instagramUrl}-${heroTitle}-${sectionHeading}-${footerText}-${termsUrl}-${logoUrl}-${selectedSticker || ''}`
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -225,7 +241,7 @@ export default function PortalWizard() {
     return {
       template_id: tpl,
       palette_index: palette,
-      brand: { name, tagline, location, emoji, support_phone: phone, logo_url: logoUrl, hero_title: heroTitle, section_heading: sectionHeading },
+      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: logoUrl, hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl },
       theme: {
         primary_color: primaryColor || snaps?.hd || '#5b4fff',
         secondary_color: secondaryColor || snaps?.bg || '#0c0c1a',
@@ -324,7 +340,11 @@ export default function PortalWizard() {
           setName(pc.brand.name || ''); setTagline(pc.brand.tagline || '')
           setLocation(pc.brand.location || ''); setEmoji(pc.brand.emoji || '📡')
           setPhone(pc.brand.support_phone || ''); setLogoUrl(pc.brand.logo_url || null)
+          setSupportEmail(pc.brand.support_email || ''); setWhatsapp(pc.brand.whatsapp || '')
+          setWebsiteUrl(pc.brand.website_url || ''); setFacebookUrl(pc.brand.facebook_url || '')
+          setTwitterUrl(pc.brand.twitter_url || ''); setInstagramUrl(pc.brand.instagram_url || '')
           setHeroTitle(pc.brand.hero_title || ''); setSectionHeading(pc.brand.section_heading || '')
+          setFooterText(pc.brand.footer_text || ''); setTermsUrl(pc.brand.terms_url || '')
         }
         if (pc.typography?.font_family) setFont(pc.typography.font_family)
         if (pc.theme) {
@@ -458,6 +478,50 @@ export default function PortalWizard() {
               {[
                 { label: 'Hero Title', value: heroTitle, set: setHeroTitle, placeholder: 'Choose Your Plan' },
                 { label: 'Section Heading', value: sectionHeading, set: setSectionHeading, placeholder: 'Internet Packages' },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                </div>
+              ))}
+
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Contact Info</div>
+              {[
+                { label: 'Support Email', value: supportEmail, set: setSupportEmail, placeholder: 'support@yourisp.co.ke', type: 'email' },
+                { label: 'WhatsApp Number', value: whatsapp, set: setWhatsapp, placeholder: '+254 700 123 456', type: 'tel' },
+                { label: 'Website URL', value: websiteUrl, set: setWebsiteUrl, placeholder: 'https://yourisp.co.ke', type: 'url' },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type || 'text'}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                </div>
+              ))}
+
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Social Links</div>
+              {[
+                { label: 'Facebook', value: facebookUrl, set: setFacebookUrl, placeholder: 'https://facebook.com/yourisp' },
+                { label: 'Twitter / X', value: twitterUrl, set: setTwitterUrl, placeholder: 'https://x.com/yourisp' },
+                { label: 'Instagram', value: instagramUrl, set: setInstagramUrl, placeholder: 'https://instagram.com/yourisp' },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                </div>
+              ))}
+
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Footer</div>
+              {[
+                { label: 'Footer Text', value: footerText, set: setFooterText, placeholder: 'Powered by Your ISP' },
+                { label: 'Terms & Privacy URL', value: termsUrl, set: setTermsUrl, placeholder: 'https://yourisp.co.ke/terms' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>

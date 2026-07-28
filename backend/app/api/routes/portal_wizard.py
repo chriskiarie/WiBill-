@@ -60,9 +60,17 @@ class BrandConfig(BaseModel):
     emoji: str = "📶"
     support_phone: str = ""
     support_number: str = ""
+    support_email: str = ""
+    whatsapp: str = ""
+    website_url: str = ""
     logo_url: str | None = None
     hero_title: str = ""
     section_heading: str = ""
+    footer_text: str = ""
+    terms_url: str = ""
+    facebook_url: str = ""
+    twitter_url: str = ""
+    instagram_url: str = ""
 
 
 class LayoutConfig(BaseModel):
