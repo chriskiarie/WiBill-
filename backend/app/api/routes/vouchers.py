@@ -3,7 +3,7 @@ import secrets
 import string
 from typing import Optional
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, func
 from pydantic import BaseModel
@@ -14,6 +14,8 @@ from app.models.tenant import Tenant
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
 from app.services.session_service import create_session, activate_session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import decrypt
@@ -22,6 +24,7 @@ import logging
 logger = logging.getLogger("honestbill.vouchers")
 
 router = APIRouter(tags=["vouchers"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 class GenerateVoucherRequest(BaseModel):
@@ -348,7 +351,9 @@ async def unsuspend_batch(
 
 
 @router.post("/redeem")
+@limiter.limit("5/minute")
 async def redeem_voucher_portal(
+    request: Request,
     payload: RedeemVoucherRequest,
     db: AsyncSession = Depends(get_db)
 ):

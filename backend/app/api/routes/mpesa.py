@@ -334,11 +334,17 @@ async def mpesa_callback(
 ):
     """
     Receive payment callback from Daraja.
-    This URL must be publicly accessible (use ngrok for local dev).
+    Only Safaricom's IPs are allowed (per CONTEXT.md security requirements).
     """
+    # IP whitelist — only Safaricom servers may hit this endpoint
+    client_ip = request.client.host if request.client else None
+    if client_ip not in settings.SAFARICOM_IPS:
+        logger.warning(f"M-Pesa callback rejected: untrusted IP {client_ip}")
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     try:
         body = await request.json()
-        logger.info(f"M-Pesa callback received: {body}")
+        logger.info(f"M-Pesa callback received from {client_ip}: {body}")
         success = await process_callback(body, db)
         # Always return 200 to Daraja even on error, so they don't retry endlessly
         return {"ResultCode": 0, "ResultDesc": "Accepted"}

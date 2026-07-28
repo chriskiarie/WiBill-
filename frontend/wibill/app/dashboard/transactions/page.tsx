@@ -75,7 +75,15 @@ export default function TransactionsPage() {
   }
 
   const handleRetry = async (sessionId: string) => {
-    showToast(`Retry STK push for session ${sessionId.slice(0, 8)}...`, { type: 'info' })
+    if (!token || !sessionId) return
+    try {
+      showToast(`Retrying STK push for session ${sessionId.slice(0, 8)}...`, { type: 'info' })
+      await api.retryStkPush(sessionId)
+      showToast('STK push resent — check your phone', { type: 'success' })
+      fetchTxns()
+    } catch (e: any) {
+      showToast(e.message || 'Retry failed', { type: 'error' })
+    }
   }
 
   const SumCard = ({ label, value, color }: any) => (

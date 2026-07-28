@@ -5,6 +5,7 @@ FIX: Use string literals for all enum comparisons (asyncpg native enum casing is
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_, text
 from datetime import datetime
@@ -355,8 +356,13 @@ async def download_invoice_pdf(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    await get_invoice_pdf(invoice, db)
-    return {"success": True, "message": "PDF stub - implement with reportlab in Phase 4C"}
+    pdf_bytes = await get_invoice_pdf(invoice, db)
+    inv_num = invoice.invoice_number
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={inv_num}.pdf"},
+    )
 
 
 @router.post("/invoices/{invoice_id}/pay")

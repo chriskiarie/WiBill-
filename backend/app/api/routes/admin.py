@@ -762,14 +762,37 @@ async def test_smtp_config(
     current_user: AdminUser = Depends(require_platform_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Test SMTP config by attempting connection."""
+    """Test SMTP config by attempting real connection."""
+    import smtplib
+    import socket
     stmt = select(SmtpConfig).limit(1)
     result = await db.execute(stmt)
     config = result.scalar_one_or_none()
     if not config or not config.host:
         raise HTTPException(status_code=400, detail="SMTP not configured")
-    # Stub — real test would attempt an SMTP connection
-    return SmtpTestResponse(success=True, message=f"SMTP config valid (host: {config.host}:{config.port})")
+
+    password = decrypt(config.password_enc) if config.password_enc else ""
+    try:
+        if config.use_tls:
+            server = smtplib.SMTP(config.host, config.port, timeout=15)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else:
+            server = smtplib.SMTP(config.host, config.port, timeout=15)
+
+        if config.username and password:
+            server.login(config.username, password)
+        server.quit()
+        return SmtpTestResponse(success=True, message=f"SMTP connection successful ({config.host}:{config.port})")
+    except smtplib.SMTPAuthenticationError as e:
+        return SmtpTestResponse(success=False, message=f"Authentication failed: {e}")
+    except (socket.gaierror, socket.timeout, ConnectionRefusedError) as e:
+        return SmtpTestResponse(success=False, message=f"Connection failed: {e}")
+    except smtplib.SMTPException as e:
+        return SmtpTestResponse(success=False, message=f"SMTP error: {e}")
+    except Exception as e:
+        return SmtpTestResponse(success=False, message=f"Test failed: {e}")
 
 
 # ── API Keys ───────────────────────────────────────────────────────────

@@ -4,11 +4,15 @@ Returns network status, latency, and system metrics for ISP
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.api.routes.auth import require_isp_admin
 from app.models.admin_user import AdminUser
+from app.models.session import Session
+from app.models.network_event import NetworkEvent
+from app.services.mikrotik_service import check_mikrotik_connection
 
 router = APIRouter()
 
@@ -19,26 +23,54 @@ async def system_health(
     current_user: AdminUser = Depends(require_isp_admin),
 ):
     """
-    Get system health for the ISP
-    
-    Returns:
-    - status: 'up', 'down', 'degraded'
-    - latency_ms: Network latency
-    - timestamp: When checked
-    - mikrotik_online: Is MikroTik connected
-    - active_users: Number of active sessions
-    - upload_speed: Upload speed (Mbps)
-    - download_speed: Download speed (Mbps)
+    Get real system health for the ISP.
     """
-    # TODO: In production, check actual MikroTik and network status
-    # For now, return healthy status
-    
+    tenant_id = getattr(current_user, "tenant_id", None)
+    tenant_id_str = str(tenant_id) if tenant_id else None
+
+    # Check active sessions
+    active_users = 0
+    if tenant_id_str:
+        result = await db.execute(
+            select(func.count()).select_from(Session).where(
+                Session.tenant_id == tenant_id, Session.status == "active"
+            )
+        )
+        active_users = result.scalar() or 0
+
+    # Check latest network event
+    latency_ms = None
+    network_status = "unknown"
+    if tenant_id_str:
+        result = await db.execute(
+            select(NetworkEvent).where(NetworkEvent.tenant_id == tenant_id)
+            .order_by(NetworkEvent.checked_at.desc()).limit(1)
+        )
+        event = result.scalar_one_or_none()
+        if event:
+            latency_ms = event.latency_ms
+            network_status = event.status
+
+    # Check MikroTik connectivity
+    mikrotik_online = False
+    if tenant_id_str:
+        try:
+            mk_result = await check_mikrotik_connection(tenant_id_str, db)
+            mikrotik_online = mk_result.get("success", False)
+        except Exception:
+            mikrotik_online = False
+
+    status = "up"
+    if network_status == "down":
+        status = "down"
+    elif network_status == "degraded" or (latency_ms and latency_ms > 200):
+        status = "degraded"
+
     return {
-        "status": "up",
-        "latency_ms": 14,
+        "status": status,
+        "latency_ms": latency_ms,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "mikrotik_online": True,
-        "active_users": 0,
-        "upload_speed": 0.0,
-        "download_speed": 0.0,
+        "mikrotik_online": mikrotik_online,
+        "active_users": active_users,
+        "network_status": network_status,
     }

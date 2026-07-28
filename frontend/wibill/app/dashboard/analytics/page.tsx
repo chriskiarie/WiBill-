@@ -54,13 +54,14 @@ export default function AnalyticsPage() {
   const totalRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0)
   const totalSessions = revenueData.reduce((s, d) => s + d.sessions, 0)
 
-  const peakHours = useMemo(() =>
-    Array.from({ length: 7 }, (_, day) =>
+  const peakHours = useMemo(() => {
+    if (totalSessions === 0) return []
+    return Array.from({ length: 7 }, (_, day) =>
       Array.from({ length: 24 }, (_, hour) => ({
-        day, hour, value: Math.floor(Math.random() * (day + 1) * (hour + 1) * 3)
+        day, hour, value: 0
       }))
-    ).flat(),
-  [])
+    ).flat()
+  }, [totalSessions])
 
   const peakCell = useMemo(() =>
     peakHours.reduce((max, c) => c.value > max.value ? c : max, peakHours[0]),
@@ -135,6 +136,12 @@ export default function AnalyticsPage() {
 
             {/* ===== HERO: SESSION DENSITY BY HOUR ===== */}
             <div className="glass-card heatmap-hero" style={{ marginBottom: 20 }}>
+              {totalSessions === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: C.dim }}>
+                  <div style={{ fontSize: 13, marginBottom: 6 }}>No session data yet</div>
+                  <div style={{ fontSize: 11, color: C.mute }}>Heatmap appears once customers start buying sessions</div>
+                </div>
+              ) : (<>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <div style={{ display: 'flex', gap: 2 }}>
                   {[7, 30, 90].map(d => (
@@ -214,6 +221,7 @@ export default function AnalyticsPage() {
                   <span>More</span>
                 </div>
               </div>
+              </>)}
             </div>
 
             {/* ===== SECONDARY ROW ===== */}
@@ -248,7 +256,7 @@ export default function AnalyticsPage() {
                     <div style={{ width: 120, height: 120 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh || count || 1" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={48} paddingAngle={2}>
+                          <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={48} paddingAngle={2}>
                             {topPackages.slice(0, 5).map((_, i) => (
                               <Cell key={i} fill={[C.gold, C.green, 'rgba(232,184,75,0.6)', 'rgba(232,184,75,0.3)', 'rgba(232,184,75,0.15)'][i]} />
                             ))}

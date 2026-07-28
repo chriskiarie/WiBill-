@@ -131,6 +131,11 @@ export const api = {
   },
   getTransaction: (id: string) => request<any>(`/api/transactions/${id}`),
   getTransactionStats: () => request<any>('/api/transactions/stats'),
+  retryStkPush: (sessionId: string) =>
+    request(`/api/mpesa/pay/session`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId }),
+    }),
 
   // ========================================================================
   // TENANTS (ISP Management)

@@ -487,16 +487,6 @@ async def get_my_feature_flags(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    changed = False
-    if not tenant.has_monthly_subscribers:
-        tenant.has_monthly_subscribers = True
-        changed = True
-    if tenant.has_monthly_subscribers and not tenant.has_tv_subscribers:
-        pass  # tv is optional, only enable on demand
-
-    if changed:
-        await db.commit()
-
     return {
         "vouchers": tenant.has_vouchers,
         "campaigns": tenant.has_campaigns,
