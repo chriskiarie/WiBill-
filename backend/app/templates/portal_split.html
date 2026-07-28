@@ -156,7 +156,8 @@
             border:1px solid rgba(255,255,255,.2);
             overflow:hidden;
         }
-        .lp-logo img{width:100%;height:100%;object-fit:cover}
+        .lp-logo.has-logo{background:transparent;border-radius:0;border:none;backdrop-filter:none}
+        .lp-logo img{width:100%;height:100%;object-fit:contain}
         .lp-name{font-size:1.8rem;font-weight:800;color:var(--white);letter-spacing:-.02em;margin-bottom:.4rem}
         .lp-tag{font-size:.85rem;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:1.5rem}
         .lp-loc{font-size:.8rem;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;justify-content:center}
@@ -396,7 +397,7 @@
     <div class="split">
         <div class="lp">
             <div class="lp-brand">
-                <div class="lp-logo" id="b-logo">{% if brand.logo_url %}<img src="{{ brand.logo_url }}" alt="{{ brand.name }}" style="width:100%;height:100%;object-fit:cover">{% else %}{{ brand.emoji or '📡' }}{% endif %}</div>
+                <div class="lp-logo{% if brand.logo_url %} has-logo{% endif %}" id="b-logo">{% if brand.logo_url %}<img src="{{ brand.logo_url }}" alt="{{ brand.name }}" style="width:100%;height:100%;object-fit:contain">{% else %}{{ brand.emoji or '📡' }}{% endif %}</div>
                 <h1 class="lp-name" id="b-name">{{ brand.name or 'WiFi Portal' }}</h1>
                 <p class="lp-tag" id="b-tag">{{ brand.tagline or 'Fast, reliable internet' }}</p>
                 {% if brand.location %}<p class="lp-loc">📍 {{ brand.location }}</p>{% endif %}
@@ -752,8 +753,8 @@
             if (d.type === 'UPDATE_BRAND') {
                 if (d.name) { document.getElementById('b-name').textContent = d.name; document.title = d.name + ' - WiFi Access'; }
                 if (d.tagline !== undefined) document.getElementById('b-tag').textContent = d.tagline || 'FAST INTERNET';
-                if (d.emoji) document.getElementById('b-logo').textContent = d.emoji;
-                if (d.logo_url) document.getElementById('b-logo').innerHTML = '<img src="' + d.logo_url + '" style="width:100%;height:100%;object-fit:cover">';
+                if (d.emoji) { document.getElementById('b-logo').textContent = d.emoji; document.getElementById('b-logo').classList.remove('has-logo'); }
+                if (d.logo_url) { document.getElementById('b-logo').innerHTML = '<img src="' + d.logo_url + '" style="width:100%;height:100%;object-fit:contain">'; document.getElementById('b-logo').classList.add('has-logo'); }
             }
             if (d.type === 'UPDATE_TYPOGRAPHY' && d.font) {
                 r.style.setProperty('--f', "'" + d.font + "',system-ui,sans-serif");
