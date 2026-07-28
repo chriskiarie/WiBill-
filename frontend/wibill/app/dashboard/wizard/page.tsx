@@ -145,6 +145,13 @@ export default function PortalWizard() {
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
 
+  const bgColor = snaps?.bg || '#0c0c1a'
+  const hdColor = snaps?.hd || '#5b4fff'
+  const cardBg = snaps?.cd || 'rgba(255,255,255,0.06)'
+  const isDark = bgColor.startsWith('#') && parseInt(bgColor.slice(1,3), 16) < 100
+  const txtColor = isDark ? '#f0f0f0' : '#1a1a1a'
+  const dimColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)'
+
   const previewUrl = `${API}/api/v1/portal-previews/${tpl}?palette=${palette}&font=${encodeURIComponent(font)}&name=${encodeURIComponent(name || 'Your WiFi')}&emoji=${encodeURIComponent(emoji || '📡')}&tag=${encodeURIComponent(tagline)}&loc=${encodeURIComponent(location)}&phone=${encodeURIComponent(phone)}&hero_title=${encodeURIComponent(heroTitle || '')}&section_heading=${encodeURIComponent(sectionHeading || '')}&primary=${encodeURIComponent(primaryColor || '')}&secondary=${encodeURIComponent(secondaryColor || '')}&accent=${encodeURIComponent(accentColor || '')}${logoUrl ? `&logo_url=${encodeURIComponent(logoUrl)}` : ''}`
 
   useEffect(() => {
@@ -715,41 +722,99 @@ export default function PortalWizard() {
             {sel?.label || 'Portal'} — {snaps?.n || 'Custom'}
           </span>
         </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' }}>
-            <div style={{
-              width: 380, borderRadius: 44, background: '#111', padding: 12,
-              boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
-            }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 24px 0', overflow: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{
-                position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
-                width: 80, height: 6, background: '#111', borderRadius: 99, zIndex: 10,
-                border: '1px solid #2a2a2a',
-              }} />
-              <div style={{ width: 356, height: 760, borderRadius: 32, overflow: 'hidden', background: '#000', position: 'relative' }}>
-                {previewLoading && (
-                  <div style={{
-                    position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 12,
-                    background: '#000', borderRadius: 32,
-                  }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', animation: 'spin 0.8s linear infinite' }} />
-                    <div style={{ fontSize: 12, color: '#555' }}>Updating preview...</div>
-                  </div>
-                )}
-                <div style={{ width: 344, height: 750, margin: '0 auto', overflow: 'hidden', position: 'relative' }}>
+                width: 380, borderRadius: 44, background: '#111', padding: 12, flexShrink: 0,
+                boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
+              }}>
+                <div style={{
+                  position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
+                  width: 80, height: 6, background: '#111', borderRadius: 99, zIndex: 10,
+                  border: '1px solid #2a2a2a',
+                }} />
+                <div style={{ width: 356, height: 780, borderRadius: 32, overflow: 'hidden', position: 'relative' }}>
                   {React.createElement('iframe', {
                     key: previewKey,
                     ref: iframeRef,
                     src: previewUrl,
                     onLoad: () => setPreviewLoading(false),
                     scrolling: 'no',
-                    style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.917)', transformOrigin: 'top left' },
+                    style: { width: '375px', height: '812px', border: 'none', display: 'block', transform: 'scale(0.949)', transformOrigin: 'top left' },
                     title: 'Portal Preview',
                   })}
                 </div>
+                <div style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 130, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+                </div>
               </div>
-              <div style={{ height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: 130, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.12)' }} />
+
+              {/* Demo Price Cards */}
+              <div style={{ width: 380, marginTop: 28, flexShrink: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 12, textAlign: 'center' }}>
+                  Package Preview
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { dur: '1 hr', price: 'KES 10', tag: 'Hourly', desc: 'Quick browse, pay as you go', best: false },
+                    { dur: '3 hrs', price: 'KES 20', tag: 'Multi-Hour', desc: 'Perfect for an evening session', best: false },
+                    { dur: '24 hrs', price: 'KES 50', tag: 'Daily Bundle', desc: 'Full day unlimited access', best: true },
+                  ].map((pkg, i) => (
+                    <div key={i} style={{
+                      display: 'flex', gap: 12, alignItems: 'center',
+                      background: cardBg, borderRadius: 12,
+                      padding: pkg.best ? '14px 14px' : '12px 14px',
+                      border: pkg.best ? `1.5px solid ${hdColor}50` : `1px solid ${cardBg === '#ffffff' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)'}`,
+                      position: 'relative', overflow: 'hidden',
+                      transition: 'all 0.3s',
+                    }}>
+                      {/* Left accent bar */}
+                      <div style={{
+                        width: 3, height: 36, borderRadius: 2,
+                        background: pkg.best ? hdColor : dimColor,
+                        opacity: pkg.best ? 1 : 0.25, flexShrink: 0,
+                      }} />
+
+                      {/* Duration + desc */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: `'${font}',sans-serif`, fontSize: 18, fontWeight: 700, color: txtColor, lineHeight: 1.2 }}>
+                          {pkg.dur}
+                        </div>
+                        <div style={{ fontSize: 10, color: dimColor, marginTop: 2 }}>{pkg.desc}</div>
+                      </div>
+
+                      {/* Price + tag */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontFamily: `'${font}',sans-serif`, fontSize: 15, fontWeight: 700, color: hdColor }}>
+                          {pkg.price}
+                        </div>
+                        <div style={{
+                          display: 'inline-block', fontSize: 8, fontWeight: 700,
+                          color: pkg.best ? '#000' : dimColor,
+                          background: pkg.best ? hdColor : 'transparent',
+                          border: pkg.best ? 'none' : `0.5px solid ${dimColor}`,
+                          padding: '2px 8px', borderRadius: 99, marginTop: 4,
+                          textTransform: 'uppercase', letterSpacing: '0.6px',
+                        }}>
+                          {pkg.tag}
+                        </div>
+                      </div>
+
+                      {/* Best Value badge */}
+                      {pkg.best && (
+                        <div style={{
+                          position: 'absolute', top: 0, right: 0,
+                          background: hdColor, color: '#000',
+                          fontSize: 7, fontWeight: 700, textTransform: 'uppercase',
+                          letterSpacing: '0.8px', padding: '3px 10px',
+                          borderRadius: '0 12px 0 10px', lineHeight: 1,
+                        }}>
+                          Best Value
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
