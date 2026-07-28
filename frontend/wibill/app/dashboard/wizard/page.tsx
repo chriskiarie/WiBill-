@@ -784,7 +784,7 @@ export default function PortalWizard() {
       {/* ═══ LOCKED VIEW OVERLAY ═══ */}
       {isLocked && hasSavedConfig && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, width: 420, height: '100vh', zIndex: 100,
+          position: 'fixed', top: 0, left: 228, width: 420, height: '100vh', zIndex: 100,
           background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: 32,
