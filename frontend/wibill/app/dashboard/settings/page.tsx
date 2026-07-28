@@ -80,14 +80,14 @@ export default function SettingsPage() {
   )
 
   if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <Topbar title="Settings" />
       <div className="dashboard-content" style={{ flex: 1, background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim, fontSize: 13 }}>Loading...</div>
     </div>
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <Topbar title="Settings" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, marginBottom: 24 }}>Account Settings</h1>
