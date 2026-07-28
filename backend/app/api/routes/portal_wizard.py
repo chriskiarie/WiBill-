@@ -330,6 +330,33 @@ async def restore_snapshot(
     }
 
 
+@router.delete("/api/portal-config/snapshots/{snapshot_id}")
+async def delete_snapshot(
+    snapshot_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Delete a snapshot."""
+    tenant_id = current_user.tenant_id
+    if not tenant_id:
+        raise HTTPException(status_code=403, detail="No tenant")
+
+    result = await db.execute(
+        select(PortalConfigSnapshot).where(
+            PortalConfigSnapshot.id == snapshot_id,
+            PortalConfigSnapshot.tenant_id == tenant_id,
+        )
+    )
+    snapshot = result.scalar_one_or_none()
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+
+    await db.delete(snapshot)
+    await db.commit()
+
+    return {"ok": True, "message": "Snapshot deleted"}
+
+
 # ── Asset Upload Endpoints ──────────────────────────────────────────────────
 
 @router.post("/api/portal/assets/upload")

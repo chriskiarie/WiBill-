@@ -140,6 +140,9 @@ export default function PortalWizard() {
   const [toastMsg, setToastMsg] = useState('')
   const [loadingConfig, setLoadingConfig] = useState(true)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [hasSavedConfig, setHasSavedConfig] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
+  const [previewingSnapshot, setPreviewingSnapshot] = useState<string | null>(null)
 
   const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200) }
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
@@ -175,6 +178,8 @@ export default function PortalWizard() {
         if (res.ok) {
           const data = await res.json()
           if (data.portal_config) {
+            setHasSavedConfig(true)
+            setIsLocked(true)
             const pc = data.portal_config
             if (pc.template_id) setTpl(pc.template_id)
             if (pc.brand) {
@@ -215,7 +220,7 @@ export default function PortalWizard() {
         setLoadingConfig(false)
       }
     }
-    if (token) loadConfig()
+    if (token) { loadConfig(); loadSnapshots() }
   }, [token])
 
   useEffect(() => {
@@ -353,7 +358,18 @@ export default function PortalWizard() {
           if (pc.theme.accent_color) setAccentColor(pc.theme.accent_color)
         }
         loadSnapshots()
+        toast('Version restored!')
       }
+    } catch {}
+  }
+
+  async function deleteSnapshot(id: string, tag: string) {
+    if (!confirm(`Delete "${tag}"? This cannot be undone.`)) return
+    try {
+      const res = await fetch(`${API}/api/portal-config/snapshots/${id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) { loadSnapshots(); toast('Version deleted') }
     } catch {}
   }
 
@@ -764,6 +780,69 @@ export default function PortalWizard() {
           </button>
         </div>
       </div>
+
+      {/* ═══ LOCKED VIEW OVERLAY ═══ */}
+      {isLocked && hasSavedConfig && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: 420, height: '100vh', zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: 32,
+        }}>
+          <div style={{ width: '100%', maxWidth: 340 }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#E8B84B', marginBottom: 6 }}>Your Portal</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', marginBottom: 4 }}>Saved Portal Found</div>
+              <div style={{ fontSize: 12, color: '#666' }}>Preview your saved versions or unlock to customize.</div>
+            </div>
+
+            {/* Saved Versions List */}
+            <div style={{ maxHeight: 340, overflowY: 'auto', marginBottom: 16 }}>
+              {snapshots.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: '#555', fontSize: 12 }}>No saved versions yet.</div>
+              ) : snapshots.map((s: any) => (
+                <div key={s.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                  borderRadius: 10, marginBottom: 6, cursor: 'pointer',
+                  background: previewingSnapshot === s.id ? 'rgba(232,184,75,0.1)' : '#0a0a0a',
+                  border: previewingSnapshot === s.id ? '1px solid rgba(232,184,75,0.3)' : '1px solid #1a1a1a',
+                  transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#2a2a2a' }}
+                  onMouseLeave={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#1a1a1a' }}
+                >
+                  <Clock size={14} style={{ color: previewingSnapshot === s.id ? '#E8B84B' : '#444', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</div>
+                    <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); restoreSnapshot(s.id) }} style={{
+                    padding: '5px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
+                    background: 'transparent', color: '#888', cursor: 'pointer', fontSize: 10,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }} title="Restore this version"><RotateCcw size={11} /> Load</button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteSnapshot(s.id, s.version_tag) }} style={{
+                    padding: '5px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
+                    background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: 10,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }} title="Delete this version"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                </div>
+              ))}
+            </div>
+
+            {/* Unlock Button */}
+            <button onClick={() => setIsLocked(false)} style={{
+              width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
+              background: '#E8B84B', color: '#000', cursor: 'pointer',
+              fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              fontFamily: 'Inter, sans-serif', transition: 'all 0.2s',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Unlock to Customize
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Right: Phone Preview */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
