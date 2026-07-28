@@ -41,25 +41,16 @@ const MAIN_TEMPLATES = [
   { id:'bento', label:'Bento', desc:'Asymmetric · Apple-style', icon: LayoutTemplate },
 ]
 
-const BRAND_ICONS: { name: string; comp: any; emoji: string }[] = [
-  { name: 'Wifi', comp: Wifi, emoji: '📶' },
-  { name: 'Signal', comp: Signal, emoji: '📡' },
-  { name: 'Globe', comp: Globe, emoji: '🌐' },
-  { name: 'Server', comp: Server, emoji: '🖥️' },
-  { name: 'Router', comp: Router, emoji: '📶' },
-  { name: 'Antenna', comp: Antenna, emoji: '📡' },
-  { name: 'Zap', comp: Zap, emoji: '⚡' },
-  { name: 'Shield', comp: Shield, emoji: '🛡️' },
-  { name: 'Rocket', comp: Rocket, emoji: '🚀' },
-  { name: 'Layers', comp: Layers, emoji: '🔗' },
-  { name: 'Cloud', comp: Cloud, emoji: '☁️' },
-  { name: 'Satellite', comp: Satellite, emoji: '🛰️' },
-  { name: 'Cpu', comp: Cpu, emoji: '⚙️' },
-  { name: 'Database', comp: Database, emoji: '💾' },
-  { name: 'Radio', comp: Radio, emoji: '📻' },
-  { name: 'SignalHigh', comp: Signal, emoji: '📶' },
-  { name: 'Lock', comp: Lock, emoji: '🔒' },
-  { name: 'Activity', comp: Activity, emoji: '📊' },
+const BRAND_STICKERS: { name: string; src: string }[] = [
+  { name: 'WiFi Signal', src: '/stickers/wifi-signal.png' },
+  { name: 'Website', src: '/stickers/website.png' },
+  { name: 'WiFi', src: '/stickers/wifi.png' },
+  { name: 'WiFi Router', src: '/stickers/wifi-router.png' },
+  { name: 'Internet', src: '/stickers/internet-1.png' },
+  { name: 'High Speed', src: '/stickers/high-speed.png' },
+  { name: 'Internet Access', src: '/stickers/internet-access.png' },
+  { name: 'Internet Globe', src: '/stickers/internet.png' },
+  { name: 'IoT', src: '/stickers/internet-of-things.png' },
 ]
 
 const FONT_CATEGORIES: Record<string, { name: string; fonts: { family: string; preview: string }[] }> = {
@@ -131,7 +122,7 @@ export default function PortalWizard() {
   const [secondaryColor, setSecondaryColor] = useState('#0c0c1a')
   const [accentColor, setAccentColor] = useState('#5b4fff')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  const [selectedIcon, setSelectedIcon] = useState<any>(null)
+  const [selectedSticker, setSelectedSticker] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -423,22 +414,14 @@ export default function PortalWizard() {
           {tab === 'brand' && (
             <div style={{ animation: 'fadeIn 0.25s ease' }}>
               <div style={{
-                background: snaps?.bg || '#0c0c1a', borderRadius: 14, padding: '18px 16px',
-                textAlign: 'center', marginBottom: 20, border: '1px solid rgba(255,255,255,0.08)',
+                textAlign: 'center', marginBottom: 20,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-                transition: 'background 0.3s',
               }}>
                 {logoUrl ? (
-                  <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', marginBottom: 2, background: '#000' }}>
-                    <img src={logoUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Logo" />
-                  </div>
-                ) : selectedIcon ? (
-                  <div style={{ width: 48, height: 48, borderRadius: 10, marginBottom: 2, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {React.createElement(selectedIcon, { size: 24, color: '#e8e6ff' })}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 30, lineHeight: 1, marginBottom: 2 }}>{emoji || '📡'}</div>
-                )}
+                  <img src={logoUrl} style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Logo" />
+                ) : selectedSticker ? (
+                  <img src={selectedSticker} style={{ width: 48, height: 48, objectFit: 'contain' }} alt="Sticker" />
+                ) : null}
                 <div style={{ fontFamily: `'${font}',sans-serif`, fontSize: 18, fontWeight: 700, color: '#e8e6ff' }}>{name || 'Your WiFi'}</div>
                 <div style={{ fontSize: 12, color: 'rgba(232,230,255,0.5)' }}>{tagline || 'Tagline'}</div>
                 {location && <div style={{ fontSize: 10, color: 'rgba(232,230,255,0.4)', marginTop: 1 }}>{location}</div>}
@@ -474,18 +457,17 @@ export default function PortalWizard() {
                 </div>
               ))}
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 8px' }}>Brand Icon</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 5, marginBottom: 10 }}>
-                {BRAND_ICONS.map(ic => {
-                  const IconComp = ic.comp
-                  const active = !logoUrl && emoji === ic.emoji
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 8px' }}>Brand Sticker</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5, marginBottom: 10 }}>
+                {BRAND_STICKERS.map(st => {
+                  const active = !logoUrl && selectedSticker === st.src
                   return (
-                    <button key={ic.name} onClick={() => { setEmoji(ic.emoji); setSelectedIcon(() => ic.comp); setLogoUrl(null) }} style={{
+                    <button key={st.name} onClick={() => { setEmoji(st.name); setSelectedSticker(st.src); setLogoUrl(null) }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: active ? '1px solid #E8B84B' : '1px solid #141414',
                       background: active ? 'rgba(232,184,75,0.1)' : '#000', cursor: 'pointer',
-                    }} title={ic.name}>
-                      <IconComp size={16} color={active ? '#E8B84B' : '#666'} />
+                    }} title={st.name}>
+                      <img src={st.src} style={{ width: 24, height: 24, objectFit: 'contain' }} alt={st.name} />
                     </button>
                   )
                 })}
@@ -502,7 +484,7 @@ export default function PortalWizard() {
                   {uploading ? 'Uploading...' : 'Upload Logo'}
                 </button>
                 {logoUrl && (
-                  <button onClick={() => { setLogoUrl(null); setSelectedIcon(null); setEmoji('📡') }} style={{
+                  <button onClick={() => { setLogoUrl(null); setSelectedSticker(null); setEmoji('') }} style={{
                     padding: '10px 14px', borderRadius: 9, border: '1px solid #ef4444',
                     background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', fontSize: 11,
                     fontFamily: 'Inter, sans-serif',
@@ -529,16 +511,16 @@ export default function PortalWizard() {
                       const url = data.asset?.url
                       if (url) {
                         setLogoUrl(url)
-                        setEmoji(''); setSelectedIcon(null)
+                        setEmoji(''); setSelectedSticker(null)
                       } else {
                         const fallback = URL.createObjectURL(file)
                         setLogoUrl(fallback)
-                        setEmoji(''); setSelectedIcon(null)
+                        setEmoji(''); setSelectedSticker(null)
                       }
                     } else {
                       const fallback = URL.createObjectURL(file)
                       setLogoUrl(fallback)
-                      setEmoji(''); setSelectedIcon(null)
+                      setEmoji(''); setSelectedSticker(null)
                     }
                   } catch {
                     const fallback = URL.createObjectURL(file)
