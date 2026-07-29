@@ -62,6 +62,7 @@ export default function MikrotikWizard() {
   const [showWizard, setShowWizard] = useState(false)
 
   const [health, setHealth] = useState<any>(null)
+  const [packages, setPackages] = useState<any[]>([])
 
   useEffect(() => {
     if (!token) return
