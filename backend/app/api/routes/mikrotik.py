@@ -279,7 +279,7 @@ async def decommission_bridge(
 
 @router.get("/mikrotik/bridge-download")
 async def download_bridge():
-    bridge_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "bridge.py")
+    bridge_path = os.path.join(os.path.dirname(__file__), "..", "..", "bridge.py")
     if not os.path.exists(bridge_path):
         raise HTTPException(status_code=404, detail="bridge.py not found on server")
     return FileResponse(bridge_path, filename="bridge.py", media_type="text/plain")
