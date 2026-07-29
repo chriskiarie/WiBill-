@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { CheckCircle, XCircle, Activity, Download, Copy, Terminal, Wifi, AlertTriangle, ChevronRight, RefreshCw, Search, Shield } from 'lucide-react'
+import { CheckCircle, XCircle, Activity, Download, Copy, Terminal, Wifi, AlertTriangle, ChevronRight, RefreshCw, Search, Shield, Settings } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
@@ -21,16 +21,170 @@ const STEPS = [
   { id: 4, label: 'Go Live' },
 ]
 
+const Card = ({ children, style }: any) => (
+  <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, ...style }}>{children}</div>
+)
+
+const Input = ({ label, value, onChange, placeholder, type, mono, suffix, error }: any) => (
+  <div style={{ marginBottom: 14 }}>
+    <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>{label}</label>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'}
+        style={{
+          flex: 1, padding: '10px 12px', background: C.void, border: `0.5px solid ${error ? C.red : C.border}`, borderRadius: 7,
+          color: C.text, fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
+          boxSizing: 'border-box', outline: 'none',
+        }} />
+      {suffix && <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{suffix}</span>}
+    </div>
+  </div>
+)
+
+function friendlyError(raw: string): string {
+  if (!raw) return 'Unknown error'
+  if (raw.includes('Bridge is offline')) return 'Bridge is offline — make sure bridge.py is running on the same network as the router'
+  if (raw.includes('Bridge is busy')) return 'Bridge is busy — try again in a few seconds'
+  if (raw.includes('Bridge authentication')) return 'Bridge authentication failed — check the bridge secret'
+  if (raw.includes('Unexpected response')) return 'Bridge is not responding correctly — check that bridge.py is running'
+  if (raw.includes('502')) return 'Could not reach the bridge — ensure bridge.py is running and the tunnel is active'
+  if (raw.includes('ECONNREFUSED')) return 'Connection refused — bridge is not running on the expected port'
+  if (raw.includes('timeout')) return 'Connection timed out — bridge may be unreachable'
+  if (raw.includes('No MikroTik config')) return 'No router configured — run the setup wizard first'
+  if (raw.includes('<!doctype') || raw.includes('<html')) return 'Bridge returned an error page — check that bridge.py is running'
+  return raw
+}
+
 export default function MikrotikWizard() {
   const { token } = useAuth()
   const { showToast } = useToast()
 
-  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [showWizard, setShowWizard] = useState(false)
 
-  // Step 1 state
+  const [health, setHealth] = useState<any>(null)
+
+  useEffect(() => {
+    if (!token) return
+    Promise.all([
+      api.getMikrotikHealth().catch(() => null),
+      api.getPackages().catch(() => []),
+    ]).then(([h, pkgs]) => {
+      setHealth(h)
+      setPackages(pkgs || [])
+      setLoading(false)
+    })
+  }, [token])
+
+  const handleCheckHealth = async () => {
+    try {
+      const h = await api.getMikrotikHealth()
+      setHealth(h)
+    } catch { setHealth({ connected: false, configured: false }) }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Topbar title="MikroTik Setup" />
+        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LoadingSpinner size="md" label="Loading..." />
+        </div>
+      </div>
+    )
+  }
+
+  if (!showWizard && health?.connected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Topbar title="MikroTik Setup" />
+        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+          <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Wifi size={18} color={C.green} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Router Connected</div>
+                  <div style={{ fontSize: 10, color: C.dim }}>{health.router_identity || 'MikroTik router'} · {health.board_name || '—'}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                <div style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>OS Version</div>
+                  <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{health.router_os_version || '—'}</div>
+                </div>
+                <div style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Uptime</div>
+                  <div style={{ fontSize: 12, color: C.text, fontFamily: 'DM Mono, monospace' }}>{health.uptime || '—'}</div>
+                </div>
+                <div style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Hotspot</div>
+                  <div style={{ fontSize: 12, color: health.hotspot_found ? C.green : C.red, fontFamily: 'DM Mono, monospace' }}>
+                    {health.hotspot_found ? 'Active' : 'Not configured'}
+                  </div>
+                </div>
+                <div style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Bridge</div>
+                  <div style={{ fontSize: 12, color: C.green, fontFamily: 'DM Mono, monospace' }}>Online</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowWizard(true)}
+                  style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Settings size={14} /> Reconfigure Router
+                </button>
+                <button onClick={handleCheckHealth}
+                  style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <RefreshCw size={13} /> Refresh
+                </button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!showWizard) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Topbar title="MikroTik Setup" />
+        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+          <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+            <Card>
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(232,184,75,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Wifi size={24} color={C.gold} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Connect Your MikroTik Router</div>
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, maxWidth: 400, margin: '0 auto 24px' }}>
+                  Set up your MikroTik hotspot so customers connecting to your WiFi see the branded captive portal and can purchase internet via M-Pesa.
+                </div>
+                <button onClick={() => setShowWizard(true)}
+                  style={{ padding: '14px 32px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Settings size={16} /> Start Setup Wizard
+                </button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <WizardFlow onBack={() => { setShowWizard(false); handleCheckHealth() }} />
+}
+
+function WizardFlow({ onBack }: { onBack: () => void }) {
+  const { token } = useAuth()
+  const { showToast } = useToast()
+
+  const [step, setStep] = useState(1)
+
   const [ssid, setSsid] = useState('')
-  const [wifiPassword, setWifiPassword] = useState('')
   const [networkOctet, setNetworkOctet] = useState(4)
   const [wifiInterface, setWifiInterface] = useState('wlan1')
   const [availableInterfaces, setAvailableInterfaces] = useState<string[]>(['wlan1'])
@@ -40,7 +194,6 @@ export default function MikrotikWizard() {
   const [subnetOk, setSubnetOk] = useState<boolean | null>(null)
   const [subnetChecking, setSubnetChecking] = useState(false)
 
-  // Step 2 state
   const [portalHtml, setPortalHtml] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
   const [portalUploaded, setPortalUploaded] = useState(false)
@@ -48,7 +201,6 @@ export default function MikrotikWizard() {
   const [fileChecking, setFileChecking] = useState(false)
   const [step2Confirmed, setStep2Confirmed] = useState(false)
 
-  // Step 3 state
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<any>(null)
   const [hostsPolling, setHostsPolling] = useState(false)
@@ -56,7 +208,6 @@ export default function MikrotikWizard() {
   const [pollingActive, setPollingActive] = useState(false)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Step 4 state
   const [packages, setPackages] = useState<any[]>([])
   const [preflight, setPreflight] = useState<any>(null)
   const [preflightLoading, setPreflightLoading] = useState(false)
@@ -73,11 +224,9 @@ export default function MikrotikWizard() {
       const names = (ifaces?.interfaces || []).map((i: any) => i.name)
       if (names.length) setAvailableInterfaces(names)
       if (!names.includes('wlan1')) setAvailableInterfaces([...names, 'wlan1'])
-      setLoading(false)
     })
   }, [token])
 
-  // Step 1: Subnet check
   useEffect(() => {
     if (networkOctet < 1 || networkOctet > 254) return
     setSubnetChecking(true)
@@ -91,21 +240,19 @@ export default function MikrotikWizard() {
     return () => clearTimeout(timer)
   }, [networkOctet])
 
-  // Step 1: Generate script
   const handleGenerateScript = async () => {
     if (!ssid.trim()) { showToast('Enter a WiFi name', { type: 'error' }); return }
     setScriptLoading(true)
     try {
       const data = await api.generateMikrotikScript({
         ssid: ssid.trim(),
-        wifi_password: wifiPassword,
         network_octet: networkOctet,
         wifi_interface: wifiInterface,
         backend_host: backendHost || undefined,
       })
       setScript(data)
     } catch (e: any) {
-      showToast(e.message || 'Failed to generate script', { type: 'error' })
+      showToast(friendlyError(e.message || 'Failed to generate script'), { type: 'error' })
     } finally { setScriptLoading(false) }
   }
 
@@ -124,7 +271,6 @@ export default function MikrotikWizard() {
     URL.revokeObjectURL(url)
   }
 
-  // Step 2: Generate login.html and push to router
   const handleGenerateAndPushLoginHtml = async () => {
     setPortalUploading(true)
     try {
@@ -137,7 +283,7 @@ export default function MikrotikWizard() {
         setTimeout(() => { setFileChecking(true); verifyFileOnRouter() }, 3000)
       }
     } catch (e: any) {
-      showToast(e.message || 'Failed to upload portal file', { type: 'error' })
+      showToast(friendlyError(e.message || 'Failed to upload portal file'), { type: 'error' })
     } finally { setPortalUploading(false) }
   }
 
@@ -161,11 +307,10 @@ export default function MikrotikWizard() {
       a.href = url; a.download = 'login.html'; a.click()
       URL.revokeObjectURL(url)
     } catch (e: any) {
-      showToast(e.message || 'Failed', { type: 'error' })
+      showToast(friendlyError(e.message || 'Failed'), { type: 'error' })
     }
   }
 
-  // Step 3: Test connection
   const handleTest = async () => {
     setTesting(true)
     setTestResult(null)
@@ -176,10 +321,10 @@ export default function MikrotikWizard() {
         showToast(`Connected to ${result.router_identity}`, { type: 'success' })
         startHostPolling()
       } else {
-        showToast(result.error || 'Failed', { type: 'error' })
+        showToast(friendlyError(result.error || 'Failed to connect'), { type: 'error' })
       }
     } catch (e: any) {
-      setTestResult({ connected: false, error: e.message || 'Failed' })
+      setTestResult({ connected: false, error: friendlyError(e.message || 'Failed') })
     } finally { setTesting(false) }
   }
 
@@ -202,14 +347,13 @@ export default function MikrotikWizard() {
   const deviceCount = detectedDevices.filter((d: any) => !d.authorized).length
   const activeCount = detectedDevices.filter((d: any) => d.authorized === 'true').length
 
-  // Step 4: Pre-flight
   const handlePreflight = async () => {
     setPreflightLoading(true)
     try {
       const result = await api.getMikrotikPreflight()
       setPreflight(result)
     } catch (e: any) {
-      showToast(e.message || 'Preflight check failed', { type: 'error' })
+      showToast(friendlyError(e.message || 'Preflight check failed'), { type: 'error' })
     } finally { setPreflightLoading(false) }
   }
 
@@ -219,49 +363,17 @@ export default function MikrotikWizard() {
       setGoLiveDone(true)
       showToast('Hotspot is live!', { type: 'success' })
     } catch (e: any) {
-      showToast(e.message || 'Failed to go live', { type: 'error' })
+      showToast(friendlyError(e.message || 'Failed to go live'), { type: 'error' })
     }
   }
 
   const hasActivePackage = packages.some(p => p.is_active)
-  const stripHtml = (s: string) => s ? s.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim() : ''
-
-  const Card = ({ children, style }: any) => (
-    <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, ...style }}>{children}</div>
-  )
-
-  const Input = ({ label, value, onChange, placeholder, type, mono, suffix, error }: any) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>{label}</label>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type || 'text'}
-          style={{
-            flex: 1, padding: '10px 12px', background: C.void, border: `0.5px solid ${error ? C.red : C.border}`, borderRadius: 7,
-            color: C.text, fontSize: 12, fontFamily: mono ? 'DM Mono, monospace' : 'Inter, sans-serif',
-            boxSizing: 'border-box', outline: 'none',
-          }} />
-        {suffix && <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{suffix}</span>}
-      </div>
-    </div>
-  )
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <Topbar title="MikroTik Setup" />
-        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <LoadingSpinner size="md" label="Loading..." />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="MikroTik Setup" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
-          {/* Step Indicator */}
           <div style={{ display: 'flex', gap: 0, marginBottom: 32, alignItems: 'stretch' }}>
             {STEPS.map((s, i) => {
               const isActive = step === s.id
@@ -288,7 +400,6 @@ export default function MikrotikWizard() {
             })}
           </div>
 
-          {/* ===== STEP 1: Router Config ===== */}
           {step === 1 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -299,9 +410,8 @@ export default function MikrotikWizard() {
               </div>
 
               {!script && (
-                <div className="grid-2" style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   <Input label="WiFi Network Name (SSID)" value={ssid} onChange={setSsid} placeholder="e.g. MyISP WiFi" />
-                  <Input label="WiFi Password (blank = open)" value={wifiPassword} onChange={setWifiPassword} type="password" placeholder="Leave blank for open network" />
                   <div style={{ marginBottom: 14 }}>
                     <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>
                       Network Octet {subnetOk === true && <span style={{ color: C.green }}>✓ Available</span>}
@@ -336,7 +446,7 @@ export default function MikrotikWizard() {
 
               {!script && !scriptLoading && (
                 <button onClick={handleGenerateScript} disabled={!ssid.trim() || subnetOk === false}
-                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: (ssid.trim() && subnetOk !== false) ? 'pointer' : 'not-allowed', opacity: (ssid.trim() && subnetOk !== false) ? 1 : 0.5 }}>
+                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: (ssid.trim() && subnetOk !== false) ? 'pointer' : 'not-allowed', opacity: (ssid.trim() && subnetOk !== false) ? 1 : 0.5, marginTop: 12 }}>
                   Generate Setup Script
                 </button>
               )}
@@ -352,7 +462,7 @@ export default function MikrotikWizard() {
                     <button onClick={handleDownloadScript} style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Download size={13} /> .rsc
                     </button>
-                    <button onClick={() => { setScript(null); setSsid(''); setWifiPassword('') }}
+                    <button onClick={() => { setScript(null); setSsid('') }}
                       style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       Reset
                     </button>
@@ -374,7 +484,6 @@ export default function MikrotikWizard() {
             </Card>
           )}
 
-          {/* ===== STEP 2: Portal File ===== */}
           {step === 2 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -420,7 +529,6 @@ export default function MikrotikWizard() {
             </Card>
           )}
 
-          {/* ===== STEP 3: Test Connection ===== */}
           {step === 3 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -453,9 +561,9 @@ export default function MikrotikWizard() {
                       </div>
                     </>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <XCircle size={16} color={C.red} />
-                      <span style={{ color: C.red }}>{stripHtml(testResult.error || 'Failed')}</span>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <XCircle size={16} color={C.red} style={{ marginTop: 1, flexShrink: 0 }} />
+                      <span style={{ color: C.red }}>{friendlyError(testResult.error || 'Failed')}</span>
                     </div>
                   )}
                 </div>
@@ -493,7 +601,6 @@ export default function MikrotikWizard() {
             </Card>
           )}
 
-          {/* ===== STEP 4: Go Live ===== */}
           {step === 4 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -514,7 +621,6 @@ export default function MikrotikWizard() {
 
               {!goLiveDone && (
                 <>
-                  {/* Pre-flight checks */}
                   <button onClick={handlePreflight} disabled={preflightLoading}
                     style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: preflightLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
                     <Shield size={13} /> {preflightLoading ? 'Running checks...' : preflight ? 'Re-run Pre-flight Checks' : 'Run Pre-flight Checks'}

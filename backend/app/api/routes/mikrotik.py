@@ -335,7 +335,6 @@ async def generate_parameterized_script(
     from app.core.config import settings
     body = await request.json()
     ssid = body.get("ssid", "WiFi")
-    wifi_password = body.get("wifi_password", "")
     network_octet = body.get("network_octet", 4)
     wifi_interface = body.get("wifi_interface", "wlan1")
     backend_host_override = body.get("backend_host", "")
@@ -356,57 +355,21 @@ async def generate_parameterized_script(
 
     backend_host = backend_host_override or (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
 
-    wifi_secure = ""
-    if wifi_password:
-        wifi_secure = f'/interface wireless security-profiles set [find default] authentication-types=wpa2-psk mode=dynamic-keys wpa2-pre-shared-key="{wifi_password}"'
-
-    script = f"""# ============================================================
-# WiBill Router Setup Script
-# ISP: {name}
-# Generated: auto
-# Paste into Winbox -> New Terminal -> Press Enter
-# ============================================================
-
-# 1. Create hotspot bridge
-/interface bridge add name=WiBillBridge comment="WiBill hotspot bridge"
-
-# 2. Assign IP to bridge
-/ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge comment="WiBill hotspot IP"
-
-# 3. Add WiFi interface to bridge
+    script = f"""/interface bridge add name=WiBillBridge
+/ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge
 /interface bridge port add bridge=WiBillBridge interface={wifi_interface}
-
-# 4. Set WiFi SSID
 /interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto
-{wifi_secure}
-
-# 5. Create IP pool for hotspot clients
 /ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254
-
-# 6. Create DHCP server on bridge
 /ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no
 /ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4
-
-# 7. Create hotspot on bridge
 /ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
-
-# 8. Configure hotspot profile
 /ip hotspot profile set [find name=hsprof1] addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
-
-# 9. Enable API service
 /ip service enable api
 /ip service set api port=8728 address=""
-
-# 10. Create WiBill API user
-/user add name=wibill-api password={api_password} group=full comment="WiBill API access"
-
-# 11. Walled garden (hostname-based)
-/ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
-/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
-
-# 12. Walled garden (IP-based - Railway)
-/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept comment="Allow Railway HTTPS"
-
+/user add name=wibill-api password={api_password} group=full
+/ip hotspot walled-garden add dst-host={backend_host} action=allow
+/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow
+/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept
 :log info "WiBill setup complete for {name}"
 """
     return PlainTextResponse(

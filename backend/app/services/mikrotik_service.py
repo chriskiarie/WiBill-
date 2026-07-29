@@ -64,6 +64,19 @@ def _bridge_headers(config: MikrotikConfig) -> dict:
     return headers
 
 
+def _friendly_bridge_error(status_code: int, body: str) -> str:
+    if status_code == 502:
+        return "Bridge is offline — ensure bridge.py is running on the same network as the router and the tunnel is active"
+    if status_code == 503:
+        return "Bridge is busy — try again in a few seconds"
+    if status_code == 401:
+        return "Bridge authentication failed — check the bridge secret"
+    if "<html" in body.lower() or "<!doctype" in body.lower():
+        return f"Unexpected response from bridge (HTTP {status_code}) — bridge may be down or misconfigured"
+    preview = body[:200].strip()
+    return preview if preview else f"Bridge error {status_code}"
+
+
 async def _bridge_post(tenant_id: str, path: str, payload: dict, db: AsyncSession) -> dict:
     config = await _get_config(tenant_id, db)
     if not config:
@@ -73,7 +86,7 @@ async def _bridge_post(tenant_id: str, path: str, payload: dict, db: AsyncSessio
             r = await client.post(f"{_bridge_url(config)}{path}", json=payload, headers=_bridge_headers(config))
             if r.status_code == 200:
                 return {"success": True, "data": r.json()}
-            return {"success": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+            return {"success": False, "error": _friendly_bridge_error(r.status_code, r.text)}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -86,7 +99,7 @@ async def _bridge_get(tenant_id: str, path: str, db: AsyncSession) -> dict:
             r = await client.get(f"{_bridge_url(config)}{path}", headers=_bridge_headers(config))
             if r.status_code == 200:
                 return {"success": True, "data": r.json()}
-            return {"success": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+            return {"success": False, "error": _friendly_bridge_error(r.status_code, r.text)}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
