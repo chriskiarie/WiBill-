@@ -257,66 +257,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════ PRICING ═══════ */}
-      <section style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 40px 80px', maxWidth: 900, margin: '0 auto',
-        textAlign: 'center',
-      }}>
-        <h2 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em',
-          margin: '0 0 8px',
-        }}>
-          We take <span style={{ color: gold }}>10%</span> of every transaction.
-        </h2>
-        <p style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14, color: dim, lineHeight: 1.6,
-          maxWidth: 440, margin: '0 auto 36px',
-        }}>
-          You keep 90%. No monthly fees. No setup charges.
-        </p>
-
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 14,
-        }}>
-          {[
-            { amount: 'KES 50K', yours: 'KES 45,000', platform: 'KES 5,000' },
-            { amount: 'KES 200K', yours: 'KES 180,000', platform: 'KES 20,000' },
-            { amount: 'KES 500K', yours: 'KES 450,000', platform: 'KES 50,000' },
-          ].map((tier) => (
-            <div key={tier.amount} style={{
-              background: cardBg,
-              backdropFilter: 'blur(16px)',
-              border: `0.5px solid ${cardBorder}`,
-              borderRadius: 14,
-              padding: '24px 20px',
-              textAlign: 'left',
-            }}>
-              <div style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 22, color: gold, fontWeight: 500, marginBottom: 16,
-              }}>{tier.amount}</div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                paddingTop: 12, borderTop: '0.5px solid rgba(255,255,255,0.06)',
-              }}>
-                <div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#444' }}>you keep</div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#22c55e', fontWeight: 500 }}>{tier.yours}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#444' }}>platform</div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#666' }}>{tier.platform}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ═══════ CTA ═══════ */}
       <section style={{
         position: 'relative', zIndex: 1,

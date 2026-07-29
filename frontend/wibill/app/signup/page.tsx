@@ -14,12 +14,14 @@ const inp: React.CSSProperties = {
   background: 'rgba(255,255,255,0.04)',
   border: '0.5px solid rgba(255,255,255,0.08)',
   borderRadius: 9,
-  padding: '13px 16px',
+  padding: '12px 14px',
   color: '#f0f0f0',
   fontFamily: "'DM Mono', monospace",
   fontSize: 13,
   outline: 'none',
   transition: 'border-color 0.2s, box-shadow 0.2s',
+  appearance: 'none' as const,
+  WebkitAppearance: 'none' as const,
 }
 const inpFocus: React.CSSProperties = {
   ...inp,
@@ -139,7 +141,7 @@ export default function SignupPage() {
               textShadow: '0 0 60px rgba(237,235,230,0.08)',
               lineHeight: 1,
             }}>
-              Wi<span style={{ color: gold }}>Bill</span>
+              WiBill
             </div>
           </Link>
           <div style={{
@@ -257,31 +259,47 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={lbl}>HOTSPOTS / ROUTERS</label>
-                  <input
-                    style={inputStyle('hotspotCount')}
-                    type="number"
-                    min="0"
-                    value={hotspotCount}
-                    onChange={e => setHotspotCount(e.target.value)}
-                    onFocus={() => setFocusField('hotspotCount')}
-                    onBlur={() => setFocusField(null)}
-                    placeholder="e.g. 5"
-                  />
-                </div>
-                <div>
-                  <label style={lbl}>HOW DID YOU HEAR ABOUT US?</label>
-                  <input
-                    style={inputStyle('howHeard')}
-                    type="text"
+              <div>
+                <label style={lbl}>HOTSPOTS / ROUTERS</label>
+                <input
+                  style={inputStyle('hotspotCount')}
+                  type="number"
+                  min="0"
+                  value={hotspotCount}
+                  onChange={e => setHotspotCount(e.target.value)}
+                  onFocus={() => setFocusField('hotspotCount')}
+                  onBlur={() => setFocusField(null)}
+                  placeholder="e.g. 5"
+                />
+              </div>
+              <div>
+                <label style={lbl}>HOW DID YOU HEAR ABOUT US? (OPTIONAL)</label>
+                <div style={{ position: 'relative' }}>
+                  <select
                     value={howHeard}
                     onChange={e => setHowHeard(e.target.value)}
                     onFocus={() => setFocusField('howHeard')}
                     onBlur={() => setFocusField(null)}
-                    placeholder="e.g. Google, referral"
-                  />
+                    style={{
+                      ...inputStyle('howHeard'),
+                      paddingRight: 32,
+                      cursor: 'pointer',
+                      color: howHeard ? '#f0f0f0' : '#555',
+                    }}
+                  >
+                    <option value="" style={{ background: '#111', color: '#555' }}>Select an option...</option>
+                    <option value="Google" style={{ background: '#111' }}>Google</option>
+                    <option value="WhatsApp group" style={{ background: '#111' }}>WhatsApp group</option>
+                    <option value="Friend / colleague" style={{ background: '#111' }}>Friend / colleague</option>
+                    <option value="Social media" style={{ background: '#111' }}>Social media</option>
+                    <option value="Existing ISP recommendation" style={{ background: '#111' }}>Existing ISP recommendation</option>
+                    <option value="Trade show / event" style={{ background: '#111' }}>Trade show / event</option>
+                    <option value="Other" style={{ background: '#111' }}>Other</option>
+                  </select>
+                  <div style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    pointerEvents: 'none', color: '#555', fontSize: 10,
+                  }}>▼</div>
                 </div>
               </div>
 
