@@ -21,6 +21,8 @@ _HEADERS = {
 
 
 async def _cf_post(path: str, json_data: dict) -> dict:
+    if not settings.CLOUDFLARE_API_TOKEN:
+        raise RuntimeError("CLOUDFLARE_API_TOKEN not configured — tunnel provisioning skipped")
     async with AsyncClient(base_url=CLOUDFLARE_BASE, headers=_HEADERS, timeout=30) as client:
         r = await client.post(path, json=json_data)
         r.raise_for_status()

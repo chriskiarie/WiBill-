@@ -228,24 +228,29 @@ async def provision_bridge(
 
     tunnel_name = f"isp-{tenant.slug}"
     bridge_secret = secrets.token_hex(32)
-    tunnel = await create_tunnel(tunnel_name)
-    tunnel_token = tunnel.get("token", "")
-
-    subdomain = f"isp-{tenant.slug}"
-    await create_dns_record(subdomain, tunnel["id"])
 
     config.bridge_secret_enc = encrypt(bridge_secret)
-    config.tunnel_token_enc = encrypt(tunnel_token)
-    config.tunnel_id = tunnel["id"]
-    config.tunnel_hostname = f"{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}"
+
+    if settings.CLOUDFLARE_API_TOKEN:
+        tunnel = await create_tunnel(tunnel_name)
+        tunnel_token = tunnel.get("token", "")
+        subdomain = f"isp-{tenant.slug}"
+        await create_dns_record(subdomain, tunnel["id"])
+        config.tunnel_token_enc = encrypt(tunnel_token)
+        config.tunnel_id = tunnel["id"]
+        config.tunnel_hostname = f"{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}"
+    else:
+        tunnel_token = ""
+        config.tunnel_hostname = None
+
     config.status = "PROVISIONED"
     await db.commit()
 
     return {
         "ok": True,
-        "tunnel_id": tunnel["id"],
+        "tunnel_id": config.tunnel_id,
         "tunnel_name": tunnel_name,
-        "bridge_url": config.tunnel_hostname,
+        "bridge_url": config.tunnel_hostname or "",
         "bridge_secret": bridge_secret,
         "tunnel_token": tunnel_token,
     }
@@ -669,11 +674,6 @@ async def generate_install_script(
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
 
     router_ip = config.router_ip
-    if router_ip.startswith("http"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"router_ip is set to '{router_ip}' (a URL). Go to MikroTik config and set it to your local router IP (e.g. 192.168.4.1)."
-        )
 
     bridge_secret = decrypt(config.bridge_secret_enc) if config.bridge_secret_enc else secrets.token_hex(32)
     tunnel_token = decrypt(config.tunnel_token_enc) if config.tunnel_token_enc else None
