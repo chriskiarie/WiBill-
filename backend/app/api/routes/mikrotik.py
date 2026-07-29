@@ -672,6 +672,8 @@ async def generate_install_script(
 
     has_tunnel = bool(tunnel_token)
     download_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
+    if not download_base.startswith("http"):
+        download_base = f"https://{download_base}"
 
     tunnel_section = ""
     if has_tunnel:
