@@ -665,32 +665,37 @@ async def generate_install_script(
     config = result.scalar_one_or_none()
     if not config:
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
-    if not config.tunnel_id or not config.bridge_secret_enc or not config.tunnel_token_enc:
-        raise HTTPException(status_code=400, detail="Run POST /mikrotik/provision first to create tunnel")
 
-    bridge_secret = decrypt(config.bridge_secret_enc)
-    tunnel_token = decrypt(config.tunnel_token_enc)
+    bridge_secret = decrypt(config.bridge_secret_enc) if config.bridge_secret_enc else secrets.token_hex(32)
+    tunnel_token = decrypt(config.tunnel_token_enc) if config.tunnel_token_enc else None
     api_password = decrypt(config.api_password_enc)
 
-    script = f"""<#
-.WiBill Bridge Installer \u2014 generated for {tenant.name}
-.Download bridge.py and cloudflared, set up services on this PC.
-.Run this script as Administrator on the always-on PC at the ISP site.
-#>
+    has_tunnel = bool(tunnel_token)
 
-$ErrorActionPreference = "Stop"
+    tunnel_section = ""
+    if has_tunnel:
+        tunnel_section = f"""
+# -- 7. Install cloudflared as a tunnel service --
+$tunnelToken = "{tunnel_token}"
+& cloudflared.exe service uninstall 2>$null
+Start-Sleep -Seconds 2
+& cloudflared.exe service install "$tunnelToken"
+Write-Host "cloudflared tunnel service installed."
+"""
+
+    script = f"""$ErrorActionPreference = "Stop"
 $WIBILL_DIR = "C:\\WiBill"
 
-# \u2500\u2500 1. Create working directory \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# -- 1. Create working directory --
 New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
 Set-Location -LiteralPath "$WIBILL_DIR"
 
-    # \u2500\u2500 2. Download bridge.py \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# -- 2. Download bridge.py --
 Write-Host "Downloading bridge.py..."
 $BRIDGE_URL = "{settings.PUBLIC_BASE_URL}/api/mikrotik/bridge-download"
 Invoke-WebRequest -Uri "$BRIDGE_URL" -OutFile "bridge.py"
 
-# \u2500\u2500 3. Write .env \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# -- 3. Write .env --
 $envContent = '@
 MIKROTIK_HOST={config.router_ip}
 MIKROTIK_PORT={config.api_port}
@@ -703,24 +708,11 @@ BRIDGE_VERSION={settings.MIKROTIK_BRIDGE_VERSION}
 Set-Content -Path ".env" -Value $envContent
 Write-Host ".env written to $WIBILL_DIR\\.env"
 
-# \u2500\u2500 4. Install cloudflared \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-$cloudflared = Get-Command "cloudflared.exe" -ErrorAction SilentlyContinue
-if (-not $cloudflared) {{
-    Write-Host "Downloading cloudflared..."
-    $url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
-    Invoke-WebRequest -Uri "$url" -OutFile "cloudflared.exe"
-    Move-Item -LiteralPath ".\\cloudflared.exe" -Destination "$env:SYSTEMROOT\\system32\\cloudflared.exe" -Force
-    $cloudflaredPath = "$env:SYSTEMROOT\\system32\\cloudflared.exe"
-}} else {{
-    $cloudflaredPath = $cloudflared.Source
-}}
-Write-Host "cloudflared ready at $cloudflaredPath"
-
-# \u2500\u2500 5. Install Python packages needed by bridge.py \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# -- 4. Install Python packages needed by bridge.py --
 Write-Host "Installing Python dependencies..."
 pip install fastapi uvicorn librouteros httpx > "$WIBILL_DIR\\install.log" 2>&1
 
-# \u2500\u2500 6. Install bridge.py as a service (via NSSM) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# -- 5. Install bridge.py as a service (via NSSM) --
 $nssm = Get-Command "nssm.exe" -ErrorAction SilentlyContinue
 if (-not $nssm) {{
     Write-Host "Downloading NSSM..."
@@ -743,18 +735,11 @@ if (-not $nssm) {{
 & $nssmPath set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
 & $nssmPath start WiBillBridge
 Write-Host "WiBillBridge service installed and started."
-
-# \u2500\u2500 7. Install cloudflared as a tunnel service \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-$tunnelToken = "{tunnel_token}"
-& cloudflared.exe service uninstall 2>$null
-Start-Sleep -Seconds 2
-& cloudflared.exe service install "$tunnelToken"
-Write-Host "cloudflared tunnel service installed."
-
+{tunnel_section}
 Write-Host ""
 Write-Host "=== WiBill Bridge Installation Complete ==="
 Write-Host "bridge.py running at http://127.0.0.1:8080"
-Write-Host "Cloudflare tunnel established."
+{"Write-Host 'Cloudflare tunnel established.'" if has_tunnel else "Write-Host 'Bridge running in local mode (no tunnel).'"}
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. Verify tunnel: cloudflared tunnel list"
