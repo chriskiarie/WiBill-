@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
-import { Bell, CheckCheck, RefreshCw, ExternalLink, DollarSign, AlertTriangle, Mail, Megaphone } from 'lucide-react'
+import { Bell, CheckCheck, RefreshCw, ExternalLink, DollarSign, AlertTriangle, Mail, Megaphone, UserPlus } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -26,6 +26,7 @@ const typeConfig: Record<string, { icon: any; color: string; label: string }> = 
   invoice_due:     { icon: DollarSign, color: C.gold, label: 'Invoice Due' },
   payment_received:{ icon: CheckCheck, color: C.green, label: 'Payment Received' },
   network_alert:   { icon: AlertTriangle, color: C.red, label: 'Network Alert' },
+  lead_submission: { icon: UserPlus, color: C.gold, label: 'New Lead' },
 }
 
 function formatTime(iso: string) {
@@ -105,6 +106,7 @@ export default function NotificationsPage() {
             {[
               { id: 'all', label: 'All' },
               { id: 'unread', label: `Unread` },
+              { id: 'lead_submission', label: 'Leads' },
               { id: 'invoice_due', label: 'Invoices' },
               { id: 'payment_received', label: 'Payments' },
               { id: 'broadcast', label: 'Announcements' },

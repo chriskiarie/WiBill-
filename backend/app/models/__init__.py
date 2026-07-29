@@ -24,6 +24,7 @@ from app.models.subscriber_status_log import SubscriberStatusLog
 from app.models.subscriber_data_usage import SubscriberDataUsage
 from app.models.ipam_pool import IpamPool
 from app.models.portal_config_snapshot import PortalConfigSnapshot
+from app.models.lead import Lead, LeadStatus
 
 __all__ = [
     "Tenant",
@@ -67,4 +68,6 @@ __all__ = [
     "SubscriberDataUsage",
     "IpamPool",
     "PortalConfigSnapshot",
+    "Lead",
+    "LeadStatus",
 ]

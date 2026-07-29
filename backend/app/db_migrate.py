@@ -434,6 +434,26 @@ MIGRATIONS = [
     ("portal_config_snapshots index", """
         CREATE INDEX IF NOT EXISTS ix_portal_config_snapshots_tenant_id ON portal_config_snapshots(tenant_id)
     """),
+    # ── Leads table (landing page Request Access) ──────────────────────────
+    ("leadstatus enum type", """
+        DO $$ BEGIN
+            CREATE TYPE leadstatus AS ENUM ('pending', 'contacted', 'converted');
+        EXCEPTION WHEN duplicate_object THEN null;
+        END $$
+    """),
+    ("leads table", """
+        CREATE TABLE IF NOT EXISTS leads (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            isp_name VARCHAR(255) NOT NULL,
+            contact_name VARCHAR(255) NOT NULL,
+            phone VARCHAR(30) NOT NULL,
+            email VARCHAR(254) NOT NULL,
+            hotspot_count INTEGER,
+            how_heard TEXT,
+            status leadstatus NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    """),
 ]
 
 async def run_migrations():

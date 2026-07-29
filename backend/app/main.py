@@ -165,7 +165,7 @@ from app.api.routes import vouchers, loyalty, reward_tokens, campaigns
 from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms, admin_invoices, payment_notifications
 from app.api.routes import subscriber_plans, monthly_subscribers, ipam
 from app.api.routes import portal_wizard
-from app.api.routes import system
+from app.api.routes import system, leads
 from fastapi.staticfiles import StaticFiles
 
 # ============================================================================
@@ -204,6 +204,7 @@ app.include_router(monthly_subscribers.router, prefix="/api/subscribers", tags=[
 app.include_router(ipam.router, prefix="/api/ipam", tags=["ipam"])
 app.include_router(portal_wizard.router, prefix="", tags=["portal-wizard"])
 app.include_router(system.router, prefix="/api", tags=["system"])
+app.include_router(leads.router, prefix="/api", tags=["leads"])
 
 # Serve uploaded assets
 import os
