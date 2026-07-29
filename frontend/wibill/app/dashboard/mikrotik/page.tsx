@@ -15,10 +15,11 @@ const C = {
 }
 
 const STEPS = [
-  { id: 1, label: 'Router Config' },
-  { id: 2, label: 'Portal File' },
-  { id: 3, label: 'Test' },
-  { id: 4, label: 'Go Live' },
+  { id: 1, label: 'Router Script' },
+  { id: 2, label: 'Bridge' },
+  { id: 3, label: 'Portal' },
+  { id: 4, label: 'Test' },
+  { id: 5, label: 'Go Live' },
 ]
 
 const Card = ({ children, style }: any) => (
@@ -195,12 +196,17 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
   const [subnetOk, setSubnetOk] = useState<boolean | null>(null)
   const [subnetChecking, setSubnetChecking] = useState(false)
 
+  const [bridgeScript, setBridgeScript] = useState<string | null>(null)
+  const [bridgeLoading, setBridgeLoading] = useState(false)
+  const [bridgeProvisioned, setBridgeProvisioned] = useState(false)
+  const [bridgeConfirmed, setBridgeConfirmed] = useState(false)
+
   const [portalHtml, setPortalHtml] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
   const [portalUploaded, setPortalUploaded] = useState(false)
   const [fileOnRouter, setFileOnRouter] = useState<boolean | null>(null)
   const [fileChecking, setFileChecking] = useState(false)
-  const [step2Confirmed, setStep2Confirmed] = useState(false)
+  const [step3Confirmed, setStep3Confirmed] = useState(false)
 
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<any>(null)
@@ -270,6 +276,24 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
     const a = document.createElement('a')
     a.href = url; a.download = 'wibill-setup.rsc'; a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleGenerateBridge = async () => {
+    setBridgeLoading(true)
+    try {
+      await api.provisionMikrotik().catch(() => null)
+      const data = await api.getMikrotikInstallScript()
+      setBridgeScript(data)
+      setBridgeProvisioned(true)
+    } catch (e: any) {
+      showToast(friendlyError(e.message || 'Failed to generate bridge installer'), { type: 'error' })
+    } finally { setBridgeLoading(false) }
+  }
+
+  const handleCopyBridgeScript = () => {
+    if (!bridgeScript) return
+    navigator.clipboard.writeText(bridgeScript)
+    showToast('PowerShell command copied — paste it on the PC connected to the router', { type: 'success' })
   }
 
   const handleGenerateAndPushLoginHtml = async () => {
@@ -488,7 +512,70 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
           {step === 2 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 2 of 4 — Upload Portal Redirect
+                Step 2 of 5 — Bridge Setup
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 16, lineHeight: 1.6 }}>
+                Run this one-time installer on the <strong>always-on PC at your site</strong> (same network as the router). It installs the bridge that connects your router to WiBill.
+              </div>
+
+              {!bridgeScript && !bridgeLoading && (
+                <button onClick={handleGenerateBridge}
+                  style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  Generate Bridge Installer
+                </button>
+              )}
+
+              {bridgeLoading && <LoadingSpinner size="sm" label="Setting up bridge..." />}
+
+              {bridgeScript && (
+                <>
+                  <div style={{ padding: 14, marginBottom: 12, background: 'rgba(232,184,75,0.08)', border: `0.5px solid rgba(232,184,75,0.25)`, borderRadius: 7 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>How to install:</div>
+                    <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.7 }}>
+                      1. Open <strong>PowerShell as Administrator</strong> on the PC<br/>
+                      2. Paste the command below<br/>
+                      3. Wait for it to finish (~2 minutes)
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <button onClick={handleCopyBridgeScript}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Copy size={13} /> Copy
+                    </button>
+                    <button onClick={() => { setBridgeScript(null); setBridgeProvisioned(false) }}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      Reset
+                    </button>
+                  </div>
+
+                  <pre style={{
+                    background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                    fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
+                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 300, overflowY: 'auto', marginBottom: 16,
+                  }}>{bridgeScript}</pre>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <input type="checkbox" id="bridge-confirm" checked={bridgeConfirmed} onChange={e => setBridgeConfirmed(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: C.gold }} />
+                    <label htmlFor="bridge-confirm" style={{ fontSize: 11, color: C.text, cursor: 'pointer' }}>
+                      Bridge is running on the PC
+                    </label>
+                  </div>
+
+                  <button onClick={() => setStep(3)} disabled={!bridgeConfirmed}
+                    style={{ width: '100%', padding: 12, background: bridgeConfirmed ? C.gold : C.mute, border: 'none', borderRadius: 7, color: bridgeConfirmed ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: bridgeConfirmed ? 'pointer' : 'not-allowed', opacity: bridgeConfirmed ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    Done <ChevronRight size={14} />
+                  </button>
+                </>
+              )}
+            </Card>
+          )}
+
+          {step === 3 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 3 of 5 — Upload Portal Redirect
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
                 Push the <strong>login.html</strong> redirect file directly to your router. This file sends users to your branded portal when they connect.
@@ -514,26 +601,26 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
                     <Download size={13} /> Download login.html (manual upload)
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <input type="checkbox" id="step2-confirm" checked={step2Confirmed} onChange={e => setStep2Confirmed(e.target.checked)}
+                    <input type="checkbox" id="step3-confirm" checked={step3Confirmed} onChange={e => setStep3Confirmed(e.target.checked)}
                       style={{ width: 16, height: 16, accentColor: C.gold }} />
-                    <label htmlFor="step2-confirm" style={{ fontSize: 11, color: C.text, cursor: 'pointer' }}>
+                    <label htmlFor="step3-confirm" style={{ fontSize: 11, color: C.text, cursor: 'pointer' }}>
                       I've uploaded <strong>login.html</strong> to the hotspot folder in Winbox
                     </label>
                   </div>
                 </>
               )}
 
-              <button onClick={() => setStep(3)} disabled={!portalUploaded && !step2Confirmed}
-                style={{ width: '100%', padding: 12, background: (portalUploaded || step2Confirmed) ? C.gold : C.mute, border: 'none', borderRadius: 7, color: (portalUploaded || step2Confirmed) ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: (portalUploaded || step2Confirmed) ? 'pointer' : 'not-allowed', opacity: (portalUploaded || step2Confirmed) ? 1 : 0.5 }}>
+              <button onClick={() => setStep(4)} disabled={!portalUploaded && !step3Confirmed}
+                style={{ width: '100%', padding: 12, background: (portalUploaded || step3Confirmed) ? C.gold : C.mute, border: 'none', borderRadius: 7, color: (portalUploaded || step3Confirmed) ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: (portalUploaded || step3Confirmed) ? 'pointer' : 'not-allowed', opacity: (portalUploaded || step3Confirmed) ? 1 : 0.5 }}>
                 Done <ChevronRight size={14} style={{ verticalAlign: 'middle' }} />
               </button>
             </Card>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 3 of 4 — Verify Connection
+                Step 4 of 5 — Verify Connection
               </div>
 
               <button onClick={handleTest} disabled={testing}
@@ -595,17 +682,17 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
-              <button onClick={() => setStep(4)} disabled={!testResult?.connected}
+              <button onClick={() => setStep(5)} disabled={!testResult?.connected}
                 style={{ width: '100%', padding: 12, background: testResult?.connected ? C.gold : C.mute, border: 'none', borderRadius: 7, color: testResult?.connected ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: testResult?.connected ? 'pointer' : 'not-allowed', opacity: testResult?.connected ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 Connection confirmed <ChevronRight size={14} />
               </button>
             </Card>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 4 of 4 — Go Live
+                Step 5 of 5 — Go Live
               </div>
 
               {!hasActivePackage && (

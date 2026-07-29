@@ -352,24 +352,37 @@ async def generate_parameterized_script(
         if config:
             config.api_password_enc = encrypt(api_password)
             await db.commit()
+        else:
+            new_config = MikrotikConfig(
+                id=uuid.uuid4(),
+                tenant_id=current_user.tenant_id,
+                router_ip=f"192.168.{network_octet}.1",
+                api_port=8728,
+                api_username="wibill-api",
+                api_password_enc=encrypt(api_password),
+                hotspot_server="hotspot1",
+            )
+            db.add(new_config)
+            await db.commit()
 
     backend_host = backend_host_override or (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
 
-    script = f"""/interface bridge add name=WiBillBridge
-/ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge
-/interface bridge port add bridge=WiBillBridge interface={wifi_interface}
-/interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto
-/ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254
-/ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no
-/ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4
-/ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no
-/ip hotspot profile set [find name=hsprof1] addresses-per-mac=1 login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot
-/ip service enable api
-/ip service set api port=8728 address=""
-/user add name=wibill-api password={api_password} group=full
-/ip hotspot walled-garden add dst-host={backend_host} action=allow
-/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow
-/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept
+    script = f""":do {{ /interface bridge add name=WiBillBridge }} on-error={{ }}
+:do {{ /ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge }} on-error={{ }}
+:do {{ /interface bridge port add bridge=WiBillBridge interface={wifi_interface} }} on-error={{ }}
+:do {{ /interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto }} on-error={{ }}
+:do {{ /ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254 }} on-error={{ }}
+:do {{ /ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no }} on-error={{ }}
+:do {{ /ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4 }} on-error={{ }}
+:do {{ /ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no }} on-error={{ }}
+:do {{ /ip hotspot profile set [find name=hsprof1] login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot }} on-error={{ }}
+:do {{ /ip hotspot set hotspot1 addresses-per-mac=1 }} on-error={{ }}
+:do {{ /ip service enable api }} on-error={{ }}
+:do {{ /ip service set api port=8728 address="" }} on-error={{ }}
+:do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{ }}
+:do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{ }}
+:do {{ /ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow }} on-error={{ }}
+:do {{ /ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept }} on-error={{ }}
 :log info "WiBill setup complete for {name}"
 """
     return PlainTextResponse(
