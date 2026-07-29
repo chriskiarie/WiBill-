@@ -183,6 +183,9 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [preflightLoading, setPreflightLoading] = useState(false)
   const [goLiveDone, setGoLiveDone] = useState(false)
 
+  const [configLoaded, setConfigLoaded] = useState(false)
+  const [configExists, setConfigExists] = useState(false)
+
   // Load existing config
   useEffect(() => {
     if (!token) return
@@ -191,8 +194,10 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
         setRouterIp(cfg.router_ip || '')
         setApiPort(String(cfg.api_port || 8728))
         setApiUsername(cfg.api_username || 'wibill-api')
+        setConfigExists(true)
       }
-    }).catch(() => {})
+      setConfigLoaded(true)
+    }).catch(() => { setConfigLoaded(true) })
   }, [token])
 
   // ── Step 1: Connect ──
@@ -202,12 +207,19 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     setConnecting(true)
     setConnectionResult(null)
     try {
-      await api.saveMikrotikConfig({
+      const payload: any = {
         router_ip: routerIp.trim(),
         api_port: parseInt(apiPort) || 8728,
         api_username: apiUsername.trim(),
-        api_password: apiPassword,
-      })
+      }
+      if (apiPassword.trim()) {
+        payload.api_password = apiPassword.trim()
+      }
+      if (configExists) {
+        await api.updateMikrotikConfig(payload)
+      } else {
+        await api.saveMikrotikConfig({ ...payload, api_password: apiPassword.trim() || 'changeme' })
+      }
       const result = await api.testMikrotikConnection()
       setConnectionResult(result)
       if (result.connected) {
