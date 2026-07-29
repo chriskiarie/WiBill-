@@ -1,6 +1,6 @@
 import asyncio
 from logging.config import fileConfig
-from sqlalchemy import pool
+from sqlalchemy import pool, create_engine
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
@@ -8,9 +8,6 @@ from alembic import context
 # Import settings and Base
 from app.core.config import settings
 from app.core.database import Base
-from app.models.invoice import Invoice
-from app.models.invoice_transaction import InvoiceTransaction
-from app.models.invoice_reminder import InvoiceReminder
 
 # Import ALL models so Alembic can detect them
 from app.models import (
@@ -27,6 +24,14 @@ from app.models import (
     LoyaltyAccount,
     LoyaltyTransaction,
 )
+
+# Import invoice models (may fail if table doesn't exist yet)
+try:
+    from app.models.invoice import Invoice
+    from app.models.invoice_transaction import InvoiceTransaction
+    from app.models.invoice_reminder import InvoiceReminder
+except Exception:
+    pass
 
 # Alembic Config object
 config = context.config
@@ -76,7 +81,14 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    url = settings.DATABASE_URL
+    if "+asyncpg" in url:
+        asyncio.run(run_async_migrations())
+    else:
+        connectable = create_engine(url, poolclass=pool.NullPool)
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
+        connectable.dispose()
 
 
 if context.is_offline_mode():
