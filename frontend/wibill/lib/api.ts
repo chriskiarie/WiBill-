@@ -191,7 +191,7 @@ export const api = {
        }
        return res.text()
      },
-     getMikrotikInstallScript: async () => {
+      getMikrotikInstallScript: async () => {
         const token = getToken()
         const res = await fetch(`${BASE}/api/mikrotik/install-script`, {
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -201,6 +201,17 @@ export const api = {
           throw new Error(err.detail || `HTTP ${res.status}`)
         }
         return res.text()
+      },
+      getMikrotikInstallScriptData: async () => {
+        const token = getToken()
+        const res = await fetch(`${BASE}/api/mikrotik/install-script-data`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Failed to get script data' }))
+          throw new Error(err.detail || `HTTP ${res.status}`)
+        }
+        return res.json()
       },
     // ========================================================================
     // MIKROTIK WIZARD API

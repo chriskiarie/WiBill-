@@ -756,6 +756,40 @@ Write-Host "To check if bridge is running: Invoke-WebRequest http://127.0.0.1:80
     return PlainTextResponse(content=script, media_type="text/plain")
 
 
+@router.get("/mikrotik/install-script-data")
+async def get_install_script_data(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Return decrypted config values so the frontend can build the install script."""
+    result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=400, detail="Save MikroTik config first")
+
+    bridge_secret = decrypt(config.bridge_secret_enc) if config.bridge_secret_enc else secrets.token_hex(32)
+    tunnel_token = decrypt(config.tunnel_token_enc) if config.tunnel_token_enc else None
+    api_password = decrypt(config.api_password_enc)
+
+    return {
+        "router_ip": config.router_ip,
+        "api_port": config.api_port,
+        "api_username": config.api_username,
+        "api_password": api_password,
+        "bridge_secret": bridge_secret,
+        "hotspot_server": config.hotspot_server,
+        "has_tunnel": bool(tunnel_token),
+        "tunnel_token": tunnel_token,
+    }
+
+
 @router.get("/mikrotik/users")
 async def list_active_users(
     db: AsyncSession = Depends(get_db),

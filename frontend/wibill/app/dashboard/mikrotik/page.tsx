@@ -282,8 +282,85 @@ function WizardFlow({ onBack }: { onBack: () => void }) {
     setBridgeLoading(true)
     try {
       await api.provisionMikrotik().catch(() => null)
-      const data = await api.getMikrotikInstallScript()
-      setBridgeScript(data)
+      const data = await api.getMikrotikInstallScriptData()
+
+      const tunnelSection = data.has_tunnel ? `
+Write-Host ""
+Write-Host "Installing cloudflared tunnel..."
+& cloudflared.exe service uninstall 2>$null
+Start-Sleep -Seconds 2
+& cloudflared.exe service install "${data.tunnel_token}"
+Write-Host "Cloudflare tunnel installed."
+` : ''
+
+      const script = `$ErrorActionPreference = "Stop"
+$WIBILL_DIR = "C:\\WiBill"
+
+# -- 1. Create working directory --
+New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
+Set-Location -LiteralPath "$WIBILL_DIR"
+Write-Host "Working directory: $WIBILL_DIR"
+
+# -- 2. Find Python --
+$python = (Get-Command "python" -ErrorAction SilentlyContinue).Source
+if (-not $python) { $python = (Get-Command "python3" -ErrorAction SilentlyContinue).Source }
+if (-not $python) { Write-Error "Python not found. Install Python 3.10+ first."; exit 1 }
+Write-Host "Python: $python"
+
+# -- 3. Download bridge.py --
+Write-Host "Downloading bridge.py..."
+Invoke-WebRequest -Uri "https://wi-bill.com/bridge.py" -OutFile "$WIBILL_DIR\\bridge.py"
+Write-Host "bridge.py downloaded."
+
+# -- 4. Write .env --
+@"
+MIKROTIK_HOST=${data.router_ip}
+MIKROTIK_PORT=${data.api_port}
+MIKROTIK_USERNAME=${data.api_username}
+MIKROTIK_PASSWORD=${data.api_password}
+WIBILL_BRIDGE_SECRET=${data.bridge_secret}
+HOTSPOT_SERVER=${data.hotspot_server}
+BRIDGE_VERSION=1.0.0
+"@ | Set-Content -Path "$WIBILL_DIR\\.env" -Encoding UTF8
+Write-Host ".env written."
+
+# -- 5. Install Python packages --
+Write-Host "Installing Python dependencies..."
+& $python -m pip install fastapi uvicorn librouteros httpx --quiet 2>&1 | Out-Null
+Write-Host "Dependencies installed."
+
+# -- 6. Install bridge.py as a Windows service (via NSSM) --
+$nssm = (Get-Command "nssm.exe" -ErrorAction SilentlyContinue).Source
+if (-not $nssm) {
+    Write-Host "Downloading NSSM..."
+    $zip = "$env:TEMP\\nssm.zip"
+    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$zip"
+    Expand-Archive -LiteralPath "$zip" -DestinationPath "$env:TEMP\\nssm" -Force
+    $nssm = "$env:TEMP\\nssm\\nssm-2.24\\win64\\nssm.exe"
+}
+
+& $nssm stop WiBillBridge 2>$null
+& $nssm remove WiBillBridge confirm 2>$null
+& $nssm install WiBillBridge $python "\`"$WIBILL_DIR\\bridge.py\`""
+& $nssm set WiBillBridge AppDirectory "$WIBILL_DIR"
+& $nssm set WiBillBridge Start SERVICE_AUTO_START
+& $nssm set WiBillBridge AppStdout "$WIBILL_DIR\\bridge.log"
+& $nssm set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
+Write-Host "Installing WiBillBridge service..."
+& $nssm start WiBillBridge
+Start-Sleep -Seconds 2
+$status = & $nssm status WiBillBridge
+Write-Host "Service status: $status"
+${tunnelSection}
+Write-Host ""
+Write-Host "=== WiBill Bridge Installed ==="
+Write-Host "Service: WiBillBridge"
+Write-Host "Logs:   $WIBILL_DIR\\bridge.log"
+Write-Host "Config: $WIBILL_DIR\\.env"
+Write-Host ""
+Write-Host "To check if bridge is running: Invoke-WebRequest http://127.0.0.1:8080/health"
+`
+      setBridgeScript(script)
       setBridgeProvisioned(true)
     } catch (e: any) {
       showToast(friendlyError(e.message || 'Failed to generate bridge installer'), { type: 'error' })
