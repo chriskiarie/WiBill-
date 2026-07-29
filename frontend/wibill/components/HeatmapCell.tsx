@@ -16,13 +16,13 @@ function lerp(a: number, b: number, t: number): number {
 
 function getColor(intensity: number): string {
   if (intensity === 0) return 'rgb(18, 18, 30)'
-  if (intensity <= 0.01) return 'rgb(28, 24, 36)'
+  if (intensity <= 0.01) return 'rgb(22, 30, 22)'
 
   const stops: [number, number, number, number][] = [
-    [0.0,  28, 24, 36],
-    [0.2,  74, 30, 42],
-    [0.45, 160, 72, 30],
-    [0.7,  34, 130, 58],
+    [0.0,  22, 30, 22],
+    [0.25, 20, 60, 25],
+    [0.5,  25, 100, 35],
+    [0.75, 30, 150, 50],
     [1.0,  34, 197, 94],
   ]
 

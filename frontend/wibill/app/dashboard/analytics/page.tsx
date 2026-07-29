@@ -54,14 +54,13 @@ export default function AnalyticsPage() {
   const totalRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0)
   const totalSessions = revenueData.reduce((s, d) => s + d.sessions, 0)
 
-  const peakHours = useMemo(() => {
-    if (totalSessions === 0) return []
-    return Array.from({ length: 7 }, (_, day) =>
+  const peakHours = useMemo(() =>
+    Array.from({ length: 7 }, (_, day) =>
       Array.from({ length: 24 }, (_, hour) => ({
         day, hour, value: 0
       }))
-    ).flat()
-  }, [totalSessions])
+    ).flat(),
+  [])
 
   const peakCell = useMemo(() =>
     peakHours.length > 0 ? peakHours.reduce((max, c) => c.value > max.value ? c : max, peakHours[0]) : { day: 0, hour: 0, value: 0 },
@@ -213,10 +212,10 @@ export default function AnalyticsPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
                   <span>Fewer</span>
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#1c1824', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#4a1e2a', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#a0481e', border: '0.5px solid rgba(255,255,255,0.05)' }} />
-                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#22823a', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#161e16', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#143c19', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#196423', border: '0.5px solid rgba(255,255,255,0.05)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 2, background: '#1e9632', border: '0.5px solid rgba(255,255,255,0.05)' }} />
                   <div style={{ width: 14, height: 14, borderRadius: 2, background: '#22c55e', border: '0.5px solid rgba(34,197,94,0.3)' }} />
                   <span>More</span>
                 </div>
