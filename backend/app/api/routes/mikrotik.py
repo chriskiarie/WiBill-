@@ -127,6 +127,8 @@ async def update_config(
             detail="No config found \u2014 use POST to create"
         )
     config.router_ip = payload.router_ip
+    if config.router_ip.startswith("http"):
+        raise HTTPException(status_code=400, detail="router_ip must be a local IP (e.g. 192.168.4.1), not a URL")
     config.api_port = payload.api_port
     config.api_username = payload.api_username
     if payload.api_password is not None and payload.api_password != "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022":
@@ -665,6 +667,13 @@ async def generate_install_script(
     config = result.scalar_one_or_none()
     if not config:
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
+
+    router_ip = config.router_ip
+    if router_ip.startswith("http"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"router_ip is set to '{router_ip}' (a URL). Go to MikroTik config and set it to your local router IP (e.g. 192.168.4.1)."
+        )
 
     bridge_secret = decrypt(config.bridge_secret_enc) if config.bridge_secret_enc else secrets.token_hex(32)
     tunnel_token = decrypt(config.tunnel_token_enc) if config.tunnel_token_enc else None
