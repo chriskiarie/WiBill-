@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-const green = '#00A651'
+const gold = '#E8B84B'
 const text = '#f0f0f0'
 const dim = '#777'
 
@@ -23,8 +23,8 @@ const inp: React.CSSProperties = {
 }
 const inpFocus: React.CSSProperties = {
   ...inp,
-  borderColor: green,
-  boxShadow: '0 0 0 3px rgba(0,166,81,0.12)',
+  borderColor: gold,
+  boxShadow: '0 0 0 3px rgba(232,184,75,0.12)',
 }
 const lbl: React.CSSProperties = {
   fontSize: 10,
@@ -139,7 +139,7 @@ export default function SignupPage() {
               textShadow: '0 0 60px rgba(237,235,230,0.08)',
               lineHeight: 1,
             }}>
-              Wi<span style={{ color: green }}>Bill</span>
+              Wi<span style={{ color: gold }}>Bill</span>
             </div>
           </Link>
           <div style={{
@@ -191,7 +191,7 @@ export default function SignupPage() {
               </p>
               <Link href="/" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                color: green,
+                color: gold,
                 fontSize: 12,
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 600,
@@ -300,7 +300,7 @@ export default function SignupPage() {
               <button type="submit" disabled={loading} style={{
                 width: '100%',
                 padding: '14px',
-                background: loading ? '#555' : green,
+                background: loading ? '#555' : gold,
                 border: 'none',
                 borderRadius: 9,
                 color: '#000',
@@ -336,7 +336,7 @@ export default function SignupPage() {
               Already have an account?{' '}
             </span>
             <Link href="/login" style={{
-              color: green,
+              color: gold,
               fontSize: 12,
               fontFamily: "'Inter', sans-serif",
               fontWeight: 600,
