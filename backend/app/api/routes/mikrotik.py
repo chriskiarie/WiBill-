@@ -235,7 +235,7 @@ async def provision_bridge(
     config.bridge_secret_enc = encrypt(bridge_secret)
     config.tunnel_token_enc = encrypt(tunnel_token)
     config.tunnel_id = tunnel["id"]
-    config.router_ip = f"{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}"
+    config.tunnel_hostname = f"{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}"
     config.status = "PROVISIONED"
     await db.commit()
 
@@ -243,7 +243,7 @@ async def provision_bridge(
         "ok": True,
         "tunnel_id": tunnel["id"],
         "tunnel_name": tunnel_name,
-        "bridge_url": f"https://{subdomain}.{settings.CLOUDFLARE_TUNNEL_DOMAIN}",
+        "bridge_url": config.tunnel_hostname,
         "bridge_secret": bridge_secret,
         "tunnel_token": tunnel_token,
     }
@@ -671,16 +671,17 @@ async def generate_install_script(
     api_password = decrypt(config.api_password_enc)
 
     has_tunnel = bool(tunnel_token)
+    download_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
 
     tunnel_section = ""
     if has_tunnel:
         tunnel_section = f"""
-# -- 7. Install cloudflared as a tunnel service --
-$tunnelToken = "{tunnel_token}"
+Write-Host ""
+Write-Host "Installing cloudflared tunnel..."
 & cloudflared.exe service uninstall 2>$null
 Start-Sleep -Seconds 2
-& cloudflared.exe service install "$tunnelToken"
-Write-Host "cloudflared tunnel service installed."
+& cloudflared.exe service install "{tunnel_token}"
+Write-Host "Cloudflare tunnel installed."
 """
 
     script = f"""$ErrorActionPreference = "Stop"
@@ -689,14 +690,21 @@ $WIBILL_DIR = "C:\\WiBill"
 # -- 1. Create working directory --
 New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
 Set-Location -LiteralPath "$WIBILL_DIR"
+Write-Host "Working directory: $WIBILL_DIR"
 
-# -- 2. Download bridge.py --
+# -- 2. Find Python --
+$python = (Get-Command "python" -ErrorAction SilentlyContinue).Source
+if (-not $python) {{ $python = (Get-Command "python3" -ErrorAction SilentlyContinue).Source }}
+if (-not $python) {{ Write-Error "Python not found. Install Python 3.10+ first."; exit 1 }}
+Write-Host "Python: $python"
+
+# -- 3. Download bridge.py --
 Write-Host "Downloading bridge.py..."
-$BRIDGE_URL = "{settings.PUBLIC_BASE_URL}/api/mikrotik/bridge-download"
-Invoke-WebRequest -Uri "$BRIDGE_URL" -OutFile "bridge.py"
+Invoke-WebRequest -Uri "{download_base}/api/mikrotik/bridge-download" -OutFile "$WIBILL_DIR\\bridge.py"
+Write-Host "bridge.py downloaded."
 
-# -- 3. Write .env --
-$envContent = '@
+# -- 4. Write .env --
+@"
 MIKROTIK_HOST={config.router_ip}
 MIKROTIK_PORT={config.api_port}
 MIKROTIK_USERNAME={config.api_username}
@@ -704,47 +712,44 @@ MIKROTIK_PASSWORD={api_password}
 WIBILL_BRIDGE_SECRET={bridge_secret}
 HOTSPOT_SERVER={config.hotspot_server}
 BRIDGE_VERSION={settings.MIKROTIK_BRIDGE_VERSION}
-'@
-Set-Content -Path ".env" -Value $envContent
-Write-Host ".env written to $WIBILL_DIR\\.env"
+"@ | Set-Content -Path "$WIBILL_DIR\\.env" -Encoding UTF8
+Write-Host ".env written."
 
-# -- 4. Install Python packages needed by bridge.py --
+# -- 5. Install Python packages --
 Write-Host "Installing Python dependencies..."
-pip install fastapi uvicorn librouteros httpx > "$WIBILL_DIR\\install.log" 2>&1
+& $python -m pip install fastapi uvicorn librouteros httpx --quiet 2>&1 | Out-Null
+Write-Host "Dependencies installed."
 
-# -- 5. Install bridge.py as a service (via NSSM) --
-$nssm = Get-Command "nssm.exe" -ErrorAction SilentlyContinue
+# -- 6. Install bridge.py as a Windows service (via NSSM) --
+$nssm = (Get-Command "nssm.exe" -ErrorAction SilentlyContinue).Source
 if (-not $nssm) {{
     Write-Host "Downloading NSSM..."
-    $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
     $zip = "$env:TEMP\\nssm.zip"
-    Invoke-WebRequest -Uri "$nssmUrl" -OutFile "$zip"
+    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$zip"
     Expand-Archive -LiteralPath "$zip" -DestinationPath "$env:TEMP\\nssm" -Force
-    Copy-Item -LiteralPath "$env:TEMP\\nssm\\nssm-2.24\\win64\\nssm.exe" -Destination "$env:SYSTEMROOT\\system32\\nssm.exe" -Force
-    $nssmPath = "$env:SYSTEMROOT\\system32\\nssm.exe"
-}} else {{
-    $nssmPath = $nssm.Source
+    $nssm = "$env:TEMP\\nssm\\nssm-2.24\\win64\\nssm.exe"
 }}
 
-& $nssmPath stop WiBillBridge 2>$null
-& $nssmPath remove WiBillBridge confirm 2>$null
-& $nssmPath install WiBillBridge "C:\\Python313\\python.exe" "`"$WIBILL_DIR\\bridge.py`""
-& $nssmPath set WiBillBridge AppDirectory "$WIBILL_DIR"
-& $nssmPath set WiBillBridge Start SERVICE_AUTO_START
-& $nssmPath set WiBillBridge AppStdout "$WIBILL_DIR\\bridge.log"
-& $nssmPath set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
-& $nssmPath start WiBillBridge
-Write-Host "WiBillBridge service installed and started."
+& $nssm stop WiBillBridge 2>$null
+& $nssm remove WiBillBridge confirm 2>$null
+& $nssm install WiBillBridge $python "`"$WIBILL_DIR\\bridge.py`""
+& $nssm set WiBillBridge AppDirectory "$WIBILL_DIR"
+& $nssm set WiBillBridge Start SERVICE_AUTO_START
+& $nssm set WiBillBridge AppStdout "$WIBILL_DIR\\bridge.log"
+& $nssm set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
+Write-Host "Installing WiBillBridge service..."
+& $nssm start WiBillBridge
+Start-Sleep -Seconds 2
+$status = & $nssm status WiBillBridge
+Write-Host "Service status: $status"
 {tunnel_section}
 Write-Host ""
-Write-Host "=== WiBill Bridge Installation Complete ==="
-Write-Host "bridge.py running at http://127.0.0.1:8080"
-{"Write-Host 'Cloudflare tunnel established.'" if has_tunnel else "Write-Host 'Bridge running in local mode (no tunnel).'"}
+Write-Host "=== WiBill Bridge Installed ==="
+Write-Host "Service: WiBillBridge"
+Write-Host "Logs:   $WIBILL_DIR\\bridge.log"
+Write-Host "Config: $WIBILL_DIR\\.env"
 Write-Host ""
-Write-Host "Next steps:"
-Write-Host "  1. Verify tunnel: cloudflared tunnel list"
-Write-Host "  2. Check bridge: Invoke-WebRequest http://127.0.0.1:8080/health"
-Write-Host "  3. Configure MikroTik hotspot to use the WiBill portal (see docs)"
+Write-Host "To check if bridge is running: Invoke-WebRequest http://127.0.0.1:8080/health"
 """
     return PlainTextResponse(content=script, media_type="text/plain")
 

@@ -25,7 +25,8 @@ async def poll_all_tenants():
         for tenant, mt_config in rows:
             slug = tenant.slug
             try:
-                status = await check_tenant_network(tenant.id, mt_config.router_ip, db)
+                host = mt_config.tunnel_hostname or mt_config.router_ip
+                status = await check_tenant_network(tenant.id, host, db)
                 logger.info(f"Polled {slug}: {status}")
             except Exception as e:
                 logger.error(f"Poll failed for {slug}: {e}")

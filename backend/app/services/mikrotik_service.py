@@ -33,12 +33,10 @@ def _bridge_url(config: MikrotikConfig) -> str:
     """
     Build the correct base URL for a MikroTik router bridge.
 
-    Three cases:
-    - Full URL (starts with http) → use as-is (legacy/override)
-    - Raw IP address → direct http://ip:port bypassing tunnel (no bridge)
-    - Hostname (tunnel subdomain) → https://hostname (goes through Cloudflare)
+    Prefer tunnel_hostname (Cloudflare tunnel) if available, otherwise
+    fall back to router_ip which may be a direct LAN IP.
     """
-    host = config.router_ip
+    host = config.tunnel_hostname or config.router_ip
     if host.startswith("http"):
         return host.rstrip("/")
     try:
