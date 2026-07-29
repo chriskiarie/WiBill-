@@ -64,11 +64,11 @@ export default function AnalyticsPage() {
   }, [totalSessions])
 
   const peakCell = useMemo(() =>
-    peakHours.reduce((max, c) => c.value > max.value ? c : max, peakHours[0]),
+    peakHours.length > 0 ? peakHours.reduce((max, c) => c.value > max.value ? c : max, peakHours[0]) : { day: 0, hour: 0, value: 0 },
   [peakHours])
 
   const avgValue = useMemo(() =>
-    peakHours.reduce((s, c) => s + c.value, 0) / peakHours.length,
+    peakHours.length > 0 ? peakHours.reduce((s, c) => s + c.value, 0) / peakHours.length : 0,
   [peakHours])
 
   const maxSessions = useMemo(() =>
