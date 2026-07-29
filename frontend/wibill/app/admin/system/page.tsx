@@ -461,7 +461,7 @@ export default function SettingsPage() {
                             <div>
                               <div style={{ fontSize: 13, color: C.text }}>{r.tenant_name}</div>
                               <div style={{ fontSize: 11, color: '#555', marginTop: 1 }}>
-                                {r.host ? `${r.host}:${r.port}` : 'Not set up'}
+                                {r.router_ip ? `${r.router_ip}:${r.api_port}` : 'Not set up'}
                               </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

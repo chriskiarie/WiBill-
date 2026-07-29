@@ -627,12 +627,12 @@ async def list_all_router_statuses(
         {
             "tenant_id": str(mc.tenant_id),
             "tenant_name": t.name,
-            "host": mc.host or "",
-            "port": mc.port or 0,
-            "status": mc.status.value if hasattr(mc.status, 'value') else str(mc.status),
+            "router_ip": mc.router_ip or "",
+            "api_port": mc.api_port or 8728,
+            "status": mc.status if isinstance(mc.status, str) else mc.status.value,
             "last_error": mc.last_error_message or "",
-            "last_checked": mc.last_checked_at.isoformat() if mc.last_checked_at else None,
-            "is_active": mc.is_active,
+            "last_connected_at": mc.last_connected_at.isoformat() if mc.last_connected_at else None,
+            "tunnel_hostname": mc.tunnel_hostname or "",
         }
         for mc, t in rows
     ]
