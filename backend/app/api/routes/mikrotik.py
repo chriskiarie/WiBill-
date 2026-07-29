@@ -702,7 +702,7 @@ Write-Host "Python: $python"
 
 # -- 3. Download bridge.py --
 Write-Host "Downloading bridge.py..."
-Invoke-WebRequest -Uri "{download_base}/api/mikrotik/bridge-download" -OutFile "$WIBILL_DIR\\bridge.py"
+Invoke-WebRequest -Uri "https://wi-bill.com/bridge.py" -OutFile "$WIBILL_DIR\\bridge.py"
 Write-Host "bridge.py downloaded."
 
 # -- 4. Write .env --
