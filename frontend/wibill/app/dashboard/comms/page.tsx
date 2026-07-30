@@ -10,10 +10,7 @@ import {
   XCircle,
   AlertTriangle,
   FileText,
-  ChevronRight,
-  ChevronDown,
   Zap,
-  History,
   Pencil,
   Eye,
   EyeOff,
@@ -86,7 +83,6 @@ export default function CommsPage() {
   const [stats, setStats] = useState({ total_bursts: 0, total_messages: 0 })
   const [activeTab, setActiveTab] = useState<'compose' | 'history'>('compose')
   const [targetCount, setTargetCount] = useState(0)
-  const [loadingTargets, setLoadingTargets] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -110,18 +106,14 @@ export default function CommsPage() {
   }
 
   async function loadTargetCount(group: TargetGroup) {
-    // Approximate: use subscriber count endpoint for active/total
-    setLoadingTargets(true)
     try {
       const res = await subscriberCount().catch(() => ({ count: 0 }))
       const total = res?.count || 0
-      // Approximate splits
       if (group === 'all') setTargetCount(total)
       else if (group === 'active') setTargetCount(Math.round(total * 0.85))
       else if (group === 'suspended') setTargetCount(Math.round(total * 0.15))
       else if (group === 'monthly') setTargetCount(total)
     } catch {}
-    setLoadingTargets(false)
   }
 
   function selectTemplate(tpl: Template) {
@@ -202,7 +194,6 @@ export default function CommsPage() {
   }
 
   const charCount = message.length
-  const estimatedCost = Math.ceil(charCount / 160) * targetCount * 0.5 // Ksh 0.5 per SMS segment per recipient
 
   return (
     <div style={{ padding: '20px 32px 40px', minHeight: '100vh' }}>
@@ -316,483 +307,220 @@ export default function CommsPage() {
       </div>
 
       {activeTab === 'compose' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
-          {/* Main compose area */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Success message */}
-            {sent && (
-              <div
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 'calc(100vh - 200px)', overflow: 'hidden' }}>
+          {/* Success message */}
+          {sent && (
+            <div
+              style={{
+                background: '#22c55e10',
+                border: `1px solid #22c55e30`,
+                borderRadius: 10,
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <CheckCircle size={18} style={{ color: '#22c55e' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#22c55e' }}>
+                  Message sent to {sentCount.toLocaleString()} subscribers
+                </div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>
+                  Delivery reports may take a few minutes
+                </div>
+              </div>
+              <button
+                onClick={resetCompose}
                 style={{
-                  background: '#22c55e10',
-                  border: `1px solid #22c55e30`,
-                  borderRadius: 10,
-                  padding: '16px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
+                  background: 'none',
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  padding: '6px 12px',
+                  fontSize: 11,
+                  color: C.text,
+                  cursor: 'pointer',
                 }}
               >
-                <CheckCircle size={20} style={{ color: '#22c55e' }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#22c55e' }}>
-                    Message sent to {sentCount.toLocaleString()} subscribers
-                  </div>
-                  <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>
-                    Delivery reports may take a few minutes
-                  </div>
-                </div>
-                <button
-                  onClick={resetCompose}
-                  style={{
-                    marginLeft: 'auto',
-                    background: 'none',
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: 11,
-                    color: C.text,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Send another
-                </button>
-              </div>
-            )}
+                Send another
+              </button>
+            </div>
+          )}
 
-            {!sent && (
-              <>
-                {/* Subject */}
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: C.dim,
-                      marginBottom: 6,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    Subject (optional)
-                  </label>
+          {!sent && (
+            <>
+              {/* Top row: Target + Subject side by side */}
+              <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 12 }}>
+                {/* Target group */}
+                <div style={{ background: C.base, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Send to</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(Object.keys(TARGET_LABELS) as TargetGroup[]).map((group) => (
+                      <button
+                        key={group}
+                        onClick={() => { setTargetGroup(group); loadTargetCount(group) }}
+                        style={{
+                          background: targetGroup === group ? `${C.gold}12` : 'none',
+                          border: `1px solid ${targetGroup === group ? C.gold : 'transparent'}`,
+                          borderRadius: 6,
+                          padding: '6px 10px',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: targetGroup === group ? C.gold : C.text,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          textAlign: 'left',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {TARGET_ICONS[group]}
+                        {TARGET_LABELS[group]}
+                      </button>
+                    ))}
+                  </div>
+                  {targetGroup === 'custom' && (
+                    <textarea
+                      value={customPhones}
+                      onChange={(e) => setCustomPhones(e.target.value)}
+                      placeholder={"0712345678\n0798765432"}
+                      rows={3}
+                      style={{
+                        width: '100%', marginTop: 6, background: C.void, border: `1px solid ${C.border}`,
+                        borderRadius: 6, padding: '8px', fontSize: 10, fontFamily: "'DM Mono', monospace",
+                        color: C.text, outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Subject + Message */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g. Scheduled Maintenance"
+                    placeholder="Subject (optional) — e.g. Scheduled Maintenance"
                     maxLength={100}
                     style={{
-                      width: '100%',
-                      background: C.base,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 8,
-                      padding: '10px 14px',
-                      fontSize: 13,
-                      color: C.text,
-                      outline: 'none',
-                      boxSizing: 'border-box',
+                      width: '100%', background: C.base, border: `1px solid ${C.border}`,
+                      borderRadius: 8, padding: '9px 12px', fontSize: 12, color: C.text,
+                      outline: 'none', boxSizing: 'border-box',
                     }}
                   />
-                </div>
-
-                {/* Message */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <label
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Type your message... Use {name} to personalize per subscriber."
+                      maxLength={1600}
                       style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: C.dim,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
+                        width: '100%', height: '100%', minHeight: 80, background: C.base,
+                        border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px',
+                        fontSize: 12, lineHeight: 1.5, color: C.text, outline: 'none',
+                        resize: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
                       }}
-                    >
-                      Message
-                    </label>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontFamily: "'DM Mono', monospace",
-                        color: charCount > 1600 ? '#ef4444' : charCount > 1200 ? C.gold : C.dim,
-                      }}
-                    >
+                    />
+                    <span style={{
+                      position: 'absolute', bottom: 8, right: 10, fontSize: 10,
+                      fontFamily: "'DM Mono', monospace",
+                      color: charCount > 1600 ? '#ef4444' : charCount > 1200 ? C.gold : C.dim,
+                    }}>
                       {charCount}/1600
                     </span>
                   </div>
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type your message here... Use {name} to personalize for each subscriber."
-                    rows={8}
-                    maxLength={1600}
-                    style={{
-                      width: '100%',
-                      background: C.base,
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 8,
-                      padding: '14px',
-                      fontSize: 13,
-                      lineHeight: 1.6,
-                      color: C.text,
-                      outline: 'none',
-                      resize: 'vertical',
-                      fontFamily: 'Inter, sans-serif',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
-                    Variables: {'{name}'} • {'{account}'} • {'{amount}'} — replaced per subscriber
-                  </div>
-                </div>
-
-                {/* Preview + Send row */}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <button
-                    onClick={handlePreview}
-                    disabled={!message}
-                    style={{
-                      background: 'none',
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 8,
-                      padding: '10px 16px',
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: C.text,
-                      cursor: message ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      opacity: message ? 1 : 0.4,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
-                    {showPreview ? 'Hide Preview' : 'Preview'}
-                  </button>
-
-                  {showPreview && (
-                    <div
-                      style={{
-                        background: C.void,
-                        border: `1px solid ${C.border}`,
-                        borderRadius: 8,
-                        padding: '10px 14px',
-                        fontSize: 12,
-                        color: C.text,
-                        lineHeight: 1.5,
-                        flex: 1,
-                        fontFamily: 'Inter, sans-serif',
-                      }}
-                    >
-                      {preview}
+                  {error && (
+                    <div style={{ background: '#ef444410', border: `1px solid #ef444430`, borderRadius: 6, padding: '8px 10px', fontSize: 11, color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <AlertTriangle size={12} />{error}
                     </div>
                   )}
                 </div>
+              </div>
 
-                {error && (
-                  <div
-                    style={{
-                      background: '#ef444410',
-                      border: `1px solid #ef444430`,
-                      borderRadius: 8,
-                      padding: '10px 14px',
-                      fontSize: 12,
-                      color: '#ef4444',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    <AlertTriangle size={14} />
-                    {error}
+              {/* Templates strip */}
+              <div style={{ background: C.base, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Templates</div>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                  {templates.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => selectTemplate(tpl)}
+                      style={{
+                        flexShrink: 0,
+                        background: selectedTemplate?.id === tpl.id ? `${C.gold}12` : 'none',
+                        border: `1px solid ${selectedTemplate?.id === tpl.id ? C.gold : C.border}`,
+                        borderRadius: 6,
+                        padding: '6px 12px',
+                        fontSize: 11,
+                        color: selectedTemplate?.id === tpl.id ? C.gold : C.text,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        transition: 'all 0.15s',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <FileText size={11} style={{ color: C.dim }} />
+                      {tpl.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom bar: Preview + Cost + Send */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={handlePreview}
+                  disabled={!message}
+                  style={{
+                    background: 'none', border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '8px 14px', fontSize: 11, fontWeight: 500, color: C.text,
+                    cursor: message ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 5,
+                    opacity: message ? 1 : 0.4, transition: 'all 0.15s',
+                  }}
+                >
+                  {showPreview ? <EyeOff size={13} /> : <Eye size={13} />}
+                  {showPreview ? 'Hide' : 'Preview'}
+                </button>
+
+                {showPreview && (
+                  <div style={{
+                    flex: 1, background: C.void, border: `1px solid ${C.border}`, borderRadius: 8,
+                    padding: '8px 12px', fontSize: 11, color: C.text, lineHeight: 1.4,
+                    fontFamily: 'Inter, sans-serif', minWidth: 200,
+                  }}>
+                    {preview}
                   </div>
                 )}
-              </>
-            )}
-          </div>
 
-          {/* Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Target group */}
-            <div
-              style={{
-                background: C.base,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: 16,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: C.dim,
-                  marginBottom: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                Send to
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {(Object.keys(TARGET_LABELS) as TargetGroup[]).map((group) => (
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ fontSize: 11, color: C.dim }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", color: C.text, fontWeight: 600 }}>{targetCount}</span> recipients
+                    {charCount > 0 && <span> · <span style={{ fontFamily: "'DM Mono', monospace", color: C.text }}>{Math.ceil(charCount / 160)}</span> segments</span>}
+                  </div>
                   <button
-                    key={group}
-                    onClick={() => {
-                      setTargetGroup(group)
-                      loadTargetCount(group)
-                    }}
+                    onClick={handleSend}
+                    disabled={sending || !message.trim()}
                     style={{
-                      background: targetGroup === group ? `${C.gold}12` : 'none',
-                      border: `1px solid ${targetGroup === group ? C.gold : C.border}`,
-                      borderRadius: 6,
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: targetGroup === group ? C.gold : C.text,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      textAlign: 'left',
-                      transition: 'all 0.15s',
+                      background: sending ? `${C.gold}60` : C.gold, color: '#000', border: 'none',
+                      borderRadius: 8, padding: '10px 20px', fontSize: 12, fontWeight: 700,
+                      cursor: sending || !message.trim() ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 6, opacity: sending || !message.trim() ? 0.6 : 1,
+                      fontFamily: "'Space Grotesk', sans-serif",
                     }}
                   >
-                    {TARGET_ICONS[group]}
-                    {TARGET_LABELS[group]}
+                    {sending ? (
+                      <><div style={{ width: 14, height: 14, border: '2px solid #00000040', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />Sending...</>
+                    ) : (
+                      <><Zap size={14} />Send</>
+                    )}
                   </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom phone list */}
-            {targetGroup === 'custom' && (
-              <div
-                style={{
-                  background: C.base,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 10,
-                  padding: 16,
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: C.dim,
-                    display: 'block',
-                    marginBottom: 8,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Phone Numbers
-                </label>
-                <textarea
-                  value={customPhones}
-                  onChange={(e) => setCustomPhones(e.target.value)}
-                  placeholder={"0712345678\n0798765432\n0755512345"}
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    background: C.void,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 6,
-                    padding: '10px',
-                    fontSize: 11,
-                    fontFamily: "'DM Mono', monospace",
-                    color: C.text,
-                    outline: 'none',
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
-                  One per line, or comma-separated
                 </div>
               </div>
-            )}
-
-            {/* Cost estimate */}
-            <div
-              style={{
-                background: C.base,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: 16,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: C.dim,
-                  marginBottom: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                Cost estimate
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span style={{ color: C.dim }}>Recipients</span>
-                  <span
-                    style={{
-                      fontFamily: "'DM Mono', monospace",
-                      color: C.text,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {loadingTargets ? '—' : targetCount.toLocaleString()}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span style={{ color: C.dim }}>SMS segments</span>
-                  <span
-                    style={{
-                      fontFamily: "'DM Mono', monospace",
-                      color: C.text,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {charCount > 0 ? Math.ceil(charCount / 160) : '—'}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    borderTop: `1px solid ${C.border}`,
-                    paddingTop: 8,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ color: C.dim }}>Est. cost (Ksh)</span>
-                  <span
-                    style={{
-                      fontFamily: "'DM Mono', monospace",
-                      color: C.gold,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {charCount > 0 ? `~${estimatedCost.toLocaleString()}` : '—'}
-                  </span>
-                </div>
-              </div>
-              <div
-                style={{
-                  marginTop: 10,
-                  background: `${C.gold}08`,
-                  border: `1px solid ${C.gold}20`,
-                  borderRadius: 6,
-                  padding: '8px 10px',
-                  fontSize: 10,
-                  color: C.dim,
-                  lineHeight: 1.4,
-                }}
-              >
-                Pricing via Africa's Talking: ~Ksh 0.50 per SMS segment. Monthly bundle discounts available.
-              </div>
-            </div>
-
-            {/* Templates */}
-            <div
-              style={{
-                background: C.base,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: 16,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: C.dim,
-                  marginBottom: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                Templates
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {templates.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    onClick={() => selectTemplate(tpl)}
-                    style={{
-                      background:
-                        selectedTemplate?.id === tpl.id ? `${C.gold}12` : 'none',
-                      border: `1px solid ${selectedTemplate?.id === tpl.id ? C.gold : 'transparent'}`,
-                      borderRadius: 6,
-                      padding: '8px 10px',
-                      fontSize: 11,
-                      color: selectedTemplate?.id === tpl.id ? C.gold : C.text,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <FileText size={12} style={{ color: C.dim, flexShrink: 0 }} />
-                    {tpl.name}
-                    <ChevronRight size={10} style={{ marginLeft: 'auto', color: C.dim }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Send button */}
-            {!sent && (
-              <button
-                onClick={handleSend}
-                disabled={sending || !message.trim()}
-                style={{
-                  background: sending ? `${C.gold}60` : C.gold,
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: 10,
-                  padding: '14px 20px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: sending || !message.trim() ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  opacity: sending || !message.trim() ? 0.6 : 1,
-                  transition: 'all 0.15s',
-                  fontFamily: "'Space Grotesk', sans-serif",
-                }}
-              >
-                {sending ? (
-                  <>
-                    <div
-                      style={{
-                        width: 16,
-                        height: 16,
-                        border: '2px solid #00000040',
-                        borderTopColor: '#000',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite',
-                      }}
-                    />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Zap size={16} />
-                    Send to {targetCount.toLocaleString()} subscribers
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+            </>
+          )}
         </div>
       ) : (
         /* History tab */

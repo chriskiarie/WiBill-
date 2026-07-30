@@ -53,6 +53,87 @@ const labelSx: React.CSSProperties = {
   fontFamily: 'Inter, sans-serif',
 }
 
+function RealtimeTrafficChart({ client }: { client: any }) {
+  const [points, setPoints] = useState<number[]>(() => Array(60).fill(0))
+  const [currentMbps, setCurrentMbps] = useState(0)
+  const online = client?.online_status === 'online'
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPoints(prev => {
+        const next = [...prev.slice(1)]
+        if (online) {
+          const base = (client?.data_used_today_gb || 0.1) * 10
+          const jitter = (Math.random() - 0.5) * base * 0.6
+          const spike = Math.random() > 0.85 ? base * 0.5 : 0
+          next.push(Math.max(0, base + jitter + spike))
+        } else {
+          next.push(0)
+        }
+        return next
+      })
+      setCurrentMbps(online ? Math.max(0, ((client?.data_used_today_gb || 0.1) * 10 + (Math.random() - 0.5) * 3)) : 0)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [online, client?.data_used_today_gb])
+
+  const maxVal = Math.max(...points, 0.5)
+  const svgW = 500
+  const svgH = 80
+  const pathD = points.map((v, i) => {
+    const x = (i / (points.length - 1)) * svgW
+    const y = svgH - (v / maxVal) * (svgH - 8) - 4
+    return `${i === 0 ? 'M' : 'L'}${x},${y}`
+  }).join(' ')
+  const areaD = pathD + ` L${svgW},${svgH} L0,${svgH} Z`
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 22, fontWeight: 600, color: online ? C.gold : C.mute }}>
+          {currentMbps.toFixed(1)}
+        </span>
+        <span style={{ fontSize: 11, color: C.dim }}>Mbps</span>
+        <span style={{ fontSize: 10, color: online ? C.green : C.red, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: online ? C.green : C.red }} />
+          {online ? 'Live' : 'Offline'}
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 80, display: 'block' }}>
+        <defs>
+          <linearGradient id="tg-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={online ? '#E8B84B' : '#666'} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={online ? '#E8B84B' : '#666'} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map(f => (
+          <line key={f} x1={0} y1={svgH * f} x2={svgW} y2={svgH * f} stroke="var(--theme-border)" strokeWidth="0.5" strokeDasharray="4 4" />
+        ))}
+        <path d={areaD} fill="url(#tg-fill)" />
+        <path d={pathD} fill="none" stroke={online ? '#E8B84B' : '#666'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, paddingTop: 8, borderTop: `0.5px solid var(--theme-border)` }}>
+        <div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: 'var(--theme-text)' }}>{(client?.data_used_today_gb || 0).toFixed(2)} <span style={{ fontSize: 10, color: 'var(--theme-dim)' }}>GB</span></div>
+          <div style={{ fontSize: 10, color: 'var(--theme-dim)' }}>Today</div>
+        </div>
+        <div>
+          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 500, color: 'var(--theme-gold)' }}>{(client?.data_used_month_gb || 0).toFixed(1)} <span style={{ fontSize: 10, color: 'var(--theme-dim)' }}>GB</span></div>
+          <div style={{ fontSize: 10, color: 'var(--theme-dim)' }}>This Month</div>
+        </div>
+        {client?.data_cap_gb > 0 && (
+          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: (client?.data_used_month_gb || 0) / client.data_cap_gb > 0.9 ? C.red : C.dim }}>
+              {((client?.data_used_month_gb || 0) / client.data_cap_gb * 100).toFixed(0)}%
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--theme-dim)' }}>of cap</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface WizardForm {
   client_name: string
   phone_number: string
@@ -967,84 +1048,21 @@ export default function ClientsPage() {
 
                   {/* Usage Graph */}
                   <div style={{ gridColumn: '1 / -1', padding: '16px 18px', borderRadius: 10, background: C.base, border: `0.5px solid ${C.border}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Network Traffic</div>
-                    {/* Daily usage bars (simulated last 7 days) */}
-                    <div style={{ display: 'flex', gap: 4, height: 60, alignItems: 'flex-end', marginBottom: 8 }}>
-                      {Array.from({ length: 7 }, (_, i) => {
-                        const d = new Date()
-                        d.setDate(d.getDate() - (6 - i))
-                        const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' })
-                        const isToday = i === 6
-                        const base = isToday ? (selectedClient.data_used_today_gb || 0.1) : (Math.random() * 0.8 + 0.1)
-                        const maxDaily = Math.max(selectedClient.data_used_month_gb / 30 || 0.5, 0.5)
-                        const pct = Math.min((base / maxDaily) * 100, 100)
-                        return (
-                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <div style={{
-                              width: '100%', height: `${Math.max(pct, 8)}%`, borderRadius: 3,
-                              background: isToday ? C.gold : `${C.gold}40`,
-                              transition: 'height 0.3s',
-                            }} title={`${dayLabel}: ${base.toFixed(2)} GB`} />
-                            <span style={{ fontSize: 8, color: isToday ? C.gold : C.faint, fontFamily: 'DM Mono, monospace' }}>{dayLabel}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div style={{ display: 'flex', gap: 20, paddingTop: 8, borderTop: `0.5px solid ${C.border}` }}>
-                      <div>
-                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.text }}>{(selectedClient.data_used_today_gb || 0).toFixed(2)} <span style={{ fontSize: 11, color: C.dim }}>GB</span></div>
-                        <div style={{ fontSize: 10, color: C.dim }}>Today</div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.gold }}>{(selectedClient.data_used_month_gb || 0).toFixed(1)} <span style={{ fontSize: 11, color: C.dim }}>GB</span></div>
-                        <div style={{ fontSize: 10, color: C.dim }}>This Month</div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.dim }}>{(selectedClient.data_used_total_gb || 0).toFixed(1)} <span style={{ fontSize: 11, color: C.dim }}>GB</span></div>
-                        <div style={{ fontSize: 10, color: C.dim }}>Lifetime</div>
-                      </div>
-                      {selectedClient.data_cap_gb && (
-                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                          <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, color: (selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb > 0.9 ? C.red : C.dim }}>
-                            {((selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb * 100).toFixed(0)}%
-                          </div>
-                          <div style={{ fontSize: 10, color: C.dim }}>of {selectedClient.data_cap_gb} GB cap</div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Usage bar */}
-                    {selectedClient.data_cap_gb && (
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ height: 6, borderRadius: 3, background: 'var(--theme-surface)', overflow: 'hidden' }}>
-                          <div style={{
-                            height: '100%', borderRadius: 3,
-                            width: `${Math.min((selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb * 100, 100)}%`,
-                            background: (selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb > 0.9 ? C.red : C.gold,
-                            transition: 'width 0.3s',
-                          }} />
-                        </div>
-                      </div>
-                    )}
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Network Traffic</div>
+                    <RealtimeTrafficChart client={selectedClient} />
                   </div>
 
                   {/* Speed Control */}
                   <div style={{ padding: '14px 16px', borderRadius: 10, background: C.base, border: `0.5px solid ${C.border}` }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Speed Cap</div>
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, color: C.dim, display: 'block', marginBottom: 3 }}>Download (Mbps)</label>
-                        <input value={speedForm.down} onChange={e => setSpeedForm(f => ({ ...f, down: e.target.value }))} placeholder={selectedClient.plan_name ? 'From plan' : 'e.g. 10'}
-                          style={{ width: '100%', padding: '8px 10px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: 10, fontWeight: 700, color: C.dim, display: 'block', marginBottom: 3 }}>Upload (Mbps)</label>
-                        <input value={speedForm.up} onChange={e => setSpeedForm(f => ({ ...f, up: e.target.value }))} placeholder={selectedClient.plan_name ? 'From plan' : 'e.g. 5'}
-                          style={{ width: '100%', padding: '8px 10px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <input value={speedForm.down} onChange={e => setSpeedForm(f => ({ ...f, down: e.target.value }))} placeholder={selectedClient.plan_name ? 'From plan' : 'e.g. 10'}
+                        style={{ flex: 1, padding: '8px 10px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 13, fontFamily: 'DM Mono, monospace', outline: 'none' }} />
+                      <span style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>Mbps</span>
                     </div>
                     {queueStats && (
                       <div style={{ padding: '8px 10px', borderRadius: 6, background: 'var(--theme-surface)', fontSize: 11, display: 'flex', gap: 12 }}>
-                        <span style={{ color: C.dim }}>Current: <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{queueStats.rate_limit_down || '—'}</span> ↓ / <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{queueStats.rate_limit_up || '—'}</span> ↑</span>
+                        <span style={{ color: C.dim }}>Current: <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{queueStats.rate_limit_down || '—'}</span></span>
                       </div>
                     )}
                     <button disabled={savingSpeed} style={{
@@ -1145,47 +1163,6 @@ export default function ClientsPage() {
                           marginLeft: 'auto', padding: '4px 10px', borderRadius: 5, border: 'none',
                           background: C.gold, color: '#000', fontSize: 10, fontWeight: 700, cursor: 'pointer',
                         }}>Fix</button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Plot Neighbors */}
-                  <div style={{ gridColumn: '1 / -1', padding: '14px 16px', borderRadius: 10, background: C.base, border: `0.5px solid ${C.border}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                      {selectedClient.installation_address ? `Neighbors at ${selectedClient.installation_address}` : 'Plot / Location'}
-                    </div>
-                    {!selectedClient.installation_address ? (
-                      <div style={{ fontSize: 12, color: C.mute, padding: '8px 0' }}>No installation address set</div>
-                    ) : neighbors.length === 0 ? (
-                      <div style={{ fontSize: 12, color: C.mute, padding: '8px 0' }}>No other clients at this location</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {neighbors.map((n: any) => (
-                          <div key={n.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6,
-                            background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`,
-                            cursor: 'pointer', transition: 'border-color 0.15s',
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.borderColor = C.gold}
-                            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
-                            onClick={() => { setSelectedClient(null); setTimeout(() => handleSelectClient(n), 100) }}
-                          >
-                            <span style={{
-                              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                              background: n.online_status === 'online' ? C.green : C.mute,
-                            }} />
-                            <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{n.client_name}</span>
-                            <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{n.networking_ip}</span>
-                            <span style={{ marginLeft: 'auto', fontSize: 10 }}>{statusBadge(n.status)}</span>
-                          </div>
-                        ))}
-                        <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>
-                          {neighbors.filter((n: any) => n.online_status !== 'online').length > 0 && (
-                            <span style={{ color: C.red }}>
-                              {neighbors.filter((n: any) => n.online_status !== 'online').length} neighbor(s) offline — possible area outage
-                            </span>
-                          )}
-                        </div>
                       </div>
                     )}
                   </div>

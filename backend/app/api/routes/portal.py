@@ -158,6 +158,11 @@ async def preview_portal(template_id: str, request: Request):
         "technician_phone": params.get("technician_phone", ""),
     }
 
+    # Make logo URL absolute if it's relative
+    logo_url = live_brand.get("logo_url")
+    if logo_url and not logo_url.startswith(('http://', 'https://', 'blob:', 'data:')):
+        live_brand["logo_url"] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo_url}"
+
     # 4. Parse Network Status
     show_status = params.get("showSB", "true").lower() == "true"
     status_msg = params.get("sbMsg", DEMO_NETWORK["status_message"])
@@ -332,6 +337,9 @@ async def get_live_portal(
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
     if 'support_phone' in brand and 'support_number' not in brand:
         brand['support_number'] = brand['support_phone']
+    # Make logo URL absolute if it's relative
+    if brand.get('logo_url') and not brand['logo_url'].startswith(('http://', 'https://', 'blob:', 'data:')):
+        brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{brand['logo_url']}"
     network = tenant.portal_config.get('network_awareness', {})
     theme = tenant.portal_config.get('theme', {})
     typography = tenant.portal_config.get('typography', {})
@@ -367,7 +375,7 @@ async def get_live_portal(
     context = {
         'brand': brand,
         'packages': packages_data,
-        'network_up': network.get('show_status_banner', True),
+        'network_up': True,
         'network_status': network.get('custom_status_message', '✅ Network is online'),
         'status_message': network.get('custom_status_message', '✅ Network is online'),
         'palette': palette,
