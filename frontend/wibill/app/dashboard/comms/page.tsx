@@ -14,6 +14,7 @@ import {
   Pencil,
   Eye,
   EyeOff,
+  History as HistoryIcon,
 } from 'lucide-react'
 import {
   getSmsTemplates,
@@ -300,7 +301,7 @@ export default function CommsPage() {
               transition: 'all 0.15s',
             }}
           >
-            {tab === 'compose' ? <Pencil size={14} /> : <History size={14} />}
+            {tab === 'compose' ? <Pencil size={14} /> : <HistoryIcon size={14} />}
             {tab === 'compose' ? 'Compose' : 'History'}
           </button>
         ))}
