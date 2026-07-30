@@ -169,22 +169,7 @@ async def isp_dashboard(
     }
 
 
-class PortalConfigUpdateRequest(BaseModel):
-    """Request payload for updating portal configuration from wizard"""
-    template_id: str = None
-    palette_index: int = None
-    font_family: str = None
-    card_radius: str = None
-    layout_size: str = None
-    name: str = None
-    tagline: str = None
-    location: str = None
-    emoji: str = None
-    support_phone: str = None
-    show_status_banner: bool = None
-    status_message: str = None
-    enabled_features: dict = None
-
+# PortalConfigUpdateRequest removed — save is handled by portal_wizard.py
 
 @router.get("/tenants/portal-config")
 async def get_portal_config(
@@ -204,83 +189,10 @@ async def get_portal_config(
     }
 
 
-@router.post("/portal-config")
-async def save_portal_config(
-    data: PortalConfigUpdateRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: AdminUser = Depends(require_isp_admin),
-):
-    """
-    Save ISP portal configuration. Called by onboarding wizard.
+# REMOVED: POST /portal-config — this conflicted with portal_wizard.py's /api/portal-config
+# The wizard uses portal_wizard.py's endpoint which has the correct nested schema.
+# This old flat-schema endpoint was silently overwriting wizard saves with empty defaults.
 
-    Flow:
-    1. Validate tenant ownership
-    2. Build nested portal_config JSONB structure
-    3. Save to tenant.portal_config
-    4. Mark admin_user.onboarding_complete = True
-    5. Return success with portal URL
-    """
-
-    # Validate: ISP admins must have a tenant
-    tenant_id = current_user.tenant_id
-    if not tenant_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Platform admins don't have a portal to configure"
-        )
-
-    # Fetch tenant
-    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-
-    # Build portal_config structure (nested JSONB)
-    portal_config = {
-        "version": "1.0",
-        "template_id": data.template_id or "spotlight",
-        "design": {
-            "palette_index": data.palette_index if data.palette_index is not None else 0,
-            "font_family": data.font_family or "Syne",
-            "card_radius": data.card_radius or "16px",
-            "layout_size": data.layout_size or "compact",
-        },
-        "brand": {
-            "name": data.name or "",
-            "tagline": data.tagline or "",
-            "location": data.location or "",
-            "emoji": data.emoji or "globe",
-            "support_phone": data.support_phone or "",
-        },
-        "network_awareness": {
-            "show_status_banner": data.show_status_banner if data.show_status_banner is not None else True,
-            "custom_status_message": data.status_message or "",
-        },
-        "enabled_features": data.enabled_features or {
-            "mpesa_stk": True,
-            "card_payments": False,
-            "vouchers": False,
-            "sms_receipts": False
-        },
-    }
-
-    # CRITICAL: Save portal config and mark onboarding complete
-    tenant.portal_config = portal_config
-    current_user.onboarding_complete = True
-
-    # Commit both changes atomically
-    await db.commit()
-
-    # Refresh tenant to get accurate state for response
-    await db.refresh(tenant)
-
-    return {
-        "ok": True,
-        "message": "Portal configuration saved successfully",
-        "portal_url": f"/portal/{tenant.slug}",
-        "onboarding_complete": True,
-        "tenant_id": str(tenant.id),
-    }
 
 
 @router.patch("/tenants/{tenant_id}/approve")

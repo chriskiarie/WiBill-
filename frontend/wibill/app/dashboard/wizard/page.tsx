@@ -374,19 +374,28 @@ export default function PortalWizard() {
           setName(pc.brand.name || ''); setTagline(pc.brand.tagline || '')
           setLocation(pc.brand.location || ''); setEmoji(pc.brand.emoji || '📡')
           setPhone(pc.brand.support_phone || ''); setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
-          setWhatsapp(pc.brand.whatsapp || '')
+          setSupportEmail(pc.brand.support_email || ''); setWhatsapp(pc.brand.whatsapp || '')
+          setWebsiteUrl(pc.brand.website_url || '')
+          setFacebookUrl(pc.brand.facebook_url || ''); setTwitterUrl(pc.brand.twitter_url || '')
+          setInstagramUrl(pc.brand.instagram_url || '')
+          setHeroTitle(pc.brand.hero_title || ''); setSectionHeading(pc.brand.section_heading || '')
+          setFooterText(pc.brand.footer_text || ''); setTermsUrl(pc.brand.terms_url || '')
           if (pc.brand.emoji) {
             const matchedSticker = BRAND_STICKERS.find(st => st.name === pc.brand.emoji)
             if (matchedSticker) { setSelectedSticker(matchedSticker.src) }
           }
-          setHeroTitle(pc.brand.hero_title || ''); setSectionHeading(pc.brand.section_heading || '')
-          setFooterText(pc.brand.footer_text || ''); setTermsUrl(pc.brand.terms_url || '')
         }
         if (pc.typography?.font_family) setFont(pc.typography.font_family)
         if (pc.theme) {
           if (pc.theme.primary_color) setPrimaryColor(pc.theme.primary_color)
           if (pc.theme.secondary_color) setSecondaryColor(pc.theme.secondary_color)
           if (pc.theme.accent_color) setAccentColor(pc.theme.accent_color)
+        }
+        if (pc.palette_index !== null && pc.palette_index !== undefined) {
+          setPalette(pc.palette_index)
+        } else if (pc.theme?.primary_color) {
+          const match = STYLE_PRESETS.find(sp => sp.hd.toLowerCase() === pc.theme.primary_color.toLowerCase())
+          if (match) setPalette(match.p)
         }
         loadSnapshots()
         toast('Version restored!')
