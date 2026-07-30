@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, Edit2, Trash2, X, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Package, AlertTriangle, ChevronRight } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
@@ -202,6 +202,7 @@ export default function PackagesPage() {
               const isHovered = hoveredCard === pkg.id
               return (
                 <div key={pkg.id} data-nav="package-card"
+                  onClick={() => openEdit(pkg)}
                   onMouseEnter={() => setHoveredCard(pkg.id)} onMouseLeave={() => setHoveredCard(null)}
                   style={{
                     background: C.base,
@@ -211,12 +212,15 @@ export default function PackagesPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 16,
-                    transition: 'border-color 0.15s',
+                    transition: 'all 0.2s ease',
                     position: 'relative',
+                    cursor: 'pointer',
+                    transform: isHovered ? 'translateY(-2px)' : 'none',
+                    boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.15)' : 'none',
                   }}>
                   {/* Top: Status pill + actions */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={() => toggleActive(pkg)} disabled={toggling === pkg.id}
+                    <button onClick={(e) => { e.stopPropagation(); toggleActive(pkg) }} disabled={toggling === pkg.id}
                       style={{
                         padding: '4px 12px', borderRadius: 20, fontSize: 9, fontWeight: 600,
                         fontFamily: "'DM Mono', monospace", cursor: 'pointer', border: 'none',
@@ -225,13 +229,18 @@ export default function PackagesPage() {
                       }}>
                       {toggling === pkg.id ? '···' : pkg.is_active ? 'ACTIVE' : 'INACTIVE'}
                     </button>
-                    <div style={{ display: 'flex', gap: 2, opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
-                      <button onClick={() => openEdit(pkg)}
-                        style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim }}>
+                    <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                      {isHovered && (
+                        <span style={{ fontSize: 10, color: C.dim, fontFamily: 'Inter, sans-serif', marginRight: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                          Manage <ChevronRight size={10} />
+                        </span>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(pkg) }}
+                        style={{ width: 28, height: 28, borderRadius: 6, background: isHovered ? 'rgba(255,255,255,0.05)' : 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.dim, transition: 'background 0.15s' }}>
                         <Edit2 size={13} />
                       </button>
-                      <button onClick={() => handleDelete(pkg.id)}
-                        style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.red }}>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(pkg.id) }}
+                        style={{ width: 28, height: 28, borderRadius: 6, background: isHovered ? 'rgba(239,68,68,0.08)' : 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.red, transition: 'background 0.15s' }}>
                         <Trash2 size={13} />
                       </button>
                     </div>

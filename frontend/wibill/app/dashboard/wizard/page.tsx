@@ -153,6 +153,7 @@ export default function PortalWizard() {
   const [hasSavedConfig, setHasSavedConfig] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
   const [previewingSnapshot, setPreviewingSnapshot] = useState<string | null>(null)
+  const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null)
 
   const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200) }
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
@@ -307,7 +308,7 @@ export default function PortalWizard() {
         body: JSON.stringify(buildConfig()),
       })
       if (!res.ok) throw new Error('Save failed')
-      setSaved(true); toast('Portal saved successfully!')
+      setSaved(true); setActiveSnapshotId(null); toast('Portal saved successfully!')
       setTimeout(() => setSaved(false), 3000)
     } catch (e) { console.error('Save failed:', e); toast('Save failed')
     } finally { setSaving(false) }
@@ -401,6 +402,7 @@ export default function PortalWizard() {
           if (match) setPalette(match.p)
         }
         loadSnapshots()
+        setActiveSnapshotId(id)
         toast('Version restored!')
       }
     } catch {}
@@ -766,19 +768,29 @@ export default function PortalWizard() {
                 </button>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 12 }}>Saved Versions</div>
                 {snapshots.length === 0 && <p style={{ fontSize: 12, color: '#555', textAlign: 'center', padding: 20 }}>No versions saved yet.</p>}
-                {snapshots.map((s: any) => (
-                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, background: '#0a0a0a', marginBottom: 8, border: '1px solid #141414' }}>
-                    <Clock size={14} style={{ color: '#2a2a2a', flexShrink: 0 }} />
+                {snapshots.map((s: any) => {
+                  const isActive = activeSnapshotId === s.id
+                  return (
+                  <div key={s.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8,
+                    background: isActive ? accentRgba(0.1) : '#0a0a0a', marginBottom: 8,
+                    border: isActive ? `1.5px solid var(--theme-gold)` : '1px solid #141414',
+                  }}>
+                    <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : '#2a2a2a', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{s.version_tag}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>{s.version_tag}</span>
+                        {isActive && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--theme-gold)', background: accentRgba(0.15), padding: '1px 5px', borderRadius: 3, fontFamily: "'DM Mono', monospace" }}>ACTIVE</span>}
+                      </div>
                       <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString()}</div>
                     </div>
                     <button onClick={() => restoreSnapshot(s.id)} style={{
-                      padding: '4px 10px', borderRadius: 6, border: '1px solid #141414',
-                      background: 'transparent', color: '#666', cursor: 'pointer', fontSize: 10,
+                      padding: '4px 10px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid #141414',
+                      background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : '#666', cursor: 'pointer', fontSize: 10,
                     }}><RotateCcw size={12} /></button>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -817,34 +829,41 @@ export default function PortalWizard() {
             <div style={{ maxHeight: 340, overflowY: 'auto', marginBottom: 16 }}>
               {snapshots.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0', color: '#555', fontSize: 12 }}>No saved versions yet.</div>
-              ) : snapshots.map((s: any) => (
+              ) : snapshots.map((s: any) => {
+                const isActive = activeSnapshotId === s.id
+                const isPreview = previewingSnapshot === s.id
+                return (
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
                   borderRadius: 10, marginBottom: 6, cursor: 'pointer',
-                  background: previewingSnapshot === s.id ? accentRgba(0.1) : '#0a0a0a',
-                  border: previewingSnapshot === s.id ? `1px solid ${accentRgba(0.3)}` : '1px solid #1a1a1a',
+                  background: isActive ? accentRgba(0.15) : isPreview ? accentRgba(0.08) : '#0a0a0a',
+                  border: isActive ? `1.5px solid var(--theme-gold)` : isPreview ? `1px solid ${accentRgba(0.3)}` : '1px solid #1a1a1a',
                   transition: 'all 0.15s',
                 }}
-                  onMouseEnter={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#2a2a2a' }}
-                  onMouseLeave={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#1a1a1a' }}
+                  onMouseEnter={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = '#2a2a2a' }}
+                  onMouseLeave={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = '#1a1a1a' }}
                 >
-                  <Clock size={14} style={{ color: previewingSnapshot === s.id ? 'var(--theme-gold)' : '#444', flexShrink: 0 }} />
+                  <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : isPreview ? 'var(--theme-gold)' : '#444', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</span>
+                      {isActive && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--theme-gold)', background: accentRgba(0.15), padding: '1px 5px', borderRadius: 3, fontFamily: "'DM Mono', monospace" }}>ACTIVE</span>}
+                    </div>
                     <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); restoreSnapshot(s.id) }} style={{
-                    padding: '5px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
-                    background: 'transparent', color: '#888', cursor: 'pointer', fontSize: 10,
+                    padding: '5px 8px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
+                    background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : '#888', cursor: 'pointer', fontSize: 10,
                     display: 'flex', alignItems: 'center', gap: 4,
-                  }} title="Restore this version"><RotateCcw size={11} /> Load</button>
+                  }} title="Restore this version"><RotateCcw size={11} /> {isActive ? 'Loaded' : 'Load'}</button>
                   <button onClick={(e) => { e.stopPropagation(); deleteSnapshot(s.id, s.version_tag) }} style={{
                     padding: '5px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
                     background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: 10,
                     display: 'flex', alignItems: 'center', gap: 4,
                   }} title="Delete this version"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Unlock Button */}

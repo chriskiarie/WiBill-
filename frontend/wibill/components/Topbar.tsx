@@ -163,8 +163,8 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         position: 'sticky', top: 0, zIndex: 10,
       }}
     >
-      {/* ── Title zone (absolutely centered via left-offset) ── */}
-      <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      {/* ── Title zone (absolutely centered across full Topbar) ── */}
+      <div style={{ position: 'absolute', left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' }}>
         <h1
           className="page-title"
           style={{
@@ -172,6 +172,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
             color: 'var(--theme-gold)',
             margin: 0, letterSpacing: '-0.4px',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            pointerEvents: 'auto',
           }}
         >
           {title}
@@ -180,6 +181,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           <span style={{
             fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
             color: 'var(--topbar-dim)', marginLeft: 10, opacity: 0.6,
+            pointerEvents: 'auto',
           }}>
             {subsection}
           </span>
