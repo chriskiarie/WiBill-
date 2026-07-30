@@ -269,7 +269,7 @@ export default function PortalWizard() {
       iframe.src = previewUrl
     }, 200)
     return () => clearTimeout(timer)
-  }, [previewKey, stickerDataUrl])
+  }, [previewKey, stickerDataUrl, previewUrl])
 
   function buildConfig() {
     return {
@@ -418,7 +418,7 @@ export default function PortalWizard() {
   if (loadingConfig) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0' }}>
-        <Topbar title="Portal Design" subsection="Design Studio" />
+        <Topbar title="Portal Design" />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--theme-gold)' }} />
           <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
@@ -429,8 +429,8 @@ export default function PortalWizard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0', overflow: 'hidden' }}>
-      <Topbar title="Portal Design" subsection="Design Studio" />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <Topbar title="Portal Design" />
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Left side */}
