@@ -197,12 +197,9 @@ export default function MpesaPage() {
           </div>
 
         {loading ? (
-          <div style={{ maxWidth: 520, margin: '0 auto' }}>
             <LoadingSpinner size="md" label="Loading configuration…" />
-          </div>
         ) : (
-          <div style={{ maxWidth: 520, margin: '0 auto' }}>
-
+          <>
             {/* Current config display */}
             {config && !showForm && (
               <>
@@ -308,8 +305,9 @@ export default function MpesaPage() {
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
+        </div>
       </div>
     </div>
   )
