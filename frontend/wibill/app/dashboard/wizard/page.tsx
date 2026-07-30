@@ -53,6 +53,9 @@ const BRAND_STICKERS: { name: string; src: string }[] = [
   { name: 'Website', src: '/stickers/website.png' },
   { name: 'WiFi', src: '/stickers/wifi.png' },
   { name: 'WiFi Router', src: '/stickers/wifi-router.png' },
+  { name: 'WiFi Blue', src: '/stickers/wifi-blue.png' },
+  { name: 'WiFi Icon', src: '/stickers/wifi-icon.png' },
+  { name: 'Technology', src: '/stickers/technology.png' },
   { name: 'Internet', src: '/stickers/internet-1.png' },
   { name: 'High Speed', src: '/stickers/high-speed.png' },
   { name: 'Internet Access', src: '/stickers/internet-access.png' },
@@ -798,7 +801,7 @@ export default function PortalWizard() {
       {/* ═══ LOCKED VIEW OVERLAY ═══ */}
       {isLocked && hasSavedConfig && (
         <div style={{
-          position: 'fixed', top: 0, left: 228, width: 420, height: '100vh', zIndex: 100,
+          position: 'fixed', top: 56, left: 228, width: 420, height: 'calc(100vh - 56px)', zIndex: 100,
           background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: 32,
