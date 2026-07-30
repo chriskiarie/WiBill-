@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api, formatRelativeTime } from '@/lib/api'
 import Topbar from '@/components/Topbar'
-import { Wifi, RefreshCw, Router, Activity, Users, Clock, History, Zap, Server } from 'lucide-react'
+import { RefreshCw, Router, Activity, Users, Zap } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
@@ -100,233 +100,186 @@ export default function NetworkPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title="Network" subsection="Status" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, color: C.text }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Network Status</h1>
-          <button onClick={fetchData} disabled={loading} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-            background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 11, cursor: 'pointer',
-          }}>
-            <RefreshCw size={13} />
-            {loading ? 'Refreshing...' : 'Refresh Now'}
-          </button>
-        </div>
 
         {loading && !status ? (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--theme-faint)', fontSize: 13 }}>Loading network status...</div>
         ) : (
           <>
-            {/* ───── STATUS INDICATOR ───── */}
-            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '20px 24px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ position: 'relative', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: '50%',
-                    background: statusLabel.pulse ? `${statusLabel.color}20` : 'var(--theme-surface)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Wifi size={22} color={statusLabel.color} />
-                  </div>
-                  {statusLabel.pulse && (
-                    <div style={{
-                      position: 'absolute', width: 48, height: 48, borderRadius: '50%',
-                      border: `2px solid ${statusLabel.color}40`,
-                      animation: 'none',
-                    }} />
-                  )}
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <div style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: statusLabel.color,
-                      boxShadow: `0 0 8px ${statusLabel.color}80`,
-                    }} />
-                    <span style={{ fontSize: 16, fontWeight: 700, color: statusLabel.color }}>{statusLabel.text}</span>
-                  </div>
-                  {notMonitoring ? (
-                    <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>Configure your router in MikroTik settings to begin monitoring</div>
-                  ) : (
-                    <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                      Router IP: {routerIp} &middot; Last ping: {lastChecked}
-                    </div>
-                  )}
-                  {status?.outage_minutes && (
-                    <div style={{ fontSize: 10, color: C.red, marginTop: 4 }}>
-                      Outage duration: {status.outage_minutes} minutes
-                    </div>
-                  )}
-                </div>
+            {/* ───── HEADER ROW ───── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                  background: statusLabel.color, boxShadow: `0 0 8px ${statusLabel.color}60`,
+                }} />
+                <span style={{ fontSize: 16, fontWeight: 700, color: statusLabel.color }}>{statusLabel.text}</span>
+                {!notMonitoring && (
+                  <span style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                    {routerIp} &middot; {lastChecked}
+                  </span>
+                )}
               </div>
+              <button onClick={fetchData} disabled={loading} style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
+                background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 10, cursor: 'pointer',
+              }}>
+                <RefreshCw size={12} />
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
             </div>
 
-            {/* ───── METRIC CARDS ───── */}
-            <div className="grid-3" style={{ display: 'grid', gap: 14, marginBottom: 16 }}>
+            {/* ───── METRICS ROW ───── */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
               {[
-                { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', sub: 'current', icon: Activity },
-                { label: 'Active Users', value: String(activeUsers), sub: 'hotspot sessions', icon: Users },
-                { label: 'Uptime (30d)', value: uptimePercent !== null ? `${uptimePercent}%` : '—', sub: 'based on recent pings', icon: Zap },
+                { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', icon: Activity },
+                { label: 'Users', value: String(activeUsers), icon: Users },
+                { label: 'Uptime', value: uptimePercent !== null ? `${uptimePercent}%` : '—', icon: Zap },
               ].map((c, i) => (
-                <div key={i} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--theme-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <c.icon size={16} color={C.gold} />
+                <div key={i} style={{
+                  flex: 1, background: C.base, border: `0.5px solid ${C.border}`,
+                  borderRadius: 9, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 7, background: 'var(--theme-surface)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <c.icon size={14} color={C.gold} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>{c.label}</div>
-                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 28, fontWeight: 500, color: C.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
-                    <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.faint, marginTop: 2 }}>{c.sub}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</div>
+                    <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 22, fontWeight: 500, color: C.text, lineHeight: 1.2 }}>{c.value}</div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ───── UPTIME TIMELINE ───── */}
-            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '20px 24px', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Uptime &mdash; Last 14 Days</div>
+            {/* ───── UPTIME BAR ───── */}
+            <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, padding: '16px 20px', marginBottom: 20 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>14-Day Uptime</div>
               {events.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 3, height: 28 }}>
                   {uptimeTimeline.map((day, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 9, color: C.faint, minWidth: 75, fontFamily: 'DM Mono, monospace' }}>{day.label}</span>
-                      <div style={{ flex: 1, height: 14, background: 'var(--theme-surface)', borderRadius: 3, overflow: 'hidden', display: 'flex' }}>
-                        <div style={{ width: `${day.ratio * 100}%`, background: day.color, borderRadius: 3, transition: 'width 0.3s' }} />
-                      </div>
-                      <span style={{ fontSize: 9, color: C.faint, minWidth: 35, textAlign: 'right', fontFamily: 'DM Mono, monospace' }}>
-                        {Math.round(day.ratio * 100)}%
-                      </span>
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                      <div style={{
+                        height: `${Math.max(day.ratio * 100, 8)}%`,
+                        background: day.color, borderRadius: 2, transition: 'height 0.3s',
+                      }} title={`${day.label}: ${Math.round(day.ratio * 100)}%`} />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {Array.from({ length: 7 }, (_, i) => {
-                      const d = new Date()
-                      d.setDate(d.getDate() - (6 - i))
-                      return { label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
-                    }).map((day, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 9, color: C.mute, minWidth: 75, fontFamily: 'DM Mono, monospace' }}>{day.label}</span>
-                        <div style={{ flex: 1, height: 14, background: 'var(--theme-surface)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${60 + Math.random() * 35}%`, height: '100%', background: 'var(--theme-surface)', borderRadius: 3 }} />
-                        </div>
-                        <span style={{ fontSize: 9, color: 'var(--theme-faint)', minWidth: 35, textAlign: 'right', fontFamily: 'DM Mono, monospace' }}>—%</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ textAlign: 'center', marginTop: 10 }}>
-                    <span style={{ fontSize: 10, color: C.mute }}>Uptime data will appear once the network checker records pings</span>
-                  </div>
+                <div style={{ height: 28, background: 'var(--theme-surface)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 10, color: C.mute }}>No uptime data yet</span>
                 </div>
               )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>
+                  {uptimeTimeline[0]?.label}
+                </span>
+                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>
+                  {uptimeTimeline[uptimeTimeline.length - 1]?.label}
+                </span>
+              </div>
             </div>
 
-            {/* ───── TWO COLUMN: Events + Router Config ───── */}
-            <div className="grid-2" style={{ display: 'grid', gap: 16 }}>
+            {/* ───── BOTTOM: Events + Router ───── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {/* Events Log */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Recent Events</span>
-                  <History size={13} color={C.dim} />
-                </div>
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Recent Events</div>
                 {events.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 180, overflowY: 'auto' }}>
                     {events.filter((e: any, i: number, arr: any[]) => {
                       if (i === 0) return true
-                      const prev = arr[i - 1]?.status?.toUpperCase?.()
-                      const cur = e.status?.toUpperCase?.()
-                      return cur !== prev
-                    }).slice(0, 30).map((e: any, i: number) => {
+                      return e.status?.toUpperCase?.() !== arr[i - 1]?.status?.toUpperCase?.()
+                    }).slice(0, 12).map((e: any, i: number) => {
                       const isUp = e.status === 'UP' || e.status === 'up'
                       const isDown = e.status === 'DOWN' || e.status === 'down'
                       return (
                         <div key={e.id || i} style={{
                           display: 'flex', alignItems: 'center', gap: 8,
-                          padding: '6px 0', borderBottom: `0.5px solid ${C.border}`, fontSize: 10,
+                          padding: '5px 0', borderBottom: i < 11 ? `0.5px solid ${C.border}` : 'none', fontSize: 10,
                         }}>
-                          <div style={{
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: isUp ? C.green : isDown ? C.red : C.gold,
-                            flexShrink: 0,
-                          }} />
-                          <span style={{ color: C.dim, minWidth: 85, fontFamily: 'DM Mono, monospace' }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: isUp ? C.green : isDown ? C.red : C.gold, flexShrink: 0 }} />
+                          <span style={{ color: C.dim, minWidth: 70, fontFamily: 'DM Mono, monospace' }}>
                             {formatRelativeTime(e.checked_at || e.created_at)}
                           </span>
-                          <span style={{ color: isUp ? C.green : isDown ? C.red : C.gold, fontWeight: 500 }}>
+                          <span style={{ color: isUp ? C.green : isDown ? C.red : C.gold }}>
                             {isUp ? 'Online' : isDown ? 'Offline' : 'Degraded'}
                           </span>
-                          {e.latency_ms && (
-                            <span style={{ color: C.faint, fontFamily: 'DM Mono, monospace' }}>
-                              &middot; {e.latency_ms}ms
-                            </span>
-                          )}
+                          {e.latency_ms && <span style={{ color: C.faint, fontFamily: 'DM Mono, monospace' }}>{e.latency_ms}ms</span>}
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <div style={{ border: '1px dashed var(--theme-border2)', borderRadius: 8, textAlign: 'center', padding: '20px 16px' }}>
-                    <div style={{ color: C.mute, fontSize: 12 }}>No events recorded yet</div>
-                    <div style={{ fontSize: 10, color: 'var(--theme-faint)', marginTop: 2 }}>Network events appear here as the system checks your connection</div>
+                  <div style={{ textAlign: 'center', padding: '16px 12px', color: C.mute, fontSize: 11 }}>
+                    No events yet
                   </div>
                 )}
               </div>
 
-              {/* Router Config Summary */}
-              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '16px 20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Router Configuration</span>
-                  <Server size={13} color={C.dim} />
-                </div>
+              {/* Router */}
+              <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Router</div>
                 {mikrotik ? (
                   <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                       {[
-                        { label: 'Router IP', value: mikrotik.router_ip || '—' },
-                        { label: 'API Port', value: mikrotik.api_port || '—' },
-                        { label: 'Username', value: mikrotik.api_username || '—' },
-                        { label: 'Hotspot Server', value: mikrotik.hotspot_server || '—' },
-                        { label: 'Connected', value: mikrotik.updated_at ? formatRelativeTime(mikrotik.updated_at) : '—' },
+                        { label: 'IP', value: mikrotik.router_ip || '—' },
+                        { label: 'Hotspot', value: mikrotik.hotspot_server || '—' },
+                        { label: 'Last seen', value: mikrotik.updated_at ? formatRelativeTime(mikrotik.updated_at) : '—' },
                       ].map((r, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '4px 0', borderBottom: `0.5px solid ${C.border}` }}>
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '3px 0' }}>
                           <span style={{ color: C.dim }}>{r.label}</span>
                           <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{r.value}</span>
                         </div>
                       ))}
                     </div>
                     <button onClick={handleTest} disabled={testing} style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-                      background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 11, cursor: 'pointer', width: '100%', justifyContent: 'center',
+                      width: '100%', padding: '8px', borderRadius: 7,
+                      background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)',
+                      color: C.dim, fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                     }}>
-                      <Zap size={13} />
+                      <Zap size={11} />
                       {testing ? 'Testing...' : 'Test Connection'}
                     </button>
                     {testResult && (
                       <div style={{
-                        marginTop: 8, padding: '8px 12px', borderRadius: 6, fontSize: 10,
+                        marginTop: 6, padding: '6px 10px', borderRadius: 5, fontSize: 9,
                         background: testResult.includes('fail') || testResult.includes('unreachable') ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
                         color: testResult.includes('fail') || testResult.includes('unreachable') ? C.red : C.green,
-                        border: `0.5px solid ${testResult.includes('fail') || testResult.includes('unreachable') ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
                       }}>
                         {testResult}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-                    <Router size={28} color={C.dim} style={{ marginBottom: 10 }} />
-                    <div style={{ color: C.dim, fontSize: 12, marginBottom: 4 }}>Router Not Configured</div>
-                    <div style={{ color: C.mute, fontSize: 10, marginBottom: 14 }}>Connect your MikroTik router to start monitoring</div>
+                  <div style={{ textAlign: 'center', padding: '16px 8px' }}>
+                    <Router size={22} color={C.dim} style={{ marginBottom: 8 }} />
+                    <div style={{ color: C.dim, fontSize: 11, marginBottom: 6 }}>Not configured</div>
                     <a href="/dashboard/mikrotik" style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-                      background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: 'var(--theme-dim)', fontSize: 11, textDecoration: 'none',
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 6,
+                      background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 10, textDecoration: 'none',
                     }}>
-                      <Router size={13} />
-                      Configure Now
+                      <Router size={10} />
+                      Set up
                     </a>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* ───── OUTAGE WARNING ───── */}
+            {status?.outage_minutes && (
+              <div style={{
+                marginTop: 12, padding: '10px 14px', borderRadius: 7,
+                background: 'rgba(239,68,68,0.06)', border: '0.5px solid rgba(239,68,68,0.15)',
+                fontSize: 11, color: C.red,
+              }}>
+                Active outage: {status.outage_minutes} minutes
+              </div>
+            )}
           </>
         )}
       </div>

@@ -178,25 +178,30 @@ export default function MpesaPage() {
       <Topbar title="M-Pesa Configuration" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>M-Pesa / Daraja</h1>
-            <div style={{ fontSize: 11, color: '#444', marginTop: 4 }}>Safaricom STK Push integration</div>
+        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+          {/* M-Pesa Logo + Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+            <img src="/mpesa-logo.png" alt="M-Pesa" style={{ height: 40, width: 'auto' }} />
+            <div style={{ flex: 1 }}>
+              <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>M-Pesa / Daraja</h1>
+              <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Safaricom STK Push integration</div>
+            </div>
+            {config && !showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                style={{ padding: '8px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Edit Config
+              </button>
+            )}
           </div>
-          {config && !showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              style={{ padding: '8px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Edit Config
-            </button>
-          )}
-        </div>
 
         {loading ? (
-          <LoadingSpinner size="md" label="Loading configuration…" />
+          <div style={{ maxWidth: 520, margin: '0 auto' }}>
+            <LoadingSpinner size="md" label="Loading configuration…" />
+          </div>
         ) : (
-          <div style={{ maxWidth: 520 }}>
+          <div style={{ maxWidth: 520, margin: '0 auto' }}>
 
             {/* Current config display */}
             {config && !showForm && (
