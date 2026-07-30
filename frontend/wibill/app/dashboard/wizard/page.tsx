@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
+import Topbar from '@/components/Topbar'
 import {
   Palette, LayoutTemplate, Settings, Type,
   Save, Check, RefreshCw, Download,
@@ -153,6 +154,15 @@ export default function PortalWizard() {
   const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200) }
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
   const sel = MAIN_TEMPLATES.find(t => t.id === tpl)
+
+  const accentRgba = (alpha: number) => {
+    const c = getComputedStyle(document.documentElement).getPropertyValue('--theme-gold').trim() || '#E8B84B'
+    const hex = c.startsWith('#') ? c : '#E8B84B'
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${alpha})`
+  }
 
   const previewParams = new URLSearchParams({
     palette: String(palette), font, name: name || 'Your WiFi',
@@ -398,15 +408,20 @@ export default function PortalWizard() {
 
   if (loadingConfig) {
     return (
-      <div style={{ display: 'flex', height: '100vh', background: '#000', color: '#f0f0f0', alignItems: 'center', justifyContent: 'center' }}>
-        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', color: '#E8B84B' }} />
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0' }}>
+        <Topbar title="Portal Design" subsection="Design Studio" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--theme-gold)' }} />
+          <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#000', color: '#f0f0f0', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0', overflow: 'hidden' }}>
+      <Topbar title="Portal Design" subsection="Design Studio" />
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Left side */}
@@ -415,8 +430,8 @@ export default function PortalWizard() {
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, padding: '12px 0 10px', background: 'transparent', border: 'none',
-              borderBottom: tab === t.id ? '2px solid #E8B84B' : '2px solid transparent',
-              color: tab === t.id ? '#E8B84B' : '#666', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              borderBottom: tab === t.id ? '2px solid var(--theme-gold)' : '2px solid transparent',
+              color: tab === t.id ? 'var(--theme-gold)' : '#666', cursor: 'pointer', fontSize: 10, fontWeight: 600,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               transition: 'all 0.15s', fontFamily: 'Inter, sans-serif',
             }}>
@@ -442,7 +457,7 @@ export default function PortalWizard() {
                       style={{
                         display: 'flex', gap: 16, alignItems: 'center', cursor: 'pointer',
                         background: active ? '#0f0f0f' : 'transparent',
-                        border: active ? '1px solid rgba(232,184,75,0.3)' : '1px solid #141414',
+                        border: active ? `1px solid ${accentRgba(0.3)}` : '1px solid #141414',
                         borderRadius: 14, padding: '10px 14px',
                         transition: 'all 0.25s cubic-bezier(.34,1.56,.64,1)',
                       }}>
@@ -470,7 +485,7 @@ export default function PortalWizard() {
                           <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#f0f0f0' : '#999', marginBottom: 2 }}>{t.label}</div>
                           <div style={{ fontSize: 13, color: '#555' }}>{t.desc}</div>
                       </div>
-                      {active && <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#E8B84B', color: '#000', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>}
+                      {active && <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--theme-gold)', color: '#000', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>}
                     </button>
                   )
                 })}
@@ -505,7 +520,7 @@ export default function PortalWizard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
                     onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
                 </div>
               ))}
@@ -519,7 +534,7 @@ export default function PortalWizard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
                     onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
                 </div>
               ))}
@@ -533,7 +548,7 @@ export default function PortalWizard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type || 'text'}
                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#E8B84B'}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
                     onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
                 </div>
               ))}
@@ -545,8 +560,8 @@ export default function PortalWizard() {
                   return (
                     <button key={st.name} onClick={() => { setEmoji(st.name); setSelectedSticker(st.src); setLogoUrl(null) }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: active ? '1px solid #E8B84B' : '1px solid #2a2a2a',
-                      background: active ? 'rgba(232,184,75,0.15)' : 'rgba(255,255,255,0.1)', cursor: 'pointer',
+                      border: active ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
+                      background: active ? accentRgba(0.15) : 'rgba(255,255,255,0.1)', cursor: 'pointer',
                     }} title={st.name}>
                       <img src={st.src} style={{ width: 24, height: 24, objectFit: 'contain' }} alt={st.name} />
                     </button>
@@ -573,7 +588,7 @@ export default function PortalWizard() {
                 )}
               </div>
               <div style={{ fontSize: 9, color: '#444', lineHeight: 1.4 }}>
-                Recommended: 180×180px PNG or SVG. Files larger than recommended size? Use <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style={{ color: '#E8B84B' }}>TinyPNG</a> or <a href="https://www.iloveimg.com/resize-image" target="_blank" rel="noopener noreferrer" style={{ color: '#E8B84B' }}>iLoveIMG</a> to resize.
+                Recommended: 180×180px PNG or SVG. Files larger than recommended size? Use <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--theme-gold)' }}>TinyPNG</a> or <a href="https://www.iloveimg.com/resize-image" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--theme-gold)' }}>iLoveIMG</a> to resize.
               </div>
 
               <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -629,8 +644,8 @@ export default function PortalWizard() {
                       return (
                         <button key={f.family} onClick={() => setFont(f.family)} style={{
                           display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-                          background: sel ? 'rgba(232,184,75,0.06)' : 'transparent',
-                          border: sel ? '1px solid rgba(232,184,75,0.25)' : '1px solid #141414',
+                          background: sel ? accentRgba(0.06) : 'transparent',
+                          border: sel ? `1px solid ${accentRgba(0.25)}` : '1px solid #141414',
                           borderRadius: 10, padding: '10px 14px', textAlign: 'left',
                           transition: 'all 0.2s',
                         }}>
@@ -639,7 +654,7 @@ export default function PortalWizard() {
                             <div style={{ fontFamily: `'${f.family}',sans-serif`, fontSize: 13, color: '#555', letterSpacing: 0, lineHeight: 1.3 }}>{f.preview}</div>
                           </div>
                           {sel && (
-                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#E8B84B', color: '#000', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--theme-gold)', color: '#000', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>
                           )}
                         </button>
                       )
@@ -678,7 +693,7 @@ export default function PortalWizard() {
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#f0f0f0', marginBottom: 2 }}>
                         {sp.n}
                         {TEMPLATE_PALETTE_REC[tpl] === sp.p && (
-                          <span style={{ display: 'block', fontSize: 9, color: '#E8B84B', fontWeight: 600, marginTop: 2 }}>★ Recommended</span>
+                          <span style={{ display: 'block', fontSize: 9, color: 'var(--theme-gold)', fontWeight: 600, marginTop: 2 }}>★ Recommended</span>
                         )}
                       </div>
                       <div style={{ fontSize: 10, color: '#666', fontFamily: `'${sp.f}',sans-serif`, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', display: 'inline-block' }}>{sp.f}</div>
@@ -715,8 +730,8 @@ export default function PortalWizard() {
                 Export & Versions
               </div>
               <button onClick={handleExportZip} disabled={exporting} style={{
-                width: '100%', padding: '14px 0', borderRadius: 10, border: '1px solid #E8B84B',
-                background: 'rgba(232,184,75,0.1)', color: '#E8B84B', cursor: 'pointer',
+                width: '100%', padding: '14px 0', borderRadius: 10, border: '1px solid var(--theme-gold)',
+                background: accentRgba(0.1), color: 'var(--theme-gold)', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 {exporting ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <FileDown size={16} />}
@@ -761,7 +776,7 @@ export default function PortalWizard() {
         <div style={{ padding: 12, borderTop: '1px solid #141414' }}>
           <button onClick={handleSave} disabled={saving} style={{
             width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
-            background: saved ? '#22c55e' : '#E8B84B', color: '#000', cursor: 'pointer',
+            background: saved ? '#22c55e' : 'var(--theme-gold)', color: '#000', cursor: 'pointer',
             fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             transition: 'background 0.3s', fontFamily: 'Inter, sans-serif',
           }}>
@@ -781,7 +796,7 @@ export default function PortalWizard() {
         }}>
           <div style={{ width: '100%', maxWidth: 340 }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#E8B84B', marginBottom: 6 }}>Your Portal</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-gold)', marginBottom: 6 }}>Your Portal</div>
               <div style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', marginBottom: 4 }}>Saved Portal Found</div>
               <div style={{ fontSize: 12, color: '#666' }}>Preview your saved versions or unlock to customize.</div>
             </div>
@@ -794,14 +809,14 @@ export default function PortalWizard() {
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
                   borderRadius: 10, marginBottom: 6, cursor: 'pointer',
-                  background: previewingSnapshot === s.id ? 'rgba(232,184,75,0.1)' : '#0a0a0a',
-                  border: previewingSnapshot === s.id ? '1px solid rgba(232,184,75,0.3)' : '1px solid #1a1a1a',
+                  background: previewingSnapshot === s.id ? accentRgba(0.1) : '#0a0a0a',
+                  border: previewingSnapshot === s.id ? `1px solid ${accentRgba(0.3)}` : '1px solid #1a1a1a',
                   transition: 'all 0.15s',
                 }}
                   onMouseEnter={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#2a2a2a' }}
                   onMouseLeave={e => { if (previewingSnapshot !== s.id) e.currentTarget.style.borderColor = '#1a1a1a' }}
                 >
-                  <Clock size={14} style={{ color: previewingSnapshot === s.id ? '#E8B84B' : '#444', flexShrink: 0 }} />
+                  <Clock size={14} style={{ color: previewingSnapshot === s.id ? 'var(--theme-gold)' : '#444', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</div>
                     <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -823,7 +838,7 @@ export default function PortalWizard() {
             {/* Unlock Button */}
             <button onClick={() => setIsLocked(false)} style={{
               width: '100%', padding: '14px 0', borderRadius: 12, border: 'none',
-              background: '#E8B84B', color: '#000', cursor: 'pointer',
+              background: 'var(--theme-gold)', color: '#000', cursor: 'pointer',
               fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               fontFamily: 'Inter, sans-serif', transition: 'all 0.2s',
             }}>
@@ -867,6 +882,7 @@ export default function PortalWizard() {
               </div>
             </div>
           </div>
+      </div>
       </div>
 
       <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#f0f0f0', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid #2a2a2a', bottom: toastMsg ? 24 : -80 }}>
