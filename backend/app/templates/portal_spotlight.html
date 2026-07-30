@@ -315,8 +315,8 @@
 
     {% if network_up %}
     <div class="hero">
+        <div class="hero-emoji">{% if brand.logo_url %}<img src="{{ brand.logo_url }}" alt="Logo" style="width:64px;height:64px;object-fit:contain;display:inline-block">{% else %}{{ brand.emoji or '📡' }}{% endif %}</div>
         <div class="hero-badge">WiFi Access Portal</div>
-        <div class="hero-emoji">{% if brand.logo_url %}<img src="{{ brand.logo_url }}" alt="Logo" style="width:48px;height:48px;object-fit:contain;display:inline-block">{% else %}{{ brand.emoji or '📡' }}{% endif %}</div>
         <h1>{{ brand.name or 'WiFi Portal' }}</h1>
         <p>{{ brand.tagline or 'Fast, reliable internet access' }}</p>
         {% if brand.location %}<p class="hero-loc">📍 {{ brand.location }}</p>{% endif %}
