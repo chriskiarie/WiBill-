@@ -123,46 +123,74 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════ HOW IT WORKS — 3 cards ═══════ */}
+      {/* ═══════ HOW IT WORKS ═══════ */}
       <section style={{
         position: 'relative', zIndex: 1,
         padding: '60px 40px 80px', maxWidth: 1000, margin: '0 auto',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
           {[
-            { num: '01', icon: Wifi, title: 'Connect your MikroTik', desc: 'One script. No manual config. Your router talks to WiBill automatically.' },
-            { num: '02', icon: LayoutTemplate, title: 'Design your portal', desc: 'Pick a template, brand it with your logo and colors. Done in minutes.' },
-            { num: '03', icon: CreditCard, title: 'Go live and get paid', desc: 'M-Pesa built in, voucher codes, live session tracking.' },
-          ].map((step) => (
-            <div key={step.num} style={{
-              background: cardBg,
+            { icon: Wifi, title: 'Connect your MikroTik', desc: 'One script. No manual config. Your router talks to WiBill automatically.' },
+            { icon: LayoutTemplate, title: 'Design your portal', desc: 'Pick a template, brand it with your logo and colors. Done in minutes.' },
+            { icon: CreditCard, title: 'Go live and get paid', desc: 'M-Pesa built in, voucher codes, live session tracking.' },
+          ].map((step, i) => (
+            <div key={step.title} className="step-card" style={{
+              background: 'rgba(14,14,14,0.8)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: `0.5px solid ${cardBorder}`,
-              borderRadius: 14,
-              padding: '28px 22px',
-            }}>
+              border: '0.5px solid rgba(255,255,255,0.06)',
+              borderRadius: 16,
+              padding: '32px 24px',
+              position: 'relative',
+              overflow: 'hidden',
+              cursor: 'default',
+              transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+            }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)'
+                e.currentTarget.style.borderColor = 'rgba(232,184,75,0.2)'
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(232,184,75,0.04)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              {/* Gradient glow on hover */}
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+                background: 'linear-gradient(90deg, transparent, rgba(232,184,75,0.3), transparent)',
+                opacity: 0,
+                transition: 'opacity 0.25s ease',
+              }} className="step-glow" />
+
+              {/* Step number — subtle, not a label */}
               <div style={{
                 fontFamily: "'DM Mono', monospace",
-                fontSize: 11, color: gold, fontWeight: 600,
-                letterSpacing: '1px', marginBottom: 14,
-              }}>[{step.num}/3]</div>
+                fontSize: 48, fontWeight: 500,
+                color: 'rgba(232,184,75,0.07)',
+                lineHeight: 1, marginBottom: 8,
+                userSelect: 'none',
+              }}>{String(i + 1).padStart(2, '0')}</div>
+
               <div style={{
-                width: 40, height: 40, borderRadius: 10,
+                width: 44, height: 44, borderRadius: 12,
                 background: 'rgba(232,184,75,0.08)',
                 border: '0.5px solid rgba(232,184,75,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 16,
+                marginBottom: 20,
+                transition: 'background 0.25s ease, border-color 0.25s ease',
               }}>
-                <step.icon size={18} color={gold} strokeWidth={1.8} />
+                <step.icon size={20} color={gold} strokeWidth={1.8} />
               </div>
               <h3 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: cream,
+                fontSize: 17, fontWeight: 700, margin: '0 0 8px', color: cream,
               }}>{step.title}</h3>
               <p style={{
                 fontFamily: "'Inter', sans-serif",
-                fontSize: 12, color: dim, lineHeight: 1.55, margin: 0,
+                fontSize: 13, color: dim, lineHeight: 1.55, margin: 0,
               }}>{step.desc}</p>
             </div>
           ))}
@@ -174,31 +202,44 @@ export default function LandingPage() {
         position: 'relative', zIndex: 1,
         padding: '0 40px 80px', maxWidth: 1000, margin: '0 auto',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="features-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           {/* Wide card */}
-          <div style={{
-            background: cardBg,
+          <div className="feature-card" style={{
+            background: 'rgba(14,14,14,0.8)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: `0.5px solid ${cardBorder}`,
-            borderRadius: 14,
+            border: '0.5px solid rgba(255,255,255,0.06)',
+            borderRadius: 16,
             padding: '28px 24px',
             gridColumn: 'span 2',
-          }}>
+            cursor: 'default',
+            transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+          }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-3px)'
+              e.currentTarget.style.borderColor = 'rgba(232,184,75,0.2)'
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.4)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
+          >
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               <div style={{
-                width: 40, height: 40, borderRadius: 10,
+                width: 44, height: 44, borderRadius: 12,
                 background: 'rgba(232,184,75,0.08)',
                 border: '0.5px solid rgba(232,184,75,0.12)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <Paintbrush size={18} color={gold} strokeWidth={1.8} />
+                <Paintbrush size={20} color={gold} strokeWidth={1.8} />
               </div>
               <div>
                 <h3 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: 17, fontWeight: 700, margin: '0 0 6px', color: cream,
+                  fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: cream,
                 }}>Branded Captive Portals</h3>
                 <p style={{
                   fontFamily: "'Inter', sans-serif",
@@ -219,28 +260,41 @@ export default function LandingPage() {
             { icon: Zap, title: 'Voucher System', desc: 'Prepaid codes for walk-in customers. Print, sell, done. No phone needed.', tech: 'batch generate · expiry · MAC-bound' },
             { icon: Radio, title: 'Live Monitoring', desc: 'Watch sessions in real time. Know who is online, when they expire, and what they paid.', tech: '60s poll interval · auto-expire' },
           ].map((item) => (
-            <div key={item.title} style={{
-              background: cardBg,
+            <div key={item.title} className="feature-card" style={{
+              background: 'rgba(14,14,14,0.8)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: `0.5px solid ${cardBorder}`,
-              borderRadius: 14,
+              border: '0.5px solid rgba(255,255,255,0.06)',
+              borderRadius: 16,
               padding: '24px 22px',
-            }}>
+              cursor: 'default',
+              transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+            }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.borderColor = 'rgba(232,184,75,0.2)'
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.4)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
               <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 9,
+                  width: 40, height: 40, borderRadius: 10,
                   background: 'rgba(232,184,75,0.08)',
                   border: '0.5px solid rgba(232,184,75,0.12)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <item.icon size={16} color={gold} strokeWidth={1.8} />
+                  <item.icon size={18} color={gold} strokeWidth={1.8} />
                 </div>
                 <div>
                   <h3 style={{
                     fontFamily: "'Space Grotesk', sans-serif",
-                    fontSize: 15, fontWeight: 700, margin: '0 0 6px', color: cream,
+                    fontSize: 16, fontWeight: 700, margin: '0 0 6px', color: cream,
                   }}>{item.title}</h3>
                   <p style={{
                     fontFamily: "'Inter', sans-serif",
@@ -314,7 +368,8 @@ export default function LandingPage() {
           section { padding-left: 20px !important; padding-right: 20px !important; }
         }
         @media (max-width: 700px) {
-          section > div { grid-template-columns: 1fr !important; }
+          .steps-grid, .features-grid { grid-template-columns: 1fr !important; }
+          .feature-card { grid-column: span 1 !important; }
           footer { flex-direction: column; gap: 12px; text-align: center; }
         }
       `}</style>

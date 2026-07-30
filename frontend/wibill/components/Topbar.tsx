@@ -59,6 +59,9 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
     setSelectedAvatar(localStorage.getItem('wb_avatar') || '0')
     const stored = localStorage.getItem('wb_display_name')
     if (stored) setDisplayName(stored)
+    // Restore accent color from avatar selection
+    const savedAccent = localStorage.getItem('wb_accent')
+    if (savedAccent) applyAccent(savedAccent)
   }, [])
 
   useEffect(() => {
@@ -75,6 +78,19 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
 
   const displayLabel = displayName || user?.tenant_name || user?.email?.split('@')[0] || 'ISP'
   const initials = displayLabel.split(/\s+/).map((s: string) => s[0]).join('').slice(0, 2).toUpperCase()
+
+  const applyAccent = (color: string) => {
+    const root = document.documentElement
+    root.style.setProperty('--theme-gold', color)
+    root.style.setProperty('--gold', color)
+    // Derive sidebar active bg from accent
+    const r = parseInt(color.slice(1, 3), 16)
+    const g = parseInt(color.slice(3, 5), 16)
+    const b = parseInt(color.slice(5, 7), 16)
+    root.style.setProperty('--sidebar-active-bg', `rgba(${r},${g},${b},0.06)`)
+    root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${color} 0%, #22c55e 100%)`)
+    localStorage.setItem('wb_accent', color)
+  }
 
   const avatarIdx = Math.min(Math.max(parseInt(selectedAvatar) || 0, 0), avatars.length - 1)
   const AvatarIcon = avatars[avatarIdx].icon
@@ -255,6 +271,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
                       onClick={() => {
                         setSelectedAvatar(String(i))
                         localStorage.setItem('wb_avatar', String(i))
+                        applyAccent(a.color)
                       }}
                       style={{
                         width: 36, height: 36, borderRadius: '50%',
@@ -297,7 +314,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
                     />
                     <button onClick={saveName} style={{
                       height: 30, width: 30, borderRadius: 6, border: 'none',
-                      background: '#E8B84B', color: '#000', cursor: 'pointer',
+                      background: 'var(--theme-gold)', color: '#000', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Check size={12} />
