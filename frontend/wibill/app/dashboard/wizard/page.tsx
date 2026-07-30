@@ -154,6 +154,7 @@ export default function PortalWizard() {
   const [isLocked, setIsLocked] = useState(false)
   const [previewingSnapshot, setPreviewingSnapshot] = useState<string | null>(null)
   const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(null)
+  const [livePackages, setLivePackages] = useState<any[]>([])
 
   const toast = (m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 3200) }
   const snaps = STYLE_PRESETS.find(sp => sp.p === palette)
@@ -174,6 +175,12 @@ export default function PortalWizard() {
     hero_title: heroTitle || '', section_heading: sectionHeading || '',
     primary: primaryColor || '', secondary: secondaryColor || '', accent: accentColor || '',
   })
+  if (livePackages.length > 0) {
+    const pkgsJson = JSON.stringify(livePackages.filter((p: any) => p.is_active !== false).map((p: any) => ({
+      n: p.name, p: p.price_ksh, d: p.duration_label || `${p.duration_hours}h`, star: false,
+    })))
+    previewParams.set('pkgs', pkgsJson)
+  }
   const effectiveLogo = logoUrl || stickerDataUrl
   if (effectiveLogo) previewParams.set('logo_url', effectiveLogo)
   if (whatsapp) previewParams.set('whatsapp', whatsapp)
@@ -253,7 +260,7 @@ export default function PortalWizard() {
         setLoadingConfig(false)
       }
     }
-    if (token) { loadConfig(); loadSnapshots() }
+    if (token) { loadConfig(); loadSnapshots(); fetchLivePackages() }
   }, [token])
 
   useEffect(() => {
@@ -348,6 +355,15 @@ export default function PortalWizard() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) { const data = await res.json(); setSnapshots(data.snapshots || []) }
+    } catch {}
+  }
+
+  async function fetchLivePackages() {
+    try {
+      const res = await fetch(`${API}/api/packages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) { const data = await res.json(); setLivePackages(Array.isArray(data) ? data : []) }
     } catch {}
   }
 
