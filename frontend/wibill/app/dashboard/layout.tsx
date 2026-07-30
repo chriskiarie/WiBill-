@@ -261,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar activeSessions={0} />
 
         <main style={{
-          flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto',
           paddingBottom: isMobile ? 64 : 0,
         }}>
           {children}
