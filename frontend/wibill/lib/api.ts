@@ -261,6 +261,10 @@ export const api = {
       request<any>(`/api/subscribers/${id}/resume`, { method: 'POST' }),
     activateSubscriber: (id: string) =>
       request<any>(`/api/subscribers/${id}/activate`, { method: 'POST' }),
+    reconnectSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/reconnect`, { method: 'POST' }),
+    restartSubscriber: (id: string) =>
+      request<any>(`/api/subscribers/${id}/restart`, { method: 'POST' }),
     getSubscriberStats: () => request<any>('/api/subscribers/stats'),
     reconcileSubscribers: () =>
       request<any>('/api/subscribers/reconcile', { method: 'POST' }),

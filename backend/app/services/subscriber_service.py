@@ -26,6 +26,8 @@ from app.services.mikrotik_service import (
     check_subscriber_online,
     get_subscriber_queue_stats,
     reconcile_subscribers_from_router,
+    reconnect_subscriber,
+    restart_subscriber,
 )
 
 logger = logging.getLogger("honestbill.subscribers")
@@ -433,6 +435,72 @@ async def activate_subscriber(
     except Exception as e:
         subscriber.last_sync_status = f"error: {e}"
         subscriber.out_of_sync = True
+
+    await db.commit()
+    await db.refresh(subscriber)
+    return subscriber
+
+
+async def reconnect_subscriber_action(
+    subscriber_id: uuid.UUID,
+    tenant_id: uuid.UUID,
+    db: AsyncSession = None,
+) -> Subscriber:
+    """Reconnect a subscriber by removing and re-adding on the router."""
+    subscriber = await get_subscriber(subscriber_id, tenant_id, db)
+    if not subscriber:
+        raise ValueError("Subscriber not found")
+
+    try:
+        result = await reconnect_subscriber(
+            tenant_id=str(tenant_id),
+            subscriber_id=str(subscriber_id),
+            ip_address=subscriber.networking_ip,
+            mac_address=subscriber.networking_mac or "",
+            plan_id=str(subscriber.plan_id) if subscriber.plan_id else None,
+            db=db,
+        )
+        subscriber.last_sync_at = datetime.utcnow()
+        subscriber.last_sync_status = "reconnected" if result.get("success") else "reconnect_failed"
+        subscriber.out_of_sync = not result.get("success", False)
+        if not result.get("success"):
+            raise ValueError(result.get("message", "Reconnect failed"))
+    except Exception as e:
+        subscriber.last_sync_status = f"error: {e}"
+        subscriber.out_of_sync = True
+        raise
+
+    await db.commit()
+    await db.refresh(subscriber)
+    return subscriber
+
+
+async def restart_subscriber_action(
+    subscriber_id: uuid.UUID,
+    tenant_id: uuid.UUID,
+    db: AsyncSession = None,
+) -> Subscriber:
+    """Restart a subscriber's connection on the router (reset queue)."""
+    subscriber = await get_subscriber(subscriber_id, tenant_id, db)
+    if not subscriber:
+        raise ValueError("Subscriber not found")
+
+    try:
+        result = await restart_subscriber(
+            tenant_id=str(tenant_id),
+            subscriber_id=str(subscriber_id),
+            ip_address=subscriber.networking_ip,
+            db=db,
+        )
+        subscriber.last_sync_at = datetime.utcnow()
+        subscriber.last_sync_status = "restarted" if result.get("success") else "restart_failed"
+        subscriber.out_of_sync = not result.get("success", False)
+        if not result.get("success"):
+            raise ValueError(result.get("message", "Restart failed"))
+    except Exception as e:
+        subscriber.last_sync_status = f"error: {e}"
+        subscriber.out_of_sync = True
+        raise
 
     await db.commit()
     await db.refresh(subscriber)

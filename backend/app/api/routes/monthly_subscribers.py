@@ -22,6 +22,8 @@ from app.services.subscriber_service import (
     activate_subscriber,
     get_available_ips,
     reconcile_with_router,
+    reconnect_subscriber_action,
+    restart_subscriber_action,
 )
 
 router = APIRouter()
@@ -368,6 +370,44 @@ async def activate_subscriber_by_id(
 
     try:
         sub = await activate_subscriber(sid, current_user.tenant_id, db=db)
+        return _subscriber_to_dict(sub)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{subscriber_id}/reconnect")
+async def reconnect_subscriber_by_id(
+    subscriber_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Reconnect a subscriber — removes and re-adds on the router."""
+    try:
+        sid = uuid.UUID(subscriber_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid subscriber ID")
+
+    try:
+        sub = await reconnect_subscriber_action(sid, current_user.tenant_id, db=db)
+        return _subscriber_to_dict(sub)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{subscriber_id}/restart")
+async def restart_subscriber_by_id(
+    subscriber_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Restart a subscriber's connection on the router."""
+    try:
+        sid = uuid.UUID(subscriber_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid subscriber ID")
+
+    try:
+        sub = await restart_subscriber_action(sid, current_user.tenant_id, db=db)
         return _subscriber_to_dict(sub)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

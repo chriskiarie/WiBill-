@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Users, Wifi, Tv, PauseCircle, PlayCircle, AlertTriangle, X, Plus, Search, RefreshCw, Router, Download, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { Users, Wifi, Tv, PauseCircle, PlayCircle, AlertTriangle, X, Plus, Search, RefreshCw, Router, Download, ChevronDown, ChevronUp, Check, RotateCcw, Zap, Clock, ArrowLeftRight, Signal, Activity, User, Phone, MapPin, Mail, CreditCard, HardDrive } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -35,7 +35,7 @@ function statusBadge(status: string) {
   }
   const s = map[status] || { label: status, color: C.dim, bg: 'var(--theme-surface)' }
   return (
-    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', background: s.bg, color: s.color }}>
+    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', background: s.bg, color: s.color }}>
       {s.label}
     </span>
   )
@@ -48,7 +48,7 @@ const inputSx: React.CSSProperties = {
 }
 
 const labelSx: React.CSSProperties = {
-  fontSize: 10, fontWeight: 700, color: C.dim,
+  fontSize: 11, fontWeight: 700, color: C.dim,
   textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4,
   fontFamily: 'Inter, sans-serif',
 }
@@ -113,6 +113,11 @@ export default function ClientsPage() {
   const [ipsLoading, setIpsLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [ipAutoAssigned, setIpAutoAssigned] = useState(false)
+
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [queueStats, setQueueStats] = useState<any>(null)
+  const [realtimeOnline, setRealtimeOnline] = useState<boolean | null>(null)
 
   const [form, setForm] = useState<WizardForm>({ ...initialWizardForm })
 
@@ -306,6 +311,57 @@ export default function ClientsPage() {
     }
   }
 
+  const handleSelectClient = async (client: any) => {
+    setSelectedClient(client)
+    setDetailLoading(true)
+    setQueueStats(null)
+    setRealtimeOnline(null)
+    try {
+      const [full, queue] = await Promise.all([
+        api.getSubscriber(client.id).catch(() => client),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/subscribers/${client.id}/queue-stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ])
+      setSelectedClient(full)
+      setQueueStats(queue)
+      setRealtimeOnline(full?.online_status === 'online')
+    } catch {
+      setSelectedClient(client)
+    } finally { setDetailLoading(false) }
+  }
+
+  const handleRefreshRealtime = async () => {
+    if (!selectedClient) return
+    try {
+      const full = await api.getSubscriber(selectedClient.id)
+      setSelectedClient(full)
+      setRealtimeOnline(full?.online_status === 'online')
+    } catch {}
+  }
+
+  const handleClientAction = async (action: 'pause' | 'resume' | 'suspend' | 'activate' | 'reconnect' | 'restart') => {
+    if (!selectedClient) return
+    setActionLoading(selectedClient.id)
+    try {
+      const actions: Record<string, () => Promise<any>> = {
+        pause: () => api.pauseSubscriber(selectedClient.id),
+        resume: () => api.resumeSubscriber(selectedClient.id),
+        suspend: () => api.suspendSubscriber(selectedClient.id),
+        activate: () => api.activateSubscriber(selectedClient.id),
+        reconnect: () => api.reconnectSubscriber(selectedClient.id),
+        restart: () => api.restartSubscriber(selectedClient.id),
+      }
+      await actions[action]()
+      showToast(`Subscriber ${action}ed`, { type: 'success' })
+      const updated = await api.getSubscriber(selectedClient.id)
+      setSelectedClient(updated)
+      loadAll()
+    } catch (e: any) {
+      showToast(e.message || `Failed to ${action}`, { type: 'error' })
+    } finally { setActionLoading(null) }
+  }
+
   const statsCards = stats ? [
     { label: 'Total Clients', value: fmt(stats.total), sub: `${stats.active} active · ${stats.online} online`, color: C.text },
     { label: 'Active', value: fmt(stats.active), sub: `${stats.online} online now`, color: C.green },
@@ -331,7 +387,7 @@ export default function ClientsPage() {
               {wizardStep > s ? '✓' : s}
             </div>
             <div style={{
-              fontSize: 10, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+              fontSize: 11, fontWeight: 600, fontFamily: 'Inter, sans-serif',
               color: wizardStep === s ? C.text : C.dim, letterSpacing: '0.02em',
             }}>
               {stepLabels[i]}
@@ -533,9 +589,9 @@ export default function ClientsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {statsCards.map((c, i) => (
               <div key={i} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>{c.label}</div>
-                <div style={{ fontSize: 22, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
-                <div style={{ fontSize: 11, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 4 }}>{c.sub}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>{c.label}</div>
+                <div style={{ fontSize: 24, fontFamily: 'DM Mono, monospace', fontWeight: 500, color: c.color, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{c.value}</div>
+                <div style={{ fontSize: 12, fontFamily: 'Inter, sans-serif', color: C.dim, marginTop: 4 }}>{c.sub}</div>
               </div>
             ))}
           </div>
@@ -545,7 +601,7 @@ export default function ClientsPage() {
           <div style={{ display: 'flex', gap: 6 }}>
             {(['all', 'wifi', 'tv'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
-                padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+                padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif',
                 background: tab === t ? 'rgba(232,184,75,0.1)' : 'transparent',
                 border: tab === t ? '0.5px solid rgba(232,184,75,0.2)' : `0.5px solid ${C.border}`,
                 color: tab === t ? C.gold : C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
@@ -561,19 +617,19 @@ export default function ClientsPage() {
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..." style={{
                 width: '100%', padding: '8px 10px 8px 28px', borderRadius: 8,
                 border: `0.5px solid ${C.border}`, background: C.base, color: C.text,
-                fontSize: 12, outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
+                fontSize: 13, outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
               }} />
             </div>
             <button onClick={loadAll} title="Refresh" style={{ width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`, background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
               <RefreshCw size={12} />
             </button>
-            <button onClick={handleReconcile} title="Reconcile with router" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
+            <button onClick={handleReconcile} title="Reconcile with router" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
               <Router size={11} /> Sync
             </button>
-            <button onClick={() => setShowPlanModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
+            <button onClick={() => setShowPlanModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
               <Download size={11} /> Plans
             </button>
-            <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: C.gold, color: C.void, border: 'none', cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif' }}>
+            <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: C.gold, color: C.void, border: 'none', cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif' }}>
               <Plus size={14} /> Add Client
             </button>
           </div>
@@ -581,11 +637,11 @@ export default function ClientsPage() {
 
         <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: `0.5px solid ${C.border}` }}>
                   {['Account', 'Client Name', 'IP / VLAN', 'Plan', 'Phone', 'Status', 'Online', 'Data Used', 'Actions'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, color: C.dim, fontSize: 10, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, color: C.dim, fontSize: 11, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -599,30 +655,31 @@ export default function ClientsPage() {
                 ) : subscribers.length === 0 ? (
                   <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center' }}>
                     <Users size={20} color={C.mute} style={{ marginBottom: 8 }} />
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.dim }}>No monthly clients yet</div>
-                    <div style={{ fontSize: 11, color: C.mute, marginTop: 4 }}>Create subscriber plans and add clients to get started</div>
-                    <button onClick={openCreate} style={{ marginTop: 12, padding: '8px 18px', borderRadius: 8, background: C.gold, color: C.void, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.dim }}>No monthly clients yet</div>
+                    <div style={{ fontSize: 12, color: C.mute, marginTop: 4 }}>Create subscriber plans and add clients to get started</div>
+                    <button onClick={openCreate} style={{ marginTop: 12, padding: '8px 18px', borderRadius: 8, background: C.gold, color: C.void, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
                       <Plus size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Add Client
                     </button>
                   </td></tr>
                 ) : subscribers.map(s => {
                   const outOfSync = s.out_of_sync
                   return (
-                    <tr key={s.id} style={{ borderBottom: `0.5px solid ${C.border}`, transition: 'background 0.15s' }}
+                    <tr key={s.id} style={{ borderBottom: `0.5px solid ${C.border}`, transition: 'background 0.15s', cursor: 'pointer' }}
+                      onClick={() => handleSelectClient(s)}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.text }}>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.text }}>
                           {outOfSync && <AlertTriangle size={10} color={C.red} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
                           {s.account_number}
                         </div>
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <div style={{ fontWeight: 600, color: C.text }}>{s.client_name}</div>
-                        <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{s.phone_number ? maskPhone(s.phone_number) : '—'}</div>
+                        <div style={{ fontWeight: 600, color: C.text, fontSize: 13 }}>{s.client_name}</div>
+                        <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{s.phone_number ? maskPhone(s.phone_number) : '—'}</div>
                       </td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {s.networking_ip}
                         {s.networking_vlan && <span style={{ color: C.dim }}> · VLAN {s.networking_vlan}</span>}
                         {s.networking_mac && <div style={{ fontSize: 9, color: C.mute }}>{s.networking_mac}</div>}
@@ -630,22 +687,22 @@ export default function ClientsPage() {
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                         {s.plan_name ? (
                           <div>
-                            <div style={{ color: C.text, fontSize: 11 }}>{s.plan_name}</div>
-                            {s.amount_due_ksh > 0 && <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim }}>{ksh(s.amount_due_ksh)}/mo</div>}
+                            <div style={{ color: C.text, fontSize: 12 }}>{s.plan_name}</div>
+                            {s.amount_due_ksh > 0 && <div style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.dim }}>{ksh(s.amount_due_ksh)}/mo</div>}
                           </div>
                         ) : <span style={{ color: C.mute }}>—</span>}
                       </td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap', color: C.dim }}>{maskPhone(s.phone_number)}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 12, whiteSpace: 'nowrap', color: C.dim }}>{maskPhone(s.phone_number)}</td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>{statusBadge(s.status)}</td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 600, color: s.online_status === 'online' ? C.green : C.dim }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontFamily: 'DM Mono, monospace', fontWeight: 600, color: s.online_status === 'online' ? C.green : C.dim }}>
                           <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.online_status === 'online' ? C.green : C.mute, display: 'inline-block' }} />
                           {s.online_status === 'online' ? 'Online' : 'Offline'}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, whiteSpace: 'nowrap', color: C.dim }}>
+                      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 12, whiteSpace: 'nowrap', color: C.dim }}>
                         <div>{(s.data_used_today_gb || 0).toFixed(2)} GB today</div>
-                        <div style={{ fontSize: 9, color: C.mute }}>{(s.data_used_month_gb || 0).toFixed(1)} GB month</div>
+                        <div style={{ fontSize: 10, color: C.mute }}>{(s.data_used_month_gb || 0).toFixed(1)} GB month</div>
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -670,7 +727,7 @@ export default function ClientsPage() {
             </table>
           </div>
           {total > 50 && (
-            <div style={{ padding: '10px 14px', fontSize: 11, color: C.dim, borderTop: `0.5px solid ${C.border}`, textAlign: 'center' }}>
+            <div style={{ padding: '10px 14px', fontSize: 12, color: C.dim, borderTop: `0.5px solid ${C.border}`, textAlign: 'center' }}>
               Showing {subscribers.length} of {total} clients
             </div>
           )}
@@ -690,8 +747,8 @@ export default function ClientsPage() {
             <div style={{ padding: '20px 24px 0', flex: 1, overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div>
-                  <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>Add Client</div>
-                  <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Step {wizardStep} of 3 — {stepLabels[wizardStep - 1]}</div>
+                  <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 19, fontWeight: 700, color: C.text }}>Add Client</div>
+                  <div style={{ fontSize: 12, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Step {wizardStep} of 3 — {stepLabels[wizardStep - 1]}</div>
                 </div>
                 <button onClick={handleCloseWizard} style={{
                   width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
@@ -715,7 +772,7 @@ export default function ClientsPage() {
               {wizardStep > 1 && (
                 <button onClick={handleBack} style={{
                   padding: '10px 20px', borderRadius: 8, border: `0.5px solid ${C.border}`,
-                  background: 'transparent', color: C.dim, fontSize: 12, fontWeight: 600,
+                  background: 'transparent', color: C.dim, fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                 }}>
                   Back
@@ -724,7 +781,7 @@ export default function ClientsPage() {
               {wizardStep < 3 ? (
                 <button onClick={handleNext} style={{
                   padding: '10px 28px', borderRadius: 8, border: 'none',
-                  background: C.gold, color: C.void, fontSize: 12, fontWeight: 700,
+                  background: C.gold, color: C.void, fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>
@@ -762,8 +819,8 @@ export default function ClientsPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 18, fontWeight: 700, color: C.text }}>Subscriber Plans</div>
-                <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Define monthly bandwidth plans for WiFi and TV clients</div>
+                <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 19, fontWeight: 700, color: C.text }}>Subscriber Plans</div>
+                <div style={{ fontSize: 12, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: 2 }}>Define monthly bandwidth plans for WiFi and TV clients</div>
               </div>
               <button onClick={() => setShowPlanModal(false)} style={{
                 width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.04)',
@@ -775,7 +832,7 @@ export default function ClientsPage() {
             </div>
 
             <div style={{ background: 'var(--theme-surface)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12, fontFamily: 'Inter, sans-serif' }}>New Plan</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12, fontFamily: 'Inter, sans-serif' }}>New Plan</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <input value={planForm.name} onChange={e => setPlanForm(f => ({ ...f, name: e.target.value }))} placeholder="Plan name" style={inputSx} />
@@ -799,14 +856,14 @@ export default function ClientsPage() {
               <button onClick={handleCreatePlan} disabled={plansLoading} style={{
                 marginTop: 10, width: '100%', padding: '10px', borderRadius: 7, border: 'none',
                 background: plansLoading ? C.mute : C.gold, color: plansLoading ? C.dim : C.void,
-                fontSize: 12, fontWeight: 700, cursor: plansLoading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
+                fontSize: 13, fontWeight: 700, cursor: plansLoading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 {plansLoading ? 'Creating...' : 'Create Plan'}
               </button>
             </div>
 
             {plans.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 16, color: C.dim, fontSize: 12 }}>
+              <div style={{ textAlign: 'center', padding: 16, color: C.dim, fontSize: 13 }}>
                 No plans yet. Create your first plan above.
               </div>
             ) : (
@@ -818,11 +875,11 @@ export default function ClientsPage() {
                     background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`,
                   }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                         {p.client_type === 'tv' ? <Tv size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> : <Wifi size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />}
                         {p.name}
                       </div>
-                      <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace', marginTop: 2 }}>
                         {p.bandwidth_down_mbps}/{p.bandwidth_up_mbps} Mbps · {p.billing_cycle_days}d cycle
                       </div>
                     </div>
@@ -835,6 +892,240 @@ export default function ClientsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {selectedClient && (
+        <>
+          <div onClick={() => { setSelectedClient(null); setQueueStats(null); setRealtimeOnline(null) }} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480, zIndex: 201,
+            background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(24px)',
+            borderLeft: `0.5px solid ${C.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '16px 20px', borderBottom: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button onClick={() => { setSelectedClient(null); setQueueStats(null); setRealtimeOnline(null) }} style={{
+                  width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`,
+                  background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}>
+                  <X size={14} />
+                </button>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>{selectedClient.client_name}</div>
+                  <div style={{ fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{selectedClient.account_number}</div>
+                </div>
+              </div>
+              <button onClick={handleRefreshRealtime} title="Refresh status" style={{
+                width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`,
+                background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              }}>
+                <RefreshCw size={12} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+              {detailLoading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: C.dim }}>Loading...</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {/* Status Row */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{
+                      flex: 1, padding: '12px 14px', borderRadius: 9,
+                      background: C.base, border: `0.5px solid ${C.border}`,
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Status</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          width: 7, height: 7, borderRadius: '50%', display: 'inline-block',
+                          background: realtimeOnline ? C.green : C.mute,
+                          boxShadow: realtimeOnline ? `0 0 6px ${C.green}80` : 'none',
+                        }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: realtimeOnline ? C.green : C.dim }}>
+                          {realtimeOnline ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                      {selectedClient.last_seen_at && (
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
+                          Last seen: {new Date(selectedClient.last_seen_at).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{
+                      flex: 1, padding: '12px 14px', borderRadius: 9,
+                      background: C.base, border: `0.5px solid ${C.border}`,
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Billing</div>
+                      {statusBadge(selectedClient.status)}
+                      {selectedClient.next_billing_at && (
+                        <div style={{ fontSize: 10, color: C.dim, marginTop: 4, fontFamily: 'DM Mono, monospace' }}>
+                          Next bill: {new Date(selectedClient.next_billing_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Data Usage */}
+                  <div style={{ padding: '14px 16px', borderRadius: 9, background: C.base, border: `0.5px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Data Usage</div>
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.text }}>{(selectedClient.data_used_today_gb || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>GB today</div>
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.gold }}>{(selectedClient.data_used_month_gb || 0).toFixed(1)}</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>GB this month</div>
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 20, fontWeight: 500, color: C.dim }}>{(selectedClient.data_used_total_gb || 0).toFixed(1)}</div>
+                        <div style={{ fontSize: 10, color: C.dim }}>GB total</div>
+                      </div>
+                    </div>
+                    {selectedClient.data_cap_gb && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 10, color: C.dim }}>{((selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb * 100).toFixed(0)}% used</span>
+                          <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>{selectedClient.data_cap_gb} GB cap</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 2, background: 'var(--theme-surface)', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%', borderRadius: 2,
+                            width: `${Math.min((selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb * 100, 100)}%`,
+                            background: (selectedClient.data_used_month_gb || 0) / selectedClient.data_cap_gb > 0.9 ? C.red : C.gold,
+                          }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Network Info */}
+                  <div style={{ padding: '14px 16px', borderRadius: 9, background: C.base, border: `0.5px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Network</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        { label: 'IP Address', value: selectedClient.networking_ip },
+                        { label: 'MAC', value: selectedClient.networking_mac || '—' },
+                        { label: 'VLAN', value: selectedClient.networking_vlan?.toString() || '—' },
+                        { label: 'Interface', value: selectedClient.networking_interface || '—' },
+                        { label: 'Gateway', value: selectedClient.networking_gateway || '—' },
+                      ].map((r, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '3px 0' }}>
+                          <span style={{ color: C.dim }}>{r.label}</span>
+                          <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{r.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {queueStats && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `0.5px solid ${C.border}` }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, marginBottom: 6 }}>Live Queue Stats</div>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          <div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, color: C.text }}>{queueStats.rate_limit_down || '—'}</div>
+                            <div style={{ fontSize: 9, color: C.dim }}>Down</div>
+                          </div>
+                          <div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, color: C.text }}>{queueStats.rate_limit_up || '—'}</div>
+                            <div style={{ fontSize: 9, color: C.dim }}>Up</div>
+                          </div>
+                          <div>
+                            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, color: C.text }}>{queueStats.bytes_down || '—'}</div>
+                            <div style={{ fontSize: 9, color: C.dim }}>Bytes RX</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Client Info */}
+                  <div style={{ padding: '14px 16px', borderRadius: 9, background: C.base, border: `0.5px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Client Info</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        { label: 'Plan', value: selectedClient.plan_name || 'No plan', icon: CreditCard },
+                        { label: 'Phone', value: selectedClient.phone_number || '—', icon: Phone },
+                        { label: 'Email', value: selectedClient.email || '—', icon: Mail },
+                        { label: 'Address', value: selectedClient.installation_address || '—', icon: MapPin },
+                        { label: 'Amount Due', value: selectedClient.amount_due_ksh > 0 ? ksh(selectedClient.amount_due_ksh) + '/mo' : '—', icon: CreditCard },
+                      ].map((r, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, padding: '3px 0' }}>
+                          <r.icon size={11} color={C.dim} style={{ flexShrink: 0 }} />
+                          <span style={{ color: C.dim, minWidth: 60 }}>{r.label}</span>
+                          <span style={{ color: C.text, fontFamily: 'DM Mono, monospace', marginLeft: 'auto' }}>{r.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ padding: '14px 16px', borderRadius: 9, background: C.base, border: `0.5px solid ${C.border}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Controls</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {selectedClient.status === 'active' && (
+                        <>
+                          <button onClick={() => handleClientAction('reconnect')} disabled={actionLoading === selectedClient.id} style={{
+                            padding: '10px 12px', borderRadius: 7, border: `0.5px solid ${C.border}`,
+                            background: 'rgba(59,130,246,0.06)', color: '#60a5fa', fontSize: 11, fontWeight: 600,
+                            cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                          }}>
+                            <ArrowLeftRight size={12} /> Reconnect
+                          </button>
+                          <button onClick={() => handleClientAction('restart')} disabled={actionLoading === selectedClient.id} style={{
+                            padding: '10px 12px', borderRadius: 7, border: `0.5px solid ${C.border}`,
+                            background: 'rgba(168,85,247,0.06)', color: '#c084fc', fontSize: 11, fontWeight: 600,
+                            cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                          }}>
+                            <RotateCcw size={12} /> Restart
+                          </button>
+                          <button onClick={() => handleClientAction('pause')} disabled={actionLoading === selectedClient.id} style={{
+                            padding: '10px 12px', borderRadius: 7, border: `0.5px solid ${C.border}`,
+                            background: 'rgba(232,184,75,0.06)', color: C.gold, fontSize: 11, fontWeight: 600,
+                            cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                          }}>
+                            <PauseCircle size={12} /> Pause
+                          </button>
+                          <button onClick={() => handleClientAction('suspend')} disabled={actionLoading === selectedClient.id} style={{
+                            padding: '10px 12px', borderRadius: 7, border: '0.5px solid rgba(239,68,68,0.2)',
+                            background: 'rgba(239,68,68,0.06)', color: C.red, fontSize: 11, fontWeight: 600,
+                            cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                          }}>
+                            <AlertTriangle size={12} /> Suspend
+                          </button>
+                        </>
+                      )}
+                      {(selectedClient.status === 'paused' || selectedClient.status === 'suspended') && (
+                        <button onClick={() => handleClientAction('resume')} disabled={actionLoading === selectedClient.id} style={{
+                          gridColumn: '1 / -1', padding: '10px 12px', borderRadius: 7, border: '0.5px solid rgba(34,197,94,0.2)',
+                          background: 'rgba(34,197,94,0.06)', color: C.green, fontSize: 11, fontWeight: 600,
+                          cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        }}>
+                          <PlayCircle size={12} /> Resume Connection
+                        </button>
+                      )}
+                      {selectedClient.out_of_sync && (
+                        <button onClick={() => handleClientAction('activate')} disabled={actionLoading === selectedClient.id} style={{
+                          gridColumn: '1 / -1', padding: '10px 12px', borderRadius: 7, border: '0.5px solid rgba(232,184,75,0.2)',
+                          background: 'rgba(232,184,75,0.06)', color: C.gold, fontSize: 11, fontWeight: 600,
+                          cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        }}>
+                          <RefreshCw size={12} /> Re-activate on Router
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

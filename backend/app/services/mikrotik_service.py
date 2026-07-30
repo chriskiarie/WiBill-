@@ -438,3 +438,69 @@ async def reconcile_subscribers_from_router(
     except Exception as e:
         logger.error(f"Bridge reconcile error: {e}")
         return None
+
+
+async def reconnect_subscriber(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    mac_address: str,
+    plan_id: str | None = None,
+    db: AsyncSession = None,
+) -> dict:
+    """Reconnect a subscriber by removing and re-adding on the router."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {
+        "subscriber_id": subscriber_id,
+        "ip_address": ip_address,
+        "mac_address": mac_address,
+        "plan_id": plan_id,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/reconnect",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Subscriber reconnected", "data": r.json()}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge reconnect error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def restart_subscriber(
+    tenant_id: str,
+    subscriber_id: str,
+    ip_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Restart a subscriber's connection on the router (reset queue)."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {
+        "subscriber_id": subscriber_id,
+        "ip_address": ip_address,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/subscriber/restart",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Subscriber connection restarted", "data": r.json()}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge restart error: {e}")
+        return {"success": False, "message": str(e)}
