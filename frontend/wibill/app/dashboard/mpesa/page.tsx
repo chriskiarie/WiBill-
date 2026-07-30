@@ -178,18 +178,18 @@ export default function MpesaPage() {
       <Topbar title="M-Pesa Configuration" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
 
-        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {/* M-Pesa Logo + Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-            <img src="/mpesa-logo.png" alt="M-Pesa" style={{ height: 40, width: 'auto' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 28 }}>
+            <img src="/mpesa-logo.png" alt="M-Pesa" style={{ height: 72, width: 'auto' }} />
             <div style={{ flex: 1 }}>
-              <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>M-Pesa / Daraja</h1>
-              <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>Safaricom STK Push integration</div>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>M-Pesa / Daraja</h1>
+              <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>Safaricom STK Push integration for receiving payments</div>
             </div>
             {config && !showForm && (
               <button
                 onClick={() => setShowForm(true)}
-                style={{ padding: '8px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '9px 18px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
                 Edit Config
               </button>
@@ -197,22 +197,24 @@ export default function MpesaPage() {
           </div>
 
         {loading ? (
-            <LoadingSpinner size="md" label="Loading configuration…" />
+            <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 40 }}>
+              <LoadingSpinner size="md" label="Loading configuration…" />
+            </div>
         ) : (
-          <>
+          <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 24 }}>
             {/* Current config display */}
             {config && !showForm && (
               <>
-                <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.dim }}>DARAJA CONFIG</div>
-                    {(() => { const b = statusBadge(config.status, config.is_verified); return (
-                      <div style={{ padding: '4px 10px', background: b.bg, borderRadius: 5, fontSize: 10, fontWeight: 700, color: b.color, textTransform: 'uppercase' }}>
-                        {b.label}
-                      </div>
-                    )})()}
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daraja Config</div>
+                  {(() => { const b = statusBadge(config.status, config.is_verified); return (
+                    <div style={{ padding: '4px 10px', background: b.bg, borderRadius: 5, fontSize: 11, fontWeight: 700, color: b.color, textTransform: 'uppercase' }}>
+                      {b.label}
+                    </div>
+                  )})()}
+                </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                   <Field label="Environment" value={config.environment?.toUpperCase()} />
                   <Field label="Shortcode" value={config.shortcode} mono />
                   <Field label="Account Reference" value={config.account_reference} />
@@ -223,7 +225,6 @@ export default function MpesaPage() {
                   )}
                 </div>
 
-                {/* Test button */}
                 <button
                   onClick={handleTest}
                   disabled={testing}
@@ -231,8 +232,8 @@ export default function MpesaPage() {
                     width: '100%', padding: '12px', background: config.is_verified ? 'rgba(34,197,94,0.08)' : C.gold,
                     border: config.is_verified ? '0.5px solid rgba(34,197,94,0.2)' : 'none',
                     borderRadius: 7, color: config.is_verified ? C.green : '#000',
-                    fontSize: 12, fontWeight: 700, cursor: testing ? 'not-allowed' : 'pointer',
-                    opacity: testing ? 0.7 : 1, marginBottom: 8
+                    fontSize: 13, fontWeight: 700, cursor: testing ? 'not-allowed' : 'pointer',
+                    opacity: testing ? 0.7 : 1,
                   }}
                 >
                   {testing ? 'Testing…' : config.is_verified ? '✓ Test Again' : 'Test & Verify Credentials'}
@@ -242,24 +243,24 @@ export default function MpesaPage() {
 
             {/* Setup / Edit form */}
             {showForm && (
-              <div style={{ background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, marginBottom: 20 }}>
-                  {config ? 'UPDATE DARAJA CREDENTIALS' : 'FIRST-TIME SETUP'}
+              <>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.dim, marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {config ? 'Update Daraja Credentials' : 'First-Time Setup'}
                 </div>
 
-                <div style={{ padding: '12px 14px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 20, fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
-                  Get these from <strong>developer.safaricom.co.ke</strong> → My Apps → your app → Test Credentials tab for shortcode & passkey.
+                <div style={{ padding: '10px 14px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 7, marginBottom: 18, fontSize: 12, color: C.dim, lineHeight: 1.6 }}>
+                  Get these from <strong>developer.safaricom.co.ke</strong> → My Apps → your app → Test Credentials tab.
                 </div>
 
                 {/* Environment toggle */}
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, color: '#555', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>Environment</div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Environment</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {(['sandbox', 'production'] as const).map(env => (
-                      <button key={env} onClick={() => setForm(p => ({ ...p, environment: env }))}
+                      <button key={env} type="button" onClick={() => setForm(p => ({ ...p, environment: env }))}
                         style={{
-                          flex: 1, padding: '9px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                          background: form.environment === env ? (env === 'production' ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)') : 'var(--theme-surface)',
+                          flex: 1, padding: '9px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          background: form.environment === env ? (env === 'production' ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)') : 'var(--theme-card-base)',
                           border: form.environment === env ? `0.5px solid ${env === 'production' ? 'rgba(239,68,68,0.2)' : 'rgba(232,184,75,0.2)'}` : `0.5px solid ${C.border2}`,
                           color: form.environment === env ? (env === 'production' ? C.red : C.gold) : C.dim,
                           textTransform: 'uppercase'
@@ -270,22 +271,61 @@ export default function MpesaPage() {
                   </div>
                 </div>
 
-                <Input label="Consumer Key *" value={form.consumer_key} onChange={f('consumer_key')} placeholder="From Daraja developer portal" />
-                <Input label="Consumer Secret *" value={form.consumer_secret} onChange={f('consumer_secret')} type="password" placeholder="••••••••••••" />
-                <Input label="Business Shortcode *" value={form.shortcode} onChange={f('shortcode')} placeholder="e.g. 174379" hint="Sandbox default: 174379" />
-                <Input label="Passkey *" value={form.passkey} onChange={f('passkey')} type="password" placeholder="From Test Credentials tab" />
-                <Input label="Callback URL" value={form.callback_url} onChange={f('callback_url')} placeholder="https://your-domain.com/api/mpesa/callback" hint="Must be public HTTPS — use ngrok for local dev" />
-                <Input label="Account Reference" value={form.account_reference} onChange={f('account_reference')} placeholder="HonestBill" hint="Appears on customer M-Pesa statement (max 12 chars)" />
-                <Input label="Payout Phone" value={form.payout_phone} onChange={f('payout_phone')} placeholder="254712345678" hint="Your M-Pesa number for receiving payouts" />
-                <Input label="Payout Account Name" value={form.payout_account_name} onChange={f('payout_account_name')} placeholder="Your business name" />
+                {/* 2-column grid for credentials */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Consumer Key *</label>
+                    <input value={form.consumer_key} onChange={e => f('consumer_key')(e.target.value)} placeholder="From Daraja developer portal"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Consumer Secret *</label>
+                    <input value={form.consumer_secret} onChange={e => f('consumer_secret')(e.target.value)} type="password" placeholder="••••••••••••"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Business Shortcode *</label>
+                    <input value={form.shortcode} onChange={e => f('shortcode')(e.target.value)} placeholder="e.g. 174379"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                    <div style={{ fontSize: 10, color: C.faint, marginTop: 3 }}>Sandbox default: 174379</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Passkey *</label>
+                    <input value={form.passkey} onChange={e => f('passkey')(e.target.value)} type="password" placeholder="From Test Credentials tab"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Callback URL</label>
+                    <input value={form.callback_url} onChange={e => f('callback_url')(e.target.value)} placeholder="https://your-domain.com/api/mpesa/callback"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+                    <div style={{ fontSize: 10, color: C.faint, marginTop: 3 }}>Must be public HTTPS — use ngrok for local dev</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Account Reference</label>
+                    <input value={form.account_reference} onChange={e => f('account_reference')(e.target.value)} placeholder="HonestBill"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+                    <div style={{ fontSize: 10, color: C.faint, marginTop: 3 }}>Appears on customer M-Pesa statement (max 12 chars)</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Payout Phone</label>
+                    <input value={form.payout_phone} onChange={e => f('payout_phone')(e.target.value)} placeholder="254712345678"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', boxSizing: 'border-box', outline: 'none' }} />
+                    <div style={{ fontSize: 10, color: C.faint, marginTop: 3 }}>Your M-Pesa number for receiving payouts</div>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: C.text, display: 'block', marginBottom: 4 }}>Payout Account Name</label>
+                    <input value={form.payout_account_name} onChange={e => f('payout_account_name')(e.target.value)} placeholder="Your business name"
+                      style={{ width: '100%', padding: '9px 10px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+                  </div>
+                </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
                   <button
                     onClick={handleSave}
                     disabled={saving}
                     style={{
-                      flex: 1, padding: '12px', background: C.gold, border: 'none',
-                      borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700,
+                      flex: 1, padding: '11px', background: C.gold, border: 'none',
+                      borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700,
                       cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1
                     }}
                   >
@@ -295,17 +335,17 @@ export default function MpesaPage() {
                     <button
                       onClick={() => setShowForm(false)}
                       style={{
-                        padding: '12px 16px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`,
-                        borderRadius: 7, color: '#666', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                        padding: '11px 18px', background: 'var(--theme-card-base)', border: `0.5px solid ${C.border2}`,
+                        borderRadius: 7, color: '#666', fontSize: 13, fontWeight: 600, cursor: 'pointer'
                       }}
                     >
                       Cancel
                     </button>
                   )}
                 </div>
-              </div>
+              </>
             )}
-          </>
+          </div>
         )}
         </div>
       </div>
