@@ -168,8 +168,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           className="page-title"
           style={{
             fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700,
-            background: style.gradient, WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            color: 'var(--theme-gold)',
             margin: 0, letterSpacing: '-0.4px',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}
