@@ -19,6 +19,12 @@ import {
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+function toAbsoluteUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url
+  return `${API}${url}`
+}
+
 const STYLE_PRESETS = [
   { p: 0, n: 'Dark Indigo', f: 'Unbounded', bg:'#0c0c1a', hd:'#5b4fff', ac:'#5b4fff', cd:'rgba(255,255,255,.06)' },
   { p: 1, n: 'Sunset Orange', f: 'Bebas Neue', bg:'#fff7ed', hd:'#f97316', ac:'#f97316', cd:'#ffffff' },
@@ -203,7 +209,7 @@ export default function PortalWizard() {
               if (pc.brand.facebook_url !== undefined) setFacebookUrl(pc.brand.facebook_url)
               if (pc.brand.twitter_url !== undefined) setTwitterUrl(pc.brand.twitter_url)
               if (pc.brand.instagram_url !== undefined) setInstagramUrl(pc.brand.instagram_url)
-              if (pc.brand.logo_url !== undefined) setLogoUrl(pc.brand.logo_url)
+              if (pc.brand.logo_url !== undefined) setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
               if (pc.brand.emoji) {
                 const matchedSticker = BRAND_STICKERS.find(st => st.name === pc.brand.emoji)
                 if (matchedSticker) { setSelectedSticker(matchedSticker.src) }
@@ -238,7 +244,7 @@ export default function PortalWizard() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('wb_portal_draft', JSON.stringify({ tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl }))
+      localStorage.setItem('wb_portal_draft', JSON.stringify({ tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl: logoUrl && !logoUrl.startsWith('blob:') ? logoUrl : null }))
     }, 1000)
     return () => clearTimeout(timer)
   }, [tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl])
@@ -357,7 +363,7 @@ export default function PortalWizard() {
         if (pc.brand) {
           setName(pc.brand.name || ''); setTagline(pc.brand.tagline || '')
           setLocation(pc.brand.location || ''); setEmoji(pc.brand.emoji || '📡')
-          setPhone(pc.brand.support_phone || ''); setLogoUrl(pc.brand.logo_url || null)
+          setPhone(pc.brand.support_phone || ''); setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
           setWhatsapp(pc.brand.whatsapp || '')
           if (pc.brand.emoji) {
             const matchedSticker = BRAND_STICKERS.find(st => st.name === pc.brand.emoji)
@@ -585,7 +591,7 @@ export default function PortalWizard() {
                       const data = await res.json()
                       const url = data.asset?.url
                       if (url) {
-                        setLogoUrl(url)
+                        setLogoUrl(toAbsoluteUrl(url))
                         setEmoji(''); setSelectedSticker(null)
                       } else {
                         const fallback = URL.createObjectURL(file)
