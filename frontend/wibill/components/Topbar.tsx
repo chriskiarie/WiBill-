@@ -156,32 +156,33 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
     <header
       className="topbar"
       style={{
-        height: 56, minHeight: 56,
+        height: 64, minHeight: 64,
         borderBottom: '1px solid var(--topbar-border)',
         display: 'flex', alignItems: 'center',
         padding: '0 16px',
         position: 'sticky', top: 0, zIndex: 10,
       }}
     >
-      {/* ── Title zone (absolutely centered across full Topbar) ── */}
-      <div style={{ position: 'absolute', left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', pointerEvents: 'none' }}>
+      {/* ── Left spacer (matches right zone width for true centering) ── */}
+      <div style={{ width: 260, flexShrink: 0 }} />
+
+      {/* ── Title zone ── */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0 }}>
         <h1
           className="page-title"
           style={{
-            fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700,
+            fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600,
             color: 'var(--theme-gold)',
-            margin: 0, letterSpacing: '-0.4px',
+            margin: 0, letterSpacing: '-0.3px',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            pointerEvents: 'auto',
           }}
         >
           {title}
         </h1>
         {subsection && (
           <span style={{
-            fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 400,
+            fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 400,
             color: 'var(--topbar-dim)', marginLeft: 10, opacity: 0.6,
-            pointerEvents: 'auto',
           }}>
             {subsection}
           </span>
