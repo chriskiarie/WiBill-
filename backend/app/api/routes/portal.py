@@ -154,6 +154,8 @@ async def preview_portal(template_id: str, request: Request):
         "facebook_url": params.get("facebook_url", ""),
         "twitter_url": params.get("twitter_url", ""),
         "instagram_url": params.get("instagram_url", ""),
+        "technician_name": params.get("technician_name", ""),
+        "technician_phone": params.get("technician_phone", ""),
     }
 
     # 4. Parse Network Status

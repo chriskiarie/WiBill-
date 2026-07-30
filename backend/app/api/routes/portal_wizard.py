@@ -71,6 +71,8 @@ class BrandConfig(BaseModel):
     facebook_url: str = ""
     twitter_url: str = ""
     instagram_url: str = ""
+    technician_name: str = ""
+    technician_phone: str = ""
 
 
 class LayoutConfig(BaseModel):

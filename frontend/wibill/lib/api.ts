@@ -558,6 +558,67 @@ export function formatDate(isoString: string): string {
 }
 
 /**
+ * Subscriber count
+ */
+export async function subscriberCount(): Promise<{ count: number }> {
+  return request<{ count: number }>('/api/subscribers/count')
+}
+
+/**
+ * Bulk SMS API methods
+ */
+export async function getSmsTemplates() {
+  return request<any>('/api/sms/templates')
+}
+
+export async function previewSmsTemplate(data: { template: string; sample_name?: string }) {
+  return request<{ preview: string; char_count: number }>('/api/sms/preview', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function sendBulkSms(data: {
+  message: string
+  subject?: string
+  target_group: string
+  custom_phones?: string[]
+}) {
+  return request<{
+    success: boolean
+    message_id: string
+    recipients: number
+    sent: number
+    status: string
+  }>('/api/sms/send', {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export async function getSmsHistory(skip = 0, limit = 20) {
+  return request<{
+    items: Array<{
+      id: string
+      subject: string | null
+      message: string
+      target_group: string
+      target_count: number
+      sent_count: number
+      status: string
+      created_at: string | null
+    }>
+    total: number
+  }>(`/api/sms/history?skip=${skip}&limit=${limit}`)
+}
+
+export async function getSmsStats() {
+  return request<{ total_bursts: number; total_messages: number }>('/api/sms/stats')
+}
+
+/**
  * Format relative time
  * "2024-01-15T10:30:00Z" => "2 hours ago"
  */

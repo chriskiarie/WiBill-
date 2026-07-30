@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink, Bell, Palette,
+  Ticket, Star, Megaphone, ChevronLeft, ChevronRight, DollarSign, Users, ExternalLink, Bell, Palette, MessageSquare,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -28,6 +28,7 @@ const nav = [
     { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
     { href: '/dashboard/campaigns', icon: Megaphone, label: 'Campaigns' },
     { href: '/dashboard/loyalty', icon: Star, label: 'Loyalty' },
+    { href: '/dashboard/comms', icon: MessageSquare, label: 'Bulk SMS' },
   ]},
   { label: 'Config', items: [
     { href: '/dashboard/packages', icon: Package, label: 'Packages' },
@@ -208,7 +209,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           <div style={{
             position: 'absolute', left: 0, width: 2,
             top: indicatorTop, height: 32,
-            background: isAdmin ? '#fac800' : C.gold,
+            background: isAdmin ? C.gold : C.gold,
             borderRadius: '0 3px 3px 0',
             transition: 'top 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s',
             opacity: 0.7,
@@ -282,7 +283,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     {item.label === 'Sessions' && liveData.sessions > 0 && (
                       <span style={{
                         marginLeft: 'auto',
-                        background: 'rgba(232,184,75,0.08)', color: C.gold,
+                        background: 'var(--sidebar-active-bg)', color: C.gold,
                         fontSize: 9, padding: '2px 7px', borderRadius: 10,
                         fontFamily: "'DM Mono', monospace",
                       }}>
@@ -292,7 +293,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     {item.label === 'Notifications' && unreadCount > 0 && (
                       <span style={{
                         marginLeft: 'auto',
-                        background: 'rgba(232,184,75,0.08)', color: C.gold,
+                        background: 'var(--sidebar-active-bg)', color: C.gold,
                         fontSize: 9, padding: '2px 7px', borderRadius: 10,
                         fontFamily: "'DM Mono', monospace",
                       }}>

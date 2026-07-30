@@ -143,6 +143,19 @@ async def list_all_subscribers(
     }
 
 
+@router.get("/count")
+async def subscriber_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Simple subscriber count for bulk operations."""
+    result = await db.execute(
+        select(func.count(Subscriber.id)).where(Subscriber.tenant_id == current_user.tenant_id)
+    )
+    count = result.scalar() or 0
+    return {"count": count}
+
+
 @router.get("/stats")
 async def subscriber_stats(
     db: AsyncSession = Depends(get_db),

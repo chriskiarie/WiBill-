@@ -260,9 +260,9 @@ export default function MpesaPage() {
                       <button key={env} type="button" onClick={() => setForm(p => ({ ...p, environment: env }))}
                         style={{
                           flex: 1, padding: '9px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: form.environment === env ? (env === 'production' ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)') : 'var(--theme-card-base)',
-                          border: form.environment === env ? `0.5px solid ${env === 'production' ? 'rgba(239,68,68,0.2)' : 'rgba(232,184,75,0.2)'}` : `0.5px solid ${C.border2}`,
-                          color: form.environment === env ? (env === 'production' ? C.red : C.gold) : C.dim,
+                          background: form.environment === env ? 'rgba(232,184,75,0.08)' : 'var(--theme-card-base)',
+                          border: form.environment === env ? '0.5px solid rgba(232,184,75,0.2)' : `0.5px solid ${C.border2}`,
+                          color: form.environment === env ? C.gold : C.dim,
                           textTransform: 'uppercase'
                         }}>
                         {env}

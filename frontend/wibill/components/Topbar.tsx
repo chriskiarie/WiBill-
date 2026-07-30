@@ -28,6 +28,7 @@ const pageStyles: Record<string, { gradient: string; icon: string }> = {
   '/dashboard/billing':  { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◉' },
   '/dashboard/hotspots': { gradient: 'linear-gradient(135deg, #f5c563 0%, #E8B84B 100%)', icon: '◆' },
   '/dashboard/wizard':   { gradient: 'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)', icon: '◆' },
+  '/dashboard/comms':    { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◈' },
 }
 
 const avatars = [

@@ -454,6 +454,30 @@ MIGRATIONS = [
             created_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
     """),
+    # ── Bulk SMS Module ───────────────────────────────────────────────────
+    ("sms_logs table", """
+        CREATE TABLE IF NOT EXISTS sms_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            sender_id UUID REFERENCES admin_users(id),
+            subject VARCHAR(200),
+            message TEXT NOT NULL,
+            template_vars_used VARCHAR(500),
+            target_group VARCHAR(50) NOT NULL,
+            target_count INTEGER DEFAULT 0,
+            sent_count INTEGER DEFAULT 0,
+            delivered_count INTEGER DEFAULT 0,
+            failed_count INTEGER DEFAULT 0,
+            status VARCHAR(20) DEFAULT 'sending',
+            error_message TEXT,
+            provider_ref VARCHAR(100),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            completed_at TIMESTAMPTZ
+        )
+    """),
+    ("sms_logs tenant index", """
+        CREATE INDEX IF NOT EXISTS ix_sms_logs_tenant_id ON sms_logs(tenant_id)
+    """),
 ]
 
 async def run_migrations():

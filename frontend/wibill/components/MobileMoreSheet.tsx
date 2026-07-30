@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Palette, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, HelpCircle, LogOut,
-  Ticket, Star, Megaphone, Bell,
+  Ticket, Star, Megaphone, Bell, MessageSquare,
 } from 'lucide-react'
 
 const nav = [
@@ -23,6 +23,7 @@ const nav = [
     { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
     { href: '/dashboard/campaigns', icon: Megaphone, label: 'Campaigns' },
     { href: '/dashboard/loyalty', icon: Star, label: 'Loyalty' },
+    { href: '/dashboard/comms', icon: MessageSquare, label: 'Bulk SMS' },
   ]},
   { label: 'Config', items: [
     { href: '/dashboard/packages', icon: Package, label: 'Packages' },

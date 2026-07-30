@@ -132,6 +132,8 @@ export default function PortalWizard() {
   const [facebookUrl, setFacebookUrl] = useState('')
   const [twitterUrl, setTwitterUrl] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
+  const [technicianName, setTechnicianName] = useState('')
+  const [technicianPhone, setTechnicianPhone] = useState('')
   const [heroTitle, setHeroTitle] = useState('')
   const [sectionHeading, setSectionHeading] = useState('')
   const [footerText, setFooterText] = useState('')
@@ -184,6 +186,8 @@ export default function PortalWizard() {
   const effectiveLogo = logoUrl || stickerDataUrl
   if (effectiveLogo) previewParams.set('logo_url', effectiveLogo)
   if (whatsapp) previewParams.set('whatsapp', whatsapp)
+  if (technicianName) previewParams.set('technician_name', technicianName)
+  if (technicianPhone) previewParams.set('technician_phone', technicianPhone)
   const previewUrl = `${API}/api/v1/portal-previews/${tpl}?${previewParams.toString()}`
 
   useEffect(() => {
@@ -286,7 +290,7 @@ export default function PortalWizard() {
     return {
       template_id: tpl,
       palette_index: palette,
-      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: logoUrl, hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl },
+      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: logoUrl, hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl, technician_name: technicianName, technician_phone: technicianPhone },
       theme: {
         primary_color: primaryColor || snaps?.hd || '#5b4fff',
         secondary_color: secondaryColor || snaps?.bg || '#0c0c1a',
@@ -398,6 +402,8 @@ export default function PortalWizard() {
           setWebsiteUrl(pc.brand.website_url || '')
           setFacebookUrl(pc.brand.facebook_url || ''); setTwitterUrl(pc.brand.twitter_url || '')
           setInstagramUrl(pc.brand.instagram_url || '')
+          setTechnicianName(pc.brand.technician_name || '')
+          setTechnicianPhone(pc.brand.technician_phone || '')
           setHeroTitle(pc.brand.hero_title || ''); setSectionHeading(pc.brand.section_heading || '')
           setFooterText(pc.brand.footer_text || ''); setTermsUrl(pc.brand.terms_url || '')
           if (pc.brand.emoji) {
@@ -573,6 +579,23 @@ export default function PortalWizard() {
               {[
                 { label: 'Support Phone', value: phone, set: setPhone, placeholder: '+254 700 123 456', type: 'tel' },
                 { label: 'WhatsApp', value: whatsapp, set: setWhatsapp, placeholder: '+254 700 123 456', type: 'tel' },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type || 'text'}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                </div>
+              ))}
+
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Technician Contact (optional)</div>
+              <div style={{ fontSize: 10, color: '#888', marginBottom: 6, lineHeight: 1.4 }}>
+                Shown on first portal visit — clients can save this number to their phone for support.
+              </div>
+              {[
+                { label: 'Technician Name', value: technicianName, set: setTechnicianName, placeholder: 'e.g. John Kamau' },
+                { label: 'Technician Phone', value: technicianPhone, set: setTechnicianPhone, placeholder: '+254 712 345 678', type: 'tel' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
