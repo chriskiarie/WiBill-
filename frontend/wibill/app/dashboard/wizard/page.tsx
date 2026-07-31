@@ -26,6 +26,14 @@ function toAbsoluteUrl(url: string | null | undefined): string | null {
   return `${API}${url}`
 }
 
+function toRelativeUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url
+  if (url.startsWith(API)) return url.slice(API.length)
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  return url
+}
+
 const STYLE_PRESETS = [
   { p: 0, n: 'Dark Indigo', f: 'Unbounded', bg:'#0c0c1a', hd:'#5b4fff', ac:'#5b4fff', cd:'rgba(255,255,255,.06)' },
   { p: 1, n: 'Sunset Orange', f: 'Bebas Neue', bg:'#fff7ed', hd:'#f97316', ac:'#f97316', cd:'#ffffff' },
@@ -290,7 +298,7 @@ export default function PortalWizard() {
     return {
       template_id: tpl,
       palette_index: palette,
-      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: logoUrl, hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl, technician_name: technicianName, technician_phone: technicianPhone },
+      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: toRelativeUrl(logoUrl), hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl, technician_name: technicianName, technician_phone: technicianPhone },
       theme: {
         primary_color: primaryColor || snaps?.hd || '#5b4fff',
         secondary_color: secondaryColor || snaps?.bg || '#0c0c1a',
