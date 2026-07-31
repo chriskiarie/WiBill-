@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
-import { Bell, CheckCheck, RefreshCw, ExternalLink, DollarSign, AlertTriangle, Mail, Megaphone, UserPlus } from 'lucide-react'
+import { Bell, CheckCheck, RefreshCw, ExternalLink, DollarSign, AlertTriangle, Mail, Megaphone, UserPlus, Wifi, WifiOff, Clock, CircleDot } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -21,12 +21,12 @@ const C = {
 }
 
 const typeConfig: Record<string, { icon: any; color: string; label: string }> = {
-  broadcast:       { icon: Megaphone, color: C.gold, label: 'Platform Announcement' },
-  direct:          { icon: Mail, color: C.gold, label: 'Direct Message' },
-  invoice_due:     { icon: DollarSign, color: C.gold, label: 'Invoice Due' },
-  payment_received:{ icon: CheckCheck, color: C.green, label: 'Payment Received' },
-  network_alert:   { icon: AlertTriangle, color: C.red, label: 'Network Alert' },
-  lead_submission: { icon: UserPlus, color: C.gold, label: 'New Lead' },
+  broadcast:        { icon: Megaphone, color: C.gold, label: 'Platform Announcement' },
+  direct:           { icon: Mail, color: C.gold, label: 'Direct Message' },
+  invoice_due:      { icon: DollarSign, color: C.gold, label: 'Invoice Due' },
+  payment_received: { icon: CheckCheck, color: C.green, label: 'Payment Received' },
+  network_alert:    { icon: WifiOff, color: C.red, label: 'Network Alert' },
+  lead_submission:  { icon: UserPlus, color: C.gold, label: 'New Lead' },
 }
 
 function formatTime(iso: string) {
@@ -96,62 +96,115 @@ export default function NotificationsPage() {
       <Topbar title="Notifications" />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Filter + actions bar */}
+        {/* Header row with unread badge */}
         <div style={{
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8,
-          padding: '12px 16px', borderBottom: '1px solid var(--theme-border)',
-          background: 'var(--theme-card-base)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 20px', borderBottom: `1px solid ${C.border}`,
+          background: C.base,
         }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              { id: 'all', label: 'All' },
-              { id: 'unread', label: `Unread` },
-              { id: 'lead_submission', label: 'Leads' },
-              { id: 'invoice_due', label: 'Invoices' },
-              { id: 'payment_received', label: 'Payments' },
-              { id: 'broadcast', label: 'Announcements' },
-            ].map(f => (
-              <button key={f.id} onClick={() => setFilter(f.id)} style={{
-                padding: '5px 12px', borderRadius: 20, fontSize: 11,
-                border: `0.5px solid ${filter === f.id ? 'var(--theme-gold)' : 'var(--theme-border)'}`,
-                background: filter === f.id ? 'rgba(232,184,75,0.1)' : 'transparent',
-                color: filter === f.id ? 'var(--theme-gold)' : 'var(--theme-dim)',
-                cursor: 'pointer',
-              }}>{f.label}</button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative' }}>
+              <Bell size={18} color={C.text} />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -6,
+                  minWidth: 16, height: 16, borderRadius: 8,
+                  background: C.gold, color: '#000', fontSize: 9,
+                  fontWeight: 700, fontFamily: 'DM Mono, monospace',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px', lineHeight: 1,
+                }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Inbox</span>
+            {unreadCount > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: C.gold,
+                background: `${C.gold}12`, padding: '2px 8px', borderRadius: 10,
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>
+                {unreadCount} unread
+              </span>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {unreadCount > 0 && (
               <button onClick={markAllRead} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 12px', borderRadius: 6, border: '1px solid var(--theme-border)',
-                background: 'transparent', color: 'var(--theme-dim)', fontSize: 11, cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 6, border: `1px solid ${C.border}`,
+                background: 'transparent', color: C.gold, fontSize: 11, fontWeight: 600, cursor: 'pointer',
               }}>
                 <CheckCheck size={13} /> Mark all read
               </button>
             )}
             <button onClick={fetchNotifications} style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              padding: '6px 12px', borderRadius: 6, border: '1px solid var(--theme-border)',
-              background: 'transparent', color: 'var(--theme-dim)', fontSize: 11, cursor: 'pointer',
+              padding: '6px 12px', borderRadius: 6, border: `1px solid ${C.border}`,
+              background: 'transparent', color: C.dim, fontSize: 11, cursor: 'pointer',
             }}>
               <RefreshCw size={13} /> Refresh
             </button>
           </div>
         </div>
 
+        {/* Filter tabs */}
+        <div style={{
+          display: 'flex', gap: 0, borderBottom: `1px solid ${C.border}`,
+          background: C.base, paddingLeft: 20,
+        }}>
+          {[
+            { id: 'all', label: 'All', count: notifications.length },
+            { id: 'unread', label: 'Unread', count: unreadCount },
+            { id: 'network_alert', label: 'Network' },
+            { id: 'invoice_due', label: 'Invoices' },
+            { id: 'payment_received', label: 'Payments' },
+            { id: 'broadcast', label: 'Announcements' },
+          ].map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)} style={{
+              padding: '10px 14px', fontSize: 11, fontWeight: 600,
+              border: 'none', borderBottom: filter === f.id ? `2px solid ${C.gold}` : '2px solid transparent',
+              background: 'transparent',
+              color: filter === f.id ? C.gold : C.dim,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+              marginBottom: -1, transition: 'all 0.15s',
+            }}>
+              {f.label}
+              {'count' in f && f.count > 0 && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700, fontFamily: 'DM Mono, monospace',
+                  background: f.id === 'unread' ? `${C.gold}20` : `${C.dim}20`,
+                  color: f.id === 'unread' ? C.gold : C.dim,
+                  padding: '1px 5px', borderRadius: 6,
+                }}>
+                  {f.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Notification list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--theme-dim)', fontSize: 13 }}>Loading notifications...</div>
+            <div style={{ textAlign: 'center', padding: 60, color: C.dim, fontSize: 12 }}>Loading...</div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 80, color: 'var(--theme-dim)' }}>
-              <Bell size={36} style={{ opacity: 0.3, marginBottom: 12 }} />
-              <div style={{ fontSize: 14, color: 'var(--theme-text)' }}>No notifications yet</div>
-              <div style={{ fontSize: 12, color: 'var(--theme-dim)', marginTop: 4 }}>Invoice alerts, payment confirmations, and platform announcements will appear here</div>
+            <div style={{ textAlign: 'center', padding: 80, color: C.dim }}>
+              <Bell size={32} style={{ opacity: 0.2, marginBottom: 12 }} />
+              <div style={{ fontSize: 13, color: C.text, marginBottom: 4 }}>
+                {filter === 'unread' ? 'All caught up' : 'No notifications'}
+              </div>
+              <div style={{ fontSize: 11, color: C.mute }}>
+                {filter === 'unread'
+                  ? 'You have read all your notifications'
+                  : filter === 'network_alert'
+                    ? 'Network status alerts will appear here'
+                    : 'Invoice alerts, payment confirmations, and platform announcements will appear here'}
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {filtered.map((n: any) => {
                 const cfg = typeConfig[n.type] || { icon: Bell, color: '#666', label: n.type }
                 const isUnread = !n.read_at
@@ -161,45 +214,46 @@ export default function NotificationsPage() {
                     key={n.id}
                     onClick={() => { if (isUnread) markRead(n.id) }}
                     style={{
-                      display: 'flex', gap: 14, padding: '14px 16px',
-                      borderRadius: 10,
-                      border: `0.5px solid ${isUnread ? 'var(--theme-border2)' : 'var(--theme-border)'}`,
-                      background: isUnread ? 'var(--theme-card-base)' : 'transparent',
+                      display: 'flex', gap: 12, padding: '12px 14px',
+                      borderRadius: 8,
+                      border: `1px solid ${isUnread ? C.border2 : 'transparent'}`,
+                      background: isUnread ? C.base : 'transparent',
                       cursor: isUnread ? 'pointer' : 'default',
-                      opacity: isUnread ? 1 : 0.55,
+                      opacity: isUnread ? 1 : 0.5,
+                      transition: 'all 0.15s',
                     }}
-                    onMouseEnter={e => { if (isUnread) e.currentTarget.style.borderColor = 'var(--theme-border)' }}
-                    onMouseLeave={e => { if (isUnread) e.currentTarget.style.borderColor = 'var(--theme-border2)' }}
+                    onMouseEnter={e => { if (isUnread) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = 'var(--theme-surface)' } }}
+                    onMouseLeave={e => { if (isUnread) { e.currentTarget.style.borderColor = C.border2; e.currentTarget.style.background = C.base } }}
                   >
                     <div style={{
-                      width: 36, height: 36, borderRadius: 8,
-                      background: `${cfg.color}15`, border: `0.5px solid ${cfg.color}30`,
+                      width: 34, height: 34, borderRadius: 8,
+                      background: `${cfg.color}12`, border: `1px solid ${cfg.color}25`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <IconComp size={16} color={cfg.color} />
+                      <IconComp size={15} color={cfg.color} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                        <div>
-                          <span style={{ fontSize: 13, color: 'var(--theme-text)', fontWeight: isUnread ? 600 : 400 }}>{n.title}</span>
-                          <span style={{ fontSize: 10, color: cfg.color, marginLeft: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{cfg.label}</span>
-                        </div>
-                        <span style={{ fontSize: 10, color: 'var(--theme-dim)', whiteSpace: 'nowrap', fontFamily: '"DM Mono", monospace' }}>{formatTime(n.created_at)}</span>
+                        <span style={{ fontSize: 12, fontWeight: isUnread ? 600 : 400, color: C.text }}>{n.title}</span>
+                        <span style={{ fontSize: 10, color: C.dim, whiteSpace: 'nowrap', fontFamily: '"DM Mono", monospace' }}>{formatTime(n.created_at)}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--theme-dim)', marginTop: 4, lineHeight: 1.5 }}>{n.message}</div>
-                      {n.type === 'invoice_due' && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); router.push('/dashboard/billing') }}
-                          style={{
-                            marginTop: 8, background: 'var(--theme-gold)', color: '#000', border: 'none',
-                            borderRadius: 5, padding: '5px 12px', fontSize: 10, fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >Pay Now →</button>
-                      )}
+                      <div style={{ fontSize: 11, color: C.dim, marginTop: 3, lineHeight: 1.4 }}>{n.message}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                        <span style={{ fontSize: 9, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{cfg.label}</span>
+                        {n.type === 'invoice_due' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); router.push('/dashboard/billing') }}
+                            style={{
+                              background: C.gold, color: '#000', border: 'none',
+                              borderRadius: 4, padding: '3px 8px', fontSize: 10, fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >Pay Now</button>
+                        )}
+                      </div>
                     </div>
-                    {isUnread && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--theme-gold)', marginTop: 4, flexShrink: 0 }} />}
+                    {isUnread && <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.gold, flexShrink: 0, marginTop: 4 }} />}
                   </div>
                 )
               })}
@@ -209,12 +263,12 @@ export default function NotificationsPage() {
 
         {/* Footer */}
         <div style={{
-          borderTop: '1px solid var(--theme-border)', padding: '11px 16px',
+          borderTop: `1px solid ${C.border}`, padding: '10px 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          fontSize: 11, color: 'var(--theme-dim)', background: 'var(--theme-card-base)',
+          fontSize: 10, color: C.mute, background: C.base,
         }}>
           <span>{filtered.length} notification{filtered.length !== 1 ? 's' : ''}</span>
-          {unreadCount > 0 && <span>{unreadCount} unread</span>}
+          {unreadCount > 0 && <span style={{ color: C.gold }}>{unreadCount} unread</span>}
         </div>
       </div>
     </div>

@@ -12,6 +12,15 @@ from app.models.package import Package
 router = APIRouter()
 
 
+def auto_label(h: int) -> str:
+    if h < 24:
+        return f"{h} hr{'s' if h != 1 else ''}"
+    days = h // 24
+    if h % 24 == 0:
+        return f"{days} day{'s' if days != 1 else ''}"
+    return f"{h} hrs"
+
+
 class PackageCreate(BaseModel):
     name: str
     price_ksh: float
@@ -26,6 +35,7 @@ class PackageUpdate(BaseModel):
     price_ksh: float | None = None
     duration_hours: int | None = None
     duration_label: str | None = None
+    max_devices: int | None = None
     is_active: bool | None = None
     display_order: int | None = None
 
@@ -97,7 +107,7 @@ async def create_package(
         name=data.name,
         price_ksh=data.price_ksh,
         duration_hours=data.duration_hours,
-        duration_label=data.duration_label,
+        duration_label=data.duration_label or auto_label(data.duration_hours),
         max_devices=data.max_devices,
         display_order=data.display_order,
         is_active=True,
@@ -124,7 +134,10 @@ async def update_package(
     pkg = result.scalar_one_or_none()
     if not pkg:
         raise HTTPException(status_code=404, detail="Package not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    if "duration_hours" in updates and "duration_label" not in updates:
+        updates["duration_label"] = auto_label(updates["duration_hours"])
+    for field, value in updates.items():
         setattr(pkg, field, value)
     await db.commit()
     return {"message": "Package updated"}

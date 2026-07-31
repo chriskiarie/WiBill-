@@ -23,6 +23,13 @@ interface PackageForm {
   price_ksh: number; max_devices: number; is_active: boolean
 }
 
+function autoLabel(h: number): string {
+  if (h < 24) return `${h} hr${h !== 1 ? 's' : ''}`
+  const days = h / 24
+  if (Number.isInteger(days)) return `${days} day${days !== 1 ? 's' : ''}`
+  return `${h} hrs`
+}
+
 const inputSx: React.CSSProperties = {
   width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text,
@@ -91,7 +98,7 @@ export default function PackagesPage() {
 
   const openCreate = () => {
     setEditingPackage(null)
-    setFormData({ name: '', duration_hours: 1, duration_label: '1 hr', price_ksh: 0, max_devices: 1, is_active: true })
+    setFormData({ name: '', duration_hours: 1, duration_label: autoLabel(1), price_ksh: 0, max_devices: 1, is_active: true })
     setShowModal(true)
   }
 
@@ -118,7 +125,7 @@ export default function PackagesPage() {
     setEditingPackage(pkg)
     setFormData({
       name: pkg.name, duration_hours: pkg.duration_hours,
-      duration_label: pkg.duration_label || `${pkg.duration_hours} hr${pkg.duration_hours > 1 ? 's' : ''}`,
+      duration_label: pkg.duration_label || autoLabel(pkg.duration_hours),
       price_ksh: pkg.price_ksh, max_devices: pkg.max_devices || 1, is_active: pkg.is_active,
     })
     setShowModal(true)
@@ -302,25 +309,17 @@ export default function PackagesPage() {
                 <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Package Name *</label>
                 <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Daily Unlimited" style={inputSx} required />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Duration (hours) *</label>
-                  <input type="number" min="1" value={formData.duration_hours} onChange={e => setFormData(p => ({ ...p, duration_hours: parseInt(e.target.value) || 1 }))} style={inputSx} required />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Duration Label *</label>
-                  <input type="text" value={formData.duration_label} onChange={e => setFormData(p => ({ ...p, duration_label: e.target.value }))} placeholder="e.g. 24 hrs" style={inputSx} required />
-                </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Duration (hours) *</label>
+                <input type="number" min="1" value={formData.duration_hours} onChange={e => {
+                  const h = parseInt(e.target.value) || 1
+                  setFormData(p => ({ ...p, duration_hours: h, duration_label: autoLabel(h) }))
+                }} style={inputSx} required />
+                <div style={{ fontSize: 10, color: C.mute, marginTop: 4, fontFamily: "'DM Mono', monospace" }}>Label: {formData.duration_label}</div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Price (KSH) *</label>
-                  <input type="number" min="1" step="1" value={formData.price_ksh} onChange={e => setFormData(p => ({ ...p, price_ksh: parseInt(e.target.value) || 0 }))} style={inputSx} required />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Max Devices</label>
-                  <input type="number" min="1" value={formData.max_devices} onChange={e => setFormData(p => ({ ...p, max_devices: parseInt(e.target.value) || 1 }))} style={inputSx} />
-                </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Price (KSH) *</label>
+                <input type="number" min="1" step="1" value={formData.price_ksh} onChange={e => setFormData(p => ({ ...p, price_ksh: parseInt(e.target.value) || 0 }))} style={inputSx} required />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                 <input type="checkbox" checked={formData.is_active} onChange={e => setFormData(p => ({ ...p, is_active: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.gold }} />
