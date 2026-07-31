@@ -157,10 +157,10 @@ export default function NotificationsPage() {
           {[
             { id: 'all', label: 'All', count: notifications.length },
             { id: 'unread', label: 'Unread', count: unreadCount },
-            { id: 'network_alert', label: 'Network' },
-            { id: 'invoice_due', label: 'Invoices' },
-            { id: 'payment_received', label: 'Payments' },
-            { id: 'broadcast', label: 'Announcements' },
+            { id: 'network_alert', label: 'Network', count: 0 },
+            { id: 'invoice_due', label: 'Invoices', count: 0 },
+            { id: 'payment_received', label: 'Payments', count: 0 },
+            { id: 'broadcast', label: 'Announcements', count: 0 },
           ].map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)} style={{
               padding: '10px 14px', fontSize: 11, fontWeight: 600,
