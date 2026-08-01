@@ -22,7 +22,13 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 function toAbsoluteUrl(url: string | null | undefined): string | null {
   if (!url) return null
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url
+  if (url.startsWith('/uploads/') || url.startsWith('\\uploads\\')) return `${API}${url}`
+  if (url.includes('/uploads/')) {
+    const idx = url.indexOf('/uploads/')
+    return `${API}${url.slice(idx)}`
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
   return `${API}${url}`
 }
 
