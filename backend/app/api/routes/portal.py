@@ -158,10 +158,18 @@ async def preview_portal(template_id: str, request: Request):
         "technician_phone": params.get("technician_phone", ""),
     }
 
-    # Make logo URL absolute if it's relative
+    # Normalize logo URL
     logo_url = live_brand.get("logo_url")
-    if logo_url and not logo_url.startswith(('http://', 'https://', 'blob:', 'data:')):
-        live_brand["logo_url"] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo_url}"
+    if logo_url:
+        if logo_url.startswith('/uploads/') or logo_url.startswith('\\uploads\\'):
+            pass
+        elif '/uploads/' in logo_url:
+            idx = logo_url.index('/uploads/')
+            logo_url = logo_url[idx:]
+        if not logo_url.startswith(('blob:', 'data:')):
+            live_brand["logo_url"] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo_url}" if not logo_url.startswith(('http://', 'https://')) else logo_url
+        else:
+            live_brand["logo_url"] = logo_url
 
     # 4. Parse Network Status
     show_status = params.get("showSB", "true").lower() == "true"
@@ -337,9 +345,15 @@ async def get_live_portal(
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
     if 'support_phone' in brand and 'support_number' not in brand:
         brand['support_number'] = brand['support_phone']
-    # Make logo URL absolute if it's relative
-    if brand.get('logo_url') and not brand['logo_url'].startswith(('http://', 'https://', 'blob:', 'data:')):
-        brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{brand['logo_url']}"
+    # Normalize logo URL: strip any host prefix, rebuild with correct one
+    logo = brand.get('logo_url')
+    if logo:
+        if logo.startswith('/uploads/') or logo.startswith('\\uploads\\'):
+            pass  # already relative, will be made absolute below
+        elif '/uploads/' in logo:
+            idx = logo.index('/uploads/')
+            logo = logo[idx:]  # strip everything before /uploads/
+        brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo}" if not logo.startswith(('blob:', 'data:')) else logo
     network = tenant.portal_config.get('network_awareness', {})
     theme = tenant.portal_config.get('theme', {})
     typography = tenant.portal_config.get('typography', {})
