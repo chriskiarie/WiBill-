@@ -238,9 +238,9 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     setBridgeLoading(true)
     try {
       await api.provisionMikrotik().catch(() => null)
-      let data = await api.getMikrotikInstallScript()
-      data = data.replace(/Invoke-WebRequest -Uri "[^"]*bridge-download"/, 'Invoke-WebRequest -Uri "https://wi-bill.com/bridge.py"')
+      const data = await api.getMikrotikInstallScript()
       setBridgeScript(data)
+      setBridgeProvisioned(true)
     } catch (e: any) {
       showToast(friendlyError(e.message || 'Failed to generate bridge installer'), { type: 'error' })
     } finally { setBridgeLoading(false) }

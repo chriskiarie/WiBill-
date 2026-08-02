@@ -674,49 +674,88 @@ async def generate_install_script(
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
 
     router_ip = config.router_ip
+    if router_ip.startswith("http"):
+        router_ip = router_ip.replace("https://", "").replace("http://", "").split("/")[0]
 
     bridge_secret = decrypt(config.bridge_secret_enc) if config.bridge_secret_enc else secrets.token_hex(32)
     tunnel_token = decrypt(config.tunnel_token_enc) if config.tunnel_token_enc else None
     api_password = decrypt(config.api_password_enc)
 
-    has_tunnel = bool(tunnel_token)
-    download_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
-    if not download_base.startswith("http"):
-        download_base = f"https://{download_base}"
+    has_tunnel = bool(tunnel_token and config.tunnel_hostname)
+
+    # ── Read bridge.py source from repo and inline it (single source of truth) ──
+    bridge_source_path = os.path.join(os.path.dirname(__file__), "..", "..", "bridge.py")
+    if not os.path.exists(bridge_source_path):
+        raise HTTPException(status_code=500, detail="bridge.py not found in repository")
+    bridge_source = open(bridge_source_path, "r", encoding="utf-8").read()
+    if "\n'@" in bridge_source or bridge_source.startswith("'@"):
+        raise HTTPException(status_code=500, detail="bridge.py contains a line starting with '@ which would break the installer heredoc")
 
     tunnel_section = ""
     if has_tunnel:
         tunnel_section = f"""
-Write-Host ""
-Write-Host "Installing cloudflared tunnel..."
-& cloudflared.exe service uninstall 2>$null
+# -- 7. Install cloudflared tunnel service --
+$cloudflared = (Get-Command "cloudflared.exe" -ErrorAction SilentlyContinue).Source
+if (-not $cloudflared) {{
+    Write-Host "Downloading cloudflared..."
+    try {{
+        $zip = "$env:TEMP\\cloudflared.zip"
+        Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.zip" -OutFile "$zip"
+        Expand-Archive -LiteralPath "$zip" -DestinationPath "$WIBILL_DIR" -Force
+        $cloudflared = "$WIBILL_DIR\\cloudflared.exe"
+    }} catch {{
+        Write-Error "Could not download cloudflared: $($_.Exception.Message)"
+        exit 1
+    }}
+}}
+& $cloudflared service uninstall 2>$null
 Start-Sleep -Seconds 2
-& cloudflared.exe service install "{tunnel_token}"
-Write-Host "Cloudflare tunnel installed."
+try {{
+    & $cloudflared service install "{tunnel_token}"
+    Write-Host "Cloudflare tunnel installed."
+}} catch {{
+    Write-Error "Could not install cloudflared service: $($_.Exception.Message)"
+    exit 1
+}}
 """
 
     script = f"""$ErrorActionPreference = "Stop"
 $WIBILL_DIR = "C:\\WiBill"
 
 # -- 1. Create working directory --
-New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
-Set-Location -LiteralPath "$WIBILL_DIR"
-Write-Host "Working directory: $WIBILL_DIR"
+try {{
+    New-Item -ItemType Directory -Path "$WIBILL_DIR" -Force | Out-Null
+    Set-Location -LiteralPath "$WIBILL_DIR"
+    Write-Host "Working directory: $WIBILL_DIR"
+}} catch {{
+    Write-Error "Could not create working directory: $($_.Exception.Message)"
+    exit 1
+}}
 
 # -- 2. Find Python --
 $python = (Get-Command "python" -ErrorAction SilentlyContinue).Source
 if (-not $python) {{ $python = (Get-Command "python3" -ErrorAction SilentlyContinue).Source }}
-if (-not $python) {{ Write-Error "Python not found. Install Python 3.10+ first."; exit 1 }}
+if (-not $python) {{
+    Write-Error "Python not found. Install Python 3.10+ from https://www.python.org/downloads/, then run this script again."
+    exit 1
+}}
 Write-Host "Python: $python"
 
-# -- 3. Download bridge.py --
-Write-Host "Downloading bridge.py..."
-Invoke-WebRequest -Uri "https://wi-bill.com/bridge.py" -OutFile "$WIBILL_DIR\\bridge.py"
-Write-Host "bridge.py downloaded."
+# -- 3. Write bridge.py (embedded, no download) --
+try {{
+@'
+{bridge_source}
+'@ | Set-Content -Path "$WIBILL_DIR\\bridge.py" -Encoding UTF8
+    Write-Host "bridge.py written."
+}} catch {{
+    Write-Error "Could not write bridge.py: $($_.Exception.Message)"
+    exit 1
+}}
 
 # -- 4. Write .env --
+try {{
 @"
-MIKROTIK_HOST={config.router_ip}
+MIKROTIK_HOST={router_ip}
 MIKROTIK_PORT={config.api_port}
 MIKROTIK_USERNAME={config.api_username}
 MIKROTIK_PASSWORD={api_password}
@@ -724,43 +763,89 @@ WIBILL_BRIDGE_SECRET={bridge_secret}
 HOTSPOT_SERVER={config.hotspot_server}
 BRIDGE_VERSION={settings.MIKROTIK_BRIDGE_VERSION}
 "@ | Set-Content -Path "$WIBILL_DIR\\.env" -Encoding UTF8
-Write-Host ".env written."
+    Write-Host ".env written."
+}} catch {{
+    Write-Error "Could not write .env: $($_.Exception.Message)"
+    exit 1
+}}
 
-# -- 5. Install Python packages --
+# -- 5. Install Python dependencies --
 Write-Host "Installing Python dependencies..."
-& $python -m pip install fastapi uvicorn librouteros httpx --quiet 2>&1 | Out-Null
-Write-Host "Dependencies installed."
+try {{
+    & $python -m pip install fastapi uvicorn librouteros httpx --quiet 2>&1 | Out-Null
+    Write-Host "Dependencies installed."
+}} catch {{
+    Write-Error "Could not install Python dependencies. Check your internet connection and try again. (pip error: $($_.Exception.Message))"
+    exit 1
+}}
 
 # -- 6. Install bridge.py as a Windows service (via NSSM) --
 $nssm = (Get-Command "nssm.exe" -ErrorAction SilentlyContinue).Source
 if (-not $nssm) {{
     Write-Host "Downloading NSSM..."
-    $zip = "$env:TEMP\\nssm.zip"
-    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$zip"
-    Expand-Archive -LiteralPath "$zip" -DestinationPath "$env:TEMP\\nssm" -Force
-    $nssm = "$env:TEMP\\nssm\\nssm-2.24\\win64\\nssm.exe"
+    try {{
+        $zip = "$env:TEMP\\nssm.zip"
+        Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$zip"
+        Expand-Archive -LiteralPath "$zip" -DestinationPath "$env:TEMP\\nssm" -Force
+        $nssm = "$env:TEMP\\nssm\\nssm-2.24\\win64\\nssm.exe"
+    }} catch {{
+        Write-Error "Could not download NSSM: $($_.Exception.Message)"
+        exit 1
+    }}
 }}
 
+# -- 7. Remove any existing WiBillBridge service (idempotent re-run safety) --
 & $nssm stop WiBillBridge 2>$null
 & $nssm remove WiBillBridge confirm 2>$null
-& $nssm install WiBillBridge $python "`"$WIBILL_DIR\\bridge.py`""
-& $nssm set WiBillBridge AppDirectory "$WIBILL_DIR"
-& $nssm set WiBillBridge Start SERVICE_AUTO_START
-& $nssm set WiBillBridge AppStdout "$WIBILL_DIR\\bridge.log"
-& $nssm set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
-Write-Host "Installing WiBillBridge service..."
-& $nssm start WiBillBridge
-Start-Sleep -Seconds 2
-$status = & $nssm status WiBillBridge
-Write-Host "Service status: $status"
+Start-Sleep -Seconds 1
+
+try {{
+    & $nssm install WiBillBridge $python "`"$WIBILL_DIR\\bridge.py`""
+    & $nssm set WiBillBridge AppDirectory "$WIBILL_DIR"
+    & $nssm set WiBillBridge Start SERVICE_AUTO_START
+    & $nssm set WiBillBridge AppStdout "$WIBILL_DIR\\bridge.log"
+    & $nssm set WiBillBridge AppStderr "$WIBILL_DIR\\bridge.log"
+    Write-Host "Installing WiBillBridge service..."
+    & $nssm start WiBillBridge
+}} catch {{
+    Write-Error "Could not install WiBillBridge service: $($_.Exception.Message)"
+    exit 1
+}}
 {tunnel_section}
+# -- 8. Self-verify: bridge process up + router reachable --
+Start-Sleep -Seconds 3
+Write-Host ""
+Write-Host "Checking bridge health..."
+try {{
+    $health = Invoke-WebRequest -Uri "http://127.0.0.1:8080/health" -Headers @{{"X-WiBill-Bridge-Secret"="{bridge_secret}"}} -UseBasicParsing
+    $result = $health.Content | ConvertFrom-Json
+    $bridgeUp = $true
+    $routerUp = $result.router_reachable
+    Write-Host ("Bridge process: " + $(if ($bridgeUp) {{ "PASSED" }} else {{ "FAILED" }}))
+    Write-Host ("Router connection: " + $(if ($routerUp) {{ "PASSED (reached {router_ip})" }} else {{ "FAILED" }}))
+    if (-not $routerUp) {{
+        Write-Host "Router unreachable. Check that the router is powered on and MIKROTIK_HOST in .env is correct."
+    }}
+}} catch {{
+    Write-Host "Bridge process: FAILED (bridge not responding)"
+    Write-Host "Check C:\\WiBill\\bridge.log for details."
+    $bridgeUp = $false
+    $routerUp = $false
+}}
 Write-Host ""
 Write-Host "=== WiBill Bridge Installed ==="
-Write-Host "Service: WiBillBridge"
-Write-Host "Logs:   $WIBILL_DIR\\bridge.log"
-Write-Host "Config: $WIBILL_DIR\\.env"
+Write-Host "Bridge service:     WiBillBridge"
+$bridgeState = if ($bridgeUp) {{ "running" }} else {{ "not running" }}
+Write-Host "Bridge status:      $bridgeState"
+$(if ($has_tunnel) {{ Write-Host "Tunnel service:     cloudflared (running)" }} else {{ Write-Host "Tunnel service:     not installed (no tunnel token configured)" }})
+Write-Host "Local health check: $(if ($bridgeUp) {{ 'PASSED' }} else {{ 'FAILED' }})"
+Write-Host "Router connection:  $(if ($routerUp) {{ 'PASSED (reached {router_ip})' }} else {{ 'FAILED' }})"
 Write-Host ""
-Write-Host "To check if bridge is running: Invoke-WebRequest http://127.0.0.1:8080/health"
+Write-Host "Logs:    C:\\WiBill\\bridge.log"
+Write-Host "Config:  C:\\WiBill\\.env"
+Write-Host ""
+Write-Host "You can now return to the WiBill dashboard - it should show Bridge Connected within a few seconds."
+Write-Host "If anything failed, just run this same script again - everything is safe to re-run."
 """
     return PlainTextResponse(content=script, media_type="text/plain")
 
