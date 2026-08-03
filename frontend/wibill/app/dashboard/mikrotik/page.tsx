@@ -240,7 +240,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
       await api.provisionMikrotik().catch(() => null)
       const data = await api.getMikrotikInstallScript()
       setBridgeScript(data)
-      setBridgeProvisioned(true)
     } catch (e: any) {
       showToast(friendlyError(e.message || 'Failed to generate bridge installer'), { type: 'error' })
     } finally { setBridgeLoading(false) }
