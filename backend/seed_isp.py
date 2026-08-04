@@ -20,6 +20,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
+
+# Import ALL models so SQLAlchemy can resolve all relationships
+import app.models  # noqa: F401
+
 from app.models.admin_user import AdminUser, AdminRole
 from app.models.tenant import Tenant
 

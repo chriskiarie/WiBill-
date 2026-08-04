@@ -26,6 +26,12 @@ from app.models.ipam_pool import IpamPool
 from app.models.portal_config_snapshot import PortalConfigSnapshot
 from app.models.lead import Lead, LeadStatus
 from app.models.sms_log import SmsLog
+from app.models.invoice import Invoice
+from app.models.invoice_transaction import InvoiceTransaction
+from app.models.invoice_reminder import InvoiceReminder
+from app.models.smtp_config import SmtpConfig
+from app.models.api_key import ApiKey
+from app.models.invite_token import InviteToken
 
 __all__ = [
     "Tenant",
@@ -72,4 +78,10 @@ __all__ = [
     "Lead",
     "LeadStatus",
     "SmsLog",
+    "Invoice",
+    "InvoiceTransaction",
+    "InvoiceReminder",
+    "SmtpConfig",
+    "ApiKey",
+    "InviteToken",
 ]
