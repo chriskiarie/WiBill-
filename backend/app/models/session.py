@@ -1,7 +1,8 @@
 """
 app/models/session.py - FIXED: timezone-aware datetime
 """
-from sqlalchemy import String, DateTime, Boolean, UUID, ForeignKey
+from sqlalchemy import String, DateTime, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime, timezone
 import uuid
