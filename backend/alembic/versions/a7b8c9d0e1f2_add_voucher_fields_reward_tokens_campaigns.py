@@ -25,8 +25,8 @@ def upgrade() -> None:
     op.create_table(
         "reward_tokens",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("token_code", sa.String(64), nullable=False, unique=True, index=True),
+        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("token_code", sa.String(64), nullable=False),
         sa.Column("minutes", sa.Integer(), nullable=False),
         sa.Column("bound_phone", sa.String(20), nullable=True),
         sa.Column("bound_mac", sa.String(17), nullable=True),
@@ -39,13 +39,13 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
     )
     op.create_index("ix_reward_tokens_tenant_id", "reward_tokens", ["tenant_id"])
-    op.create_index("ix_reward_tokens_token_code", "reward_tokens", ["token_code"])
+    op.create_index("ix_reward_tokens_token_code", "reward_tokens", ["token_code"], unique=True)
 
     # ── Campaigns ──
     op.create_table(
         "campaigns",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
         sa.Column("name", sa.String(100), nullable=False),
         sa.Column("campaign_type", sa.String(30), nullable=False),
         sa.Column("reward_minutes", sa.Integer(), nullable=False),
