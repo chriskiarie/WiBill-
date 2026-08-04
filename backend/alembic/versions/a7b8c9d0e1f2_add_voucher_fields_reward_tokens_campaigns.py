@@ -21,6 +21,25 @@ def upgrade() -> None:
     op.add_column("vouchers", sa.Column("duration_minutes", sa.Integer(), nullable=True))
     op.alter_column("vouchers", "package_id", existing_type=UUID(as_uuid=True), nullable=True)
 
+    # ── Campaigns (created first: reward_tokens references campaigns.id) ──
+    op.create_table(
+        "campaigns",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True, default=sa.text("gen_random_uuid()")),
+        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("name", sa.String(100), nullable=False),
+        sa.Column("campaign_type", sa.String(30), nullable=False),
+        sa.Column("reward_minutes", sa.Integer(), nullable=False),
+        sa.Column("quantity", sa.Integer(), nullable=False),
+        sa.Column("expiry_hours", sa.Integer(), nullable=False, server_default=sa.text("12")),
+        sa.Column("status", sa.String(20), nullable=False, server_default=sa.text("'draft'")),
+        sa.Column("target_filter", sa.Text(), nullable=True),
+        sa.Column("sent_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column("redeemed_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
+        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
+        sa.Column("launched_at", sa.DateTime(), nullable=True),
+    )
+    op.create_index("ix_campaigns_tenant_id", "campaigns", ["tenant_id"])
+
     # ── Reward Tokens ──
     op.create_table(
         "reward_tokens",
@@ -41,28 +60,9 @@ def upgrade() -> None:
     op.create_index("ix_reward_tokens_tenant_id", "reward_tokens", ["tenant_id"])
     op.create_index("ix_reward_tokens_token_code", "reward_tokens", ["token_code"], unique=True)
 
-    # ── Campaigns ──
-    op.create_table(
-        "campaigns",
-        sa.Column("id", UUID(as_uuid=True), primary_key=True, default=sa.text("gen_random_uuid()")),
-        sa.Column("tenant_id", UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("name", sa.String(100), nullable=False),
-        sa.Column("campaign_type", sa.String(30), nullable=False),
-        sa.Column("reward_minutes", sa.Integer(), nullable=False),
-        sa.Column("quantity", sa.Integer(), nullable=False),
-        sa.Column("expiry_hours", sa.Integer(), nullable=False, server_default=sa.text("12")),
-        sa.Column("status", sa.String(20), nullable=False, server_default=sa.text("'draft'")),
-        sa.Column("target_filter", sa.Text(), nullable=True),
-        sa.Column("sent_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("redeemed_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")),
-        sa.Column("launched_at", sa.DateTime(), nullable=True),
-    )
-    op.create_index("ix_campaigns_tenant_id", "campaigns", ["tenant_id"])
-
 
 def downgrade() -> None:
-    op.drop_table("campaigns")
     op.drop_table("reward_tokens")
+    op.drop_table("campaigns")
     op.drop_column("vouchers", "is_suspended")
     op.drop_column("vouchers", "duration_minutes")
