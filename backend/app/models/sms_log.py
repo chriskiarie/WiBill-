@@ -3,7 +3,8 @@ SMS delivery log — tracks every bulk SMS sent by an ISP to their subscribers.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, Integer, UUID, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
