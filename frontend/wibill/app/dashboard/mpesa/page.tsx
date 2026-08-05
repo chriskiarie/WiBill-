@@ -169,7 +169,7 @@ export default function MpesaPage() {
 
   const statusBadge = (status: string, verified: boolean) => {
     if (verified) return { label: 'Verified', bg: 'rgba(34,197,94,0.1)', color: C.green }
-    if (status === 'configured') return { label: 'Configured', bg: 'rgba(232,184,75,0.1)', color: C.gold }
+    if (status === 'configured') return { label: 'Configured', bg: 'color-mix(in srgb, var(--theme-gold) 10%, transparent)', color: C.gold }
     return { label: status || 'Not configured', bg: 'var(--theme-surface)', color: C.dim }
   }
 
@@ -260,8 +260,8 @@ export default function MpesaPage() {
                       <button key={env} type="button" onClick={() => setForm(p => ({ ...p, environment: env }))}
                         style={{
                           flex: 1, padding: '9px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: form.environment === env ? 'rgba(232,184,75,0.08)' : 'var(--theme-card-base)',
-                          border: form.environment === env ? '0.5px solid rgba(232,184,75,0.2)' : `0.5px solid ${C.border2}`,
+                          background: form.environment === env ? 'color-mix(in srgb, var(--theme-gold) 8%, transparent)' : 'var(--theme-card-base)',
+                          border: form.environment === env ? '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)' : `0.5px solid ${C.border2}`,
                           color: form.environment === env ? C.gold : C.dim,
                           textTransform: 'uppercase'
                         }}>

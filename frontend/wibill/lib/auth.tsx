@@ -62,7 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.clear()
+    // Clear auth state but PRESERVE theme preferences (wb_accent, wb_theme,
+    // wb_avatar, wb_display_name) so the ISP's theme persists across logins.
+    localStorage.removeItem('wb_token')
+    localStorage.removeItem('wb_role')
+    localStorage.removeItem('wb_user')
+    sessionStorage.removeItem('token')
+    sessionStorage.removeItem('role')
     setToken(null)
     setUser(null)
     setRole(null)

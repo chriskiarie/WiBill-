@@ -257,7 +257,7 @@ export default function AnalyticsPage() {
                         <PieChart>
                           <Pie data={topPackages.slice(0, 5)} dataKey="total_revenue_ksh" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={48} paddingAngle={2}>
                             {topPackages.slice(0, 5).map((_, i) => (
-                              <Cell key={i} fill={[C.gold, C.green, 'rgba(232,184,75,0.6)', 'rgba(232,184,75,0.3)', 'rgba(232,184,75,0.15)'][i]} />
+                              <Cell key={i} fill={[C.gold, C.green, 'color-mix(in srgb, var(--theme-gold) 60%, transparent)', 'color-mix(in srgb, var(--theme-gold) 30%, transparent)', 'color-mix(in srgb, var(--theme-gold) 15%, transparent)'][i]} />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -273,7 +273,7 @@ export default function AnalyticsPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{
                               width: 6, height: 6, borderRadius: '50%',
-                              background: [C.gold, C.green, 'rgba(232,184,75,0.6)', 'rgba(232,184,75,0.3)', 'rgba(232,184,75,0.15)'][i],
+                              background: [C.gold, C.green, 'color-mix(in srgb, var(--theme-gold) 60%, transparent)', 'color-mix(in srgb, var(--theme-gold) 30%, transparent)', 'color-mix(in srgb, var(--theme-gold) 15%, transparent)'][i],
                               display: 'inline-block'
                             }} />
                             <span style={{ color: 'var(--theme-text)' }}>{p.name}</span>

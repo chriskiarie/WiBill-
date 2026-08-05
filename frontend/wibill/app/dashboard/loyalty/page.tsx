@@ -192,7 +192,7 @@ export default function LoyaltyPage() {
                     title={a.points_balance < 5 ? 'Minimum 5 points to send reward' : 'Send reward token'}
                     style={{
                       padding: '5px 10px', borderRadius: 6, cursor: a.points_balance >= 5 ? 'pointer' : 'not-allowed',
-                      background: a.points_balance >= 5 ? 'rgba(232,184,75,0.12)' : 'transparent',
+                      background: a.points_balance >= 5 ? 'color-mix(in srgb, var(--theme-gold) 12%, transparent)' : 'transparent',
                       border: a.points_balance >= 5 ? 'none' : `0.5px solid ${C.mute}`,
                       color: a.points_balance >= 5 ? C.gold : C.mute,
                       display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Inter, sans-serif',
@@ -221,7 +221,7 @@ export default function LoyaltyPage() {
             {sentCode ? (
               <div>
                 <div style={{
-                  background: 'rgba(232,184,75,0.08)', border: `0.5px solid ${C.gold}`, borderRadius: 8,
+                  background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid ${C.gold}`, borderRadius: 8,
                   padding: 16, textAlign: 'center', marginBottom: 16,
                 }}>
                   <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 11, color: C.gold, marginBottom: 4 }}>Reward Token Generated</div>

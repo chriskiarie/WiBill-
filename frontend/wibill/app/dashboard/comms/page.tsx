@@ -625,7 +625,7 @@ export default function CommsPage() {
                               ? '#22c55e15'
                               : item.status === 'failed'
                                 ? '#ef444415'
-                                : '#E8B84B15',
+                                : 'var(--theme-gold)15',
                           color:
                             item.status === 'completed'
                               ? '#22c55e'

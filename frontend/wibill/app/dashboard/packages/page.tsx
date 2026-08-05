@@ -262,7 +262,7 @@ export default function PackagesPage() {
                       <span title="Duplicate package name" style={{
                         display: 'inline-flex', alignItems: 'center', gap: 2,
                         padding: '1px 5px', borderRadius: 3,
-                        background: 'rgba(232,184,75,0.12)', color: C.gold,
+                        background: 'color-mix(in srgb, var(--theme-gold) 12%, transparent)', color: C.gold,
                         fontSize: 8, fontWeight: 700, fontFamily: "'DM Mono', monospace",
                       }}>
                         <AlertTriangle size={9} /> Dup

@@ -132,7 +132,7 @@ export default function MikrotikWizard() {
           <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
             <Card>
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(232,184,75,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb, var(--theme-gold) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <Wifi size={24} color={C.gold} />
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Connect Your MikroTik Router</div>
@@ -448,7 +448,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
 
               {bridgeScript && (
                 <>
-                  <div style={{ padding: 14, marginBottom: 12, background: 'rgba(232,184,75,0.08)', border: `0.5px solid rgba(232,184,75,0.25)`, borderRadius: 7 }}>
+                  <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Installation Steps:</div>
                     <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
                       <li>Open <strong>PowerShell as Administrator</strong> on the PC</li>
@@ -502,7 +502,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                 Push the <strong>login.html</strong> redirect file to your router. This file sends users to your branded portal when they connect to WiFi.
               </div>
 
-              <div style={{ padding: 14, marginBottom: 16, background: 'rgba(232,184,75,0.06)', border: `0.5px solid rgba(232,184,75,0.2)`, borderRadius: 7 }}>
+              <div style={{ padding: 14, marginBottom: 16, background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)`, borderRadius: 7 }}>
                 <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.7 }}>
                   The bridge pushes login.html via <strong>/tool/fetch</strong> on the router. If the bridge is down, <strong>download login.html</strong> and upload manually via Winbox → Files → hotspot/.
                 </div>
@@ -551,7 +551,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
               </div>
 
               {!hasActivePackage && (
-                <div style={{ padding: 14, marginBottom: 20, borderRadius: 7, background: 'rgba(232,184,75,0.08)', border: `0.5px solid rgba(232,184,75,0.25)` }}>
+                <div style={{ padding: 14, marginBottom: 20, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <AlertTriangle size={14} color={C.gold} />
                     <span style={{ fontSize: 11, fontWeight: 600, color: C.gold }}>No active packages</span>

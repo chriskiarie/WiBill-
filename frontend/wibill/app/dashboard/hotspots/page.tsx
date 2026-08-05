@@ -118,7 +118,7 @@ export default function HotspotsPage() {
               borderRadius: 10, border: isSelected ? '1.5px solid var(--theme-gold)' : '1px solid var(--theme-border)',
               padding: '14px 20px', cursor: 'pointer',
               transition: 'border-color 0.15s, box-shadow 0.15s',
-              boxShadow: isSelected ? '0 0 0 1px rgba(232,184,75,0.15), 0 0 20px rgba(232,184,75,0.06)' : 'none',
+              boxShadow: isSelected ? '0 0 0 1px color-mix(in srgb, var(--theme-gold) 15%, transparent), 0 0 20px color-mix(in srgb, var(--theme-gold) 6%, transparent)' : 'none',
             }}
               onClick={() => setSelected(h)}
               onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = 'var(--theme-border2)' }}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { api, maskPhone } from '@/lib/api';
@@ -46,7 +46,7 @@ function Drawer({ open, onClose, children }: { open: boolean; onClose: () => voi
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 201,
         width: '100%', maxWidth: isMobile ? '100%' : 420,
         background: C.base,
-        borderLeft: isMobile ? 'none' : '0.5px solid rgba(232,184,75,0.08)',
+        borderLeft: isMobile ? 'none' : '0.5px solid color-mix(in srgb, var(--theme-gold) 8%, transparent)',
         boxShadow: isMobile ? 'none' : '-10px 0 40px rgba(0,0,0,0.4)',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -538,7 +538,7 @@ export default function IspDashboard() {
               <button onClick={() => setShowSetup(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '5px 14px 5px 12px', borderRadius: 20,
-                background: 'rgba(232,184,75,0.1)', border: '0.5px solid rgba(232,184,75,0.2)',
+                background: 'color-mix(in srgb, var(--theme-gold) 10%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)',
                 fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700,
                 color: C.gold, cursor: 'pointer',
               }}>
@@ -604,7 +604,7 @@ export default function IspDashboard() {
             </div>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: 'rgba(232,184,75,0.08)',
+              background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <TrendingUp size={18} color={C.gold} />
@@ -828,7 +828,7 @@ export default function IspDashboard() {
                       <div style={{
                         padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700,
                         textTransform: 'uppercase',
-                        background: success ? 'rgba(34,197,94,0.1)' : failed ? 'rgba(239,68,68,0.08)' : 'rgba(232,184,75,0.08)',
+                        background: success ? 'rgba(34,197,94,0.1)' : failed ? 'rgba(239,68,68,0.08)' : 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
                         color: success ? C.green : failed ? C.red : C.gold,
                       }}>
                         {success ? 'Paid' : failed ? 'Failed' : 'Pending'}
@@ -863,7 +863,7 @@ export default function IspDashboard() {
               <button onClick={() => setShowMikrotikDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'color-mix(in srgb, var(--theme-gold) 4%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 12%, transparent)',
                 color: C.gold, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 <Router size={13} /> Connect MikroTik <ChevronRight size={11} color={C.gold} />
@@ -873,7 +873,7 @@ export default function IspDashboard() {
               <button onClick={() => setShowMpesaDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'color-mix(in srgb, var(--theme-gold) 4%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 12%, transparent)',
                 color: C.gold, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               }}>
                 <CreditCard size={13} /> Set up M-Pesa <ChevronRight size={11} color={C.gold} />
@@ -903,7 +903,7 @@ export default function IspDashboard() {
               <a href="/dashboard/packages" style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.12)',
+                background: 'color-mix(in srgb, var(--theme-gold) 4%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 12%, transparent)',
                 color: C.gold, textDecoration: 'none',
               }}>
                 <Package size={13} /> Add Packages <ChevronRight size={11} color={C.gold} />
@@ -936,10 +936,10 @@ export default function IspDashboard() {
             background: 'rgba(10,10,10,0.85)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '0.5px solid rgba(232,184,75,0.15)',
+            border: '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
             borderRadius: 16,
             padding: '24px 20px 20px',
-            boxShadow: '0 0 60px rgba(232,184,75,0.04), 0 0 0 1px rgba(232,184,75,0.03) inset',
+            boxShadow: '0 0 60px color-mix(in srgb, var(--theme-gold) 4%, transparent), 0 0 0 1px color-mix(in srgb, var(--theme-gold) 3%, transparent) inset',
             position: 'relative',
             maxHeight: '90vh', overflowY: 'auto',
           }}>
@@ -984,13 +984,13 @@ export default function IspDashboard() {
                   <div key={s.key} style={{
                     display: 'flex', alignItems: 'center', gap: 14,
                     padding: '12px 16px', borderRadius: 10,
-                    background: isCurrent ? 'rgba(232,184,75,0.04)' : 'transparent',
-                    border: isCurrent ? '0.5px solid rgba(232,184,75,0.15)' : '0.5px solid transparent',
+                    background: isCurrent ? 'color-mix(in srgb, var(--theme-gold) 4%, transparent)' : 'transparent',
+                    border: isCurrent ? '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)' : '0.5px solid transparent',
                   }}>
                     <div style={{
                       width: 28, height: 28, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: done ? C.gold : isCurrent ? 'rgba(232,184,75,0.1)' : C.mute,
+                      background: done ? C.gold : isCurrent ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : C.mute,
                       flexShrink: 0,
                     }}>
                       {done ? <Check size={14} color={C.void} /> : isCurrent ? (
@@ -1010,10 +1010,10 @@ export default function IspDashboard() {
                     {!done && (
                       <a href={s.href} onClick={() => setShowSetup(false)} style={{
                         padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                        background: isCurrent ? C.gold : 'rgba(232,184,75,0.06)',
+                        background: isCurrent ? C.gold : 'color-mix(in srgb, var(--theme-gold) 6%, transparent)',
                         color: isCurrent ? C.void : C.gold,
                         textDecoration: 'none', whiteSpace: 'nowrap',
-                        border: isCurrent ? 'none' : '0.5px solid rgba(232,184,75,0.15)',
+                        border: isCurrent ? 'none' : '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
                       }}>
                         {isCurrent ? 'Set up' : 'Configure'}
                       </a>
@@ -1027,7 +1027,7 @@ export default function IspDashboard() {
             {allDone && (
               <div style={{
                 marginTop: 20, textAlign: 'center', padding: '16px', borderRadius: 10,
-                background: 'rgba(232,184,75,0.04)', border: '0.5px solid rgba(232,184,75,0.1)',
+                background: 'color-mix(in srgb, var(--theme-gold) 4%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 10%, transparent)',
               }}>
                 <div style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 15, fontWeight: 700, color: C.gold }}>
                   All set — your first customer is waiting
@@ -1098,7 +1098,7 @@ export default function IspDashboard() {
           </button>
           <button onClick={() => { setShowRouterDrawer(false) }} style={{
             flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+            background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
             color: C.gold, fontFamily: 'Inter, sans-serif',
           }}>
             Dismiss
@@ -1166,7 +1166,7 @@ export default function IspDashboard() {
           <button onClick={handleTestMikrotik} disabled={mkTesting}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+              background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
               color: C.gold, fontFamily: 'Inter, sans-serif',
             }}>
             {mkTesting ? 'Testing...' : 'Test Connection'}
@@ -1251,7 +1251,7 @@ export default function IspDashboard() {
           <button onClick={handleTestMpesa} disabled={mpTesting || !mpForm.consumer_key || !mpForm.shortcode}
             style={{
               flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(232,184,75,0.06)', border: '0.5px solid rgba(232,184,75,0.15)',
+              background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
               color: C.gold, fontFamily: 'Inter, sans-serif',
             }}>
             {mpTesting ? 'Validating...' : 'Test Credentials'}

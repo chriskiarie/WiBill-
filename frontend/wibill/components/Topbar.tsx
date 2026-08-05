@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/auth'
 import { usePathname } from 'next/navigation'
 import { Settings, LogOut, Sun, Moon, Wifi, Router, Globe, Monitor, Satellite, Check, Pencil } from 'lucide-react'
+import { applyAccent } from '@/lib/theme'
 
 interface Props {
   title: string
@@ -11,24 +12,24 @@ interface Props {
 }
 
 const pageStyles: Record<string, { gradient: string; icon: string }> = {
-  '/dashboard':          { gradient: 'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)', icon: '◆' },
-  '/dashboard/analytics':{ gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◈' },
+  '/dashboard':          { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, var(--theme-gold-bright) 100%)', icon: '◆' },
+  '/dashboard/analytics':{ gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, #22c55e 100%)', icon: '◈' },
   '/dashboard/sessions': { gradient: 'linear-gradient(135deg, #22c55e 0%, #6FCF73 100%)', icon: '●' },
-  '/dashboard/transactions':{gradient:'linear-gradient(135deg, #6FCF73 0%, #E8B84B 100%)', icon: '◉'},
-  '/dashboard/packages': { gradient: 'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)', icon: '◆' },
+  '/dashboard/transactions':{gradient:'linear-gradient(135deg, #6FCF73 0%, var(--theme-gold) 100%)', icon: '◉'},
+  '/dashboard/packages': { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, var(--theme-gold-bright) 100%)', icon: '◆' },
   '/dashboard/mikrotik': { gradient: 'linear-gradient(135deg, #6FCF73 0%, #22c55e 100%)', icon: '◈' },
-  '/dashboard/mpesa':    { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◉' },
+  '/dashboard/mpesa':    { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, #22c55e 100%)', icon: '◉' },
   '/dashboard/settings': { gradient: 'linear-gradient(135deg, #888 0%, #f0f0f0 100%)', icon: '◆' },
   '/dashboard/network':  { gradient: 'linear-gradient(135deg, #22c55e 0%, #6FCF73 100%)', icon: '●' },
-  '/dashboard/vouchers': { gradient: 'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)', icon: '◆' },
-  '/dashboard/campaigns':{ gradient: 'linear-gradient(135deg, #f5c563 0%, #E8B84B 100%)', icon: '★' },
-  '/dashboard/loyalty':  { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◆' },
-  '/dashboard/notifications':{gradient:'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)',icon:'◈'},
+  '/dashboard/vouchers': { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, var(--theme-gold-bright) 100%)', icon: '◆' },
+  '/dashboard/campaigns':{ gradient: 'linear-gradient(135deg, var(--theme-gold-bright) 0%, var(--theme-gold) 100%)', icon: '★' },
+  '/dashboard/loyalty':  { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, #22c55e 100%)', icon: '◆' },
+  '/dashboard/notifications':{gradient:'linear-gradient(135deg, var(--theme-gold) 0%, var(--theme-gold-bright) 100%)',icon:'◈'},
   '/dashboard/portal-preview':{gradient:'linear-gradient(135deg, #6FCF73 0%, #22c55e 100%)',icon:'●'},
-  '/dashboard/billing':  { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◉' },
-  '/dashboard/hotspots': { gradient: 'linear-gradient(135deg, #f5c563 0%, #E8B84B 100%)', icon: '◆' },
-  '/dashboard/wizard':   { gradient: 'linear-gradient(135deg, #E8B84B 0%, #f5c563 100%)', icon: '◆' },
-  '/dashboard/comms':    { gradient: 'linear-gradient(135deg, #E8B84B 0%, #22c55e 100%)', icon: '◈' },
+  '/dashboard/billing':  { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, #22c55e 100%)', icon: '◉' },
+  '/dashboard/hotspots': { gradient: 'linear-gradient(135deg, var(--theme-gold-bright) 0%, var(--theme-gold) 100%)', icon: '◆' },
+  '/dashboard/wizard':   { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, var(--theme-gold-bright) 100%)', icon: '◆' },
+  '/dashboard/comms':    { gradient: 'linear-gradient(135deg, var(--theme-gold) 0%, #22c55e 100%)', icon: '◈' },
 }
 
 const avatars = [
@@ -80,19 +81,6 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
 
   const displayLabel = displayName || user?.tenant_name || user?.email?.split('@')[0] || 'ISP'
   const initials = displayLabel.split(/\s+/).map((s: string) => s[0]).join('').slice(0, 2).toUpperCase()
-
-  const applyAccent = (color: string) => {
-    const root = document.documentElement
-    root.style.setProperty('--theme-gold', color)
-    root.style.setProperty('--gold', color)
-    // Derive sidebar active bg from accent
-    const r = parseInt(color.slice(1, 3), 16)
-    const g = parseInt(color.slice(3, 5), 16)
-    const b = parseInt(color.slice(5, 7), 16)
-    root.style.setProperty('--sidebar-active-bg', `rgba(${r},${g},${b},0.06)`)
-    root.style.setProperty('--brand-gradient', `linear-gradient(135deg, ${color} 0%, #22c55e 100%)`)
-    localStorage.setItem('wb_accent', color)
-  }
 
   const avatarIdx = Math.min(Math.max(parseInt(selectedAvatar) || 0, 0), avatars.length - 1)
   const AvatarIcon = avatars[avatarIdx].icon

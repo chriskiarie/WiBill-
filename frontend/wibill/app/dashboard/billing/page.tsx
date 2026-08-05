@@ -92,8 +92,8 @@ export default function BillingPage() {
     
     if (status === 'due' && invoice.days_left === 1) {
       return {
-        bg: 'rgba(232,184,75,0.08)',
-        border: 'rgba(232,184,75,0.2)',
+        bg: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
+        border: 'color-mix(in srgb, var(--theme-gold) 20%, transparent)',
         textColor: C.gold,
         icon: '⚠️',
         title: 'PAYMENT DUE TODAY',
@@ -105,8 +105,8 @@ export default function BillingPage() {
     
     if (status === 'due') {
       return {
-        bg: 'rgba(232,184,75,0.08)',
-        border: 'rgba(232,184,75,0.2)',
+        bg: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
+        border: 'color-mix(in srgb, var(--theme-gold) 20%, transparent)',
         textColor: C.gold,
         icon: '⚠️',
         title: `PAYMENT DUE IN ${invoice.days_left} DAY${invoice.days_left > 1 ? 'S' : ''}`,

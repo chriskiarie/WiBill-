@@ -25,6 +25,9 @@
   --gold: #E8B84B;     /* single accent: progress, brand, CTAs, value */
   --green: #22c55e;    /* money in, success, online */
   --red: #ef4444;      /* critical only — not for "not configured yet" */
+  --theme-gold-bright: #f5c563;                 /* lighter accent (gradient end) */
+  --theme-gold-soft: rgba(232, 184, 75, 0.07);  /* subtle accent fill */
+  --theme-gold-border: rgba(232, 184, 75, 0.22); /* subtle accent border */
 
   /* ── Deprecated (do not use in new code) ── */
   /* --blue, --amber, --purple removed — use gold/green/red/gray only */

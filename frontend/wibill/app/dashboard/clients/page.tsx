@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
@@ -28,10 +28,10 @@ function maskPhone(phone: string): string {
 function statusBadge(status: string) {
   const map: Record<string, { label: string; color: string; bg: string }> = {
     active: { label: 'Active', color: C.green, bg: 'rgba(34,197,94,0.08)' },
-    paused: { label: 'Paused', color: C.gold, bg: 'rgba(232,184,75,0.08)' },
+    paused: { label: 'Paused', color: C.gold, bg: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)' },
     suspended: { label: 'Suspended', color: C.red, bg: 'rgba(239,68,68,0.08)' },
     overdue: { label: 'Overdue', color: '#f97316', bg: 'rgba(249,115,22,0.08)' },
-    pending_suspension: { label: 'Pending', color: C.gold, bg: 'rgba(232,184,75,0.08)' },
+    pending_suspension: { label: 'Pending', color: C.gold, bg: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)' },
   }
   const s = map[status] || { label: status, color: C.dim, bg: 'var(--theme-surface)' }
   return (
@@ -102,15 +102,15 @@ function RealtimeTrafficChart({ client }: { client: any }) {
       <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 80, display: 'block' }}>
         <defs>
           <linearGradient id="tg-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={online ? '#E8B84B' : '#666'} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={online ? '#E8B84B' : '#666'} stopOpacity="0.02" />
+            <stop offset="0%" stopColor={online ? 'var(--theme-gold)' : '#666'} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={online ? 'var(--theme-gold)' : '#666'} stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {[0.25, 0.5, 0.75].map(f => (
           <line key={f} x1={0} y1={svgH * f} x2={svgW} y2={svgH * f} stroke="var(--theme-border)" strokeWidth="0.5" strokeDasharray="4 4" />
         ))}
         <path d={areaD} fill="url(#tg-fill)" />
-        <path d={pathD} fill="none" stroke={online ? '#E8B84B' : '#666'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} fill="none" stroke={online ? 'var(--theme-gold)' : '#666'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div style={{ display: 'flex', gap: 16, marginTop: 8, paddingTop: 8, borderTop: `0.5px solid var(--theme-border)` }}>
         <div>
@@ -518,8 +518,8 @@ export default function ClientsPage() {
             <button key={t} type="button" onClick={() => setForm(f => ({ ...f, client_type: t }))} style={{
               flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
               fontFamily: 'Inter, sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              background: form.client_type === t ? 'rgba(232,184,75,0.1)' : 'transparent',
-              border: form.client_type === t ? '1px solid rgba(232,184,75,0.25)' : `0.5px solid ${C.border}`,
+              background: form.client_type === t ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : 'transparent',
+              border: form.client_type === t ? '1px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)' : `0.5px solid ${C.border}`,
               color: form.client_type === t ? C.gold : C.dim, transition: 'all 0.2s ease',
             }}>
               {t === 'wifi' ? <Wifi size={13} /> : <Tv size={13} />}
@@ -647,8 +647,8 @@ export default function ClientsPage() {
             <button key={opt.days} type="button" onClick={() => setForm(f => ({ ...f, billing_cycle_days: opt.days }))} style={{
               flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
               fontFamily: 'Inter, sans-serif', cursor: 'pointer', textAlign: 'center',
-              background: form.billing_cycle_days === opt.days ? 'rgba(232,184,75,0.1)' : 'transparent',
-              border: form.billing_cycle_days === opt.days ? '1px solid rgba(232,184,75,0.25)' : `0.5px solid ${C.border}`,
+              background: form.billing_cycle_days === opt.days ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : 'transparent',
+              border: form.billing_cycle_days === opt.days ? '1px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)' : `0.5px solid ${C.border}`,
               color: form.billing_cycle_days === opt.days ? C.gold : C.dim, transition: 'all 0.2s ease',
             }}>
               {opt.label}
@@ -698,8 +698,8 @@ export default function ClientsPage() {
             {(['all', 'wifi', 'tv'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif',
-                background: tab === t ? 'rgba(232,184,75,0.1)' : 'transparent',
-                border: tab === t ? '0.5px solid rgba(232,184,75,0.2)' : `0.5px solid ${C.border}`,
+                background: tab === t ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : 'transparent',
+                border: tab === t ? '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)' : `0.5px solid ${C.border}`,
                 color: tab === t ? C.gold : C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               }}>
                 {t === 'all' ? <Users size={12} /> : t === 'wifi' ? <Wifi size={12} /> : <Tv size={12} />}
@@ -744,7 +744,7 @@ export default function ClientsPage() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={9} style={{ padding: 32, textAlign: 'center', color: C.dim }}>
-                    <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', margin: '0 auto 10px', animation: 'spin 1s linear infinite' }} />
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)', borderTop: '2px solid var(--theme-gold)', margin: '0 auto 10px', animation: 'spin 1s linear infinite' }} />
                     Loading...
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </td></tr>
@@ -836,8 +836,8 @@ export default function ClientsPage() {
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             zIndex: 201, width: '100%', maxWidth: 520, background: 'rgba(10,10,10,0.92)',
-            backdropFilter: 'blur(24px)', border: '0.5px solid rgba(232,184,75,0.12)',
-            borderRadius: 16, boxShadow: '0 0 80px rgba(0,0,0,0.5), 0 0 40px rgba(232,184,75,0.03)',
+            backdropFilter: 'blur(24px)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 12%, transparent)',
+            borderRadius: 16, boxShadow: '0 0 80px rgba(0,0,0,0.5), 0 0 40px color-mix(in srgb, var(--theme-gold) 3%, transparent)',
             maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '20px 24px 0', flex: 1, overflowY: 'auto' }}>
@@ -908,9 +908,9 @@ export default function ClientsPage() {
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             width: '100%', maxWidth: 520, background: 'rgba(10,10,10,0.85)',
-            backdropFilter: 'blur(24px)', border: '0.5px solid rgba(232,184,75,0.15)',
+            backdropFilter: 'blur(24px)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)',
             borderRadius: 16, padding: '24px 20px 20px',
-            boxShadow: '0 0 60px rgba(232,184,75,0.04)',
+            boxShadow: '0 0 60px color-mix(in srgb, var(--theme-gold) 4%, transparent)',
             maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -997,8 +997,8 @@ export default function ClientsPage() {
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             zIndex: 201, width: '100%', maxWidth: 680, maxHeight: '90vh',
             background: 'rgba(10,10,10,0.95)', backdropFilter: 'blur(24px)',
-            border: '0.5px solid rgba(232,184,75,0.1)', borderRadius: 16,
-            boxShadow: '0 0 80px rgba(0,0,0,0.5), 0 0 40px rgba(232,184,75,0.03)',
+            border: '0.5px solid color-mix(in srgb, var(--theme-gold) 10%, transparent)', borderRadius: 16,
+            boxShadow: '0 0 80px rgba(0,0,0,0.5), 0 0 40px color-mix(in srgb, var(--theme-gold) 3%, transparent)',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }} onClick={e => e.stopPropagation()}>
 
@@ -1173,7 +1173,7 @@ export default function ClientsPage() {
                       <>
                         <button onClick={() => handleClientAction('pause')} disabled={actionLoading === selectedClient.id} style={{
                           flex: 1, padding: '9px', borderRadius: 7, border: `0.5px solid ${C.border}`,
-                          background: 'rgba(232,184,75,0.06)', color: C.gold, fontSize: 11, fontWeight: 600,
+                          background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', color: C.gold, fontSize: 11, fontWeight: 600,
                           cursor: actionLoading === selectedClient.id ? 'not-allowed' : 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                         }}>

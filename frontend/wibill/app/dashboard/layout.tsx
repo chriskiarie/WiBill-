@@ -223,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fontFamily: 'Inter, sans-serif', padding: 40,
       }}>
         <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: '#E8B84B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--theme-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2A06" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
           </div>
           <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: '#EDEBE6' }}>WiBill</span>
@@ -234,7 +234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </p>
         <a href="mailto:support@honestbill.co.ke" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 8,
-          border: '1px solid #E8B84B', background: 'transparent', color: '#E8B84B', textDecoration: 'none',
+          border: '1px solid var(--theme-gold)', background: 'transparent', color: 'var(--theme-gold)', textDecoration: 'none',
           fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, fontWeight: 700,
         }}>Contact Support →</a>
       </div>
@@ -244,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!ready) return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.15)', borderTop: '2px solid #E8B84B', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid color-mix(in srgb, var(--theme-gold) 15%, transparent)', borderTop: '2px solid var(--theme-gold)', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
         <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#3A3A37' }}>Loading</div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -301,7 +301,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   background: '#161614', borderRadius: 10, padding: '16px 20px', marginBottom: 20,
                   display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 0',
                 }}>
-                  <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Amount Due</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 22, fontWeight: 500, color: '#E8B84B' }}>KES {feeDue.toLocaleString()}</div></div>
+                  <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Amount Due</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 22, fontWeight: 500, color: 'var(--theme-gold)' }}>KES {feeDue.toLocaleString()}</div></div>
                    <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Due Date</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(nextInvoiceDate)}</div></div>
                    <div><div style={{ fontSize: 10, color: '#6B6964', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Paused Since</div><div style={{ fontFamily: '"DM Mono", monospace', fontSize: 14, color: '#EDEBE6' }}>{formatDate(lastPaidDate)}</div></div>
                 </div>
@@ -330,7 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   1. Go to M-Pesa → Lipa na M-Pesa → Paybill<br />
                   2. Enter Business Number: <strong style={{ color: '#EDEBE6' }}>247247</strong><br />
                   3. Account: <strong style={{ color: '#EDEBE6' }}>{ispName || 'Your account'}</strong><br />
-                  4. Enter amount: <strong style={{ color: '#E8B84B' }}>KES {feeDue.toLocaleString()}</strong><br />
+                  4. Enter amount: <strong style={{ color: 'var(--theme-gold)' }}>KES {feeDue.toLocaleString()}</strong><br />
                   5. Enter your M-Pesa PIN and confirm
                 </div>
 
@@ -351,7 +351,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       />
                       <button onClick={doStkPush} style={{
                         height: 40, padding: '0 20px', borderRadius: 8, border: 'none',
-                        background: '#E8B84B', color: '#3D2A06', fontWeight: 700,
+                        background: 'var(--theme-gold)', color: '#3D2A06', fontWeight: 700,
                         fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, cursor: 'pointer',
                         whiteSpace: 'nowrap',
                       }}>Pay Now</button>
@@ -361,7 +361,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {stkState === 'sending' && (
                   <div style={{ textAlign: 'center', padding: '16px 0', marginBottom: 16 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.3)', borderTop: '2px solid #E8B84B', margin: '0 auto 10px', animation: 'spin 1s linear infinite' }} />
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid color-mix(in srgb, var(--theme-gold) 30%, transparent)', borderTop: '2px solid var(--theme-gold)', margin: '0 auto 10px', animation: 'spin 1s linear infinite' }} />
                     <div style={{ fontSize: 13, color: '#8C8A84' }}>Sending STK Push to your phone...</div>
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </div>
@@ -369,16 +369,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 {(stkState === 'sent' || stkState === 'completed' || stkState === 'failed') && (
                   <div style={{
-                    background: stkState === 'completed' ? 'rgba(34,197,94,0.08)' : stkState === 'failed' ? 'rgba(229,112,122,0.08)' : 'rgba(232,184,75,0.08)',
+                    background: stkState === 'completed' ? 'rgba(34,197,94,0.08)' : stkState === 'failed' ? 'rgba(229,112,122,0.08)' : 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
                     borderRadius: 8, padding: '12px 16px', marginBottom: 16,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: '50%',
-                        background: stkState === 'completed' ? '#22c55e' : stkState === 'failed' ? '#E5707A' : '#E8B84B',
+                        background: stkState === 'completed' ? '#22c55e' : stkState === 'failed' ? '#E5707A' : 'var(--theme-gold)',
                         display: 'inline-block',
                       }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: stkState === 'completed' ? '#22c55e' : stkState === 'failed' ? '#E5707A' : '#E8B84B' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: stkState === 'completed' ? '#22c55e' : stkState === 'failed' ? '#E5707A' : 'var(--theme-gold)' }}>
                         {stkState === 'completed' ? 'Payment Confirmed' : stkState === 'failed' ? 'Payment Failed' : 'STK Push Sent'}
                       </span>
                     </div>
@@ -388,7 +388,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         Waiting for payment confirmation{stkTimerCount > 0 && ` · Resend in ${stkTimerCount}s`}
                         {stkTimerCount === 0 && (
                           <button onClick={resetStk} style={{
-                            background: 'none', border: 'none', color: '#E8B84B', cursor: 'pointer',
+                            background: 'none', border: 'none', color: 'var(--theme-gold)', cursor: 'pointer',
                             fontFamily: 'Inter, sans-serif', fontSize: 11, textDecoration: 'underline',
                             marginLeft: 8,
                           }}>Resend</button>
@@ -449,7 +449,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           }}>Cancel</button>
                           <button onClick={submitNotify} disabled={!notifyTxCode.trim() || notifySubmitting} style={{
                             flex: 1, height: 32, borderRadius: 6, border: 'none',
-                            background: notifyTxCode.trim() && !notifySubmitting ? '#E8B84B' : '#2A2A27',
+                            background: notifyTxCode.trim() && !notifySubmitting ? 'var(--theme-gold)' : '#2A2A27',
                             color: notifyTxCode.trim() && !notifySubmitting ? '#3D2A06' : '#6B6964',
                             fontWeight: 600, cursor: notifyTxCode.trim() && !notifySubmitting ? 'pointer' : 'not-allowed',
                             fontSize: 12, fontFamily: 'Inter, sans-serif',
@@ -461,8 +461,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
 
                 {notifyDone && (
-                  <div style={{ background: 'rgba(232,184,75,0.08)', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
-                    <div style={{ fontSize: 12, color: '#E8B84B' }}>✓ Support notified — we'll verify within a few hours.</div>
+                  <div style={{ background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', borderRadius: 8, padding: '12px 16px', marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'var(--theme-gold)' }}>✓ Support notified — we'll verify within a few hours.</div>
                   </div>
                 )}
 
@@ -470,7 +470,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <a href={`mailto:support@honestbill.co.ke?subject=Account reactivation request — ${ispName}`} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   width: '100%', height: 40, borderRadius: 8,
-                  background: '#E8B84B', color: '#3D2A06', fontWeight: 700,
+                  background: 'var(--theme-gold)', color: '#3D2A06', fontWeight: 700,
                   fontFamily: '"Space Grotesk", sans-serif', fontSize: 13, cursor: 'pointer',
                   textDecoration: 'none', border: 'none',
                 }}>Contact support →</a>

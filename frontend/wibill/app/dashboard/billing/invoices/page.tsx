@@ -64,7 +64,7 @@ export default function InvoicesPage() {
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'paid':     return { bg: 'rgba(34,197,94,0.08)', color: C.green, label: 'Paid' }
-      case 'due':      return { bg: 'rgba(232,184,75,0.08)', color: C.gold, label: 'Due' }
+      case 'due':      return { bg: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', color: C.gold, label: 'Due' }
       case 'overdue':  return { bg: 'rgba(239,68,68,0.08)', color: C.red, label: 'Overdue' }
       case 'sent':     return { bg: 'var(--theme-surface)', color: C.gold, label: 'Sent' }
       default:         return { bg: C.surface, color: C.dim, label: status }
