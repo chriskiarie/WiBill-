@@ -372,8 +372,13 @@ export default function PortalWizard() {
       const res = await fetch(`${API}/api/portal-config/snapshots`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.ok) { const data = await res.json(); setSnapshots(data.snapshots || []) }
-    } catch {}
+      if (res.ok) {
+        const data = await res.json()
+        setSnapshots(data.snapshots || [])
+      } else {
+        setSnapshots([])
+      }
+    } catch { setSnapshots([]) }
   }
 
   async function fetchLivePackages() {
@@ -394,8 +399,14 @@ export default function PortalWizard() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ version_tag: tag }),
       })
-      if (res.ok) loadSnapshots()
-    } catch {}
+      if (res.ok) {
+        loadSnapshots()
+        toast('Version saved!')
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Save failed' }))
+        toast(err.detail || 'Failed to save version')
+      }
+    } catch { toast('Network error — try again') }
   }
 
   async function restoreSnapshot(id: string) {
@@ -440,8 +451,10 @@ export default function PortalWizard() {
         loadSnapshots()
         setActiveSnapshotId(id)
         toast('Version restored!')
+      } else {
+        toast('Failed to restore version')
       }
-    } catch {}
+    } catch { toast('Network error') }
   }
 
   async function deleteSnapshot(id: string, tag: string) {
@@ -451,7 +464,8 @@ export default function PortalWizard() {
         method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) { loadSnapshots(); toast('Version deleted') }
-    } catch {}
+      else { toast('Failed to delete version') }
+    } catch { toast('Network error') }
   }
 
   useEffect(() => { if (tab === 'export') loadSnapshots() }, [tab])
