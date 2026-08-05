@@ -478,6 +478,61 @@ MIGRATIONS = [
     ("sms_logs tenant index", """
         CREATE INDEX IF NOT EXISTS ix_sms_logs_tenant_id ON sms_logs(tenant_id)
     """),
+    # ── Outage events, router health checks, client devices ──
+    ("outage_events", """
+        CREATE TABLE IF NOT EXISTS outage_events (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            router_id UUID REFERENCES mikrotik_configs(id) ON DELETE SET NULL,
+            zone VARCHAR(255),
+            source VARCHAR(20) NOT NULL,
+            status VARCHAR(30) NOT NULL,
+            started_at TIMESTAMPTZ NOT NULL,
+            resolved_at TIMESTAMPTZ,
+            eta TIMESTAMPTZ,
+            description TEXT,
+            created_by_id UUID REFERENCES admin_users(id) ON DELETE SET NULL
+        )
+    """),
+    ("outage_events tenant index", """
+        CREATE INDEX IF NOT EXISTS ix_outage_events_tenant_id ON outage_events(tenant_id)
+    """),
+    ("router_health_checks", """
+        CREATE TABLE IF NOT EXISTS router_health_checks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            router_id UUID NOT NULL REFERENCES mikrotik_configs(id) ON DELETE CASCADE,
+            checked_at TIMESTAMPTZ NOT NULL,
+            management_reachable BOOLEAN NOT NULL,
+            wan_reachable BOOLEAN
+        )
+    """),
+    ("router_health_checks router index", """
+        CREATE INDEX IF NOT EXISTS ix_router_health_checks_router_id ON router_health_checks(router_id)
+    """),
+    ("router_health_checks checked_at index", """
+        CREATE INDEX IF NOT EXISTS ix_router_health_checks_checked_at ON router_health_checks(checked_at)
+    """),
+    ("client_devices", """
+        CREATE TABLE IF NOT EXISTS client_devices (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            mac_address VARCHAR(17) NOT NULL,
+            customer_phone VARCHAR(20),
+            last_router_id UUID REFERENCES mikrotik_configs(id) ON DELETE SET NULL,
+            last_ip VARCHAR(45),
+            first_seen_at TIMESTAMPTZ NOT NULL,
+            last_seen_at TIMESTAMPTZ NOT NULL,
+            plan_expires_at TIMESTAMPTZ,
+            status VARCHAR(20) NOT NULL DEFAULT 'active',
+            UNIQUE(tenant_id, mac_address)
+        )
+    """),
+    ("client_devices tenant index", """
+        CREATE INDEX IF NOT EXISTS ix_client_devices_tenant_id ON client_devices(tenant_id)
+    """),
+    ("client_devices mac index", """
+        CREATE INDEX IF NOT EXISTS ix_client_devices_mac_address ON client_devices(mac_address)
+    """),
 ]
 
 async def run_migrations():

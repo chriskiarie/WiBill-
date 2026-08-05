@@ -32,6 +32,9 @@ from app.models.invoice_reminder import InvoiceReminder
 from app.models.smtp_config import SmtpConfig
 from app.models.api_key import ApiKey
 from app.models.invite_token import InviteToken
+from app.models.outage_event import OutageEvent
+from app.models.router_health_check import RouterHealthCheck
+from app.models.client_device import ClientDevice
 
 __all__ = [
     "Tenant",
@@ -84,4 +87,7 @@ __all__ = [
     "SmtpConfig",
     "ApiKey",
     "InviteToken",
+    "OutageEvent",
+    "RouterHealthCheck",
+    "ClientDevice",
 ]

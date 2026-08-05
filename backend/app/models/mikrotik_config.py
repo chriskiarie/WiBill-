@@ -30,6 +30,8 @@ class MikrotikConfig(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="mikrotik_config")
+    health_checks: Mapped[list["RouterHealthCheck"]] = relationship("RouterHealthCheck", back_populates="router", cascade="all, delete-orphan")
+    outage_events: Mapped[list["OutageEvent"]] = relationship("OutageEvent", back_populates="router")
 
     def __repr__(self) -> str:
         return f"<MikrotikConfig {self.router_ip}>"

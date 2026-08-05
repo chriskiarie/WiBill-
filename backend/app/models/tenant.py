@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 from app.models.subscriber import Subscriber
 from app.models.ipam_pool import IpamPool
 from app.models.portal_config_snapshot import PortalConfigSnapshot
+from app.models.outage_event import OutageEvent
+from app.models.client_device import ClientDevice
 
 
 class Tenant(Base):
@@ -82,6 +84,8 @@ class Tenant(Base):
     subscribers: Mapped[list["Subscriber"]] = relationship("Subscriber", back_populates="tenant", cascade="all, delete-orphan")
     ipam_pools: Mapped[list["IpamPool"]] = relationship("IpamPool", back_populates="tenant", cascade="all, delete-orphan")
     portal_snapshots: Mapped[list["PortalConfigSnapshot"]] = relationship("PortalConfigSnapshot", back_populates="tenant", cascade="all, delete-orphan")
+    outage_events: Mapped[list["OutageEvent"]] = relationship("OutageEvent", back_populates="tenant", cascade="all, delete-orphan")
+    client_devices: Mapped[list["ClientDevice"]] = relationship("ClientDevice", back_populates="tenant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Tenant {self.slug}>"

@@ -23,6 +23,9 @@ from app.models import (
     Voucher,
     LoyaltyAccount,
     LoyaltyTransaction,
+    OutageEvent,
+    RouterHealthCheck,
+    ClientDevice,
 )
 
 # Import invoice models (may fail if table doesn't exist yet)
