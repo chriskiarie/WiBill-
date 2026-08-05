@@ -504,3 +504,71 @@ async def restart_subscriber(
     except Exception as e:
         logger.error(f"Bridge restart error: {e}")
         return {"success": False, "message": str(e)}
+
+
+# ============================================================================
+# HOTSPOT BYPASS — ip-binding for returning devices
+# ============================================================================
+
+async def add_hotspot_bypass(
+    tenant_id: str,
+    mac_address: str,
+    ip_address: str,
+    expires_at: datetime | None = None,
+    db: AsyncSession = None,
+) -> dict:
+    """Add an ip-binding bypass entry on the MikroTik router via bridge.
+    This allows a device to bypass hotspot authentication based on MAC+IP.
+    Used by device-auth for returning devices with active sessions.
+    """
+    config = await _get_config(tenant_id, db)
+    if not config:
+        logger.warning(f"No MikroTik config for tenant {tenant_id} — skipping bypass")
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {
+        "mac_address": mac_address,
+        "ip_address": ip_address,
+    }
+    if expires_at:
+        payload["expires_at"] = expires_at.isoformat()
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/hotspot/bypass/add",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                logger.info(f"Hotspot bypass added for {mac_address} on tenant {tenant_id}")
+                return {"success": True, "message": "Bypass entry added", "data": r.json()}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge bypass error: {e}")
+        return {"success": False, "message": str(e)}
+
+
+async def remove_hotspot_bypass(
+    tenant_id: str,
+    mac_address: str,
+    db: AsyncSession = None,
+) -> dict:
+    """Remove an ip-binding bypass entry from the MikroTik router."""
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/hotspot/bypass/remove",
+                json={"mac_address": mac_address},
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Bypass entry removed"}
+            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except Exception as e:
+        logger.error(f"Bridge bypass remove error: {e}")
+        return {"success": False, "message": str(e)}

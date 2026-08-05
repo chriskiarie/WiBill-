@@ -3,12 +3,18 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
 import { api, formatRelativeTime } from '@/lib/api'
 import Topbar from '@/components/Topbar'
-import { RefreshCw, Router, Activity, Users, Zap } from 'lucide-react'
+import { RefreshCw, Router, Activity, Users, Zap, AlertTriangle, CheckCircle, X } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)',
   text: 'var(--theme-text)', dim: 'var(--theme-dim)', mute: 'var(--theme-mute)', faint: 'var(--theme-faint)',
   gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
+}
+
+interface OutageEvent {
+  id: string; source: string; status: string; zone?: string
+  description?: string; eta?: string; started_at: string; resolved_at?: string
+  created_by_id?: string
 }
 
 export default function NetworkPage() {
@@ -19,19 +25,25 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const [outages, setOutages] = useState<OutageEvent[]>([])
+  const [showDeclareModal, setShowDeclareModal] = useState(false)
+  const [declareForm, setDeclareForm] = useState({ zone: '', description: '', eta: '' })
+  const [declaring, setDeclaring] = useState(false)
 
   const fetchData = useCallback(async () => {
     if (!token || !user?.tenant_id) return
     setLoading(true)
     try {
-      const [dash, evts, mik] = await Promise.all([
+      const [dash, evts, mik, outageData] = await Promise.all([
         api.getTenantDashboard().catch(() => null),
         api.getTenantNetworkEvents(user.tenant_id, 50).catch(() => []),
         api.getMikrotikConfig().catch(() => null),
+        api.getOutages('active').catch(() => []),
       ])
       if (dash) setStatus(dash.network || dash)
       setEvents(Array.isArray(evts) ? evts : [])
       setMikrotik(mik)
+      setOutages(Array.isArray(outageData) ? outageData : [])
     } catch (e) {
     } finally {
       setLoading(false)
@@ -39,6 +51,7 @@ export default function NetworkPage() {
   }, [token, user?.tenant_id])
 
   useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { const t = setInterval(fetchData, 30000); return () => clearInterval(t) }, [fetchData])
 
   const handleTest = async () => {
     setTesting(true)
@@ -50,6 +63,35 @@ export default function NetworkPage() {
       setTestResult(e.message || 'Connection failed')
     } finally {
       setTesting(false)
+    }
+  }
+
+  const handleDeclareOutage = async () => {
+    if (!declareForm.description.trim()) return
+    setDeclaring(true)
+    try {
+      await api.createOutage({
+        status: 'investigating',
+        description: declareForm.description.trim(),
+        zone: declareForm.zone.trim() || undefined,
+        eta: declareForm.eta || undefined,
+      })
+      setShowDeclareModal(false)
+      setDeclareForm({ zone: '', description: '', eta: '' })
+      fetchData()
+    } catch (e: any) {
+      alert(e.message || 'Failed to declare outage')
+    } finally {
+      setDeclaring(false)
+    }
+  }
+
+  const handleResolveOutage = async (id: string) => {
+    try {
+      await api.resolveOutage(id)
+      fetchData()
+    } catch (e: any) {
+      alert(e.message || 'Failed to resolve outage')
     }
   }
 
@@ -69,10 +111,7 @@ export default function NetworkPage() {
     : null
 
   const lastChecked = status?.checked_at ? formatRelativeTime(status.checked_at) : '—'
-
   const routerIp = mikrotik?.router_ip || 'Not configured'
-  const hotspotName = mikrotik?.hotspot_server || '—'
-
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   const uptimeTimeline = Array.from({ length: 14 }, (_, i) => {
@@ -95,6 +134,28 @@ export default function NetworkPage() {
 
   const activeUsers = status?.active_users ?? status?.active_sessions ?? 0
   const latencyMs = status?.latency_ms
+
+  // Merge outage events into recent events timeline
+  const mergedEvents = [...events]
+  outages.forEach(o => {
+    mergedEvents.push({
+      id: `outage-${o.id}`,
+      status: o.status === 'resolved' ? 'UP' : 'DOWN',
+      checked_at: o.started_at,
+      isOutage: true,
+      outage: o,
+    })
+    if (o.resolved_at) {
+      mergedEvents.push({
+        id: `outage-resolved-${o.id}`,
+        status: 'UP',
+        checked_at: o.resolved_at,
+        isOutage: true,
+        outage: { ...o, status: 'resolved' },
+      })
+    }
+  })
+  mergedEvents.sort((a, b) => new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime())
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -119,14 +180,68 @@ export default function NetworkPage() {
                   </span>
                 )}
               </div>
-              <button onClick={fetchData} disabled={loading} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
-                background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 10, cursor: 'pointer',
-              }}>
-                <RefreshCw size={12} />
-                {loading ? 'Refreshing...' : 'Refresh'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowDeclareModal(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
+                  background: 'rgba(239,68,68,0.08)', border: '0.5px solid rgba(239,68,68,0.2)',
+                  color: C.red, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  <AlertTriangle size={12} /> Declare Outage
+                </button>
+                <button onClick={fetchData} disabled={loading} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
+                  background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 10, cursor: 'pointer',
+                }}>
+                  <RefreshCw size={12} />
+                  {loading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
             </div>
+
+            {/* ───── OUTAGE BANNER ───── */}
+            {outages.length > 0 && (
+              <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {outages.map(o => (
+                  <div key={o.id} style={{
+                    padding: '14px 18px', borderRadius: 9,
+                    background: 'rgba(239,68,68,0.06)',
+                    border: `1px solid rgba(239,68,68,0.2)`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.red, marginTop: 3, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
+                              {o.status === 'investigating' ? 'Investigating' : o.status === 'confirmed_down' ? 'Outage Confirmed' : 'Degraded'}
+                            </span>
+                            {o.zone && (
+                              <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.1)', color: C.red, fontFamily: 'DM Mono, monospace' }}>
+                                {o.zone}
+                              </span>
+                            )}
+                          </div>
+                          {o.description && <div style={{ fontSize: 11, color: C.dim, marginBottom: 4 }}>{o.description}</div>}
+                          <div style={{ display: 'flex', gap: 12, fontSize: 10, color: C.faint }}>
+                            <span>Since {formatRelativeTime(o.started_at)}</span>
+                            <span>·</span>
+                            <span>{o.source === 'auto' ? 'Auto-detected' : 'Declared by staff'}</span>
+                            {o.eta && <><span>·</span><span>ETA: {new Date(o.eta).toLocaleTimeString()}</span></>}
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={() => handleResolveOutage(o.id)} style={{
+                        padding: '5px 12px', borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                        background: 'rgba(34,197,94,0.1)', border: '0.5px solid rgba(34,197,94,0.2)', color: C.green,
+                        display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                      }}>
+                        <CheckCircle size={11} /> Resolve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* ───── METRICS ROW ───── */}
             <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
@@ -173,49 +288,51 @@ export default function NetworkPage() {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>
-                  {uptimeTimeline[0]?.label}
-                </span>
-                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>
-                  {uptimeTimeline[uptimeTimeline.length - 1]?.label}
-                </span>
+                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>{uptimeTimeline[0]?.label}</span>
+                <span style={{ fontSize: 8, color: C.faint, fontFamily: 'DM Mono, monospace' }}>{uptimeTimeline[uptimeTimeline.length - 1]?.label}</span>
               </div>
             </div>
 
             {/* ───── BOTTOM: Events + Router ───── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {/* Events Log */}
+              {/* Events Log — merged outage + network events */}
               <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, padding: '14px 16px' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Recent Events</div>
-                {events.length > 0 ? (
+                {mergedEvents.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 180, overflowY: 'auto' }}>
-                    {events.filter((e: any, i: number, arr: any[]) => {
+                    {mergedEvents.filter((e: any, i: number, arr: any[]) => {
                       if (i === 0) return true
                       return e.status?.toUpperCase?.() !== arr[i - 1]?.status?.toUpperCase?.()
                     }).slice(0, 12).map((e: any, i: number) => {
                       const isUp = e.status === 'UP' || e.status === 'up'
                       const isDown = e.status === 'DOWN' || e.status === 'down'
+                      const isOutage = e.isOutage
+                      const outage = e.outage
                       return (
                         <div key={e.id || i} style={{
                           display: 'flex', alignItems: 'center', gap: 8,
                           padding: '5px 0', borderBottom: i < 11 ? `0.5px solid ${C.border}` : 'none', fontSize: 10,
                         }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: isUp ? C.green : isDown ? C.red : C.gold, flexShrink: 0 }} />
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: isOutage ? (outage?.status === 'resolved' ? C.green : C.red) : (isUp ? C.green : isDown ? C.red : C.gold), flexShrink: 0 }} />
                           <span style={{ color: C.dim, minWidth: 70, fontFamily: 'DM Mono, monospace' }}>
-                            {formatRelativeTime(e.checked_at || e.created_at)}
+                            {formatRelativeTime(e.checked_at)}
                           </span>
-                          <span style={{ color: isUp ? C.green : isDown ? C.red : C.gold }}>
-                            {isUp ? 'Online' : isDown ? 'Offline' : 'Degraded'}
-                          </span>
+                          {isOutage ? (
+                            <span style={{ color: outage?.status === 'resolved' ? C.green : C.red }}>
+                              {outage?.status === 'resolved' ? 'Outage resolved' : `Outage: ${outage?.description || 'declared'}`}
+                            </span>
+                          ) : (
+                            <span style={{ color: isUp ? C.green : isDown ? C.red : C.gold }}>
+                              {isUp ? 'Online' : isDown ? 'Offline' : 'Degraded'}
+                            </span>
+                          )}
                           {e.latency_ms && <span style={{ color: C.faint, fontFamily: 'DM Mono, monospace' }}>{e.latency_ms}ms</span>}
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '16px 12px', color: C.mute, fontSize: 11 }}>
-                    No events yet
-                  </div>
+                  <div style={{ textAlign: 'center', padding: '16px 12px', color: C.mute, fontSize: 11 }}>No events yet</div>
                 )}
               </div>
 
@@ -262,27 +379,49 @@ export default function NetworkPage() {
                       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 6,
                       background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)', color: C.dim, fontSize: 10, textDecoration: 'none',
                     }}>
-                      <Router size={10} />
-                      Set up
+                      <Router size={10} /> Set up
                     </a>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* ───── OUTAGE WARNING ───── */}
-            {status?.outage_minutes && (
-              <div style={{
-                marginTop: 12, padding: '10px 14px', borderRadius: 7,
-                background: 'rgba(239,68,68,0.06)', border: '0.5px solid rgba(239,68,68,0.15)',
-                fontSize: 11, color: C.red,
-              }}>
-                Active outage: {status.outage_minutes} minutes
-              </div>
-            )}
           </>
         )}
       </div>
+
+      {/* ───── DECLARE OUTAGE MODAL ───── */}
+      {showDeclareModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 24, maxWidth: 420, width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Declare Outage</div>
+              <button onClick={() => setShowDeclareModal(false)} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Zone (optional)</label>
+              <input value={declareForm.zone} onChange={e => setDeclareForm(p => ({ ...p, zone: e.target.value }))} placeholder="e.g. Westlands, CBD"
+                style={{ width: '100%', padding: '9px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Description *</label>
+              <textarea value={declareForm.description} onChange={e => setDeclareForm(p => ({ ...p, description: e.target.value }))} placeholder="What's happening..." rows={3}
+                style={{ width: '100%', padding: '9px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none', resize: 'none' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>ETA (optional)</label>
+              <input type="datetime-local" value={declareForm.eta} onChange={e => setDeclareForm(p => ({ ...p, eta: e.target.value }))}
+                style={{ width: '100%', padding: '9px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            <button onClick={handleDeclareOutage} disabled={declaring || !declareForm.description.trim()} style={{
+              width: '100%', padding: '10px', borderRadius: 7, border: 'none', cursor: declaring ? 'not-allowed' : 'pointer',
+              background: declaring || !declareForm.description.trim() ? C.mute : C.red,
+              color: '#fff', fontSize: 12, fontWeight: 700, opacity: declaring ? 0.6 : 1,
+            }}>
+              {declaring ? 'Declaring...' : 'Declare Outage'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

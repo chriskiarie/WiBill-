@@ -654,6 +654,39 @@
 
       banner.style.display = 'flex';
       statusText.textContent = portal.status_message || 'Status pending...';
+
+      // Fetch live outage status (fail-silently)
+      var slug = '{{ brand.slug|default("") }}';
+      if (slug) {
+        fetch('/api/portal/' + slug + '/status')
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(data) {
+            if (!data) return;
+            var outage = data.manual_outage || data.auto_outage;
+            if (outage) {
+              banner.classList.add('offline');
+              var label = outage.status === 'investigating' ? 'Investigating outage'
+                : outage.status === 'confirmed_down' ? 'Outage confirmed'
+                : outage.status === 'degraded' ? 'Service degraded'
+                : 'Outage';
+              var desc = outage.description ? ' — ' + outage.description : '';
+              var zone = outage.zone ? ' (' + outage.zone + ')' : '';
+              statusText.textContent = label + zone + desc;
+              // Disable pay buttons if outage is confirmed down
+              if (outage.status === 'confirmed_down' || outage.status === 'investigating') {
+                document.querySelectorAll('button[data-pay], .pay-btn, #pay-btn').forEach(function(btn) {
+                  btn.disabled = true;
+                  btn.style.opacity = '0.5';
+                  btn.style.pointerEvents = 'none';
+                });
+              }
+            } else {
+              banner.classList.remove('offline');
+              statusText.textContent = portal.status_message || 'Internet is online ✓';
+            }
+          })
+          .catch(function() { /* fail-silently */ });
+      }
     }
 
     // ========================================

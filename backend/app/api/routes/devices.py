@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.models.tenant import Tenant
 from app.models.client_device import ClientDevice
 from app.models.session import Session, SessionStatus
+from app.services.mikrotik_service import add_hotspot_bypass
 
 router = APIRouter()
 
@@ -151,10 +152,18 @@ async def device_auth(
 
     await db.flush()
 
-    # TODO: Once MikroTik service is real, push ip-binding bypass entry here
-    # from app.services.mikrotik_service import add_hotspot_bypass
-    # if body.router_id and body.ip:
-    #     await add_hotspot_bypass(body.router_id, mac_normalized, body.ip, device.plan_expires_at)
+    # Push ip-binding bypass entry on router for returning devices
+    if body.ip and body.router_id:
+        try:
+            await add_hotspot_bypass(
+                tenant_id=str(tenant.id),
+                mac_address=mac_normalized,
+                ip_address=body.ip,
+                expires_at=device.plan_expires_at,
+                db=db,
+            )
+        except Exception:
+            pass  # Non-critical — device is registered in DB regardless
 
     return DeviceAuthResponse(
         ok=True,

@@ -503,6 +503,20 @@ export const api = {
     getSystemStats: () => request<any>('/api/admin/system/stats'),
     getSystemHealth: () => request<any>('/api/admin/system/health'),
   },
+
+  // ========================================================================
+  // OUTAGES
+  // ========================================================================
+  getOutages: (status?: string) => {
+    const q = status ? `?status=${status}` : ''
+    return request<any[]>(`/api/isp/outages${q}`)
+  },
+  createOutage: (data: { status?: string; description?: string; eta?: string; zone?: string; router_id?: string }) =>
+    request<any>('/api/isp/outages', { method: 'POST', body: JSON.stringify(data) }),
+  resolveOutage: (id: string, data?: { description?: string }) =>
+    request<any>(`/api/isp/outages/${id}/resolve`, { method: 'PATCH', body: JSON.stringify(data || {}) }),
+  getPortalStatus: (slug: string) => request<any>(`/api/portal/${slug}/status`),
+  deviceLookup: (slug: string, mac: string) => request<any>(`/api/portal/${slug}/device-lookup?mac=${encodeURIComponent(mac)}`),
 }
 
 // ============================================================================

@@ -837,6 +837,43 @@
                 modal.remove();
             };
         })();
+
+        /* ========================================
+           LIVE OUTAGE STATUS CHECK
+           ======================================== */
+
+        (function() {
+            var slug = '{{ brand.slug|default("") }}';
+            if (!slug) return;
+
+            fetch('/api/portal/' + slug + '/status')
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) {
+                    if (!data) return;
+                    var outage = data.manual_outage || data.auto_outage;
+                    if (!outage) return;
+
+                    // Update network status indicator
+                    var indicators = document.querySelectorAll('[class*="net-"], [class*="status"]');
+                    indicators.forEach(function(el) {
+                        if (el.textContent.trim() === 'Online' || el.textContent.trim() === 'Offline') {
+                            var label = outage.status === 'investigating' ? 'Investigating'
+                                : outage.status === 'confirmed_down' ? 'Outage'
+                                : 'Degraded';
+                            el.textContent = label;
+                            el.style.color = 'var(--err, #ef4444)';
+                        }
+                    });
+
+                    // Disable pay buttons
+                    document.querySelectorAll('#pm-btn, [onclick="pay()"]').forEach(function(btn) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.pointerEvents = 'none';
+                    });
+                })
+                .catch(function() { /* fail-silently */ });
+        })();
     </script>
 </body>
 </html>

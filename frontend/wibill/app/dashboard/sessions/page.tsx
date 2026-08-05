@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Search, X, Clock, Wifi, ChevronRight, Gift } from 'lucide-react'
+import { Search, X, Clock, Wifi, ChevronRight, Gift, UserCheck, UserPlus } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -36,7 +36,7 @@ function Countdown({ expires_at }: { expires_at: string }) {
 }
 
 export default function SessionsPage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const { showToast } = useToast()
 
   const [tab, setTab] = useState<'active' | 'history'>('active')
@@ -51,6 +51,7 @@ export default function SessionsPage() {
   const [compMinutes, setCompMinutes] = useState(15)
   const [compReason, setCompReason] = useState('')
   const [compSubmitting, setCompSubmitting] = useState(false)
+  const [returningDevices, setReturningDevices] = useState<Record<string, any>>({})
 
   const fetchSessions = useCallback(async () => {
     if (!token) return
@@ -59,8 +60,31 @@ export default function SessionsPage() {
       const data = await api.getSessions()
       setSessions(Array.isArray(data) ? data : [])
       setError(null)
+      // Fetch device recognition for active MACs
+      const activeMacs = (Array.isArray(data) ? data : [])
+        .filter((s: any) => s.status === 'active' && (s.mac || s.mac_address))
+        .map((s: any) => s.mac || s.mac_address)
+        .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
+      if (activeMacs.length > 0) {
+        const deviceResults = await Promise.allSettled(
+          activeMacs.map(async (mac: string) => {
+            try {
+              const res = await fetch(`/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              if (res.ok) return { mac, ...(await res.json()) }
+              return null
+            } catch { return null }
+          })
+        )
+        const deviceMap: Record<string, any> = {}
+        deviceResults.forEach(r => {
+          if (r.status === 'fulfilled' && r.value) deviceMap[r.value.mac] = r.value
+        })
+        setReturningDevices(prev => ({ ...prev, ...deviceMap }))
+      }
     } catch (err) { setError((err as Error).message); setSessions([]) } finally { setLoading(false) }
-  }, [token])
+  }, [token, user])
 
   useEffect(() => { fetchSessions() }, [fetchSessions])
   useEffect(() => { if (tab === 'active') { const t = setInterval(fetchSessions, 30000); return () => clearInterval(t) } }, [tab, fetchSessions])
@@ -83,7 +107,17 @@ export default function SessionsPage() {
       const now = new Date()
       const firstSeen = macSessions.length > 0 ? macSessions[macSessions.length - 1].created_at : null
       const activeSession = macSessions.find((s: any) => s.status === 'active')
-      setMacDetail({ mac, sessions: macSessions, totalSpent, firstSeen, activeSession, totalSessions: macSessions.length })
+      // Look up device info
+      let deviceInfo = returningDevices[mac] || null
+      if (!deviceInfo) {
+        try {
+          const res = await fetch(`/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (res.ok) deviceInfo = await res.json()
+        } catch { /* ignore */ }
+      }
+      setMacDetail({ mac, sessions: macSessions, totalSpent, firstSeen, activeSession, totalSessions: macSessions.length, deviceInfo })
     } catch { /* ignore */ } finally { setDetailLoading(false) }
   }
 
@@ -148,6 +182,18 @@ export default function SessionsPage() {
                   <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.gold, cursor: 'pointer', fontWeight: 500 }} onClick={() => viewMacDetail(mac)}>
                       {mac}
+                      {returningDevices[mac] && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 3,
+                          marginLeft: 6, padding: '2px 6px', borderRadius: 4,
+                          background: returningDevices[mac].is_returning ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)',
+                          fontSize: 9, fontWeight: 600, verticalAlign: 'middle',
+                          color: returningDevices[mac].is_returning ? C.green : C.red,
+                        }}>
+                          {returningDevices[mac].is_returning ? <UserCheck size={9} /> : <UserPlus size={9} />}
+                          {returningDevices[mac].is_returning ? 'Returning' : 'New device'}
+                        </span>
+                      )}
                     </div>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme-faint)' }}>{s.ip_address || '—'}</div>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 10, color: C.dim }}>{(s.phone || s.phone_number || '—')?.replace(/(\d{3})\d{4}(\d{3})/, '$1••••$2')}</div>
@@ -187,6 +233,35 @@ export default function SessionsPage() {
               <div style={{ color: '#444', fontSize: 12 }}>Loading...</div>
             ) : macDetail ? (
               <div>
+                {/* Device recognition badge */}
+                {macDetail.deviceInfo && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+                    background: macDetail.deviceInfo.is_returning ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                    border: `0.5px solid ${macDetail.deviceInfo.is_returning ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      {macDetail.deviceInfo.is_returning
+                        ? <UserCheck size={12} color={C.green} />
+                        : <UserPlus size={12} color={C.red} />
+                      }
+                      <span style={{ fontSize: 10, fontWeight: 700, color: macDetail.deviceInfo.is_returning ? C.green : C.red }}>
+                        {macDetail.deviceInfo.is_returning ? 'Returning device' : 'New device'}
+                      </span>
+                    </div>
+                    {macDetail.deviceInfo.first_seen && (
+                      <div style={{ fontSize: 9, color: C.dim }}>
+                        First seen: {new Date(macDetail.deviceInfo.first_seen).toLocaleDateString()}
+                      </div>
+                    )}
+                    {macDetail.deviceInfo.total_sessions > 1 && (
+                      <div style={{ fontSize: 9, color: C.dim }}>
+                        {macDetail.deviceInfo.total_sessions} total sessions
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
                   <div style={{ background: 'var(--theme-surface)', borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 9, color: 'var(--theme-faint)', marginBottom: 4 }}>SESSIONS</div>

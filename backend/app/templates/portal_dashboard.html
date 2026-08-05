@@ -815,6 +815,43 @@
                 modal.remove();
             };
         })();
+
+        /* ========================================
+           LIVE OUTAGE STATUS CHECK
+           Fetches from /api/portal/{slug}/status
+           Fails silently — never breaks the portal
+           ======================================== */
+
+        (function() {
+            var slug = '{{ brand.slug|default("") }}';
+            if (!slug) return;
+
+            fetch('/api/portal/' + slug + '/status')
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) {
+                    if (!data) return;
+                    var outage = data.manual_outage || data.auto_outage;
+                    var td = document.querySelector('.td');
+                    var tl = document.querySelector('.tl');
+                    if (!td || !tl) return;
+
+                    if (outage) {
+                        td.classList.add('off');
+                        var label = outage.status === 'investigating' ? 'Investigating'
+                            : outage.status === 'confirmed_down' ? 'Outage'
+                            : outage.status === 'degraded' ? 'Degraded'
+                            : 'Issue';
+                        tl.innerHTML = '<div class="td off"></div>' + label;
+                        // Disable pay buttons
+                        document.querySelectorAll('#pm-btn, [onclick="pay()"]').forEach(function(btn) {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.5';
+                            btn.style.pointerEvents = 'none';
+                        });
+                    }
+                })
+                .catch(function() { /* fail-silently */ });
+        })();
     </script>
 </body>
 </html>
