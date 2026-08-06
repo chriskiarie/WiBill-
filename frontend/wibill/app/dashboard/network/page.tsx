@@ -167,7 +167,7 @@ export default function NetworkPage() {
         ) : (
           <>
             {/* ───── HEADER ROW ───── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div className="network-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
@@ -244,7 +244,7 @@ export default function NetworkPage() {
             )}
 
             {/* ───── METRICS ROW ───── */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div className="network-metrics-row" style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
               {[
                 { label: 'Latency', value: latencyMs !== null && latencyMs !== undefined ? `${latencyMs}ms` : '—', icon: Activity },
                 { label: 'Users', value: String(activeUsers), icon: Users },
@@ -294,7 +294,7 @@ export default function NetworkPage() {
             </div>
 
             {/* ───── BOTTOM: Events + Router ───── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="network-bottom-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {/* Events Log — merged outage + network events */}
               <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 9, padding: '14px 16px' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Recent Events</div>

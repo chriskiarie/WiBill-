@@ -450,6 +450,9 @@ body {
   .topbar-right {
     display: none !important;
   }
+  .topbar-mobile-logo {
+    display: flex !important;
+  }
   .page-title {
     text-align: center !important;
   }
@@ -708,6 +711,51 @@ body {
     grid-template-columns: 1fr !important;
   }
   .grid-2-mobile-1 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Mobile fixes for dashboard pages ── */
+@media (max-width: 768px) {
+  /* Sessions: MAC detail drawer → full-width overlay */
+  .session-mac-detail {
+    width: 100% !important;
+    min-width: 0 !important;
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 9999;
+    overflow-y: auto;
+    border-radius: 0 !important;
+    border: none !important;
+    border-top: 1px solid var(--topbar-border) !important;
+    margin-top: 64px;
+  }
+  /* Network page: header wraps, metrics wrap, bottom grid 1-col */
+  .network-header-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .network-metrics-row {
+    flex-wrap: wrap !important;
+  }
+  .network-metrics-row > * {
+    flex: 0 0 calc(50% - 6px) !important;
+    min-width: 0 !important;
+  }
+  .network-metrics-row > *:last-child {
+    flex: 0 0 100% !important;
+  }
+  .network-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Hotspots: modal full width */
+  .hotspot-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+  /* Clients: detail modal inner grid 1-col */
+  .client-detail-grid {
     grid-template-columns: 1fr !important;
   }
 }

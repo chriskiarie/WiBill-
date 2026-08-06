@@ -13,6 +13,7 @@ const allTabs = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Home', flag: '' },
   { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics', flag: '' },
   { href: '/dashboard/hotspots', icon: Wifi, label: 'Hotspots', flag: '' },
+  { href: '/dashboard/network', icon: Activity, label: 'Network', flag: '' },
   { href: '/dashboard/sessions', icon: Activity, label: 'Sessions', flag: '' },
   { href: '/dashboard/clients', icon: Users, label: 'Clients', flag: 'monthly_subscribers' },
   { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions', flag: '' },

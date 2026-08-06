@@ -733,7 +733,7 @@ export default function ClientsPage() {
 
         <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: `0.5px solid ${C.border}` }}>
                   {['Account', 'Client Name', 'IP / VLAN', 'Plan', 'Phone', 'Status', 'Online', 'Data Used', 'Actions'].map(h => (
@@ -1042,7 +1042,7 @@ export default function ClientsPage() {
               {detailLoading ? (
                 <div style={{ textAlign: 'center', padding: 40, color: C.dim }}>Loading...</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="client-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
                   {/* ── LEFT COLUMN ── */}
 

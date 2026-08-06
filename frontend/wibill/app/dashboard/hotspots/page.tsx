@@ -261,7 +261,7 @@ export default function HotspotsPage() {
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }} onClick={() => setShowAddForm(false)}>
-            <div style={{
+            <div className="hotspot-modal" style={{
               width: 400, background: 'var(--theme-card-base)',
               border: '1px solid var(--theme-border)', borderRadius: 14, padding: 24,
             }} onClick={e => e.stopPropagation()}>
