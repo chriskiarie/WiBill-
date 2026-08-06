@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import Sidebar from '@/components/Sidebar'
 import MobileTabBar from '@/components/MobileTabBar'
-import MobileMoreSheet from '@/components/MobileMoreSheet'
 import { DashboardProvider } from '@/context/DashboardContext'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
@@ -53,7 +52,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Mobile state
   const isMobile = useIsMobile()
-  const [showMoreSheet, setShowMoreSheet] = useState(false)
 
   // Paused overlay state
   const [stkState, setStkState] = useState<StkState>('idle')
@@ -483,10 +481,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <DashboardToast />
       </Suspense>
       {isMobile && (
-        <>
-          <MobileTabBar onMoreClick={() => setShowMoreSheet(true)} />
-          <MobileMoreSheet open={showMoreSheet} onClose={() => setShowMoreSheet(false)} />
-        </>
+        <MobileTabBar />
       )}
     </DashboardProvider>
   )

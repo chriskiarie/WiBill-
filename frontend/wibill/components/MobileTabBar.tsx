@@ -2,39 +2,40 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Wifi, Receipt, Package, Settings, MoreHorizontal,
+  LayoutDashboard, LineChart, Activity, Wifi, Receipt,
+  Package, Router, CreditCard, Settings, Ticket, Star,
+  Megaphone, Users, Bell, Palette, MessageSquare,
 } from 'lucide-react'
 
 const tabs = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-  { href: '/dashboard/sessions', icon: Wifi, label: 'Sessions' },
-  { href: '/dashboard/transactions', icon: Receipt, label: 'Pay' },
+  { href: '/dashboard/analytics', icon: LineChart, label: 'Analytics' },
+  { href: '/dashboard/hotspots', icon: Wifi, label: 'Hotspots' },
+  { href: '/dashboard/sessions', icon: Activity, label: 'Sessions' },
+  { href: '/dashboard/clients', icon: Users, label: 'Clients' },
+  { href: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
+  { href: '/dashboard/vouchers', icon: Ticket, label: 'Vouchers' },
+  { href: '/dashboard/campaigns', icon: Megaphone, label: 'Campaigns' },
+  { href: '/dashboard/loyalty', icon: Star, label: 'Loyalty' },
   { href: '/dashboard/packages', icon: Package, label: 'Packages' },
-  { href: '/dashboard/settings', icon: Settings, label: 'More' },
+  { href: '/dashboard/mikrotik', icon: Router, label: 'MikroTik' },
+  { href: '/dashboard/mpesa', icon: CreditCard, label: 'M-Pesa' },
+  { href: '/dashboard/comms', icon: MessageSquare, label: 'Bulk SMS' },
+  { href: '/dashboard/notifications', icon: Bell, label: 'Alerts' },
+  { href: '/dashboard/wizard', icon: Palette, label: 'Portal' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ]
 
-export default function MobileTabBar({ onMoreClick }: { onMoreClick: () => void }) {
+export default function MobileTabBar() {
   const pathname = usePathname()
 
   return (
     <nav className="mobile-tabs">
       <div className="mobile-tabs-inner">
         {tabs.map((tab) => {
-          const isMore = tab.label === 'More'
-          const active = isMore
-            ? false
-            : tab.href === '/dashboard'
-              ? pathname === '/dashboard'
-              : pathname.startsWith(tab.href)
-
-          if (isMore) {
-            return (
-              <button key={tab.href} onClick={onMoreClick} className="mobile-tab" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <span className="tab-icon"><MoreHorizontal size={20} /></span>
-                <span>More</span>
-              </button>
-            )
-          }
+          const active = tab.href === '/dashboard'
+            ? pathname === '/dashboard'
+            : pathname.startsWith(tab.href)
 
           return (
             <Link key={tab.href} href={tab.href} className={`mobile-tab${active ? ' active' : ''}`}>

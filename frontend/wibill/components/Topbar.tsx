@@ -153,7 +153,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       }}
     >
       {/* ── Left spacer (matches right zone width for true centering) ── */}
-      <div style={{ width: 260, flexShrink: 0 }} />
+      <div className="topbar-left-spacer" style={{ width: 260, flexShrink: 0 }} />
 
       {/* ── Title zone ── */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0 }}>
