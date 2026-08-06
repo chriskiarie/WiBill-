@@ -464,6 +464,17 @@ body {
     gap: 8px !important;
     width: 100% !important;
   }
+  .wizard-left-panel {
+    width: 100% !important;
+    border-right: none !important;
+  }
+  .wizard-right-panel {
+    display: none !important;
+  }
+  .wizard-locked-overlay {
+    left: 0 !important;
+    width: 100% !important;
+  }
   .grid-4 {
     grid-template-columns: 1fr 1fr !important;
   }

@@ -489,7 +489,7 @@ export default function PortalWizard() {
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Left side */}
-      <div style={{ width: 420, background: '#0a0a0a', borderRight: '1px solid #141414', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+      <div className="wizard-left-panel" style={{ width: 420, background: '#0a0a0a', borderRight: '1px solid #141414', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div style={{ display: 'flex', borderBottom: '1px solid #141414', padding: '0 4px' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -879,7 +879,7 @@ export default function PortalWizard() {
 
       {/* ═══ LOCKED VIEW OVERLAY ═══ */}
       {isLocked && hasSavedConfig && (
-        <div style={{
+        <div className="wizard-locked-overlay" style={{
           position: 'fixed', top: 64, left: 228, width: 420, height: 'calc(100vh - 64px)', zIndex: 100,
           background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -948,7 +948,7 @@ export default function PortalWizard() {
       )}
 
       {/* Right: Phone Preview */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
+      <div className="wizard-right-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0' }}>
             {sel?.label || 'Portal'} — {snaps?.n || 'Custom'}
