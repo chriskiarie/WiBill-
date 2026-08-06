@@ -1,10 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
 import {
   LayoutDashboard, LineChart, Activity, Wifi, Receipt,
   Package, Router, CreditCard, Settings, Ticket, Star,
-  Megaphone, Users, Bell, Palette, MessageSquare,
+  Megaphone, Users, Bell, Palette, MessageSquare, LogOut,
 } from 'lucide-react'
 
 const tabs = [
@@ -28,6 +29,7 @@ const tabs = [
 
 export default function MobileTabBar() {
   const pathname = usePathname()
+  const { logout } = useAuth()
 
   return (
     <nav className="mobile-tabs">
@@ -44,6 +46,10 @@ export default function MobileTabBar() {
             </Link>
           )
         })}
+        <button onClick={logout} className="mobile-tab" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
+          <span className="tab-icon"><LogOut size={20} /></span>
+          <span>Logout</span>
+        </button>
       </div>
     </nav>
   )

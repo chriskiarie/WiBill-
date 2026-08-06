@@ -494,7 +494,7 @@ export default function IspDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={load} disabled={refreshing} title="Refresh dashboard" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent',
+              background: 'none', border: 'none', borderRadius: 0,
               cursor: refreshing ? 'not-allowed' : 'pointer',
               color: C.dim, padding: 4,
               animation: refreshing ? 'spin 1s linear infinite' : 'none',
