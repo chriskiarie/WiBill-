@@ -475,6 +475,25 @@ body {
     left: 0 !important;
     width: 100% !important;
   }
+  .clients-stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .clients-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .clients-toolbar > div:first-child {
+    display: flex !important;
+    gap: 6px !important;
+  }
+  .clients-toolbar > div:last-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .clients-toolbar .search-input {
+    width: 100% !important;
+  }
   .grid-4 {
     grid-template-columns: 1fr 1fr !important;
   }

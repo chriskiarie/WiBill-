@@ -682,7 +682,7 @@ export default function ClientsPage() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', maxWidth: 1240, margin: '0 auto', width: '100%' }}>
         {statsCards.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          <div className="clients-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {statsCards.map((c, i) => (
               <div key={i} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>{c.label}</div>
@@ -693,7 +693,7 @@ export default function ClientsPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+        <div className="clients-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {(['all', 'wifi', 'tv'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)} style={{
@@ -708,7 +708,7 @@ export default function ClientsPage() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 200 }}>
+            <div className="search-input" style={{ position: 'relative', width: 200 }}>
               <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: C.dim }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..." style={{
                 width: '100%', padding: '8px 10px 8px 28px', borderRadius: 8,
@@ -716,7 +716,7 @@ export default function ClientsPage() {
                 fontSize: 13, outline: 'none', fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
               }} />
             </div>
-            <button onClick={loadAll} title="Refresh" style={{ width: 28, height: 28, borderRadius: 6, border: `0.5px solid ${C.border}`, background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <button onClick={loadAll} title="Refresh" style={{ width: 28, height: 28, borderRadius: 0, border: 'none', background: 'transparent', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}>
               <RefreshCw size={12} />
             </button>
             <button onClick={handleReconcile} title="Reconcile with router" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'DM Mono, monospace', border: `0.5px solid ${C.border}`, background: C.base, color: C.dim, cursor: 'pointer' }}>
