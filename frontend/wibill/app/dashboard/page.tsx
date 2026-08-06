@@ -494,21 +494,19 @@ export default function IspDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={load} disabled={refreshing} title="Refresh dashboard" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 26, height: 26, borderRadius: '50%',
-              border: `0.5px solid ${C.border}`,
               background: 'transparent',
               cursor: refreshing ? 'not-allowed' : 'pointer',
-              color: C.dim, padding: 0,
+              color: C.dim, padding: 4,
               animation: refreshing ? 'spin 1s linear infinite' : 'none',
             }}>
-              <RefreshCw size={12} />
+              <RefreshCw size={16} />
             </button>
             {!isNetworkUp && (
               <button onClick={() => configs.mikrotik && setShowRouterDrawer(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 12px', borderRadius: 20,
-                background: configs.mikrotik ? 'rgba(239,68,68,0.08)' : 'var(--theme-surface)',
-                border: `0.5px solid ${configs.mikrotik ? 'rgba(239,68,68,0.2)' : C.border}`,
+                background: configs.mikrotik ? 'rgba(239,68,68,0.06)' : 'transparent',
+                border: 'none',
                 fontSize: 10, fontFamily: 'DM Mono, monospace',
                 fontWeight: 600, color: configs.mikrotik ? C.red : C.dim,
                 cursor: configs.mikrotik ? 'pointer' : 'default',
@@ -524,8 +522,8 @@ export default function IspDashboard() {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 padding: '5px 12px', borderRadius: 20,
-                background: 'rgba(34,197,94,0.06)',
-                border: '0.5px solid rgba(34,197,94,0.2)',
+                background: 'transparent',
+                border: 'none',
                 fontSize: 10, fontFamily: 'DM Mono, monospace',
                 fontWeight: 600, color: C.green,
               }}>
@@ -538,7 +536,8 @@ export default function IspDashboard() {
               <button onClick={() => setShowSetup(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '5px 14px 5px 12px', borderRadius: 20,
-                background: 'color-mix(in srgb, var(--theme-gold) 10%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)',
+                background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
+                border: 'none',
                 fontSize: 10, fontFamily: 'DM Mono, monospace', fontWeight: 700,
                 color: C.gold, cursor: 'pointer',
               }}>

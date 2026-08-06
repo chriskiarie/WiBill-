@@ -447,6 +447,23 @@ body {
   .topbar-left-spacer {
     display: none !important;
   }
+  .topbar-right {
+    display: none !important;
+  }
+  .page-title {
+    text-align: center !important;
+  }
+  .dashboard-status-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .dashboard-status-row > div:last-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
   .grid-4 {
     grid-template-columns: 1fr 1fr !important;
   }
