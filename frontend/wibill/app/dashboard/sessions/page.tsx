@@ -60,16 +60,18 @@ export default function SessionsPage() {
       const data = await api.getSessions()
       setSessions(Array.isArray(data) ? data : [])
       setError(null)
-      // Fetch device recognition for active MACs
+      // Fetch device recognition for active MACs (max 5 to avoid flooding)
       const activeMacs = (Array.isArray(data) ? data : [])
         .filter((s: any) => s.status === 'active' && (s.mac || s.mac_address))
         .map((s: any) => s.mac || s.mac_address)
         .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
+        .slice(0, 5)
       if (activeMacs.length > 0) {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
         const deviceResults = await Promise.allSettled(
           activeMacs.map(async (mac: string) => {
             try {
-              const res = await fetch(`/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
+              const res = await fetch(`${baseUrl}/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
                 headers: { Authorization: `Bearer ${token}` },
               })
               if (res.ok) return { mac, ...(await res.json()) }
@@ -111,7 +113,8 @@ export default function SessionsPage() {
       let deviceInfo = returningDevices[mac] || null
       if (!deviceInfo) {
         try {
-          const res = await fetch(`/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+          const res = await fetch(`${baseUrl}/api/portal/${user?.tenant_slug || 'default'}/device-lookup?mac=${encodeURIComponent(mac)}`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           if (res.ok) deviceInfo = await res.json()
