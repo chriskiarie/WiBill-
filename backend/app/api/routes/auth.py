@@ -129,6 +129,30 @@ async def require_isp_admin(
     return current_user
 
 
+def require_feature(feature_column: str):
+    """Dependency factory that checks if the tenant has a specific feature enabled.
+    
+    Apply at the router level so every route in the router is gated:
+        router = APIRouter(dependencies=[Depends(require_feature("has_campaigns"))])
+    """
+    async def _check(
+        current_user: AdminUser = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> AdminUser:
+        if current_user.role == AdminRole.PLATFORM_ADMIN:
+            return current_user
+        if not current_user.tenant_id:
+            raise HTTPException(status_code=403, detail="No tenant on this account")
+        t = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
+        tenant = t.scalar_one_or_none()
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+        if not getattr(tenant, feature_column, False):
+            raise HTTPException(status_code=403, detail="feature_not_enabled")
+        return current_user
+    return _check
+
+
 # ============================================================================
 # PUBLIC ENDPOINTS
 # ============================================================================

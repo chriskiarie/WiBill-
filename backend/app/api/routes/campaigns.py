@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.campaign import Campaign
 from app.models.reward_token import RewardToken
-from app.api.routes.auth import get_current_user
+from app.api.routes.auth import get_current_user, require_feature
 
-router = APIRouter(tags=["campaigns"])
+router = APIRouter(tags=["campaigns"], dependencies=[Depends(require_feature("has_campaigns"))])
 
 
 class CreateCampaignRequest(BaseModel):

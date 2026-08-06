@@ -5,12 +5,12 @@ from pydantic import BaseModel
 import uuid
 
 from app.core.database import get_db
-from app.api.routes.auth import require_isp_admin
+from app.api.routes.auth import require_isp_admin, require_feature
 from app.models.admin_user import AdminUser
 from app.models.subscriber_plan import SubscriberPlan, ClientType
 from app.models.tenant import Tenant
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_feature("has_monthly_subscribers"))])
 
 
 class PlanCreate(BaseModel):

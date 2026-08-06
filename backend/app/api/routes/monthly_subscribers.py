@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 from app.core.database import get_db
-from app.api.routes.auth import require_isp_admin
+from app.api.routes.auth import require_isp_admin, require_feature
 from app.models.admin_user import AdminUser
 from app.models.subscriber import Subscriber
 from app.models.subscriber_plan import SubscriberPlan
@@ -26,7 +26,7 @@ from app.services.subscriber_service import (
     restart_subscriber_action,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_feature("has_monthly_subscribers"))])
 
 
 class SubscriberCreate(BaseModel):

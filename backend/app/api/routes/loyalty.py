@@ -10,13 +10,13 @@ from app.models.loyalty_account import LoyaltyAccount, LoyaltyTransaction
 from app.models.tenant import Tenant
 from app.models.session import Session
 from app.models.reward_token import RewardToken
-from app.api.routes.auth import get_current_user
+from app.api.routes.auth import get_current_user, require_feature
 from app.services.session_service import create_session, activate_session
 from app.api.routes.reward_tokens import generate_token_code
 
 logger = logging.getLogger("wibill.loyalty")
 
-router = APIRouter(tags=["loyalty"])
+router = APIRouter(tags=["loyalty"], dependencies=[Depends(require_feature("has_loyalty"))])
 
 
 POINTS_PER_100_KES = 100  # 1 point per Ksh
