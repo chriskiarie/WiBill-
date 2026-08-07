@@ -182,7 +182,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
           {title}
         </h1>
         {subsection && (
-          <span style={{
+          <span className="topbar-subsection" style={{
             fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 400,
             color: 'var(--topbar-dim)', marginLeft: 10, opacity: 0.6,
           }}>

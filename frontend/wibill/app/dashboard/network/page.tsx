@@ -29,6 +29,11 @@ export default function NetworkPage() {
   const [showDeclareModal, setShowDeclareModal] = useState(false)
   const [declareForm, setDeclareForm] = useState({ zone: '', description: '', eta: '' })
   const [declaring, setDeclaring] = useState(false)
+  const [etaDate, setEtaDate] = useState(() => {
+    const d = new Date(); d.setHours(d.getHours() + 1, 0, 0, 0); return d
+  })
+  const [showCal, setShowCal] = useState(false)
+  const [calMonth, setCalMonth] = useState(() => new Date())
 
   const fetchData = useCallback(async () => {
     if (!token || !user?.tenant_id) return
@@ -74,7 +79,7 @@ export default function NetworkPage() {
         status: 'investigating',
         description: declareForm.description.trim(),
         zone: declareForm.zone.trim() || undefined,
-        eta: declareForm.eta || undefined,
+        eta: etaDate.toISOString(),
       })
       setShowDeclareModal(false)
       setDeclareForm({ zone: '', description: '', eta: '' })
@@ -156,6 +161,25 @@ export default function NetworkPage() {
     }
   })
   mergedEvents.sort((a, b) => new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime())
+
+  const calDays = (() => {
+    const y = calMonth.getFullYear(), m = calMonth.getMonth()
+    const first = new Date(y, m, 1).getDay()
+    const last = new Date(y, m + 1, 0).getDate()
+    const cells: (number | null)[] = []
+    for (let i = 0; i < first; i++) cells.push(null)
+    for (let d = 1; d <= last; d++) cells.push(d)
+    return cells
+  })()
+  const calToday = new Date()
+  const isCalToday = (d: number) => d === calToday.getDate() && calMonth.getMonth() === calToday.getMonth() && calMonth.getFullYear() === calToday.getFullYear()
+  const isCalSelected = (d: number) => d === etaDate.getDate() && calMonth.getMonth() === etaDate.getMonth() && calMonth.getFullYear() === etaDate.getFullYear()
+  const selectCalDay = (d: number) => {
+    const nd = new Date(calMonth.getFullYear(), calMonth.getMonth(), d, etaDate.getHours(), etaDate.getMinutes())
+    setEtaDate(nd); setShowCal(false)
+  }
+  const setEtaHour = (h: number) => { const nd = new Date(etaDate); nd.setHours(h); setEtaDate(nd) }
+  const setEtaMin = (m: number) => { const nd = new Date(etaDate); nd.setMinutes(m); setEtaDate(nd) }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -409,8 +433,57 @@ export default function NetworkPage() {
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>ETA (optional)</label>
-              <input type="datetime-local" value={declareForm.eta} onChange={e => setDeclareForm(p => ({ ...p, eta: e.target.value }))}
-                style={{ width: '100%', padding: '9px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
+              {/* Date display + calendar toggle */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: showCal ? 10 : 0 }}>
+                <button onClick={() => setShowCal(!showCal)} style={{
+                  flex: 1, padding: '9px 12px', background: C.void, border: `0.5px solid ${C.border}`,
+                  borderRadius: 7, color: C.text, fontSize: 12, cursor: 'pointer', textAlign: 'left',
+                  fontFamily: "'DM Mono', monospace",
+                }}>
+                  {etaDate.toLocaleDateString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: '0 10px' }}>
+                  <button onClick={() => setEtaHour((etaDate.getHours() + 1) % 24)} style={{ background: 'none', border: 'none', color: C.gold, cursor: 'pointer', fontSize: 14, padding: 0 }}>▲</button>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.text, minWidth: 40, textAlign: 'center' }}>
+                    {String(etaDate.getHours()).padStart(2, '0')}:{String(etaDate.getMinutes()).padStart(2, '0')}
+                  </span>
+                  <button onClick={() => setEtaHour((etaDate.getHours() + 23) % 24)} style={{ background: 'none', border: 'none', color: C.gold, cursor: 'pointer', fontSize: 14, padding: 0 }}>▼</button>
+                </div>
+              </div>
+              {/* Calendar grid */}
+              {showCal && (
+                <div style={{ background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 12, marginTop: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1))} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', fontSize: 16, padding: '2px 6px' }}>‹</button>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{calMonth.toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })}</span>
+                    <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1))} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', fontSize: 16, padding: '2px 6px' }}>›</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, textAlign: 'center' }}>
+                    {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                      <div key={d} style={{ fontSize: 9, fontWeight: 700, color: C.mute, padding: '4px 0' }}>{d}</div>
+                    ))}
+                    {calDays.map((d, i) => (
+                      <div key={i} onClick={d ? () => selectCalDay(d) : undefined} style={{
+                        fontSize: 11, padding: '6px 0', borderRadius: 6, cursor: d ? 'pointer' : 'default',
+                        background: d && isCalSelected(d) ? C.gold : 'transparent',
+                        color: d && isCalSelected(d) ? '#000' : d && isCalToday(d) ? C.gold : d ? C.text : 'transparent',
+                        fontWeight: d && (isCalToday(d) || isCalSelected(d)) ? 700 : 400,
+                      }}>{d || ''}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Minute quick-select */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                {[0, 15, 30, 45].map(m => (
+                  <button key={m} onClick={() => setEtaMin(m)} style={{
+                    padding: '4px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                    background: etaDate.getMinutes() === m ? C.gold : 'transparent',
+                    color: etaDate.getMinutes() === m ? '#000' : C.dim,
+                    border: `0.5px solid ${etaDate.getMinutes() === m ? C.gold : C.border}`,
+                  }}>:{String(m).padStart(2, '0')}</button>
+                ))}
+              </div>
             </div>
             <button onClick={handleDeclareOutage} disabled={declaring || !declareForm.description.trim()} style={{
               width: '100%', padding: '10px', borderRadius: 7, border: 'none', cursor: declaring ? 'not-allowed' : 'pointer',

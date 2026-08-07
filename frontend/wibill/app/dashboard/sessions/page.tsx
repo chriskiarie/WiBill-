@@ -149,7 +149,7 @@ export default function SessionsPage() {
             <button onClick={() => setTab('history')} style={{ padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: tab === 'history' ? C.gold : 'var(--theme-surface)', border: tab === 'history' ? `0.5px solid ${C.gold}` : `0.5px solid ${C.border2}`, color: tab === 'history' ? '#000' : C.dim }}>
               History
             </button>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 240 }}>
+            <div style={{ position: 'relative', width: '100%' }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--theme-faint)' }} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search MAC, IP, or phone..."
                 style={{ width: '100%', padding: '7px 10px 7px 30px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 6, color: C.text, fontSize: 11, boxSizing: 'border-box', outline: 'none' }} />
