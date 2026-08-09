@@ -233,6 +233,10 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
       })
       setSetupScript(script)
       setRouterIp(`192.168.${parseInt(networkOctet) || 4}.1`)
+      try {
+        const data = await api.getMikrotikInstallScriptData()
+        if (data?.api_password) setApiPassword(data.api_password)
+      } catch { }
     } catch (e: any) {
       showToast(friendlyError(e?.message || 'Failed to generate setup script'), { type: 'error' })
     } finally { setSetupLoading(false) }
