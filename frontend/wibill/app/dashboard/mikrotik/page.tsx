@@ -161,7 +161,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [step, setStep] = useState(1)
 
   const [ssid, setSsid] = useState('WiFi')
-  const [wifiPassword, setWifiPassword] = useState('')
   const [networkOctet, setNetworkOctet] = useState('4')
   const [wifiInterface, setWifiInterface] = useState('wlan1')
   const [setupScript, setSetupScript] = useState<string | null>(null)
@@ -351,12 +350,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Network Name (SSID)</label>
                 <input value={ssid} onChange={e => setSsid(e.target.value)} placeholder="My ISP WiFi"
-                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Password <span style={{ color: C.mute }}>(blank = open)</span></label>
-                <input value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} placeholder="Leave blank for open WiFi" type="password"
                   style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
