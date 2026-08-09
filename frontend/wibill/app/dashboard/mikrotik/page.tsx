@@ -16,10 +16,9 @@ const C = {
 
 const STEPS = [
   { id: 1, label: 'Setup', icon: Settings, desc: 'Configure your router' },
-  { id: 2, label: 'Connect', icon: Router, desc: 'Link your MikroTik router' },
-  { id: 3, label: 'Bridge', icon: Server, desc: 'Install bridge on your PC' },
-  { id: 4, label: 'Portal', icon: Globe, desc: 'Push login page to router' },
-  { id: 5, label: 'Launch', icon: Zap, desc: 'Run checks & go live' },
+  { id: 2, label: 'Bridge', icon: Server, desc: 'Install bridge on your PC' },
+  { id: 3, label: 'Portal', icon: Globe, desc: 'Push login page to router' },
+  { id: 4, label: 'Launch', icon: Zap, desc: 'Run checks & go live' },
 ]
 
 const Card = ({ children, style }: any) => (
@@ -169,13 +168,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [setupLoading, setSetupLoading] = useState(false)
 
   const [routerIp, setRouterIp] = useState('')
-  const [apiPort, setApiPort] = useState('8728')
-  const [apiUsername, setApiUsername] = useState('wibill-api')
-  const [apiPassword, setApiPassword] = useState('')
-  const [connecting, setConnecting] = useState(false)
-  const [connectionResult, setConnectionResult] = useState<any>(null)
 
-  // Step 2: Bridge
   const [bridgeScript, setBridgeScript] = useState<string | null>(null)
   const [bridgeLoading, setBridgeLoading] = useState(false)
   const [bridgeConfirmed, setBridgeConfirmed] = useState(false)
@@ -183,7 +176,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [bridgeHealth, setBridgeHealth] = useState<any>(null)
 
   useEffect(() => {
-    if (step !== 3) return
+    if (step !== 2) return
     let cancelled = false
     const poll = async () => {
       try {
@@ -196,32 +189,13 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     return () => { cancelled = true; clearInterval(id) }
   }, [step])
 
-  // Step 3: Portal
   const [portalUploading, setPortalUploading] = useState(false)
   const [portalUploaded, setPortalUploaded] = useState(false)
   const [fileOnRouter, setFileOnRouter] = useState<boolean | null>(null)
 
-  // Step 4: Launch
   const [preflight, setPreflight] = useState<any>(null)
   const [preflightLoading, setPreflightLoading] = useState(false)
   const [goLiveDone, setGoLiveDone] = useState(false)
-
-  const [configLoaded, setConfigLoaded] = useState(false)
-  const [configExists, setConfigExists] = useState(false)
-
-  // Load existing config
-  useEffect(() => {
-    if (!token) return
-    api.getMikrotikConfig().then(cfg => {
-      if (cfg?.configured) {
-        setRouterIp(cfg.router_ip || '')
-        setApiPort(String(cfg.api_port || 8728))
-        setApiUsername(cfg.api_username || 'wibill-api')
-        setConfigExists(true)
-      }
-      setConfigLoaded(true)
-    }).catch(() => { setConfigLoaded(true) })
-  }, [token])
 
   const handleGenerateSetup = async () => {
     setSetupLoading(true)
@@ -233,10 +207,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
       })
       setSetupScript(script)
       setRouterIp(`192.168.${parseInt(networkOctet) || 4}.1`)
-      try {
-        const data = await api.getMikrotikInstallScriptData()
-        if (data?.api_password) setApiPassword(data.api_password)
-      } catch { }
     } catch (e: any) {
       showToast(friendlyError(e?.message || 'Failed to generate setup script'), { type: 'error' })
     } finally { setSetupLoading(false) }
@@ -248,39 +218,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     showToast('Copied — paste in Winbox Terminal', { type: 'success' })
   }
 
-  const handleConnect = async () => {
-    if (!routerIp.trim()) { showToast('Enter router IP address', { type: 'error' }); return }
-    if (!apiPassword.trim()) { showToast('Enter API password', { type: 'error' }); return }
-    setConnecting(true)
-    setConnectionResult(null)
-    try {
-      const payload: any = {
-        router_ip: routerIp.trim(),
-        api_port: parseInt(apiPort) || 8728,
-        api_username: apiUsername.trim(),
-      }
-      if (apiPassword.trim()) {
-        payload.api_password = apiPassword.trim()
-      }
-      if (configExists) {
-        await api.updateMikrotikConfig(payload)
-      } else {
-        await api.saveMikrotikConfig({ ...payload, api_password: apiPassword.trim() || 'changeme' })
-      }
-      const result = await api.testMikrotikConnection()
-      setConnectionResult(result)
-      if (result.connected) {
-        showToast(`Connected to ${result.router_identity || 'router'}`, { type: 'success' })
-      } else {
-        showToast(friendlyError(result.error || 'Connection failed'), { type: 'error' })
-      }
-    } catch (e: any) {
-      setConnectionResult({ connected: false, error: friendlyError(e.message || 'Failed') })
-      showToast(friendlyError(e.message || 'Failed'), { type: 'error' })
-    } finally { setConnecting(false) }
-  }
-
-  // ── Step 2: Bridge ──
   const handleGenerateBridge = async () => {
     setBridgeLoading(true)
     setBridgeBlocked(null)
@@ -405,7 +342,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
           {step === 1 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 1 of 5 — Setup Router
+                Step 1 of 4 — Setup Router
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
                 Generate a RouterOS script that configures your fresh router from scratch — bridge, DHCP, hotspot, API user, and walled garden. Paste it into Winbox once.
@@ -485,107 +422,11 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
             </Card>
           )}
 
-          {/* ══════ STEP 2: Connect ══════ */}
+          {/* ══════ STEP 2: Bridge ══════ */}
           {step === 2 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 2 of 5 — Connect Router
-              </div>
-              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-                Enter your MikroTik router details to test the API connection. The API user <strong>wibill-api</strong> was created by the Setup script in Step 1.
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Router IP Address</label>
-                <input value={routerIp} onChange={e => setRouterIp(e.target.value)} placeholder="192.168.4.1"
-                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Port</label>
-                  <input value={apiPort} onChange={e => setApiPort(e.target.value)} placeholder="8728"
-                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Username</label>
-                  <input value={apiUsername} onChange={e => setApiUsername(e.target.value)} placeholder="wibill-api"
-                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>API Password</label>
-                <input value={apiPassword} onChange={e => setApiPassword(e.target.value)} placeholder="Enter router API password" type="password"
-                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <button onClick={handleConnect} disabled={connecting || !routerIp.trim() || !apiPassword.trim()}
-                style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: (connecting || !routerIp.trim() || !apiPassword.trim()) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: (connecting || !routerIp.trim() || !apiPassword.trim()) ? 0.5 : 1 }}>
-                {connecting ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Activity size={14} />}
-                {connecting ? 'Connecting...' : 'Test Connection'}
-              </button>
-
-              {connectionResult && (
-                <div style={{
-                  marginTop: 16, padding: 16, borderRadius: 7, fontSize: 11,
-                  background: connectionResult.connected ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-                  border: `0.5px solid ${connectionResult.connected ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                }}>
-                  {connectionResult.connected ? (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(34,197,94,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <CheckCircle size={16} color={C.green} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, color: C.green, fontSize: 13 }}>{connectionResult.router_identity || 'Connected'}</div>
-                          <div style={{ fontSize: 9, color: C.dim }}>{connectionResult.board_name || 'MikroTik'}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        <div style={{ padding: 8, background: C.void, borderRadius: 6 }}>
-                          <div style={{ fontSize: 8, color: C.dim, textTransform: 'uppercase', fontWeight: 700 }}>OS Version</div>
-                          <div style={{ fontSize: 10, color: C.text, fontFamily: 'DM Mono, monospace' }}>{connectionResult.router_os_version || '—'}</div>
-                        </div>
-                        <div style={{ padding: 8, background: C.void, borderRadius: 6 }}>
-                          <div style={{ fontSize: 8, color: C.dim, textTransform: 'uppercase', fontWeight: 700 }}>Uptime</div>
-                          <div style={{ fontSize: 10, color: C.text, fontFamily: 'DM Mono, monospace' }}>{connectionResult.uptime || '—'}</div>
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: connectionResult.hotspot_found ? C.green : C.red }} />
-                        <span style={{ fontSize: 10, color: connectionResult.hotspot_found ? C.green : C.red }}>
-                          Hotspot: {connectionResult.hotspot_found ? 'Configured' : 'Not found'}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <XCircle size={14} color={C.red} style={{ marginTop: 1, flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 600, color: C.red, marginBottom: 4 }}>Connection Failed</div>
-                        <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.5 }}>{friendlyError(connectionResult.error || 'Could not reach router')}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {connectionResult?.connected && (
-                <button onClick={() => setStep(3)}
-                  style={{ width: '100%', padding: 12, marginTop: 16, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  Continue <ArrowRight size={14} />
-                </button>
-              )}
-            </Card>
-          )}
-
-          {/* ══════ STEP 3: Bridge ══════ */}
-          {step === 3 && (
-            <Card>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 3 of 5 — Bridge Setup
+                Step 2 of 4 — Bridge Setup
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 16, lineHeight: 1.6 }}>
                 Run this one-time installer on the <strong>always-on PC at your site</strong> (same network as the router). It installs the bridge that connects your router to WiBill.
@@ -677,7 +518,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                     </label>
                   </div>
 
-                  <button onClick={() => setStep(4)} disabled={!bridgeConfirmed}
+                  <button onClick={() => setStep(3)} disabled={!bridgeConfirmed}
                     style={{ width: '100%', padding: 12, background: bridgeConfirmed ? C.gold : C.mute, border: 'none', borderRadius: 7, color: bridgeConfirmed ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: bridgeConfirmed ? 'pointer' : 'not-allowed', opacity: bridgeConfirmed ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     Installed — Continue <ArrowRight size={14} />
                   </button>
@@ -686,11 +527,11 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
             </Card>
           )}
 
-          {/* ══════ STEP 4: Portal ══════ */}
-          {step === 4 && (
+          {/* ══════ STEP 3: Portal ══════ */}
+          {step === 3 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 4 of 5 — Push Portal Page
+                Step 3 of 4 — Push Portal Page
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
                 Push the <strong>login.html</strong> redirect file to your router. This file sends users to your branded portal when they connect to WiFi.
@@ -730,18 +571,18 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                 </div>
               )}
 
-<button onClick={() => setStep(5)} disabled={!portalUploaded}
+<button onClick={() => setStep(4)} disabled={!portalUploaded}
                     style={{ width: '100%', padding: 12, background: portalUploaded ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalUploaded ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalUploaded ? 'pointer' : 'not-allowed', opacity: portalUploaded ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     Portal Pushed — Continue <ArrowRight size={14} />
                   </button>
             </Card>
           )}
 
-          {/* ══════ STEP 5: Launch ══════ */}
-          {step === 5 && (
+          {/* ══════ STEP 4: Launch ══════ */}
+          {step === 4 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 5 of 5 — Go Live
+                Step 4 of 4 — Go Live
               </div>
 
               {!hasActivePackage && (
