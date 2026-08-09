@@ -172,6 +172,22 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [bridgeScript, setBridgeScript] = useState<string | null>(null)
   const [bridgeLoading, setBridgeLoading] = useState(false)
   const [bridgeConfirmed, setBridgeConfirmed] = useState(false)
+  const [bridgeBlocked, setBridgeBlocked] = useState<string | null>(null)
+  const [bridgeHealth, setBridgeHealth] = useState<any>(null)
+
+  useEffect(() => {
+    if (step !== 2) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const h = await api.getMikrotikHealth()
+        if (!cancelled) setBridgeHealth(h)
+      } catch { /* bridge not yet up is expected */ }
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [step])
 
   // Step 3: Portal
   const [portalUploading, setPortalUploading] = useState(false)
@@ -236,12 +252,35 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   // ── Step 2: Bridge ──
   const handleGenerateBridge = async () => {
     setBridgeLoading(true)
+    setBridgeBlocked(null)
+    setBridgeHealth(null)
     try {
-      await api.provisionMikrotik().catch(() => null)
+      let provisioned = false
+      try {
+        const prov = await api.provisionMikrotik()
+        provisioned = Boolean(prov && prov.tunnel_id)
+      } catch (e: any) {
+        // "Tunnel already provisioned" (HTTP 400) means the tunnel exists — proceed
+        if ((e as any)?.status === 400) {
+          provisioned = true
+        } else {
+          throw e
+        }
+      }
+
+      if (!provisioned) {
+        setBridgeBlocked(
+          'No tunnel was created — the Cloudflare API token is missing or invalid on the server. ' +
+          'Without it, cloudflared cannot be installed and your backend will never be able to reach this bridge. ' +
+          'Ask your platform admin to set CLOUDFLARE_API_TOKEN, then try again.'
+        )
+        return
+      }
+
       const data = await api.getMikrotikInstallScript()
       setBridgeScript(data)
     } catch (e: any) {
-      showToast(friendlyError(e.message || 'Failed to generate bridge installer'), { type: 'error' })
+      setBridgeBlocked(friendlyError(e?.message || 'Failed to generate bridge installer'))
     } finally { setBridgeLoading(false) }
   }
 
@@ -437,7 +476,47 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                 Run this one-time installer on the <strong>always-on PC at your site</strong> (same network as the router). It installs the bridge that connects your router to WiBill.
               </div>
 
-              {!bridgeScript && !bridgeLoading && (
+              {(() => {
+                const h = bridgeHealth
+                if (!h || !h.configured) {
+                  return (
+                    <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <RefreshCw size={13} color={C.gold} style={{ animation: 'spin 1.2s linear infinite' }} />
+                      <span style={{ fontSize: 11, color: C.gold }}>Waiting for bridge...</span>
+                    </div>
+                  )
+                }
+                if (h.connected && h.router_reachable) {
+                  return (
+                    <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CheckCircle size={13} color={C.green} />
+                      <span style={{ fontSize: 11, color: C.green }}>Bridge connected &nbsp;·&nbsp; Router reachable ({h.router_ip})</span>
+                    </div>
+                  )
+                }
+                return (
+                  <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: `0.5px solid rgba(239,68,68,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <XCircle size={13} color={C.red} />
+                    <span style={{ fontSize: 11, color: C.red }}>{h.connected ? 'Bridge connected — router unreachable' : 'Bridge not reachable'} · {h.last_error || 'check the PC'}</span>
+                  </div>
+                )
+              })()}
+
+              {bridgeBlocked && (
+                <div style={{ padding: 14, marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: `0.5px solid rgba(239,68,68,0.25)`, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <AlertTriangle size={15} color={C.red} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 4 }}>Bridge installer blocked</div>
+                    <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>{bridgeBlocked}</div>
+                    <button onClick={() => setBridgeBlocked(null)}
+                      style={{ marginTop: 8, padding: '6px 10px', background: 'transparent', border: `0.5px solid rgba(239,68,68,0.4)`, borderRadius: 5, color: C.red, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!bridgeScript && !bridgeLoading && !bridgeBlocked && (
                 <button onClick={handleGenerateBridge}
                   style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <Server size={14} /> Generate Bridge Installer
@@ -463,7 +542,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                       style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Copy size={13} /> Copy Script
                     </button>
-                    <button onClick={() => { setBridgeScript(null); setBridgeConfirmed(false) }}
+                    <button onClick={() => { setBridgeScript(null); setBridgeConfirmed(false); setBridgeBlocked(null) }}
                       style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                       Reset
                     </button>

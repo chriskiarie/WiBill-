@@ -374,23 +374,26 @@ async def generate_parameterized_script(
 
     backend_host = backend_host_override or (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
 
-    script = f""":do {{ /interface bridge add name=WiBillBridge }} on-error={{ }}
-:do {{ /ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge }} on-error={{ }}
-:do {{ /interface bridge port add bridge=WiBillBridge interface={wifi_interface} }} on-error={{ }}
-:do {{ /interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto }} on-error={{ }}
-:do {{ /ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254 }} on-error={{ }}
-:do {{ /ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no }} on-error={{ }}
-:do {{ /ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4 }} on-error={{ }}
-:do {{ /ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no }} on-error={{ }}
-:do {{ /ip hotspot profile set [find name=hsprof1] login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot }} on-error={{ }}
-:do {{ /ip hotspot set hotspot1 addresses-per-mac=1 }} on-error={{ }}
-:do {{ /ip service enable api }} on-error={{ }}
-:do {{ /ip service set api port=8728 address="" }} on-error={{ }}
-:do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{ }}
-:do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{ }}
-:do {{ /ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow }} on-error={{ }}
-:do {{ /ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept }} on-error={{ }}
-:log info "WiBill setup complete for {name}"
+    tunnel_host = config.tunnel_hostname if config and config.tunnel_hostname else ""
+    bridge_host_lines = ""
+    if tunnel_host:
+        bridge_host_lines = f":do {{ /ip hotspot walled-garden add dst-host={tunnel_host} action=allow }} on-error={{ }}\n"
+
+    script = f""":do {{ /interface bridge add name=WiBillBridge }} on-error={{}}
+:do {{ /ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge }} on-error={{}}
+:do {{ /interface bridge port add bridge=WiBillBridge interface={wifi_interface} }} on-error={{}}
+:do {{ /interface wireless set {wifi_interface} ssid="{ssid}" band=2ghz-b/g/n frequency=auto }} on-error={{}}
+:do {{ /ip pool add name=wibill-pool ranges=192.168.{network_octet}.2-192.168.{network_octet}.254 }} on-error={{}}
+:do {{ /ip dhcp-server add name=wibill-dhcp interface=WiBillBridge address-pool=wibill-pool disabled=no }} on-error={{}}
+:do {{ /ip dhcp-server network add address=192.168.{network_octet}.0/24 gateway=192.168.{network_octet}.1 dns-server=8.8.8.8,8.8.4.4 }} on-error={{}}
+:do {{ /ip hotspot add name=hotspot1 interface=WiBillBridge address-pool=wibill-pool profile=hsprof1 disabled=no }} on-error={{}}
+:do {{ /ip hotspot profile set [find name=hsprof1] login-by=http-pap,mac-cookie use-radius=no html-directory=hotspot }} on-error={{}}
+:do {{ /ip hotspot set hotspot1 addresses-per-mac=1 }} on-error={{}}
+:do {{ /ip service enable api }} on-error={{}}
+:do {{ /ip service set api port=8728 address="" }} on-error={{}}
+:do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{}}
+:do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{}}
+{bridge_host_lines}:log info "WiBill setup complete for {name}"
 """
     return PlainTextResponse(
         content=script,
@@ -600,6 +603,11 @@ async def get_routeros_script(
 
     backend_host = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
 
+    tunnel_host = config.tunnel_hostname if config and config.tunnel_hostname else ""
+    bridge_host_lines = ""
+    if tunnel_host:
+        bridge_host_lines = f'/ip hotspot walled-garden add dst-host={tunnel_host} action=allow comment="WiBill bridge"\n'
+
     script = f"""# ============================================================
 # WiBill Router Setup Script
 # Tenant: {name}
@@ -637,12 +645,7 @@ async def get_routeros_script(
 
 # 10. Walled garden (allow portal and bridge before payment)
 /ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
-/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
-
-# 11. Allow HTTPS to portal by IP
-/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept comment="Allow Railway HTTPS"
-
-:log info "WiBill setup complete for {name}"
+{bridge_host_lines}:log info "WiBill setup complete for {name}"
 """
     return PlainTextResponse(
         content=script,

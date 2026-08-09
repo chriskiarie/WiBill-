@@ -12,8 +12,9 @@
 # :local WIFI_PASSWORD ""
 # :local NETWORK_OCTET 4
 # :local WIFI_INTERFACE "wlan1"
-# :local BACKEND_HOST "wibill-production-2e9c.up.railway.app"
+# :local BACKEND_HOST "wibill-production-cd80.up.railway.app"
 # :local PORTAL_DOMAIN "pay.honestbill.co.ke"
+# :local TUNNEL_HOST "isp-wibill.wi-bill.com"
 # ============================================================
 
 # ── STEP 1: Create hotspot bridge ───────────────────────────
@@ -53,12 +54,9 @@
 
 # ── STEP 11: Walled garden (hostname-based) ─────────────────
 /ip hotspot walled-garden add dst-host=$BACKEND_HOST action=allow comment="WiBill portal"
-/ip hotspot walled-garden add dst-host=mikrotik.wi-bill.com action=allow comment="WiBill bridge"
+/ip hotspot walled-garden add dst-host=$TUNNEL_HOST action=allow comment="WiBill bridge"
 
-# ── STEP 12: Walled garden (IP-based - Railway static IP) ──
-/ip hotspot walled-garden ip add protocol=tcp dst-address=69.46.46.14 dst-port=443 action=accept comment="Allow Railway HTTPS"
-
-# ── STEP 13: Verify configuration ───────────────────────────
+# ── STEP 12: Verify configuration ───────────────────────────
 :put "═══ WiBill Setup Complete ═══"
 :put "SSID: $WIFI_SSID"
 :put "Gateway: 192.168.$NETWORK_OCTET.1"
