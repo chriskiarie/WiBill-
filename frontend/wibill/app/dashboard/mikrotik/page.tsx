@@ -15,10 +15,11 @@ const C = {
 }
 
 const STEPS = [
-  { id: 1, label: 'Connect', icon: Router, desc: 'Link your MikroTik router' },
-  { id: 2, label: 'Bridge', icon: Server, desc: 'Install bridge on your PC' },
-  { id: 3, label: 'Portal', icon: Globe, desc: 'Push login page to router' },
-  { id: 4, label: 'Launch', icon: Zap, desc: 'Run checks & go live' },
+  { id: 1, label: 'Setup', icon: Settings, desc: 'Configure your router' },
+  { id: 2, label: 'Connect', icon: Router, desc: 'Link your MikroTik router' },
+  { id: 3, label: 'Bridge', icon: Server, desc: 'Install bridge on your PC' },
+  { id: 4, label: 'Portal', icon: Globe, desc: 'Push login page to router' },
+  { id: 5, label: 'Launch', icon: Zap, desc: 'Run checks & go live' },
 ]
 
 const Card = ({ children, style }: any) => (
@@ -160,7 +161,13 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
 
   const [step, setStep] = useState(1)
 
-  // Step 1: Connect
+  const [ssid, setSsid] = useState('WiFi')
+  const [wifiPassword, setWifiPassword] = useState('')
+  const [networkOctet, setNetworkOctet] = useState('4')
+  const [wifiInterface, setWifiInterface] = useState('wlan1')
+  const [setupScript, setSetupScript] = useState<string | null>(null)
+  const [setupLoading, setSetupLoading] = useState(false)
+
   const [routerIp, setRouterIp] = useState('')
   const [apiPort, setApiPort] = useState('8728')
   const [apiUsername, setApiUsername] = useState('wibill-api')
@@ -176,13 +183,13 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
   const [bridgeHealth, setBridgeHealth] = useState<any>(null)
 
   useEffect(() => {
-    if (step !== 2) return
+    if (step !== 3) return
     let cancelled = false
     const poll = async () => {
       try {
         const h = await api.getMikrotikHealth()
         if (!cancelled) setBridgeHealth(h)
-      } catch { /* bridge not yet up is expected */ }
+      } catch { }
     }
     poll()
     const id = setInterval(poll, 3000)
@@ -216,7 +223,27 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     }).catch(() => { setConfigLoaded(true) })
   }, [token])
 
-  // ── Step 1: Connect ──
+  const handleGenerateSetup = async () => {
+    setSetupLoading(true)
+    try {
+      const script = await api.generateMikrotikScript({
+        ssid: ssid.trim() || 'WiFi',
+        network_octet: parseInt(networkOctet) || 4,
+        wifi_interface: wifiInterface.trim() || 'wlan1',
+      })
+      setSetupScript(script)
+      setRouterIp(`192.168.${parseInt(networkOctet) || 4}.1`)
+    } catch (e: any) {
+      showToast(friendlyError(e?.message || 'Failed to generate setup script'), { type: 'error' })
+    } finally { setSetupLoading(false) }
+  }
+
+  const handleCopySetup = () => {
+    if (!setupScript) return
+    navigator.clipboard.writeText(setupScript)
+    showToast('Copied — paste in Winbox Terminal', { type: 'success' })
+  }
+
   const handleConnect = async () => {
     if (!routerIp.trim()) { showToast('Enter router IP address', { type: 'error' }); return }
     if (!apiPassword.trim()) { showToast('Enter API password', { type: 'error' }); return }
@@ -370,19 +397,103 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
             })}
           </div>
 
-          {/* ══════ STEP 1: Connect ══════ */}
+          {/* ══════ STEP 1: Setup ══════ */}
           {step === 1 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 1 of 4 — Connect Router
+                Step 1 of 5 — Setup Router
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-                Enter your MikroTik router details to establish a connection. The API user must already exist on the router.
+                Generate a RouterOS script that configures your fresh router from scratch — bridge, DHCP, hotspot, API user, and walled garden. Paste it into Winbox once.
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Network Name (SSID)</label>
+                <input value={ssid} onChange={e => setSsid(e.target.value)} placeholder="My ISP WiFi"
+                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Password <span style={{ color: C.mute }}>(blank = open)</span></label>
+                <input value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} placeholder="Leave blank for open WiFi" type="password"
+                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Network Octet</label>
+                  <input value={networkOctet} onChange={e => setNetworkOctet(e.target.value)} placeholder="4"
+                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+                  <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Router gets 192.168.<strong>{networkOctet || '4'}</strong>.1</div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Interface</label>
+                  <input value={wifiInterface} onChange={e => setWifiInterface(e.target.value)} placeholder="wlan1"
+                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+                  <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Usually wlan1 on hAP lite</div>
+                </div>
+              </div>
+
+              {!setupScript && !setupLoading && (
+                <button onClick={handleGenerateSetup}
+                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Terminal size={14} /> Generate Setup Script
+                </button>
+              )}
+
+              {setupLoading && <LoadingSpinner size="sm" label="Generating script..." />}
+
+              {setupScript && (
+                <>
+                  <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Setup Instructions:</div>
+                    <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
+                      <li>Open <strong>Winbox</strong> → connect to your router</li>
+                      <li>Go to <strong>New Terminal</strong></li>
+                      <li>Paste the script below and press Enter</li>
+                      <li>Wait for "WiBill setup complete" message</li>
+                    </ol>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <button onClick={handleCopySetup}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Copy size={13} /> Copy Script
+                    </button>
+                    <button onClick={() => { setSetupScript(null) }}
+                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      Reset
+                    </button>
+                  </div>
+
+                  <pre style={{
+                    background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                    fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
+                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 300, overflowY: 'auto', marginBottom: 16,
+                  }}>{setupScript}</pre>
+
+                  <button onClick={() => setStep(2)}
+                    style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    Script pasted into Winbox — Continue <ArrowRight size={14} />
+                  </button>
+                </>
+              )}
+            </Card>
+          )}
+
+          {/* ══════ STEP 2: Connect ══════ */}
+          {step === 2 && (
+            <Card>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Step 2 of 5 — Connect Router
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+                Enter your MikroTik router details to test the API connection. The API user <strong>wibill-api</strong> was created by the Setup script in Step 1.
               </div>
 
               <div style={{ marginBottom: 12 }}>
                 <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Router IP Address</label>
-                <input value={routerIp} onChange={e => setRouterIp(e.target.value)} placeholder="192.168.88.1"
+                <input value={routerIp} onChange={e => setRouterIp(e.target.value)} placeholder="192.168.4.1"
                   style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
@@ -458,7 +569,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
               )}
 
               {connectionResult?.connected && (
-                <button onClick={() => setStep(2)}
+                <button onClick={() => setStep(3)}
                   style={{ width: '100%', padding: 12, marginTop: 16, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   Continue <ArrowRight size={14} />
                 </button>
@@ -466,11 +577,11 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
             </Card>
           )}
 
-          {/* ══════ STEP 2: Bridge ══════ */}
-          {step === 2 && (
+          {/* ══════ STEP 3: Bridge ══════ */}
+          {step === 3 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 2 of 4 — Bridge Setup
+                Step 3 of 5 — Bridge Setup
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 16, lineHeight: 1.6 }}>
                 Run this one-time installer on the <strong>always-on PC at your site</strong> (same network as the router). It installs the bridge that connects your router to WiBill.
@@ -562,7 +673,7 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                     </label>
                   </div>
 
-                  <button onClick={() => setStep(3)} disabled={!bridgeConfirmed}
+                  <button onClick={() => setStep(4)} disabled={!bridgeConfirmed}
                     style={{ width: '100%', padding: 12, background: bridgeConfirmed ? C.gold : C.mute, border: 'none', borderRadius: 7, color: bridgeConfirmed ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: bridgeConfirmed ? 'pointer' : 'not-allowed', opacity: bridgeConfirmed ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     Installed — Continue <ArrowRight size={14} />
                   </button>
@@ -571,11 +682,11 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
             </Card>
           )}
 
-          {/* ══════ STEP 3: Portal ══════ */}
-          {step === 3 && (
+          {/* ══════ STEP 4: Portal ══════ */}
+          {step === 4 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 3 of 4 — Push Portal Page
+                Step 4 of 5 — Push Portal Page
               </div>
               <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
                 Push the <strong>login.html</strong> redirect file to your router. This file sends users to your branded portal when they connect to WiFi.
@@ -615,18 +726,18 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
                 </div>
               )}
 
-              <button onClick={() => setStep(4)} disabled={!portalUploaded}
-                style={{ width: '100%', padding: 12, background: portalUploaded ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalUploaded ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalUploaded ? 'pointer' : 'not-allowed', opacity: portalUploaded ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                Portal Pushed — Continue <ArrowRight size={14} />
-              </button>
+<button onClick={() => setStep(5)} disabled={!portalUploaded}
+                    style={{ width: '100%', padding: 12, background: portalUploaded ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalUploaded ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalUploaded ? 'pointer' : 'not-allowed', opacity: portalUploaded ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    Portal Pushed — Continue <ArrowRight size={14} />
+                  </button>
             </Card>
           )}
 
-          {/* ══════ STEP 4: Launch ══════ */}
-          {step === 4 && (
+          {/* ══════ STEP 5: Launch ══════ */}
+          {step === 5 && (
             <Card>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 4 of 4 — Go Live
+                Step 5 of 5 — Go Live
               </div>
 
               {!hasActivePackage && (
