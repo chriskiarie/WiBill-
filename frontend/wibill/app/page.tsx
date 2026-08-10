@@ -537,10 +537,10 @@ export default function LandingPage() {
           transition: opacity 0.5s ease;
         }
         .pricing-card--hovered::before {
-          opacity: 0.45;
+          opacity: 0.22;
         }
         .pricing-card--hovered {
-          box-shadow: 0 30px 70px -25px rgba(0,0,0,0.8), 0 0 60px -10px rgba(239,159,39,0.2);
+          box-shadow: 0 30px 70px -25px rgba(0,0,0,0.8), 0 0 40px -12px rgba(239,159,39,0.1);
         }
 
         .pricing-sheen {
@@ -550,7 +550,7 @@ export default function LandingPage() {
           border-radius: inherit;
           opacity: 0;
           transition: opacity 0.3s ease;
-          background: radial-gradient(circle 220px at var(--mx, 50%) var(--my, 50%), rgba(239,159,39,0.18), transparent 70%);
+          background: radial-gradient(circle 220px at var(--mx, 50%) var(--my, 50%), rgba(239,159,39,0.1), transparent 70%);
           z-index: 1;
         }
         .pricing-card--hovered .pricing-sheen { opacity: 1; }
@@ -575,7 +575,7 @@ export default function LandingPage() {
         .pricing-veil-num {
           font-family: 'Instrument Serif', serif;
           font-style: italic;
-          font-size: 80px;
+          font-size: 120px;
           font-weight: 500;
           color: ${gold};
           letter-spacing: 2px;
@@ -583,7 +583,7 @@ export default function LandingPage() {
           line-height: 1;
         }
         .pricing-veil-pct {
-          font-size: 40px;
+          font-size: 56px;
           color: ${dim};
           vertical-align: top;
         }
@@ -663,8 +663,8 @@ export default function LandingPage() {
         /* ── CONNECT CARD ── */
         .connect-card {
           position: relative;
-          width: 200px;
-          height: 200px;
+          width: 260px;
+          height: 260px;
           background: ${bg3};
           border-radius: 30px;
           overflow: hidden;
@@ -683,19 +683,19 @@ export default function LandingPage() {
         }
         .connect-voice {
           position: absolute;
-          inset: 0;
+          bottom: 26px;
+          left: 0;
+          width: 100%;
           z-index: 2;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(10,8,5,0.55);
+          text-align: center;
           opacity: 1;
           transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1);
           font-family: 'Instrument Serif', serif;
           font-style: italic;
-          color: #fff;
-          font-size: 1.3em;
+          color: rgba(255,255,255,0.85);
+          font-size: 16px;
           letter-spacing: 1px;
+          pointer-events: none;
         }
         .connect-card--hovered .connect-voice {
           opacity: 0;
@@ -707,16 +707,16 @@ export default function LandingPage() {
           bottom: 50%;
           transform: translate(50%, 50%);
           transition: transform 0.6s cubic-bezier(0.22,1,0.36,1), letter-spacing 0.6s cubic-bezier(0.22,1,0.36,1);
-          font-size: 1.2em;
+          font-size: 1.5em;
           font-weight: 500;
           color: #fff;
-          letter-spacing: 2px;
+          letter-spacing: 3px;
           z-index: 1;
           font-family: 'Instrument Serif', serif;
           font-style: italic;
         }
         .connect-card--hovered .connect-logo {
-          transform: translate(64px, -48px);
+          transform: translate(84px, -62px);
           letter-spacing: 0;
         }
         .c-icon {
