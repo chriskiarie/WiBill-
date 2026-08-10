@@ -174,7 +174,7 @@ from app.api.routes import admin_feature_flags, admin_audit_log, admin_comms, ad
 from app.api.routes import subscriber_plans, monthly_subscribers, ipam
 from app.api.routes import portal_wizard
 from app.api.routes import system, leads, bulk_sms
-from app.api.routes import outages, devices
+from app.api.routes import outages, devices, onboard
 from fastapi.staticfiles import StaticFiles
 
 # ============================================================================
@@ -217,6 +217,7 @@ app.include_router(leads.router, prefix="/api", tags=["leads"])
 app.include_router(bulk_sms.router, prefix="/api/sms", tags=["bulk-sms"])
 app.include_router(outages.router, prefix="/api", tags=["outages"])
 app.include_router(devices.router, prefix="/api", tags=["portal-devices"])
+app.include_router(onboard.router, prefix="/api", tags=["onboard"])
 
 # Serve uploaded assets
 import os

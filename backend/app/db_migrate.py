@@ -533,6 +533,30 @@ MIGRATIONS = [
     ("client_devices mac index", """
         CREATE INDEX IF NOT EXISTS ix_client_devices_mac_address ON client_devices(mac_address)
     """),
+    # ── Onboarding Tokens (remote device onboarding) ─────────────────────────
+    ("onboarding_tokens table", """
+        CREATE TABLE IF NOT EXISTS onboarding_tokens (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            token VARCHAR(64) NOT NULL UNIQUE,
+            tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            ros_version VARCHAR(2) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            expires_at TIMESTAMPTZ NOT NULL,
+            used_at TIMESTAMPTZ,
+            router_id UUID REFERENCES mikrotik_configs(id) ON DELETE SET NULL,
+            registration_data TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+    """),
+    ("onboarding_tokens tenant index", """
+        CREATE INDEX IF NOT EXISTS ix_onboarding_tokens_tenant_id ON onboarding_tokens(tenant_id)
+    """),
+    ("onboarding_tokens token index", """
+        CREATE INDEX IF NOT EXISTS ix_onboarding_tokens_token ON onboarding_tokens(token)
+    """),
+    ("onboarding_tokens status index", """
+        CREATE INDEX IF NOT EXISTS ix_onboarding_tokens_status ON onboarding_tokens(status)
+    """),
 ]
 
 async def run_migrations():

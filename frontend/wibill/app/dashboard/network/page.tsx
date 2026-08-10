@@ -369,7 +369,7 @@ export default function NetworkPage() {
                       {[
                         { label: 'IP', value: mikrotik.router_ip || '—' },
                         { label: 'Hotspot', value: mikrotik.hotspot_server || '—' },
-                        { label: 'Last seen', value: mikrotik.updated_at ? formatRelativeTime(mikrotik.updated_at) : '—' },
+                        { label: 'Last seen', value: mikrotik.last_connected_at ? formatRelativeTime(mikrotik.last_connected_at) : '—' },
                       ].map((r, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '3px 0' }}>
                           <span style={{ color: C.dim }}>{r.label}</span>
@@ -377,6 +377,14 @@ export default function NetworkPage() {
                         </div>
                       ))}
                     </div>
+                    {mikrotik.notes && mikrotik.notes.includes('Board:') && (
+                      <div style={{ padding: '8px 10px', marginBottom: 12, borderRadius: 6, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Router size={12} color={C.gold} />
+                        <span style={{ fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                          {mikrotik.notes.split('|').map((p: string) => p.trim()).filter(Boolean).join(' · ')}
+                        </span>
+                      </div>
+                    )}
                     <button onClick={handleTest} disabled={testing} style={{
                       width: '100%', padding: '8px', borderRadius: 7,
                       background: 'var(--theme-surface)', border: '0.5px solid var(--theme-border2)',

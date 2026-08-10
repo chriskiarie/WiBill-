@@ -130,21 +130,10 @@ export default function MikrotikWizard() {
         <Topbar title="MikroTik Setup" />
         <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
           <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
-            <Card>
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb, var(--theme-gold) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <Wifi size={24} color={C.gold} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Connect Your MikroTik Router</div>
-                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, maxWidth: 400, margin: '0 auto 24px' }}>
-                  Set up your MikroTik hotspot so customers connecting to your WiFi see the branded captive portal and can purchase internet via M-Pesa.
-                </div>
-                <button onClick={() => setShowWizard(true)}
-                  style={{ padding: '14px 32px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <Settings size={16} /> Start Setup Wizard
-                </button>
-              </div>
-            </Card>
+            <RemoteOnboardFlow
+              onManualSetup={() => setShowWizard(true)}
+              onConfigured={handleCheckHealth}
+            />
           </div>
         </div>
       </div>
@@ -152,6 +141,251 @@ export default function MikrotikWizard() {
   }
 
   return <WizardFlow onBack={() => { setShowWizard(false); handleCheckHealth() }} packages={packages} />
+}
+
+const ONBOARD_STEPS = [
+  { id: 1, label: 'Generate', desc: 'Get setup command' },
+  { id: 2, label: 'Running', desc: 'Router fetching script' },
+  { id: 3, label: 'Registered', desc: 'Device reported back' },
+  { id: 4, label: 'Configured', desc: 'Hotspot live' },
+]
+
+function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () => void; onConfigured: () => void }) {
+  const { showToast } = useToast()
+
+  const [rosVersion, setRosVersion] = useState<string>('6')
+  const [generating, setGenerating] = useState(false)
+  const [onboardData, setOnboardData] = useState<any>(null)
+  const [onboardStatus, setOnboardStatus] = useState<any>(null)
+  const [polling, setPolling] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [showConflict, setShowConflict] = useState(false)
+  const [conflictData, setConflictData] = useState<any>(null)
+
+  useEffect(() => {
+    if (!onboardData || onboardStatus?.status === 'used') return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const st = await api.getOnboardStatus()
+        if (!cancelled) {
+          setOnboardStatus(st)
+          if (st.status === 'used') {
+            const reg = st.registration_data
+            if (reg?.existing_hotspot) {
+              setConflictData(reg)
+              setShowConflict(true)
+            }
+            setPolling(false)
+          }
+        }
+      } catch { }
+    }
+    poll()
+    const id = setInterval(poll, 4000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [onboardData?.token])
+
+  const handleGenerate = async () => {
+    setGenerating(true)
+    try {
+      const res = await api.generateOnboardToken(rosVersion)
+      setOnboardData(res)
+      setPolling(true)
+    } catch (e: any) {
+      showToast(e?.message || 'Failed to generate token', { type: 'error' })
+    } finally { setGenerating(false) }
+  }
+
+  const handleCopy = () => {
+    if (!onboardData?.command) return
+    navigator.clipboard.writeText(onboardData.command)
+    setCopied(true)
+    showToast('Copied — paste into your router terminal', { type: 'success' })
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleResolveConflict = async (overwrite: boolean) => {
+    try {
+      await api.resolveOnboardConflict(onboardData.token, overwrite)
+      setShowConflict(false)
+      showToast(overwrite ? 'Overwriting existing hotspot config' : 'Keeping existing hotspot config', { type: 'success' })
+      onConfigured()
+    } catch (e: any) {
+      showToast(e?.message || 'Failed to resolve conflict', { type: 'error' })
+    }
+  }
+
+  const handleReset = () => {
+    setOnboardData(null)
+    setOnboardStatus(null)
+    setPolling(false)
+    setCopied(false)
+    setShowConflict(false)
+    setConflictData(null)
+  }
+
+  const currentStep = (() => {
+    if (!onboardData) return 1
+    if (onboardStatus?.status === 'used') return 3
+    if (onboardStatus?.status === 'pending') return 2
+    return 1
+  })()
+
+  const isComplete = onboardStatus?.status === 'used' && !showConflict
+
+  return (
+    <>
+      <Card>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Quick Connect
+        </div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+          Generate a one-line command, paste it into your router's terminal — Winbox, SSH, or Webfig all work.
+          No app install required.
+        </div>
+
+        <div style={{ display: 'flex', gap: 0, marginBottom: 24, alignItems: 'stretch' }}>
+          {ONBOARD_STEPS.map((s, i) => {
+            const isActive = currentStep === s.id
+            const isDone = currentStep > s.id || (currentStep === s.id && isComplete)
+            return (
+              <div key={s.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+                {i > 0 && (
+                  <div style={{ position: 'absolute', top: 14, left: 0, right: '50%', height: 1.5, background: isDone ? C.gold : C.border, zIndex: 0 }} />
+                )}
+                <div style={{
+                  width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isDone ? C.gold : isActive ? 'transparent' : C.mute,
+                  border: `1.5px solid ${isDone ? C.gold : isActive ? C.gold : C.border2}`,
+                  color: isDone ? '#000' : isActive ? C.gold : C.dim,
+                  fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace', zIndex: 1, transition: 'all 0.3s',
+                }}>
+                  {isDone ? <CheckCircle size={14} /> : isActive && polling ? <RefreshCw size={14} style={{ animation: 'spin 1.2s linear infinite' }} /> : s.id}
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: isActive || isDone ? C.gold : C.dim, marginTop: 6, textAlign: 'center' }}>
+                  {s.label}
+                </div>
+                <div style={{ fontSize: 9, color: isActive ? C.dim : 'transparent', marginTop: 2, textAlign: 'center', maxWidth: 80 }}>
+                  {s.desc}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {!onboardData && (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 8 }}>RouterOS Version</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['6', '7'].map(v => (
+                  <button key={v} onClick={() => setRosVersion(v)} style={{
+                    flex: 1, padding: '10px 16px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                    background: rosVersion === v ? C.gold : 'transparent',
+                    color: rosVersion === v ? '#000' : C.dim,
+                    border: `1px solid ${rosVersion === v ? C.gold : C.border}`,
+                  }}>
+                    RouterOS {v}.x
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 9, color: C.mute, marginTop: 4 }}>
+                Check: Winbox - System - Resources - Version (first digit)
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleGenerate} disabled={generating}
+                style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
+                {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
+                {generating ? 'Generating...' : 'Generate Command'}
+              </button>
+              <button onClick={onManualSetup}
+                style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Settings size={13} /> Manual
+              </button>
+            </div>
+          </>
+        )}
+
+        {onboardData && (
+          <>
+            <div style={{ padding: 14, marginBottom: 12, background: 'rgba(34,197,94,0.06)', border: '0.5px solid rgba(34,197,94,0.2)', borderRadius: 7 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.green, marginBottom: 6 }}>Paste this into your router terminal:</div>
+              <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
+                <li>Open <strong>Winbox</strong> or <strong>SSH</strong> into your router</li>
+                <li>Go to <strong>New Terminal</strong></li>
+                <li>Paste the command below and press Enter</li>
+                <li>Wait a few seconds for the registration</li>
+              </ol>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button onClick={handleCopy}
+                style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: copied ? C.green : C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Copy size={13} /> {copied ? 'Copied!' : 'Copy Command'}
+              </button>
+              <button onClick={handleReset}
+                style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                Reset
+              </button>
+            </div>
+
+            <pre style={{
+              background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+              fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
+              overflowX: 'auto', whiteSpace: 'pre', marginBottom: 16,
+            }}>{onboardData.command}</pre>
+
+            <div style={{ fontSize: 10, color: C.dim }}>
+              <strong>Note:</strong> This command works on RouterOS {rosVersion}.x. The token expires in 30 minutes.
+            </div>
+
+            {polling && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <RefreshCw size={13} color={C.gold} style={{ animation: 'spin 1.2s linear infinite' }} />
+                <span style={{ fontSize: 11, color: C.gold }}>Waiting for router to register...</span>
+              </div>
+            )}
+
+            {isComplete && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: '0.5px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CheckCircle size={13} color={C.green} />
+                <span style={{ fontSize: 11, color: C.green }}>
+                  Device registered! {conflictData?.board} - RouterOS {conflictData?.ros_version}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+
+      {showConflict && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 24, maxWidth: 420, width: '90%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <AlertTriangle size={18} color={C.gold} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Existing Hotspot Found</div>
+            </div>
+            <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, marginBottom: 20 }}>
+              This router already has a hotspot configuration. What would you like to do?
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => handleResolveConflict(true)}
+                style={{ flex: 1, padding: 10, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Overwrite Hotspot
+              </button>
+              <button onClick={() => handleResolveConflict(false)}
+                style={{ flex: 1, padding: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                Keep Existing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] }) {

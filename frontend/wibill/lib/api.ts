@@ -235,6 +235,15 @@ export const api = {
     getMikrotikHosts: () => request<any>('/api/mikrotik/hosts'),
     getMikrotikPreflight: () => request<any>('/api/mikrotik/preflight'),
     goLiveMikrotik: () => request<any>('/api/mikrotik/go-live', { method: 'POST' }),
+
+  // ========================================================================
+  // REMOTE ONBOARDING
+  // ========================================================================
+  generateOnboardToken: (ros_version: string) =>
+    request<any>('/api/onboard/generate', { method: 'POST', body: JSON.stringify({ ros_version }) }),
+  getOnboardStatus: () => request<any>('/api/onboard/status'),
+  resolveOnboardConflict: (token: string, overwrite_hotspot: boolean) =>
+    request<any>('/api/onboard/resolve-conflict', { method: 'POST', body: JSON.stringify({ token, overwrite_hotspot }) }),
      // ========================================================================
      // MONTHLY SUBSCRIBERS
     // ========================================================================
