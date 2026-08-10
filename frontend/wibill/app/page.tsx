@@ -1,11 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Rocket, Wifi, Smartphone, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronRight, Check } from 'lucide-react'
 
 const gold = '#E8B84B'
+const goldText = '#3a2000'
 const cream = '#EDEBE6'
-const dim = '#777'
+const dim = '#a8a69f'
+const mute = '#6b6963'
+const teal = '#5DCAA5'
+const bg2 = '#0c0b0a'
+const bg3 = '#141310'
+const line = '#201f1b'
+const lineSoft = '#1c1b18'
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
@@ -19,10 +26,11 @@ export default function LandingPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#000',
+      background: '#050505',
       color: cream,
-      fontFamily: "'Space Grotesk', sans-serif",
+      fontFamily: "'Inter', sans-serif",
       overflowX: 'hidden',
+      WebkitFontSmoothing: 'antialiased',
     }}>
       {/* Background texture */}
       <div style={{
@@ -30,350 +38,304 @@ export default function LandingPage() {
         backgroundImage: 'url(/landing-bg.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        opacity: 0.2,
+        opacity: 0.15,
       }} />
 
       {/* ═══════ NAV ═══════ */}
       <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        padding: '0 40px', height: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: scrolled ? 'rgba(0,0,0,0.9)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '0.5px solid rgba(255,255,255,0.06)' : '0.5px solid transparent',
-        transition: 'all 0.3s',
+        position: 'relative', zIndex: 10,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '22px 48px', maxWidth: 1200, margin: '0 auto',
       }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
           <span style={{
             fontFamily: "'Instrument Serif', serif",
-            fontStyle: 'italic', fontSize: 24, color: cream,
+            fontStyle: 'italic', fontSize: 22, color: cream,
+            letterSpacing: '0.01em',
           }}>WiBill</span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          <a href="#features" style={{
-            color: dim, fontSize: 13, fontFamily: "'Inter', sans-serif",
-            fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s',
-          }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
+          <a href="#features" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = cream)}
             onMouseLeave={e => (e.currentTarget.style.color = dim)}
           >Features</a>
-          <a href="#pricing" style={{
-            color: dim, fontSize: 13, fontFamily: "'Inter', sans-serif",
-            fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s',
-          }}
+          <a href="#pricing" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = cream)}
             onMouseLeave={e => (e.currentTarget.style.color = dim)}
           >Pricing</a>
           <Link href="/signup" style={{
-            background: gold, color: '#000', padding: '9px 16px',
-            borderRadius: 10, fontSize: 12, fontFamily: "'Syne', sans-serif",
-            fontWeight: 700, letterSpacing: '0.5px', textDecoration: 'none',
-            transition: 'opacity 0.2s',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >Get started</Link>
+            background: gold, border: 'none', color: goldText,
+            fontWeight: 600, borderRadius: 10, padding: '10px 18px', fontSize: 14,
+            cursor: 'pointer', fontFamily: "'Inter', sans-serif", textDecoration: 'none',
+          }}>Get started</Link>
         </div>
       </nav>
 
       {/* ═══════ HERO ═══════ */}
       <section style={{
         position: 'relative', zIndex: 1,
-        minHeight: '100vh',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '80px 40px 60px',
         textAlign: 'center',
+        padding: '72px 28px 56px',
+        maxWidth: 760, margin: '0 auto',
       }}>
         <h1 style={{
           fontFamily: "'Instrument Serif', serif",
-          fontStyle: 'italic',
+          fontStyle: 'italic', fontWeight: 500,
           fontSize: 'clamp(36px, 5vw, 48px)',
-          fontWeight: 400,
-          color: cream,
-          letterSpacing: '-0.02em',
-          lineHeight: 1.15,
-          maxWidth: 600,
-          margin: '0 auto 20px',
-        }}>Billing your customers trust, live in one afternoon.</h1>
+          lineHeight: 1.2, color: cream,
+          letterSpacing: '-0.01em',
+          marginBottom: 20,
+        }}>Billing, finally<br />done right.</h1>
 
         <p style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 15,
-          color: dim,
-          maxWidth: 440,
-          lineHeight: 1.6,
-          margin: '0 auto 36px',
+          fontSize: 15.5, color: dim,
+          maxWidth: 480, margin: '0 auto 30px',
+          lineHeight: 1.65,
         }}>
-          Self-serve MikroTik billing for Kenyan ISPs. No sales call — sign up, connect your router, take your first M-Pesa payment today.
+          They see the network&apos;s working before they pay — no more &ldquo;but it was down&rdquo; disputes. Self-serve MikroTik billing for Kenyan ISPs. No sales call, ever.
         </p>
 
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <Link href="/signup" style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: gold, color: '#000',
-            padding: '13px 28px', borderRadius: 10,
-            fontSize: 13, fontFamily: "'Syne', sans-serif",
-            fontWeight: 700, letterSpacing: '0.5px', textDecoration: 'none',
-            transition: 'opacity 0.2s',
+            background: gold, border: 'none', color: goldText,
+            fontWeight: 600, borderRadius: 10, padding: '12px 22px', fontSize: 14,
+            cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            textDecoration: 'none', transition: 'opacity 0.2s',
           }}
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-          >Get started <ArrowRight size={15} /></Link>
-          <a href="#how-it-works" style={{
-            color: dim, padding: '13px 20px', borderRadius: 10,
-            fontSize: 13, fontFamily: "'Inter', sans-serif",
-            fontWeight: 500, textDecoration: 'none',
-            border: '0.5px solid rgba(255,255,255,0.08)',
-            transition: 'color 0.2s, border-color 0.2s',
+          >Get started <ArrowRight size={14} /></Link>
+          <a href="#how" style={{
+            background: 'transparent', border: '0.5px solid #38372f', color: cream,
+            borderRadius: 10, padding: '12px 22px', fontSize: 14,
+            cursor: 'pointer', fontFamily: "'Inter', sans-serif",
             display: 'inline-flex', alignItems: 'center', gap: 6,
+            textDecoration: 'none', transition: 'border-color 0.2s',
           }}
-            onMouseEnter={e => { e.currentTarget.style.color = cream; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = dim; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#555')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#38372f')}
           >See how it works <ChevronRight size={14} /></a>
         </div>
       </section>
 
       {/* ═══════ DASHBOARD PREVIEW ═══════ */}
-      <section id="how-it-works" style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 40px 80px', maxWidth: 800, margin: '0 auto',
-      }}>
-        {/* Browser chrome */}
+      <div style={{ padding: '0 40px 64px', maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         <div style={{
-          borderRadius: 14,
-          border: '1px solid #262420',
-          boxShadow: '0 30px 60px -20px rgba(0,0,0,0.6)',
+          background: bg2, border: '0.5px solid #262420', borderRadius: 14,
           overflow: 'hidden',
-          background: '#0c0b0a',
+          boxShadow: '0 30px 60px -20px rgba(0,0,0,0.6)',
         }}>
           {/* Title bar */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '12px 16px',
-            background: '#141311',
-            borderBottom: '1px solid #1c1b18',
+            borderBottom: '0.5px solid #1c1b18',
           }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4844' }} />
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4844' }} />
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a4844' }} />
-            </div>
+            <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#4a4844' }} />
+            <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#4a4844' }} />
+            <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#4a4844' }} />
             <div style={{
               flex: 1, textAlign: 'center',
               fontFamily: "'DM Mono', monospace",
-              fontSize: 11, color: '#555',
+              fontSize: 11, color: '#6b6963',
             }}>wi-bill.com/dashboard</div>
           </div>
 
-          {/* Dashboard content */}
-          <div style={{ padding: '24px 28px 0' }}>
-            {/* Header row */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 24,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Wifi size={16} color={gold} />
-                <span style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: 14, fontWeight: 600, color: cream,
-                }}>Good morning, Nuru Net</span>
+          {/* Window body */}
+          <div style={{ padding: 22 }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#c9c7c0' }}>
+                <span style={{ fontSize: 16 }}>📶</span> Good morning, Nuru Net
               </div>
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '4px 10px',
-                background: 'rgba(34,197,94,0.08)',
-                border: '0.5px solid rgba(34,197,94,0.15)',
-                borderRadius: 6,
+                fontSize: 11, color: teal,
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: '#04342c', border: '0.5px solid #085041',
+                borderRadius: 6, padding: '4px 10px',
               }}>
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 10, color: '#22c55e',
-                }}>Network operational</span>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: teal }} />
+                Network operational
               </div>
             </div>
 
-            {/* Stat tiles */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
-              {[
-                { label: "Today's revenue", value: 'Ksh 14,200', color: gold },
-                { label: 'Active sessions', value: '86', color: cream },
-                { label: 'Failed today', value: '0', color: '#22c55e' },
-              ].map((stat) => (
-                <div key={stat.label} style={{
-                  padding: '16px 18px',
-                  background: '#141311',
-                  border: '0.5px solid #1c1b18',
-                  borderRadius: 10,
-                }}>
-                  <div style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 11, color: '#555',
-                    marginBottom: 6,
-                  }}>{stat.label}</div>
-                  <div style={{
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 22, fontWeight: 500,
-                    color: stat.color,
-                  }}>{stat.value}</div>
-                </div>
-              ))}
+            {/* Stat grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div style={{ background: bg3, borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10.5, color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Today&apos;s revenue</div>
+                <div style={{ fontSize: 19, fontFamily: "'DM Mono', monospace", color: gold }}>Ksh 14,200</div>
+              </div>
+              <div style={{ background: bg3, borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10.5, color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Active sessions</div>
+                <div style={{ fontSize: 19, fontFamily: "'DM Mono', monospace", color: cream }}>86</div>
+              </div>
+              <div style={{ background: bg3, borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10.5, color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Failed today</div>
+                <div style={{ fontSize: 19, fontFamily: "'DM Mono', monospace", color: '#22c55e' }}>0</div>
+              </div>
             </div>
 
-            {/* Fade to black — implies more content */}
+            {/* Fade teaser */}
             <div style={{
-              height: 64,
-              background: 'linear-gradient(to bottom, transparent, #0c0b0a)',
-            }} />
+              marginTop: 14, height: 70, borderRadius: 10,
+              background: bg3, position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: `linear-gradient(to bottom, transparent 0%, ${bg2} 100%)`,
+              }} />
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ═══════ FEATURES STRIP ═══════ */}
-      <section id="features" style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 40px 80px', maxWidth: 1000, margin: '0 auto',
-      }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1,
-          background: '#1c1b18',
-          borderRadius: 14,
-          overflow: 'hidden',
-        }}>
+      {/* ═══════ HOW IT WORKS ═══════ */}
+      <section id="how" style={{ position: 'relative', zIndex: 1, padding: '64px 28px', maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ fontSize: 12, color: gold, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: 12, fontWeight: 600 }}>How it works</div>
+        <h2 style={{
+          fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 500,
+          fontSize: 32, textAlign: 'center', marginBottom: 14, color: cream,
+        }}>Three steps. No sales call.</h2>
+        <p style={{ textAlign: 'center', color: dim, fontSize: 14.5, maxWidth: 480, margin: '0 auto 44px', lineHeight: 1.6 }}>
+          From signup to your first M-Pesa payment, without waiting on anyone.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           {[
-            {
-              icon: Rocket,
-              title: 'Self-serve setup',
-              desc: "No quote request, no sales call. You're billing customers the same day.",
-            },
-            {
-              icon: Wifi,
-              title: 'Outage transparency',
-              desc: 'Customers see network status before they pay — not after.',
-            },
-            {
-              icon: Smartphone,
-              title: 'Instant reconnect',
-              desc: 'Returning devices skip login entirely — recognized by MAC, not memory.',
-            },
-          ].map((item) => (
-            <div key={item.title} style={{
-              padding: '28px 24px',
-              background: '#050505',
-              cursor: 'default',
-            }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: 'rgba(232,184,75,0.08)',
-                border: '0.5px solid rgba(232,184,75,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: 16,
-              }}>
-                <item.icon size={18} color={gold} strokeWidth={1.8} />
-              </div>
-              <h3 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: cream,
-              }}>{item.title}</h3>
-              <p style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 12, color: dim, lineHeight: 1.55, margin: 0,
-              }}>{item.desc}</p>
+            { num: '01', title: 'Sign up', desc: 'Create your account and brand your captive portal — logo, colors, name. Takes minutes.' },
+            { num: '02', title: 'Connect your router', desc: 'Paste one command into your MikroTik\u2019s terminal. No app to install, no file to drag around.', cmd: '/tool fetch url="mikrotik.wi-bill.com/onboard/{token}"...' },
+            { num: '03', title: 'Get paid', desc: 'Your customers connect, see the network\u2019s live, and pay via M-Pesa. You watch it happen.' },
+          ].map((step) => (
+            <div key={step.num}>
+              <div style={{ fontFamily: "'DM Mono', monospace", color: gold, fontSize: 13, marginBottom: 10 }}>{step.num}</div>
+              <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: cream }}>{step.title}</h3>
+              <p style={{ fontSize: 13, color: dim, lineHeight: 1.6 }}>{step.desc}</p>
+              {step.cmd && (
+                <div style={{
+                  marginTop: 12, background: bg3, borderRadius: 8,
+                  padding: '10px 12px',
+                  fontFamily: "'DM Mono', monospace", fontSize: 11.5, color: '#c9c7c0',
+                  overflowX: 'auto', whiteSpace: 'nowrap',
+                }}>{step.cmd}</div>
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* ═══════ CTA ═══════ */}
-      <section style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 40px 80px', textAlign: 'center',
-      }}>
+      {/* ═══════ WHY WIBILL ═══════ */}
+      <section id="features" style={{ position: 'relative', zIndex: 1, padding: '64px 28px', maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ fontSize: 12, color: gold, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: 12, fontWeight: 600 }}>Why WiBill</div>
         <h2 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: 28, fontWeight: 700,
-          letterSpacing: '-0.02em', margin: '0 0 10px',
-        }}>
-          Get your portal live this week.
-        </h2>
-        <p style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: 14, color: dim,
-          maxWidth: 380, margin: '0 auto 28px', lineHeight: 1.6,
-        }}>
-          Connect your MikroTik. Brand your portal. Start billing through M-Pesa.
+          fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 500,
+          fontSize: 32, textAlign: 'center', marginBottom: 14, color: cream,
+        }}>Built around trust, not just billing.</h2>
+        <p style={{ textAlign: 'center', color: dim, fontSize: 14.5, maxWidth: 480, margin: '0 auto 44px', lineHeight: 1.6 }}>
+          Every feature here exists to answer one question: why should a customer believe the internet is worth paying for today.
         </p>
+
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1,
+          background: lineSoft, borderRadius: 14, overflow: 'hidden',
+        }}>
+          {[
+            { icon: '◈', title: 'Outage transparency', desc: 'Customers see network status before they pay, not after — the single biggest source of billing disputes, gone.' },
+            { icon: '◇', title: 'Instant reconnect', desc: 'Returning devices skip login entirely — recognized by MAC, not memory. No re-typing a phone number every visit.' },
+            { icon: '▣', title: 'A portal that looks like you', desc: 'Your logo, your colors, your name — customers see your brand, not a generic billing page bolted onto your WiFi.' },
+            { icon: '◎', title: 'Self-serve, always', desc: 'No quote request, no sales call, ever. Sign up and you\u2019re billing customers the same day.' },
+          ].map((item) => (
+            <div key={item.title} style={{ background: '#050505', padding: 28 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: '#412402',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 16, fontSize: 16, color: gold,
+              }}>{item.icon}</div>
+              <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: cream }}>{item.title}</h3>
+              <p style={{ fontSize: 13, color: dim, lineHeight: 1.6 }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════ PRICING ═══════ */}
+      <section id="pricing" style={{ position: 'relative', zIndex: 1, padding: '64px 28px', maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ fontSize: 12, color: gold, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: 12, fontWeight: 600 }}>Pricing</div>
+        <h2 style={{
+          fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 500,
+          fontSize: 32, textAlign: 'center', marginBottom: 14, color: cream,
+        }}>One number. No surprises.</h2>
+        <p style={{ textAlign: 'center', color: dim, fontSize: 14.5, maxWidth: 480, margin: '0 auto 44px', lineHeight: 1.6 }}>
+          No monthly fee. No per-client charge. No minimum.
+        </p>
+
+        <div style={{
+          maxWidth: 420, margin: '0 auto',
+          background: bg2, border: '0.5px solid #262420',
+          borderRadius: 16, padding: '36px 32px', textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 52, color: gold, marginBottom: 6 }}>
+            5<span style={{ fontSize: 20, color: dim }}>%</span>
+          </div>
+          <div style={{ fontSize: 14, color: dim, marginBottom: 24 }}>of what you collect. That&apos;s the whole model.</div>
+          <div style={{ textAlign: 'left', fontSize: 13.5, color: dim, lineHeight: 2.1, marginBottom: 28 }}>
+            {['No monthly minimum', 'No setup fee', 'No per-client charge', 'Pay only when you get paid'].map((item) => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Check size={14} color={teal} /> {item}
+              </div>
+            ))}
+          </div>
+          <Link href="/signup" style={{
+            display: 'block', width: '100%', padding: 13,
+            background: gold, border: 'none', borderRadius: 10,
+            color: goldText, fontWeight: 600, fontSize: 14,
+            fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+            textDecoration: 'none', textAlign: 'center',
+          }}>Get started <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 4 }} /></Link>
+          <div style={{
+            background: bg3, borderRadius: 10, padding: '14px 16px',
+            fontSize: 13, color: dim, marginTop: 20,
+            fontFamily: "'DM Mono', monospace",
+          }}>Collect Ksh 10,000 → you keep Ksh 9,500</div>
+        </div>
+      </section>
+
+      {/* ═══════ FINAL CTA ═══════ */}
+      <div style={{ textAlign: 'center', padding: '80px 28px 100px', position: 'relative', zIndex: 1 }}>
+        <h2 style={{
+          fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontWeight: 500,
+          fontSize: 34, marginBottom: 28, maxWidth: 520, margin: '0 auto 28px',
+        }}>Ready to bill customers who trust you?</h2>
         <Link href="/signup" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          background: gold, color: '#000',
-          padding: '13px 32px', borderRadius: 10,
-          fontSize: 13, fontFamily: "'Syne', sans-serif",
-          fontWeight: 700, letterSpacing: '0.5px', textDecoration: 'none',
-          transition: 'opacity 0.2s',
+          background: gold, color: goldText,
+          padding: '14px 28px', borderRadius: 10,
+          fontSize: 15, fontWeight: 600, fontFamily: "'Inter', sans-serif",
+          textDecoration: 'none', transition: 'opacity 0.2s',
         }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >Get started <ArrowRight size={15} /></Link>
-      </section>
-
-      {/* ═══════ PRICING (placeholder anchor) ═══════ */}
-      <section id="pricing" style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 40px 80px', maxWidth: 1000, margin: '0 auto',
-        textAlign: 'center',
-      }}>
-        <p style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 11, color: '#333',
-          letterSpacing: '1px',
-        }}>PRICING — COMING SOON</p>
-      </section>
+      </div>
 
       {/* ═══════ FOOTER ═══════ */}
       <footer style={{
         position: 'relative', zIndex: 1,
-        borderTop: '0.5px solid rgba(255,255,255,0.06)',
-        padding: '28px 40px',
-        maxWidth: 1000, margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderTop: '0.5px solid #1c1b18',
+        padding: '28px 48px', textAlign: 'center',
+        fontSize: 12, color: mute,
       }}>
-        <span style={{
-          fontFamily: "'Instrument Serif', serif",
-          fontStyle: 'italic', fontSize: 18, color: cream,
-        }}>WiBill</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <Link href="/login" style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 11, color: '#555', textDecoration: 'none',
-            transition: 'color 0.2s',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = cream)}
-            onMouseLeave={e => (e.currentTarget.style.color = '#555')}
-          >Login</Link>
-          <a href="mailto:support@wi-bill.com" style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: 11, color: '#444', textDecoration: 'none',
-          }}>support@wi-bill.com</a>
-          <span style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 10, color: '#333',
-          }}>&copy; {new Date().getFullYear()} WiBill</span>
-        </div>
+        &copy; {new Date().getFullYear()} WiBill. Built for Kenyan ISPs.
       </footer>
 
       {/* ── Mobile ── */}
       <style>{`
-        @media (max-width: 900px) {
-          nav { padding: 0 20px !important; }
+        @media (max-width: 720px) {
+          nav { padding: 18px 20px !important; }
+          .nav-links { gap: 14px; }
           section { padding-left: 20px !important; padding-right: 20px !important; }
-        }
-        @media (max-width: 700px) {
-          #features > div { grid-template-columns: 1fr !important; }
-          footer { flex-direction: column; gap: 12px; text-align: center; }
-          footer > div { flex-direction: column; gap: 8px; }
+          .stat-grid, .steps, .feature-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
