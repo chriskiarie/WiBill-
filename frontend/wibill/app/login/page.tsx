@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
-import { Eye, EyeOff, Mail, Lock, Shield, Wifi, CreditCard, Headphones, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Shield, Loader2 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -17,10 +17,11 @@ function LoginContent() {
   const [error, setError] = useState('')
   const [inviteToken, setInviteToken] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [keepSignedIn, setKeepSignedIn] = useState(false)
 
   const [ispName, setIspName] = useState('')
   const [slug, setSlug] = useState('')
@@ -90,478 +91,430 @@ function LoginContent() {
     }
   }
 
-  const features = [
-    { icon: Wifi, label: 'Network', desc: 'Hotspot & PPPoE control' },
-    { icon: CreditCard, label: 'Billing', desc: 'Invoices & payments' },
-    { icon: Headphones, label: 'Support', desc: 'Tickets & activity logs' },
-  ]
-
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#030303',
+      background: '#050508',
       display: 'flex',
-      fontFamily: 'Inter, sans-serif',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
       overflow: 'hidden',
+      fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
     }}>
-      {/* ═══════ LEFT: Marketing Panel ═══════ */}
+      {/* ── Atmospheric background ── */}
+      {/* Radial glow top-right */}
       <div style={{
-        flex: '1 1 55%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px 56px',
-        position: 'relative',
-        overflow: 'hidden',
+        position: 'absolute', top: '-40%', right: '-20%',
+        width: '80vw', height: '80vw', maxWidth: 900, maxHeight: 900,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(232,184,75,0.04) 0%, transparent 60%)',
+        filter: 'blur(100px)', pointerEvents: 'none',
+      }} />
+      {/* Radial glow bottom-left */}
+      <div style={{
+        position: 'absolute', bottom: '-30%', left: '-15%',
+        width: '70vw', height: '70vw', maxWidth: 800, maxHeight: 800,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(232,184,75,0.03) 0%, transparent 60%)',
+        filter: 'blur(100px)', pointerEvents: 'none',
+      }} />
+      {/* Subtle grid */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.025,
+        backgroundImage: `linear-gradient(rgba(232,184,75,0.3) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(232,184,75,0.3) 1px, transparent 1px)`,
+        backgroundSize: '80px 80px',
+        pointerEvents: 'none',
+      }} />
+
+      {/* ── Floating particles (decorative dots) ── */}
+      {[
+        { top: '12%', left: '8%', size: 3, opacity: 0.15, delay: '0s' },
+        { top: '25%', right: '15%', size: 2, opacity: 0.1, delay: '1s' },
+        { bottom: '20%', left: '20%', size: 2, opacity: 0.12, delay: '2s' },
+        { top: '60%', right: '8%', size: 3, opacity: 0.08, delay: '0.5s' },
+        { bottom: '35%', left: '5%', size: 2, opacity: 0.1, delay: '1.5s' },
+      ].map((p, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          ...p,
+          width: p.size, height: p.size, borderRadius: '50%',
+          background: '#E8B84B',
+          opacity: p.opacity,
+          animation: `float ${4 + i}s ease-in-out infinite`,
+          animationDelay: p.delay,
+        }} />
+      ))}
+
+      {/* ── Main card ── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        width: '100%', maxWidth: 440,
+        margin: 24,
       }}>
-        {/* Subtle background pattern */}
+        {/* Brand */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='52' viewBox='0 0 60 52' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 15v22L30 52 0 37V15z' fill='none' stroke='%23E8B84B' stroke-width='0.5'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 52px',
-        }} />
-
-        {/* Gold glow */}
-        <div style={{
-          position: 'absolute', top: '-200px', left: '-200px',
-          width: 600, height: 600, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(232,184,75,0.06) 0%, transparent 65%)',
-          filter: 'blur(80px)', pointerEvents: 'none',
-        }} />
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Brand */}
-          <div style={{ marginBottom: 48 }}>
+          textAlign: 'center',
+          marginBottom: 48,
+        }}>
+          {/* Logo mark — abstract "W" shape */}
+          <div style={{
+            width: 48, height: 48,
+            margin: '0 auto 20px',
+            position: 'relative',
+          }}>
             <div style={{
-              fontFamily: '"Instrument Serif", serif',
-              fontStyle: 'italic',
-              fontSize: 52,
-              fontWeight: 400,
-              color: '#EDEBE6',
-              letterSpacing: '-0.03em',
-              lineHeight: 1,
+              width: '100%', height: '100%',
+              border: '2px solid #E8B84B',
+              borderRadius: 12,
+              transform: 'rotate(45deg)',
+              position: 'relative',
             }}>
-              WiBill
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-45deg)',
+                fontFamily: '"Syne", sans-serif',
+                fontSize: 18, fontWeight: 800,
+                color: '#E8B84B',
+                letterSpacing: '-0.05em',
+              }}>W</div>
             </div>
           </div>
 
-          {/* Tagline */}
-          <h1 style={{
-            fontFamily: '"Space Grotesk", sans-serif',
-            fontSize: 36,
-            fontWeight: 700,
+          <div style={{
+            fontFamily: '"Syne", sans-serif',
+            fontSize: 32,
+            fontWeight: 800,
             color: '#f0f0f0',
-            lineHeight: 1.15,
-            margin: '0 0 16px 0',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            marginBottom: 8,
           }}>
-            Run your ISP<br />from one smart<br />dashboard.
-          </h1>
-
-          <p style={{
-            fontSize: 14,
-            color: '#666',
-            lineHeight: 1.7,
-            margin: '0 0 48px 0',
-            maxWidth: 400,
+            WiBill
+          </div>
+          <div style={{
+            fontFamily: '"DM Mono", monospace',
+            fontSize: 10,
+            color: '#444',
+            letterSpacing: '3px',
+            textTransform: 'uppercase',
           }}>
-            Monitor clients, payments, tickets, network devices, and service delivery with a clean control center built for fast operations.
-          </p>
+            Command Center
+          </div>
+        </div>
 
-          {/* Feature cards */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 48 }}>
-            {features.map((f) => (
-              <div key={f.label} style={{
-                flex: 1,
-                padding: '20px 16px',
-                background: 'rgba(255,255,255,0.02)',
-                border: '0.5px solid rgba(255,255,255,0.06)',
-                borderRadius: 12,
-              }}>
-                <f.icon size={18} color="#E8B84B" style={{ marginBottom: 10 }} />
-                <div style={{
+        {/* Tabs */}
+        {!inviteToken && (
+          <div style={{
+            display: 'flex',
+            gap: 0,
+            marginBottom: 32,
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            {(['login', 'signup'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => { setTab(t); setError('') }}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  border: 'none',
+                  borderBottom: tab === t ? '2px solid #E8B84B' : '2px solid transparent',
+                  cursor: 'pointer',
+                  background: 'transparent',
+                  color: tab === t ? '#E8B84B' : '#555',
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
                   fontSize: 13,
-                  fontWeight: 600,
-                  color: '#f0f0f0',
-                  marginBottom: 4,
-                }}>{f.label}</div>
-                <div style={{
-                  fontSize: 11,
-                  color: '#555',
-                  lineHeight: 1.4,
-                }}>{f.desc}</div>
-              </div>
+                  fontWeight: tab === t ? 700 : 500,
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.25s ease',
+                }}
+              >
+                {t === 'login' ? 'Sign In' : 'Register'}
+              </button>
             ))}
           </div>
+        )}
 
-          {/* Status bar */}
+        {/* Invite banner */}
+        {inviteToken && (
           <div style={{
-            display: 'flex',
-            gap: 24,
-            padding: '12px 16px',
-            background: 'rgba(255,255,255,0.02)',
-            border: '0.5px solid rgba(255,255,255,0.05)',
-            borderRadius: 8,
-            width: 'fit-content',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-              <span style={{ fontSize: 11, color: '#555' }}>System ready</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Shield size={12} color="#555" />
-              <span style={{ fontSize: 11, color: '#555' }}>Encrypted session</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════ RIGHT: Login Form ═══════ */}
-      <div style={{
-        flex: '1 1 45%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 40,
-        position: 'relative',
-      }}>
-        {/* Subtle glow behind card */}
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(232,184,75,0.04) 0%, transparent 70%)',
-          filter: 'blur(60px)', pointerEvents: 'none',
-        }} />
-
-        <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 400 }}>
-          {/* Welcome badge */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '5px 12px',
-            background: 'rgba(34,197,94,0.08)',
-            border: '0.5px solid rgba(34,197,94,0.15)',
-            borderRadius: 20,
-            marginBottom: 20,
-          }}>
-            <CheckCircle size={13} color="#22c55e" />
-            <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 500 }}>Welcome back</span>
-          </div>
-
-          {/* Heading */}
-          <h2 style={{
-            fontFamily: '"Space Grotesk", sans-serif',
-            fontSize: 28,
-            fontWeight: 700,
-            color: '#f0f0f0',
-            margin: '0 0 8px 0',
-            letterSpacing: '-0.02em',
-          }}>
-            {tab === 'login' ? 'Sign in to continue' : 'Create your account'}
-          </h2>
-
-          <p style={{
+            background: 'rgba(34,197,94,0.06)',
+            border: '1px solid rgba(34,197,94,0.15)',
+            borderRadius: 10,
+            padding: '14px 18px',
+            marginBottom: 28,
+            color: '#22c55e',
             fontSize: 13,
-            color: '#555',
-            margin: '0 0 28px 0',
-            lineHeight: 1.5,
+            textAlign: 'center',
+            fontWeight: 500,
           }}>
-            {tab === 'login'
-              ? 'Use your administrator credentials to access the WiBill control panel.'
-              : 'Set up your ISP management dashboard in minutes.'}
-          </p>
+            You have been invited to join. Create your account below.
+          </div>
+        )}
 
-          {/* Tabs */}
-          {!inviteToken && (
-            <div style={{
-              display: 'flex',
-              background: 'rgba(255,255,255,0.03)',
-              border: '0.5px solid rgba(255,255,255,0.06)',
-              borderRadius: 10,
-              padding: 3,
-              marginBottom: 24,
-              gap: 3,
-            }}>
-              {(['login', 'signup'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { setTab(t); setError('') }}
-                  style={{
-                    flex: 1,
-                    padding: '9px',
-                    border: 'none',
-                    borderRadius: 7,
-                    cursor: 'pointer',
-                    background: tab === t ? '#141414' : 'transparent',
-                    color: tab === t ? '#E8B84B' : '#555',
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: 12,
-                    fontWeight: tab === t ? 700 : 500,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {t === 'login' ? 'Sign In' : 'Create Account'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Invite banner */}
-          {inviteToken && (
-            <div style={{
-              background: 'rgba(34,197,94,0.08)',
-              border: '0.5px solid rgba(34,197,94,0.2)',
-              borderRadius: 10,
-              padding: '12px 16px',
-              marginBottom: 24,
-              color: '#22c55e',
-              fontSize: 12,
-              textAlign: 'center',
-            }}>
-              You have been invited. Create your account below.
-            </div>
-          )}
-
-          {/* Card */}
-          <div style={{
-            background: 'rgba(10, 10, 10, 0.6)',
-            backdropFilter: 'blur(24px) saturate(1.4)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-            border: '0.5px solid rgba(255,255,255,0.06)',
-            borderRadius: 16,
-            padding: 28,
-          }}>
-            {(tab === 'login' && !inviteToken) ? (
-              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {/* Email */}
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>
-                    Email address
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={16} color="#444" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@yourisp.co.ke"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px 12px 40px',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '0.5px solid rgba(255,255,255,0.08)',
-                        borderRadius: 10,
-                        color: '#f0f0f0',
-                        fontFamily: '"DM Mono", monospace',
-                        fontSize: 13,
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.2s, box-shadow 0.2s',
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#E8B84B'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                  </div>
+        {/* Form card */}
+        <div style={{
+          background: 'rgba(12, 12, 16, 0.8)',
+          backdropFilter: 'blur(40px) saturate(1.3)',
+          WebkitBackdropFilter: 'blur(40px) saturate(1.3)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: 20,
+          padding: '36px 32px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(232,184,75,0.03)',
+        }}>
+          {(tab === 'login' && !inviteToken) ? (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Email */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontFamily: '"DM Mono", monospace',
+                  fontSize: 10,
+                  color: emailFocused ? '#E8B84B' : '#555',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                  transition: 'color 0.25s ease',
+                }}>Email</label>
+                <div style={{
+                  position: 'relative',
+                  border: `1px solid ${emailFocused ? 'rgba(232,184,75,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 12,
+                  background: emailFocused ? 'rgba(232,184,75,0.03)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.25s ease',
+                  boxShadow: emailFocused ? '0 0 0 3px rgba(232,184,75,0.08)' : 'none',
+                }}>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    placeholder="admin@yourisp.co.ke"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#f0f0f0',
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                      fontSize: 14,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
                 </div>
+              </div>
 
-                {/* Password */}
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>
-                    Password
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} color="#444" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '12px 44px 12px 40px',
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '0.5px solid rgba(255,255,255,0.08)',
-                        borderRadius: 10,
-                        color: '#f0f0f0',
-                        fontFamily: '"DM Mono", monospace',
-                        fontSize: 13,
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.2s, box-shadow 0.2s',
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#E8B84B'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1)'; }}
-                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute', right: 12, top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: 4, display: 'flex',
-                        color: showPassword ? '#E8B84B' : '#444',
-                        transition: 'color 200ms',
-                      }}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+              {/* Password */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontFamily: '"DM Mono", monospace',
+                  fontSize: 10,
+                  color: passwordFocused ? '#E8B84B' : '#555',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                  transition: 'color 0.25s ease',
+                }}>Password</label>
+                <div style={{
+                  position: 'relative',
+                  border: `1px solid ${passwordFocused ? 'rgba(232,184,75,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  borderRadius: 12,
+                  background: passwordFocused ? 'rgba(232,184,75,0.03)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.25s ease',
+                  boxShadow: passwordFocused ? '0 0 0 3px rgba(232,184,75,0.08)' : 'none',
+                }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    placeholder="Enter your password"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '14px 48px 14px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#f0f0f0',
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                      fontSize: 14,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute', right: 14, top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: 4, display: 'flex',
+                      color: showPassword ? '#E8B84B' : '#444',
+                      transition: 'color 0.2s',
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
+              </div>
 
-                {/* Keep signed in */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#555' }}>
-                    <input
-                      type="checkbox"
-                      checked={keepSignedIn}
-                      onChange={(e) => setKeepSignedIn(e.target.checked)}
-                      style={{ accentColor: '#E8B84B', width: 14, height: 14 }}
-                    />
-                    Keep me signed in
-                  </label>
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div style={{
-                    background: 'rgba(239,68,68,0.08)',
-                    border: '0.5px solid rgba(239,68,68,0.2)',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    color: '#ef4444',
-                    fontSize: 12,
-                    fontFamily: '"DM Mono", monospace',
-                  }}>
-                    {error}
-                  </div>
-                )}
-
-                {/* Submit */}
-                <button type="submit" disabled={loading} style={{
-                  width: '100%',
-                  padding: '14px',
-                  background: loading ? 'rgba(255,255,255,0.05)' : '#E8B84B',
-                  border: 'none',
+              {/* Error */}
+              {error && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.06)',
+                  border: '1px solid rgba(239,68,68,0.15)',
                   borderRadius: 10,
-                  color: loading ? '#555' : '#000',
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
-                  letterSpacing: '0.3px',
-                  transition: 'background 0.2s, opacity 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
+                  padding: '12px 16px',
+                  color: '#ef4444',
+                  fontSize: 13,
+                  fontWeight: 500,
                 }}>
-                  {loading ? 'Signing in...' : (
-                    <>
-                      <Lock size={15} />
-                      Sign In
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>ISP Name</label>
-                  <input type="text" value={ispName} onChange={e => setIspName(e.target.value)} placeholder="Your ISP Name" required
-                    style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f0f0f0', fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                  {error}
                 </div>
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>Slug (URL-safe)</label>
-                  <input type="text" value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="my-isp" required
-                    style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f0f0f0', fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>Admin Email</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="admin@yourisp.co.ke" required
-                    style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f0f0f0', fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>Password</label>
-                  <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} placeholder="••••••••" required
-                    style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f0f0f0', fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, color: '#666', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 7 }}>Phone (optional)</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+254..."
-                    style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: 10, color: '#f0f0f0', fontFamily: '"DM Mono", monospace', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                {error && (
-                  <div style={{ background: 'rgba(239,68,68,0.08)', border: '0.5px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '10px 14px', color: '#ef4444', fontSize: 12, fontFamily: '"DM Mono", monospace' }}>
-                    {error}
-                  </div>
+              )}
+
+              {/* Submit */}
+              <button type="submit" disabled={loading} style={{
+                width: '100%',
+                padding: '15px',
+                background: loading ? 'rgba(232,184,75,0.15)' : 'linear-gradient(135deg, #E8B84B 0%, #d4a03a 100%)',
+                border: 'none',
+                borderRadius: 12,
+                color: loading ? 'rgba(232,184,75,0.5)' : '#000',
+                fontFamily: '"Syne", sans-serif',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                letterSpacing: '0.5px',
+                transition: 'all 0.25s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                boxShadow: loading ? 'none' : '0 8px 32px rgba(232,184,75,0.2)',
+              }}>
+                {loading ? (
+                  <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight size={16} style={{ transition: 'transform 0.2s' }} />
+                  </>
                 )}
-                <button type="submit" disabled={loading} style={{
-                  width: '100%', padding: '14px',
-                  background: loading ? 'rgba(255,255,255,0.05)' : '#E8B84B',
-                  border: 'none', borderRadius: 10,
-                  color: loading ? '#555' : '#000',
-                  fontFamily: '"Space Grotesk", sans-serif', fontSize: 14, fontWeight: 700,
-                  cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
-                  {loading ? 'Creating...' : inviteToken ? 'LAUNCH MY DASHBOARD' : 'CREATE ACCOUNT'}
-                </button>
-              </form>
-            )}
-          </div>
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>ISP Name</label>
+                <input type="text" value={ispName} onChange={e => setIspName(e.target.value)} placeholder="Your ISP Name" required
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Slug</label>
+                <input type="text" value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="my-isp" required
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Email</label>
+                <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="admin@yourisp.co.ke" required
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Password</label>
+                <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} placeholder="••••••••" required
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Phone (optional)</label>
+                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+254..."
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+              </div>
+              {error && (
+                <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '12px 16px', color: '#ef4444', fontSize: 13, fontWeight: 500 }}>
+                  {error}
+                </div>
+              )}
+              <button type="submit" disabled={loading} style={{
+                width: '100%', padding: '15px',
+                background: loading ? 'rgba(232,184,75,0.15)' : 'linear-gradient(135deg, #E8B84B 0%, #d4a03a 100%)',
+                border: 'none', borderRadius: 12,
+                color: loading ? 'rgba(232,184,75,0.5)' : '#000',
+                fontFamily: '"Syne", sans-serif', fontSize: 14, fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                boxShadow: loading ? 'none' : '0 8px 32px rgba(232,184,75,0.2)',
+              }}>
+                {loading ? <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} /> : (
+                  <>
+                    {inviteToken ? 'Launch Dashboard' : 'Create Account'}
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
 
-          {/* Security note */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 20,
-            padding: '10px 14px',
-            background: 'rgba(34,197,94,0.04)',
-            border: '0.5px solid rgba(34,197,94,0.1)',
-            borderRadius: 8,
-          }}>
-            <Shield size={14} color="#22c55e" />
-            <span style={{ fontSize: 11, color: '#555' }}>Your session is protected with secure authentication.</span>
-          </div>
-
-          {/* Footer */}
-          <div style={{
-            marginTop: 24,
-            textAlign: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}>
-            <span style={{
-              fontSize: 10,
-              color: '#333',
-              padding: '3px 8px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '0.5px solid rgba(255,255,255,0.05)',
-              borderRadius: 4,
-              fontFamily: '"DM Mono", monospace',
-            }}>
-              WiBill v2.0
-            </span>
-          </div>
-          <div style={{
-            marginTop: 12,
-            textAlign: 'center',
-            fontSize: 11,
+        {/* Security footer */}
+        <div style={{
+          marginTop: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+        }}>
+          <Shield size={12} color="#333" />
+          <span style={{
+            fontFamily: '"DM Mono", monospace',
+            fontSize: 10,
             color: '#333',
+            letterSpacing: '1px',
           }}>
-            &copy; {new Date().getFullYear()} WiBill. All rights reserved.
-          </div>
+            ENCRYPTED SESSION
+          </span>
+          <div style={{
+            width: 4, height: 4, borderRadius: '50%',
+            background: '#22c55e',
+            animation: 'pulse 2s ease-in-out infinite',
+            marginLeft: 4,
+          }} />
         </div>
       </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -569,8 +522,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #E8B84B', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.2)', borderTopColor: '#E8B84B', animation: 'spin 0.8s linear infinite' }} />
       </div>
     }>
       <LoginContent />
