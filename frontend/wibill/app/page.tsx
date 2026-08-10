@@ -505,17 +505,18 @@ export default function LandingPage() {
           max-width: 420px;
           width: 100%;
           height: 400px;
-          padding: 15px;
+          padding: 34px;
           border-radius: 18px;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           position: relative;
-          background: linear-gradient(165deg, #131211, #0c0b0a 60%);
+          background: rgba(20, 19, 16, 0.62);
           backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           text-align: center;
-          border: 1px solid rgba(239,159,39,0.12);
-          overflow: hidden;
+          border: 1px solid rgba(239,159,39,0.15);
           transform-style: preserve-3d;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
           box-shadow: 0 20px 50px -25px rgba(0,0,0,0.7);
@@ -529,22 +530,24 @@ export default function LandingPage() {
           top: -5%;
           left: -5%;
           z-index: -1;
-          background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
+          background: linear-gradient(135deg, #1a1105 0%, #6b3d0a 45%, rgba(239,159,39,0.55) 100%);
           filter: blur(30px);
+          border-radius: 20px;
           opacity: 0;
           transition: opacity 0.5s ease;
         }
         .pricing-card--hovered::before {
-          opacity: 0.4;
+          opacity: 0.45;
         }
         .pricing-card--hovered {
-          box-shadow: 0 30px 70px -25px rgba(0,0,0,0.8), 0 0 50px -10px rgba(239,159,39,0.15);
+          box-shadow: 0 30px 70px -25px rgba(0,0,0,0.8), 0 0 60px -10px rgba(239,159,39,0.2);
         }
 
         .pricing-sheen {
           position: absolute;
           inset: 0;
           pointer-events: none;
+          border-radius: inherit;
           opacity: 0;
           transition: opacity 0.3s ease;
           background: radial-gradient(circle 220px at var(--mx, 50%) var(--my, 50%), rgba(239,159,39,0.18), transparent 70%);
