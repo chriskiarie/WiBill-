@@ -241,4 +241,4 @@ async def health():
 
 @app.get("/", tags=["system"])
 async def root():
-    return {"message": f"{settings.APP_NAME} API is running"}
+    return {"message": f"{settings.APP_NAME} API is running", "version": settings.APP_VERSION}
