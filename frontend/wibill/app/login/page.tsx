@@ -94,7 +94,7 @@ function LoginContent() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#050508',
+      background: 'linear-gradient(160deg, #080B11 0%, #0A0E18 30%, #0D1220 60%, #080B11 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -102,29 +102,44 @@ function LoginContent() {
       overflow: 'hidden',
       fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
     }}>
-      {/* ── Atmospheric background ── */}
-      {/* Radial glow top-right */}
+      {/* ── Ambient glow — anchored to center ── */}
       <div style={{
-        position: 'absolute', top: '-40%', right: '-20%',
-        width: '80vw', height: '80vw', maxWidth: 900, maxHeight: 900,
+        position: 'absolute', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '60vw', height: '60vw', maxWidth: 700, maxHeight: 700,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(232,184,75,0.04) 0%, transparent 60%)',
-        filter: 'blur(100px)', pointerEvents: 'none',
+        background: 'radial-gradient(circle, rgba(18,32,60,0.6) 0%, rgba(8,11,17,0) 65%)',
+        pointerEvents: 'none',
       }} />
-      {/* Radial glow bottom-left */}
+      {/* Gold accent glow — top-right */}
       <div style={{
-        position: 'absolute', bottom: '-30%', left: '-15%',
-        width: '70vw', height: '70vw', maxWidth: 800, maxHeight: 800,
+        position: 'absolute', top: '-15%', right: '-10%',
+        width: '50vw', height: '50vw', maxWidth: 600, maxHeight: 600,
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(232,184,75,0.03) 0%, transparent 60%)',
-        filter: 'blur(100px)', pointerEvents: 'none',
+        background: 'radial-gradient(circle, rgba(232,184,75,0.05) 0%, transparent 55%)',
+        filter: 'blur(80px)', pointerEvents: 'none',
       }} />
-      {/* Subtle grid */}
+      {/* Gold accent glow — bottom-left */}
       <div style={{
-        position: 'absolute', inset: 0, opacity: 0.025,
-        backgroundImage: `linear-gradient(rgba(232,184,75,0.3) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(232,184,75,0.3) 1px, transparent 1px)`,
-        backgroundSize: '80px 80px',
+        position: 'absolute', bottom: '-15%', left: '-10%',
+        width: '45vw', height: '45vw', maxWidth: 550, maxHeight: 550,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(232,184,75,0.04) 0%, transparent 55%)',
+        filter: 'blur(80px)', pointerEvents: 'none',
+      }} />
+      {/* Tech grid — higher opacity, tighter spacing */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.04,
+        backgroundImage: `linear-gradient(rgba(232,184,75,0.4) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(232,184,75,0.4) 1px, transparent 1px)`,
+        backgroundSize: '60px 60px',
+        pointerEvents: 'none',
+      }} />
+      {/* Dot matrix overlay */}
+      <div style={{
+        position: 'absolute', inset: 0, opacity: 0.03,
+        backgroundImage: `radial-gradient(circle, rgba(232,184,75,0.5) 1px, transparent 1px)`,
+        backgroundSize: '24px 24px',
         pointerEvents: 'none',
       }} />
 
@@ -257,14 +272,21 @@ function LoginContent() {
 
         {/* Form card */}
         <div style={{
-          background: 'rgba(12, 12, 16, 0.8)',
+          position: 'relative',
+          background: 'rgba(15, 23, 42, 0.55)',
           backdropFilter: 'blur(40px) saturate(1.3)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.3)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid rgba(232,184,75,0.2)',
           borderRadius: 20,
           padding: '36px 32px',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(232,184,75,0.03)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.04)',
         }}>
+          {/* Top accent gradient line */}
+          <div style={{
+            position: 'absolute', top: -1, left: 48, right: 48, height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(232,184,75,0.35), transparent)',
+          }} />
           {(tab === 'login' && !inviteToken) ? (
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Email */}
@@ -281,11 +303,11 @@ function LoginContent() {
                 }}>Email</label>
                 <div style={{
                   position: 'relative',
-                  border: `1px solid ${emailFocused ? 'rgba(232,184,75,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  border: `1px solid ${emailFocused ? 'rgba(232,184,75,0.45)' : 'rgba(255,255,255,0.08)'}`,
                   borderRadius: 12,
-                  background: emailFocused ? 'rgba(232,184,75,0.03)' : 'rgba(255,255,255,0.02)',
+                  background: 'rgba(0,0,0,0.45)',
                   transition: 'all 0.25s ease',
-                  boxShadow: emailFocused ? '0 0 0 3px rgba(232,184,75,0.08)' : 'none',
+                  boxShadow: emailFocused ? '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}>
                   <input
                     type="email"
@@ -312,23 +334,33 @@ function LoginContent() {
 
               {/* Password */}
               <div>
-                <label style={{
-                  display: 'block',
-                  fontFamily: '"DM Mono", monospace',
-                  fontSize: 10,
-                  color: passwordFocused ? '#E8B84B' : '#555',
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase',
-                  marginBottom: 10,
-                  transition: 'color 0.25s ease',
-                }}>Password</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <label style={{
+                    display: 'block',
+                    fontFamily: '"DM Mono", monospace',
+                    fontSize: 10,
+                    color: passwordFocused ? '#E8B84B' : '#555',
+                    letterSpacing: '2px',
+                    textTransform: 'uppercase',
+                    transition: 'color 0.25s ease',
+                  }}>Password</label>
+                  <button type="button" onClick={() => {}} style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    fontSize: 11, color: '#555',
+                    padding: 0, transition: 'color 0.2s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#E8B84B'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#555'; }}
+                  >Forgot password?</button>
+                </div>
                 <div style={{
                   position: 'relative',
-                  border: `1px solid ${passwordFocused ? 'rgba(232,184,75,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  border: `1px solid ${passwordFocused ? 'rgba(232,184,75,0.45)' : 'rgba(255,255,255,0.08)'}`,
                   borderRadius: 12,
-                  background: passwordFocused ? 'rgba(232,184,75,0.03)' : 'rgba(255,255,255,0.02)',
+                  background: 'rgba(0,0,0,0.45)',
                   transition: 'all 0.25s ease',
-                  boxShadow: passwordFocused ? '0 0 0 3px rgba(232,184,75,0.08)' : 'none',
+                  boxShadow: passwordFocused ? '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 0 rgba(255,255,255,0.03)',
                 }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -365,6 +397,16 @@ function LoginContent() {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember device */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: -4 }}>
+                <input type="checkbox" id="remember" style={{ accentColor: '#E8B84B', width: 14, height: 14 }} />
+                <label htmlFor="remember" style={{
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  fontSize: 12, color: '#555', cursor: 'pointer',
+                  userSelect: 'none',
+                }}>Remember this device</label>
               </div>
 
               {/* Error */}
@@ -417,37 +459,37 @@ function LoginContent() {
               <div>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>ISP Name</label>
                 <input type="text" value={ispName} onChange={e => setIspName(e.target.value)} placeholder="Your ISP Name" required
-                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s, box-shadow 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.03)'; }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Slug</label>
                 <input type="text" value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="my-isp" required
-                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s, box-shadow 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.03)'; }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Email</label>
                 <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="admin@yourisp.co.ke" required
-                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s, box-shadow 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.03)'; }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Password</label>
                 <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} placeholder="••••••••" required
-                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s, box-shadow 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.03)'; }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontFamily: '"DM Mono", monospace', fontSize: 10, color: '#555', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 8 }}>Phone (optional)</label>
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+254..."
-                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s' }}
-                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.4)'; }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.06)'; }} />
+                  style={{ width: '100%', padding: '13px 16px', background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: '#f0f0f0', fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: 14, outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.25s, box-shadow 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(232,184,75,0.45)'; e.target.style.boxShadow = '0 0 0 3px rgba(232,184,75,0.1), inset 0 1px 0 rgba(255,255,255,0.04)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.03)'; }} />
               </div>
               {error && (
                 <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 10, padding: '12px 16px', color: '#ef4444', fontSize: 13, fontWeight: 500 }}>
@@ -482,21 +524,26 @@ function LoginContent() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
+          padding: '10px 16px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 8,
         }}>
-          <Shield size={12} color="#333" />
+          <Shield size={13} color="#E8B84B" />
           <span style={{
             fontFamily: '"DM Mono", monospace',
             fontSize: 10,
-            color: '#333',
-            letterSpacing: '1px',
+            color: '#666',
+            letterSpacing: '1.5px',
+            textTransform: 'uppercase',
           }}>
-            ENCRYPTED SESSION
+            Encrypted session
           </span>
           <div style={{
-            width: 4, height: 4, borderRadius: '50%',
+            width: 5, height: 5, borderRadius: '50%',
             background: '#22c55e',
             animation: 'pulse 2s ease-in-out infinite',
-            marginLeft: 4,
+            marginLeft: 2,
           }} />
         </div>
       </div>
@@ -522,7 +569,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #080B11 0%, #0D1220 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(232,184,75,0.2)', borderTopColor: '#E8B84B', animation: 'spin 0.8s linear infinite' }} />
       </div>
     }>
