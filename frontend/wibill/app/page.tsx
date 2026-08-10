@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, Check } from 'lucide-react'
+import { ArrowRight, ChevronRight, Check, Zap } from 'lucide-react'
 
 const gold = '#E8B84B'
 const goldText = '#3a2000'
@@ -127,8 +127,24 @@ export default function LandingPage() {
       <nav style={{
         position: 'relative', zIndex: 10,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '22px 48px', maxWidth: 1200, margin: '0 auto',
+        padding: '20px 48px', maxWidth: 1200, margin: '0 auto',
       }}>
+        {/* Logo placeholder — drop your own logo here */}
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(232, 184, 75, 0.12)',
+            border: '1px dashed rgba(232, 184, 75, 0.4)',
+            color: gold,
+          }}><Zap size={18} /></div>
+          <span className="brand-graffiti" style={{
+            fontFamily: "'Dyzero Vandals', 'Instrument Serif', serif",
+            fontSize: 30, lineHeight: 1,
+            letterSpacing: '0.02em',
+            color: cream,
+          }}>WiBill</span>
+        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
           <a href="#how" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = cream)}
@@ -149,22 +165,6 @@ export default function LandingPage() {
           }}>Get started</Link>
         </div>
       </nav>
-
-      {/* ═══════ LEFT BRANDMARK ═══════ */}
-      <div className="brand-rail" style={{
-        position: 'fixed', left: 18, top: '50%', zIndex: 5,
-        transform: 'translateY(-50%)',
-        pointerEvents: 'none',
-        writingMode: 'vertical-rl',
-      }}>
-        <span className="brand-graffiti" style={{
-          fontFamily: "'Dyzero Vandals', 'Instrument Serif', serif",
-          fontSize: 52, lineHeight: 1,
-          letterSpacing: '0.02em',
-          color: 'rgba(232, 184, 75, 0.22)',
-          textShadow: '0 0 18px rgba(232, 184, 75, 0.08)',
-        }}>WiBill</span>
-      </div>
 
       {/* ═══════ HERO ═══════ */}
       <section style={{
@@ -836,7 +836,6 @@ export default function LandingPage() {
           .pricing-content { opacity: 1; transform: none; }
           .pricing-card { height: auto; padding: 30px 20px; }
           .connect-voice { display: none; }
-          .brand-rail { display: none; }
         }
       `}</style>
     </div>
