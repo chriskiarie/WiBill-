@@ -129,14 +129,11 @@ export default function LandingPage() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '22px 48px', maxWidth: 1200, margin: '0 auto',
       }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <span style={{
-            fontFamily: "'Instrument Serif', serif",
-            fontStyle: 'italic', fontSize: 22, color: cream,
-            letterSpacing: '0.01em',
-          }}>WiBill</span>
-        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
+          <a href="#how" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.color = cream)}
+            onMouseLeave={e => (e.currentTarget.style.color = dim)}
+          >How it works</a>
           <a href="#features" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.color = cream)}
             onMouseLeave={e => (e.currentTarget.style.color = dim)}
@@ -152,6 +149,22 @@ export default function LandingPage() {
           }}>Get started</Link>
         </div>
       </nav>
+
+      {/* ═══════ LEFT BRANDMARK ═══════ */}
+      <div className="brand-rail" style={{
+        position: 'fixed', left: 18, top: '50%', zIndex: 5,
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
+        writingMode: 'vertical-rl',
+      }}>
+        <span className="brand-graffiti" style={{
+          fontFamily: "'Dyzero Vandals', 'Instrument Serif', serif",
+          fontSize: 52, lineHeight: 1,
+          letterSpacing: '0.02em',
+          color: 'rgba(232, 184, 75, 0.22)',
+          textShadow: '0 0 18px rgba(232, 184, 75, 0.08)',
+        }}>WiBill</span>
+      </div>
 
       {/* ═══════ HERO ═══════ */}
       <section style={{
@@ -500,6 +513,17 @@ export default function LandingPage() {
         @keyframes pulseFade{0%,100%{opacity:1;}50%{opacity:0.35;}}
         @keyframes scrollPulse{0%{opacity:0.2;}50%{opacity:1;}100%{opacity:0.2;}}
 
+        /* Graffiti brandmark font — licensed for commercial use.
+           Place the licensed .woff2 at frontend/wibill/public/fonts/dyzero-vandals.woff2
+           Works with the fallback (serif italic) until then. */
+        @font-face {
+          font-family: 'Dyzero Vandals';
+          src: url('/fonts/dyzero-vandals.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+
         /* ── PRICING CARD ── */
         .pricing-card {
           max-width: 420px;
@@ -812,6 +836,7 @@ export default function LandingPage() {
           .pricing-content { opacity: 1; transform: none; }
           .pricing-card { height: auto; padding: 30px 20px; }
           .connect-voice { display: none; }
+          .brand-rail { display: none; }
         }
       `}</style>
     </div>
