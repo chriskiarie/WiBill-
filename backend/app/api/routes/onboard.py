@@ -272,4 +272,93 @@ async def register_device(
         f"board={board}, ros={ros_version}, mac={mac}, existing_hotspot={existing_hotspot}"
     )
 
+    return PlainTextResponse(
+        content="ok: registered",
+        status_code=200,
+    )
+
+
+# ── Get current onboarding status (authenticated — ISP admin polls) ─────────
+@router.get("/onboard/status")
+async def get_onboarding_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Return the current pending/completed onboarding token for this tenant."""
+    result = await db.execute(
+        select(OnboardingToken).where(
+            OnboardingToken.tenant_id == current_user.tenant_id,
+        ).order_by(OnboardingToken.created_at.desc())
+    )
+    tokens = result.scalars().all()
+
+    if not tokens:
+        return {"status": "none", "token": None}
+
+    latest = tokens[0]
+    return {
+        "status": latest.status,
+        "token": latest.token,
+        "ros_version": latest.ros_version,
+        "created_at": latest.created_at.isoformat() if latest.created_at else None,
+        "expires_at": latest.expires_at.isoformat() if latest.expires_at else None,
+        "used_at": latest.used_at.isoformat() if latest.used_at else None,
+        "registration_data": json.loads(latest.registration_data) if latest.registration_data else None,
+    }
+
+
+# ── Conflict resolution: confirm overwrite or skip hotspot ───────────────────
+class ConflictResolutionPayload(BaseModel):
+    token: str
+    overwrite_hotspot: bool  # True = push new config, False = skip hotspot setup
+
+
+@router.post("/onboard/resolve-conflict")
+async def resolve_hotspot_conflict(
+    payload: ConflictResolutionPayload,
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """
+    Called from the dashboard after the ISP confirms whether to overwrite
+    an existing hotspot config that was detected during registration.
+    """
+    result = await db.execute(
+        select(OnboardingToken).where(
+            OnboardingToken.token == payload.token,
+            OnboardingToken.tenant_id == current_user.tenant_id,
+        )
+    )
+    onboard = result.scalar_one_or_none()
+    if not onboard:
+        raise HTTPException(status_code=404, detail="Token not found")
+    if onboard.status != "used":
+        raise HTTPException(status_code=400, detail="Token is not in 'used' state")
+
+    reg_data = json.loads(onboard.registration_data) if onboard.registration_data else {}
+    config_result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = config_result.scalar_one_or_none()
+
+    if not config:
+        raise HTTPException(status_code=404, detail="No MikroTik config found")
+
+    if payload.overwrite_hotspot:
+        # Mark config as ready for the full setup wizard to proceed
+        config.status = "PROVISIONED"
+        config.notes = (config.notes or "") + " | Overwrite hotspot: confirmed"
+    else:
+        # Keep existing hotspot, just register the device
+        config.status = "CONNECTED"
+        config.notes = (config.notes or "") + " | Keep existing hotspot: confirmed"
+
+    await db.commit()
+
+    return {
+        "ok": True,
+        "overwrite": payload.overwrite_hotspot,
+        "status": config.status,
+    }
+
     
