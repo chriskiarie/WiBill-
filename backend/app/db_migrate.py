@@ -557,6 +557,31 @@ MIGRATIONS = [
     ("onboarding_tokens status index", """
         CREATE INDEX IF NOT EXISTS ix_onboarding_tokens_status ON onboarding_tokens(status)
     """),
+    # ── Router polling (router-initiated control plane) ─────────────────────
+    ("mikrotik_configs.poll_token_enc", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS poll_token_enc TEXT
+    """),
+    ("mikrotik_configs.last_poll_at", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS last_poll_at TIMESTAMPTZ
+    """),
+    ("router_actions", """
+        CREATE TABLE IF NOT EXISTS router_actions (
+            id SERIAL PRIMARY KEY,
+            router_id UUID NOT NULL REFERENCES mikrotik_configs(id) ON DELETE CASCADE,
+            action_type VARCHAR(50) NOT NULL,
+            payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            delivered_at TIMESTAMPTZ,
+            acked_at TIMESTAMPTZ
+        )
+    """),
+    ("router_actions router index", """
+        CREATE INDEX IF NOT EXISTS ix_router_actions_router_id ON router_actions(router_id)
+    """),
+    ("router_actions status index", """
+        CREATE INDEX IF NOT EXISTS ix_router_actions_status ON router_actions(status)
+    """),
 ]
 
 async def run_migrations():

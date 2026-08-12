@@ -25,6 +25,8 @@ class MikrotikConfig(Base):
     tunnel_token_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
     tunnel_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     tunnel_hostname: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    poll_token_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_poll_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

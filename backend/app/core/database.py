@@ -15,14 +15,24 @@ elif _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
 # ── Engine ────────────────────────────────────────────────────────────────────
+# Pool sizing kwargs are PostgreSQL/QueuePool-only; SQLite (used by the test
+# suite via conftest.py) uses NullPool and rejects them.
+_is_sqlite = _db_url.startswith("sqlite")
+_pool_kwargs = (
+    {}
+    if _is_sqlite
+    else {
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_timeout": 10,   # fail fast (10s) instead of hanging 30s
+    }
+)
 engine = create_async_engine(
     _db_url,
     echo=settings.is_development,   # logs SQL in dev, silent in prod
     pool_pre_ping=True,             # verify connection before use
-    pool_size=20,
-    max_overflow=10,
     pool_recycle=3600,              # recycle connections hourly to prevent staleness
-    pool_timeout=10,                # fail fast (10s) instead of hanging 30s
+    **_pool_kwargs,
 )
 
 # ── Session factory ───────────────────────────────────────────────────────────

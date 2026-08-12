@@ -9,6 +9,7 @@ def _make_config(router_ip: str, api_port: int = 8728):
     cfg = MagicMock()
     cfg.router_ip = router_ip
     cfg.api_port = api_port
+    cfg.tunnel_hostname = None
     return cfg
 
 

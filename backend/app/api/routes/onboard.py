@@ -23,6 +23,7 @@ from app.models.tenant import Tenant
 from app.models.mikrotik_config import MikrotikConfig
 from app.models.onboarding_token import OnboardingToken
 from app.services.crypto_service import encrypt, decrypt
+from app.services.router_poll_service import ensure_poll_token
 
 logger = logging.getLogger("wibill.onboard")
 
@@ -258,6 +259,11 @@ async def register_device(
         db.add(config)
         await db.flush()
         onboard.router_id = config.id
+
+    # Generate the per-router poll token at registration time (Section 5 of
+    # the polling redesign). It's written into the router's scheduler config
+    # when the onboarding .rsc is applied.
+    ensure_poll_token(config)
 
     await db.commit()
 

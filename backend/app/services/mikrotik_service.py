@@ -18,6 +18,7 @@ from sqlalchemy import select
 
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import decrypt
+from app.services.router_poll_service import enqueue_action
 
 logger = logging.getLogger("wibill.mikrotik")
 
@@ -517,9 +518,11 @@ async def add_hotspot_bypass(
     expires_at: datetime | None = None,
     db: AsyncSession = None,
 ) -> dict:
-    """Add an ip-binding bypass entry on the MikroTik router via bridge.
+    """Queue an ip-binding bypass entry for the router to apply on its next poll.
+
     This allows a device to bypass hotspot authentication based on MAC+IP.
-    Used by device-auth for returning devices with active sessions.
+    Used by device-auth for returning devices with active sessions. The
+    router picks the queued RouterAction up via GET /poll/{router_id} (≤30s).
     """
     config = await _get_config(tenant_id, db)
     if not config:
@@ -533,20 +536,9 @@ async def add_hotspot_bypass(
     if expires_at:
         payload["expires_at"] = expires_at.isoformat()
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(
-                f"{_bridge_url(config)}/hotspot/bypass/add",
-                json=payload,
-                headers=_bridge_headers(config),
-            )
-            if r.status_code == 200:
-                logger.info(f"Hotspot bypass added for {mac_address} on tenant {tenant_id}")
-                return {"success": True, "message": "Bypass entry added", "data": r.json()}
-            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
-    except Exception as e:
-        logger.error(f"Bridge bypass error: {e}")
-        return {"success": False, "message": str(e)}
+    action = await enqueue_action(config.id, "add_bypass", payload, db)
+    logger.info(f"Queued add_bypass for {mac_address} on router {config.id} (action {action.id})")
+    return {"success": True, "message": "Bypass entry queued", "action_id": action.id}
 
 
 async def remove_hotspot_bypass(
@@ -554,21 +546,11 @@ async def remove_hotspot_bypass(
     mac_address: str,
     db: AsyncSession = None,
 ) -> dict:
-    """Remove an ip-binding bypass entry from the MikroTik router."""
+    """Queue removal of an ip-binding bypass entry for the next poll."""
     config = await _get_config(tenant_id, db)
     if not config:
         return {"success": False, "message": "No MikroTik config"}
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(
-                f"{_bridge_url(config)}/hotspot/bypass/remove",
-                json={"mac_address": mac_address},
-                headers=_bridge_headers(config),
-            )
-            if r.status_code == 200:
-                return {"success": True, "message": "Bypass entry removed"}
-            return {"success": False, "message": f"Bridge error {r.status_code}: {r.text[:200]}"}
-    except Exception as e:
-        logger.error(f"Bridge bypass remove error: {e}")
-        return {"success": False, "message": str(e)}
+    action = await enqueue_action(config.id, "remove_bypass", {"mac_address": mac_address}, db)
+    logger.info(f"Queued remove_bypass for {mac_address} on router {config.id} (action {action.id})")
+    return {"success": True, "message": "Bypass removal queued", "action_id": action.id}

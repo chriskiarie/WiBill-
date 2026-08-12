@@ -36,6 +36,7 @@ from app.models.outage_event import OutageEvent
 from app.models.router_health_check import RouterHealthCheck
 from app.models.client_device import ClientDevice
 from app.models.onboarding_token import OnboardingToken
+from app.models.router_action import RouterAction
 
 __all__ = [
     "Tenant",
@@ -92,4 +93,5 @@ __all__ = [
     "RouterHealthCheck",
     "ClientDevice",
     "OnboardingToken",
+    "RouterAction",
 ]

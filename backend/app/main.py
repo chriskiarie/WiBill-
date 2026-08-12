@@ -50,7 +50,6 @@ async def lifespan(app: FastAPI):
     # Register background jobs
     from app.jobs.network_poller import poll_all_tenants
     from app.jobs.session_expiry import expire_sessions
-    from app.jobs.health_check_job import run_health_checks
     from app.jobs.subscriber_expiry import process_overdue_subscribers
     from app.jobs.subscriber_reconciliation import reconcile_all_tenants
     from app.jobs.subscriber_usage_poller import poll_subscriber_usage
@@ -68,13 +67,6 @@ async def lifespan(app: FastAPI):
         trigger=IntervalTrigger(seconds=settings.SESSION_EXPIRY_CHECK_INTERVAL_SECONDS),
         id="session_expiry",
         name="Session expiry checker",
-        replace_existing=True,
-    )
-    scheduler.add_job(
-        run_health_checks,
-        trigger=IntervalTrigger(seconds=90),
-        id="health_check",
-        name="Router health check",
         replace_existing=True,
     )
 
@@ -175,6 +167,7 @@ from app.api.routes import subscriber_plans, monthly_subscribers, ipam
 from app.api.routes import portal_wizard
 from app.api.routes import system, leads, bulk_sms
 from app.api.routes import outages, devices, onboard
+from app.api.routes import poll as poll_routes
 from fastapi.staticfiles import StaticFiles
 
 # ============================================================================
@@ -218,6 +211,10 @@ app.include_router(bulk_sms.router, prefix="/api/sms", tags=["bulk-sms"])
 app.include_router(outages.router, prefix="/api", tags=["outages"])
 app.include_router(devices.router, prefix="/api", tags=["portal-devices"])
 app.include_router(onboard.router, prefix="/api", tags=["onboard"])
+
+# Router-initiated polling — public, no /api prefix: /poll/{router_id},
+# /poll/{router_id}/ack. The router's scheduler fetches these directly.
+app.include_router(poll_routes.router, prefix="", tags=["poll"])
 
 # Serve uploaded assets
 import os
