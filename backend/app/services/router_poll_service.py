@@ -225,7 +225,9 @@ def build_poll_scheduler_block(
         f"{mode} dst-path=wibill-poll.rsc\n"
         f":do {{ /import wibill-poll.rsc }} on-error={{ :log info \"wibill: poll import failed\" }}"
     )
-    escaped = poll_script_body.replace('"', '\\"')
+    # Escape backslashes FIRST, then double quotes — both must survive the
+    # RouterOS string literal parsing inside source="..."
+    escaped = poll_script_body.replace('\\', '\\\\').replace('"', '\\"')
 
     return (
         "\n# ── WiBill poll scheduler (30s) ─────────────────────────────────\n"
