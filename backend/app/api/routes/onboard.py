@@ -28,6 +28,7 @@ from app.services.router_poll_service import ensure_poll_token
 logger = logging.getLogger("wibill.onboard")
 
 router = APIRouter()
+public_router = APIRouter()
 
 ONBOARD_TOKEN_EXPIRY_MINUTES = 30
 
@@ -360,5 +361,26 @@ async def register_device(
         content="ok: registered",
         status_code=200,
     )
+
+
+# ── Public routes (no /api prefix, no auth — router calls these) ────────────
+@public_router.get("/onboard/{token}")
+async def serve_onboard_script_public(
+    token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint: router fetches onboarding script (no auth, no /api prefix)."""
+    return await serve_onboard_script(token, request, db)
+
+
+@public_router.post("/onboard/{token}/register")
+async def register_device_public(
+    token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint: router posts registration (no auth, no /api prefix)."""
+    return await register_device(token, request, db)
 
     

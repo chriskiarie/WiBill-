@@ -167,6 +167,7 @@ from app.api.routes import subscriber_plans, monthly_subscribers, ipam
 from app.api.routes import portal_wizard
 from app.api.routes import system, leads, bulk_sms
 from app.api.routes import outages, devices, onboard
+from app.api.routes.onboard import public_router as public_onboard_router
 from app.api.routes import poll as poll_routes
 from fastapi.staticfiles import StaticFiles
 
@@ -211,6 +212,9 @@ app.include_router(bulk_sms.router, prefix="/api/sms", tags=["bulk-sms"])
 app.include_router(outages.router, prefix="/api", tags=["outages"])
 app.include_router(devices.router, prefix="/api", tags=["portal-devices"])
 app.include_router(onboard.router, prefix="/api", tags=["onboard"])
+
+# Public onboarding routes — no /api prefix, no auth (router calls these)
+app.include_router(public_onboard_router, prefix="", tags=["public-onboard"])
 
 # Router-initiated polling — public, no /api prefix: /poll/{router_id},
 # /poll/{router_id}/ack. The router's scheduler fetches these directly.
