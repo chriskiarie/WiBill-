@@ -219,14 +219,17 @@ def build_poll_scheduler_block(
     # The poll script lives on one line inside source="..."; RouterOS
     # interprets \n escapes inside double-quoted strings, so we keep the
     # script body as a single physical line joined with \n.
+    # The poll script body is a single logical line with \n escapes that RouterOS
+# will interpret when parsing the string literal. We must escape:
+#   1. Backslashes -> \\\\
+#   2. Double quotes -> \"
+#   3. Literal newlines -> \n (escape sequence, not raw newline)
     poll_script_body = (
         f"/tool fetch url=\"{poll_url}\""
         f" http-header-field=\"Authorization: Bearer {poll_token}\""
-        f"{mode} dst-path=wibill-poll.rsc\n"
+        f"{mode} dst-path=wibill-poll.rsc\\n"
         f":do {{ /import wibill-poll.rsc }} on-error={{ :log info \"wibill: poll import failed\" }}"
     )
-    # Escape backslashes FIRST, then double quotes — both must survive the
-    # RouterOS string literal parsing inside source="..."
     escaped = poll_script_body.replace('\\', '\\\\').replace('"', '\\"')
 
     return (
