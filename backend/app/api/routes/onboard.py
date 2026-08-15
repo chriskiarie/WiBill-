@@ -70,6 +70,7 @@ async def generate_onboard_token(
         old_token.status = "expired"
 
     token_value = secrets.token_urlsafe(32)
+    poll_token_value = secrets.token_urlsafe(32)
     now = datetime.now(tz.utc)
     onboard_token = OnboardingToken(
         token=token_value,
@@ -78,6 +79,7 @@ async def generate_onboard_token(
         status="pending",
         expires_at=now + timedelta(minutes=ONBOARD_TOKEN_EXPIRY_MINUTES),
     )
+    onboard_token.set_poll_token(poll_token_value)
     db.add(onboard_token)
     await db.commit()
 
@@ -229,17 +231,34 @@ async def serve_onboard_script(
     onboard_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
     register_url = f"{onboard_base}/onboard/{token}/register"
 
+    # Get the poll token for this onboarding token
+    poll_token = onboard.get_poll_token()
+    if not poll_token:
+        # Fallback: generate one (should not happen with new tokens)
+        poll_token = secrets.token_urlsafe(32)
+
+    # Build poll scheduler block
+    from app.services.router_poll_service import build_poll_scheduler_block
+    poll_scheduler = build_poll_scheduler_block(
+        router_id=0,  # placeholder; will be replaced after registration
+        poll_token=poll_token,
+        ros_version=onboard.ros_version,
+        base_url=onboard_base,
+    )
+
     # Build the .rsc script — tailored to the declared RouterOS version
     # The script:
     #   1. Reads router identity (version, board, MAC)
     #   2. Detects existing hotspot config
     #   3. POSTs the registration payload back to the backend
+    #   4. Installs the poll scheduler for automated polling
     if onboard.ros_version == "7":
         # RouterOS 7.x uses /tool fetch with http-method
         script = f"""/tool fetch url="{register_url}" http-method=post \\
     http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
     as-value output=user
 :log info "WiBill onboarding registration sent for {tenant_name}"
+{poll_scheduler}
 """
     else:
         # RouterOS 6.x uses /tool fetch with mode=https and different quoting
@@ -248,6 +267,7 @@ async def serve_onboard_script(
     http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
     as-value output=user
 :log info "WiBill onboarding registration sent for {tenant_name}"
+{poll_scheduler}
 """
 
     return PlainTextResponse(
@@ -345,10 +365,13 @@ async def register_device(
         await db.flush()
         onboard.router_id = config.id
 
-    # Generate the per-router poll token at registration time (Section 5 of
-    # the polling redesign). It's written into the router's scheduler config
-    # when the onboarding .rsc is applied.
-    ensure_poll_token(config)
+    # Use the poll token from the onboarding token (already generated and stored)
+    poll_token = onboard.get_poll_token()
+    if poll_token:
+        config.poll_token_enc = encrypt(poll_token)
+    else:
+        # Fallback: generate new token
+        ensure_poll_token(config)
 
     await db.commit()
 

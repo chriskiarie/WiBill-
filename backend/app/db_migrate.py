@@ -557,6 +557,10 @@ MIGRATIONS = [
     ("onboarding_tokens status index", """
         CREATE INDEX IF NOT EXISTS ix_onboarding_tokens_status ON onboarding_tokens(status)
     """),
+    # ── Onboarding tokens poll token ──────────────────────────────────────────
+    ("onboarding_tokens.poll_token_enc", """
+        ALTER TABLE onboarding_tokens ADD COLUMN IF NOT EXISTS poll_token_enc TEXT
+    """),
     # ── Router polling (router-initiated control plane) ─────────────────────
     ("mikrotik_configs.poll_token_enc", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS poll_token_enc TEXT
