@@ -69,6 +69,27 @@ async def generate_onboard_token(
     for old_token in result.scalars().all():
         old_token.status = "expired"
 
+    # Pre-allocate the MikrotikConfig row so router_id is known NOW, before the
+    # router ever fetches the script. The onboarding .rsc then bakes both
+    # router_id and poll_token in as literals — no JSON parsing on the router.
+    cfg_result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = cfg_result.scalar_one_or_none()
+    if not config:
+        config = MikrotikConfig(
+            tenant_id=current_user.tenant_id,
+            router_ip="192.168.4.1",
+            api_port=8728,
+            api_username="wibill-api",
+            api_password_enc=encrypt(secrets.token_urlsafe(16)),
+            hotspot_server="hotspot1",
+            status="ONBOARDING",
+            notes="Pre-allocated at token generation",
+        )
+        db.add(config)
+        await db.flush()  # assigns config.id
+
     token_value = secrets.token_urlsafe(32)
     poll_token_value = secrets.token_urlsafe(32)
     now = datetime.now(tz.utc)
@@ -78,8 +99,12 @@ async def generate_onboard_token(
         ros_version=payload.ros_version,
         status="pending",
         expires_at=now + timedelta(minutes=ONBOARD_TOKEN_EXPIRY_MINUTES),
+        router_id=config.id,
     )
     onboard_token.set_poll_token(poll_token_value)
+    # Poll endpoint auth reads the token from the config — set it immediately
+    # so /poll/{router_id} authorizes from the very first poll.
+    config.poll_token_enc = encrypt(poll_token_value)
     db.add(onboard_token)
     await db.commit()
 
@@ -231,63 +256,56 @@ async def serve_onboard_script(
     onboard_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
     register_url = f"{onboard_base}/onboard/{token}/register"
 
-    # Get the poll token for this onboarding token
+    # router_id was pre-allocated at token generation, so the script bakes in
+    # BOTH literals. No variables, no JSON parsing on the router — that is the
+    # whole point of this design (RouterOS 6.x cannot reliably parse JSON).
+    router_id = onboard.router_id
+    if router_id is None:
+        # Legacy token created before pre-allocation — never baked for a token
+        # from the current flow, but keep the behaviour deterministic anyway.
+        cfg_result = await db.execute(
+            select(MikrotikConfig).where(MikrotikConfig.tenant_id == onboard.tenant_id)
+        )
+        cfg = cfg_result.scalar_one_or_none()
+        if cfg is None:
+            cfg = MikrotikConfig(
+                tenant_id=onboard.tenant_id,
+                router_ip="192.168.4.1",
+                api_port=8728,
+                api_username="wibill-api",
+                api_password_enc=encrypt(secrets.token_urlsafe(16)),
+                hotspot_server="hotspot1",
+                status="ONBOARDING",
+                notes="Legacy onboarding fallback",
+            )
+            db.add(cfg)
+            await db.flush()
+            onboard.router_id = cfg.id
+            await db.commit()
+        router_id = onboard.router_id or cfg.id
+
     poll_token = onboard.get_poll_token()
     if not poll_token:
-        # Fallback: generate one (should not happen with new tokens)
         poll_token = secrets.token_urlsafe(32)
+        onboard.set_poll_token(poll_token)
+        # Mirrors generate(): also store on the config for immediate poll auth.
+        cfg_result = await db.execute(
+            select(MikrotikConfig).where(MikrotikConfig.tenant_id == onboard.tenant_id)
+        )
+        cfg = cfg_result.scalar_one_or_none()
+        if cfg is not None:
+            cfg.poll_token_enc = encrypt(poll_token)
+        await db.commit()
 
-    # Build poll scheduler block with placeholder router_id (will be replaced by script)
-    from app.services.router_poll_service import build_poll_scheduler_block
-    poll_scheduler_template = build_poll_scheduler_block(
-        router_id=0,  # placeholder
+    from app.services.router_poll_service import build_onboard_script
+    script = build_onboard_script(
+        register_url=register_url,
+        router_id=router_id,
         poll_token=poll_token,
         ros_version=onboard.ros_version,
         base_url=onboard_base,
+        tenant_name=tenant_name,
     )
-
-    # Build the .rsc script — tailored to the declared RouterOS version
-    # The script:
-    #   1. Reads router identity (version, board, MAC)
-    #   2. Detects existing hotspot config
-    #   3. POSTs the registration payload back to the backend
-    #   4. Parses JSON response to get real router_id
-    #   5. Replaces placeholder router_id in poll scheduler and installs it
-    if onboard.ros_version == "7":
-        # RouterOS 7.x uses /tool fetch with http-method
-        script = f"""/tool fetch url="{register_url}" http-method=post \\
-    http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
-    as-value output=user
-:local regResult \$output
-:local routerId ([\$regResult->"router_id"])
-:local pollToken ([\$regResult->"poll_token"])
-:if ([:len \$routerId] > 0 and [:len \$pollToken] > 0) do={{
-    /system script add name=wibill-poll-script source=("/tool fetch url=\\\"https://wibill-production-cd80.up.railway.app/poll/\$routerId\\\" http-header-field=\\\"Authorization: Bearer \$pollToken\\\" mode=https dst-path=wibill-poll.rsc\\n:do {{ /import wibill-poll.rsc }} on-error={{ :log info \\\"wibill: poll import failed\\\" }}\")
-    /system scheduler add name=wibill-poll interval=30s on-event=wibill-poll-script start-time=startup
-    :do {{ /system script run wibill-poll-script }} on-error={{ }}
-}} else={{
-    :log error "WiBill onboarding: registration failed - missing router_id or poll_token"
-}}
-:log info "WiBill onboarding registration sent for {tenant_name}"
-"""
-    else:
-        # RouterOS 6.x uses /tool fetch with mode=https and different quoting
-        script = f"""/tool fetch url="{register_url}" mode=https \\
-    http-method=post \\
-    http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
-    as-value output=user
-:local regResult \$output
-:local routerId ([\$regResult->"router_id"])
-:local pollToken ([\$regResult->"poll_token"])
-:if ([:len \$routerId] > 0 and [:len \$pollToken] > 0) do={{
-    /system script add name=wibill-poll-script source=("/tool fetch url=\\\"https://wibill-production-cd80.up.railway.app/poll/\$routerId\\\" http-header-field=\\\"Authorization: Bearer \$pollToken\\\" mode=https dst-path=wibill-poll.rsc\\n:do {{ /import wibill-poll.rsc }} on-error={{ :log info \\\"wibill: poll import failed\\\" }}\")
-    /system scheduler add name=wibill-poll interval=30s on-event=wibill-poll-script start-time=startup
-    :do {{ /system script run wibill-poll-script }} on-error={{ }}
-}} else={{
-    :log error "WiBill onboarding: registration failed - missing router_id or poll_token"
-}}
-:log info "WiBill onboarding registration sent for {tenant_name}"
-"""
 
     return PlainTextResponse(
         content=script,

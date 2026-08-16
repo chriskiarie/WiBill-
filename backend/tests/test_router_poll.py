@@ -10,6 +10,7 @@ from app.services.router_poll_service import (
     resolve_ros_version,
     build_poll_snippet,
     build_poll_scheduler_block,
+    build_onboard_script,
     render_action_line,
     _fetch_mode,
 )
@@ -120,4 +121,78 @@ class TestBuildPollSchedulerBlock:
 
     def test_ros7_scheduler_fetch_no_mode(self):
         out = build_poll_scheduler_block(7, "tok", ros_version="7", base_url="https://example.com")
+        assert "mode=https" not in out
+
+    def test_literal_router_id_and_poll_token_baked_in(self):
+        out = build_poll_scheduler_block(
+            "11111111-2222-3333-4444-555555555555", "TOKENXYZ",
+            ros_version="6", base_url="https://example.com",
+        )
+        assert "/poll/11111111-2222-3333-4444-555555555555" in out
+        assert "Authorization: Bearer TOKENXYZ" in out
+
+    def test_source_arg_escapes_quotes_and_newlines_without_bare_dollar(self):
+        """Stored script decodes from source=... to two valid lines.
+
+        A literal backslash-quote inside source= becomes a double quote, and
+        the escaped newline becomes a real line break, when RouterOS parses
+        the string literal — mirroring RouterOS's own decoding to prove the
+        stored script is two valid lines, not one broken line.
+        """
+        out = build_poll_scheduler_block(7, "tok", ros_version="6", base_url="https://example.com")
+        assert "source=\"" in out
+        assert "\\\"" in out  # escaped quote inside source=
+        assert "\\n" in out  # escaped newline between fetch + import lines
+        assert "$" not in out  # no variable references anywhere
+        assert "->" not in out  # no structured/JSON access
+
+        # Simulate RouterOS string-literal decoding of the source= content.
+        line = next(l for l in out.splitlines() if l.startswith("/system script add"))
+        import re
+        m = re.search(r'source="(.*)"$', line)
+        decoded = m.group(1).replace('\\"', '"').replace("\\n", "\n")
+        lines = [l for l in decoded.split("\n") if l.strip()]
+        assert len(lines) == 2, f"expected 2 stored-command lines, got: {lines!r}"
+        assert lines[0].startswith("/tool fetch url=")
+        assert lines[1].startswith(":do { /import wibill-poll.rsc }")
+
+
+class TestBuildOnboardScript:
+    def test_registration_and_scheduler_combined(self):
+        out = build_onboard_script(
+            "https://example.com/onboard/TOK/register",
+            "11111111-2222-3333-4444-555555555555",
+            "POLLTOKEN123",
+            ros_version="6",
+            base_url="https://example.com",
+            tenant_name="Test ISP",
+        )
+        assert "/onboard/TOK/register" in out
+        assert "/poll/11111111-2222-3333-4444-555555555555" in out
+        assert "Authorization: Bearer POLLTOKEN123" in out  # literal, not $var
+        assert "wibill-poll-script" in out
+        assert "interval=30s" in out
+
+    def test_no_variables_no_json_parsing(self):
+        out = build_onboard_script(
+            "https://example.com/onboard/TOK/register",
+            "11111111-2222-3333-4444-555555555555",
+            "POLLTOKEN123",
+            ros_version="6",
+            base_url="https://example.com",
+            tenant_name="Test ISP",
+        )
+        assert "$" not in out
+        assert "->" not in out
+        assert "regResult" not in out
+        assert "output" not in out
+
+    def test_ros7_no_mode_fetch(self):
+        out = build_onboard_script(
+            "https://example.com/onboard/TOK/register",
+            "11111111-2222-3333-4444-555555555555",
+            "POLLTOKEN123",
+            ros_version="7",
+            base_url="https://example.com",
+        )
         assert "mode=https" not in out

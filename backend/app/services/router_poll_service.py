@@ -211,30 +211,84 @@ def build_poll_scheduler_block(
     This is appended to the onboarding .rsc script so the router starts
     pulling its own instructions with no additional setup. Scheduler syntax
     is stable across RouterOS 6.x and 7.x; only the /tool fetch line differs.
+
+    router_id and poll_token are baked in as LITERALS — never as variables.
+    The result is a single /system script add whose source argument carries
+    the whole poll script. Two layers of parsing happen, so escaping matters:
+
+      Layer 1 (the .rsc file the router imports): a normal script line, so
+        real quotes become \", real newlines become \\n (the escape form is
+        what RouterOS wants for the *stored* script).
+      Layer 2 (the stored wibill-poll-script that runs every 30s): RouterOS
+        interprets those \" / \\n escapes and the script must then be valid
+        RouterOS on its own — a fetch line + an import line.
+
+    Steps to build the source argument correctly:
+      1. Build the poll script BODY with real newlines + real quotes (this is
+         exactly what the stored script will contain).
+      2. Escape real quotes -> \" and real newlines -> \\n for the source=
+         argument. Do NOT pre-double backslashes beyond that, or the stored
+         script would contain literal "\n" backslash sequences instead of
+         line breaks.
     """
     base = (base_url or settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
     poll_url = f"{base}/poll/{router_id}"
     mode = _fetch_mode(ros_version, poll_url)
 
-    # The poll script lives on one line inside source="..."; RouterOS
-    # interprets \n escapes inside double-quoted strings, so we keep the
-    # script body as a single physical line joined with \n.
-    # The poll script body is a single logical line with \n escapes that RouterOS
-# will interpret when parsing the string literal. We must escape:
-#   1. Backslashes -> \\\\
-#   2. Double quotes -> \"
-#   3. Literal newlines -> \n (escape sequence, not raw newline)
+    # The exact content that will be STORED as wibill-poll-script: two lines,
+    # real newline between them, real quotes.
     poll_script_body = (
         f"/tool fetch url=\"{poll_url}\""
         f" http-header-field=\"Authorization: Bearer {poll_token}\""
-        f"{mode} dst-path=wibill-poll.rsc\\n"
+        f"{mode} dst-path=wibill-poll.rsc\n"
         f":do {{ /import wibill-poll.rsc }} on-error={{ :log info \"wibill: poll import failed\" }}"
     )
-    escaped = poll_script_body.replace('\\', '\\\\').replace('"', '\\"')
+    # Escape for embedding inside the source="..." argument of the .rsc importer.
+    escaped = poll_script_body.replace('"', '\\"').replace("\n", "\\n")
 
     return (
-        "\n# ── WiBill poll scheduler (30s) ─────────────────────────────────\n"
+        "# WiBill poll scheduler (30s)\n"
         f"/system script add name=wibill-poll-script source=\"{escaped}\"\n"
         "/system scheduler add name=wibill-poll interval=30s on-event=wibill-poll-script start-time=startup\n"
         ":do { /system script run wibill-poll-script } on-error={ }\n"
     )
+
+
+def build_onboard_script(
+    register_url: str,
+    router_id,
+    poll_token: str,
+    ros_version: str = "6",
+    base_url: str = "",
+    tenant_name: str = "WiBill ISP",
+) -> str:
+    """Compose the full onboarding .rsc the router fetches from GET /onboard/{token}.
+
+    router_id and poll_token are baked in as literals. The script carries NO
+    variables and does NO structured/JSON parsing, so it runs identically on
+    RouterOS 6.x and 7.x (the documented reason the original design served a
+    ready-to-run .rsc instead of JSON). The registration POST is fire-and-
+    forget: the backend already knows router_id + poll_token from token
+    generation, so the response is intentionally ignored.
+    """
+    base = (base_url or settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    mode = _fetch_mode(ros_version, register_url)
+
+    # http-data string: RouterOS evaluates the {...} expressions at runtime.
+    http_data = (
+        "ros_version={[/system resource get version]}"
+        "&board={[/system resource get board-name]}"
+        "&mac={[/interface get [find default] mac-address]}"
+        "&existing_hotspot={[:if ({len [/ip hotspot find]} > 0) do={\"true\"} else={\"false\"}]}"
+    )
+
+    scheduler_block = build_poll_scheduler_block(router_id, poll_token, ros_version, base)
+
+    parts = [
+        f'/tool fetch url="{register_url}"{mode} \\',
+        "    http-method=post \\",
+        f'    http-data="{http_data}"',
+        f':log info "WiBill onboarding registration sent for {tenant_name}"',
+        scheduler_block,
+    ]
+    return "\n".join(parts) + "\n"
