@@ -173,6 +173,28 @@ class TestBuildOnboardScript:
         assert "wibill-poll-script" in out
         assert "interval=30s" in out
 
+    def test_http_data_value_has_no_unescaped_inner_quotes(self):
+        """http-data="..." must contain exactly the two outer quotes.
+
+        RouterOS ends the double-quoted string at the first inner double
+        quote: 'existing_hotspot={[:if (...) do={"true"}...' fails the import
+        with "expected end of command (line 3 column 212)" because the '{"'
+        close of the string makes 'true' a stray token. The [:if] must use
+        unquoted boolean literals (true/false).
+        """
+        out = build_onboard_script(
+            "https://example.com/onboard/TOK/register",
+            "11111111-2222-3333-4444-555555555555",
+            "POLLTOKEN123",
+            ros_version="6",
+            base_url="https://example.com",
+            tenant_name="Test ISP",
+        )
+        line3 = next(l for l in out.splitlines() if "http-data=" in l)
+        assert line3.count('"') == 2, f"inner quote would break RouterOS parse: {line3!r}"
+        assert 'do=true else=false' in line3
+        assert 'do={"true"}' not in line3
+
     def test_no_variables_no_json_parsing(self):
         out = build_onboard_script(
             "https://example.com/onboard/TOK/register",

@@ -275,11 +275,14 @@ def build_onboard_script(
     mode = _fetch_mode(ros_version, register_url)
 
     # http-data string: RouterOS evaluates the {...} expressions at runtime.
+    # The [:if] uses unquoted boolean literals (true/false) — a bare "true"
+    # inside the double-quoted http-data value would terminate the string
+    # early and fail the .rsc import with "expected end of command".
     http_data = (
         "ros_version={[/system resource get version]}"
         "&board={[/system resource get board-name]}"
         "&mac={[/interface get [find default] mac-address]}"
-        "&existing_hotspot={[:if ({len [/ip hotspot find]} > 0) do={\"true\"} else={\"false\"}]}"
+        "&existing_hotspot={[:if ({len [/ip hotspot find]} > 0) do=true else=false]}"
     )
 
     scheduler_block = build_poll_scheduler_block(router_id, poll_token, ros_version, base)
