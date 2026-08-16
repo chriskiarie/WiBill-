@@ -237,10 +237,10 @@ async def serve_onboard_script(
         # Fallback: generate one (should not happen with new tokens)
         poll_token = secrets.token_urlsafe(32)
 
-    # Build poll scheduler block
+    # Build poll scheduler block with placeholder router_id (will be replaced by script)
     from app.services.router_poll_service import build_poll_scheduler_block
-    poll_scheduler = build_poll_scheduler_block(
-        router_id=0,  # placeholder; will be replaced after registration
+    poll_scheduler_template = build_poll_scheduler_block(
+        router_id=0,  # placeholder
         poll_token=poll_token,
         ros_version=onboard.ros_version,
         base_url=onboard_base,
@@ -251,14 +251,24 @@ async def serve_onboard_script(
     #   1. Reads router identity (version, board, MAC)
     #   2. Detects existing hotspot config
     #   3. POSTs the registration payload back to the backend
-    #   4. Installs the poll scheduler for automated polling
+    #   4. Parses JSON response to get real router_id
+    #   5. Replaces placeholder router_id in poll scheduler and installs it
     if onboard.ros_version == "7":
         # RouterOS 7.x uses /tool fetch with http-method
         script = f"""/tool fetch url="{register_url}" http-method=post \\
     http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
     as-value output=user
+:local regResult \$output
+:local routerId ([\$regResult->"router_id"])
+:local pollToken ([\$regResult->"poll_token"])
+:if ([:len \$routerId] > 0 and [:len \$pollToken] > 0) do={{
+    /system script add name=wibill-poll-script source=("/tool fetch url=\\\"https://wibill-production-cd80.up.railway.app/poll/\$routerId\\\" http-header-field=\\\"Authorization: Bearer \$pollToken\\\" mode=https dst-path=wibill-poll.rsc\\n:do {{ /import wibill-poll.rsc }} on-error={{ :log info \\\"wibill: poll import failed\\\" }}\")
+    /system scheduler add name=wibill-poll interval=30s on-event=wibill-poll-script start-time=startup
+    :do {{ /system script run wibill-poll-script }} on-error={{ }}
+}} else={{
+    :log error "WiBill onboarding: registration failed - missing router_id or poll_token"
+}}
 :log info "WiBill onboarding registration sent for {tenant_name}"
-{poll_scheduler}
 """
     else:
         # RouterOS 6.x uses /tool fetch with mode=https and different quoting
@@ -266,8 +276,17 @@ async def serve_onboard_script(
     http-method=post \\
     http-data="ros_version={{[/system resource get version]}}&board={{[/system resource get board-name]}}&mac={{[/interface get [find default] mac-address]}}&existing_hotspot={{[:if ({{len [/ip hotspot find]}} > 0) do={{\"true\"}} else={{\"false\"}}]}}" \\
     as-value output=user
+:local regResult \$output
+:local routerId ([\$regResult->"router_id"])
+:local pollToken ([\$regResult->"poll_token"])
+:if ([:len \$routerId] > 0 and [:len \$pollToken] > 0) do={{
+    /system script add name=wibill-poll-script source=("/tool fetch url=\\\"https://wibill-production-cd80.up.railway.app/poll/\$routerId\\\" http-header-field=\\\"Authorization: Bearer \$pollToken\\\" mode=https dst-path=wibill-poll.rsc\\n:do {{ /import wibill-poll.rsc }} on-error={{ :log info \\\"wibill: poll import failed\\\" }}\")
+    /system scheduler add name=wibill-poll interval=30s on-event=wibill-poll-script start-time=startup
+    :do {{ /system script run wibill-poll-script }} on-error={{ }}
+}} else={{
+    :log error "WiBill onboarding: registration failed - missing router_id or poll_token"
+}}
 :log info "WiBill onboarding registration sent for {tenant_name}"
-{poll_scheduler}
 """
 
     return PlainTextResponse(
@@ -375,15 +394,14 @@ async def register_device(
 
     await db.commit()
 
-    logger.info(
-        f"Device registered for tenant {onboard.tenant_id}: "
-        f"board={board}, ros={ros_version}, mac={mac}, existing_hotspot={existing_hotspot}"
-    )
-
-    return PlainTextResponse(
-        content="ok: registered",
-        status_code=200,
-    )
+    # Return JSON with router_id and poll_token so the script can install poll scheduler
+    poll_token = onboard.get_poll_token() or ""
+    return {
+        "ok": True,
+        "router_id": str(config.id),
+        "poll_token": poll_token,
+        "message": "registered"
+    }
 
 
 # ── Public routes (no /api prefix, no auth — router calls these) ────────────
