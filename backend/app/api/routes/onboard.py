@@ -380,8 +380,10 @@ async def register_device(
     config = config_result.scalar_one_or_none()
 
     if config:
-        # Update existing config with detected info
-        config.status = "ONBOARDING"
+        # Update existing config with detected info. Terminal status depends on
+        # whether a hotspot is already present: if not, Quick Connect has no
+        # conflict to resolve, so the router is CONNECTED immediately.
+        config.status = "CONNECTED" if not existing_hotspot else "ONBOARDING"
         config.notes = f"Board: {board} | RouterOS: {ros_version} | MAC: {mac}"
         onboard.router_id = config.id
     else:
@@ -395,7 +397,7 @@ async def register_device(
             api_username="wibill-api",
             api_password_enc=encrypt(secrets.token_urlsafe(16)),
             hotspot_server="hotspot1",
-            status="ONBOARDING",
+            status="CONNECTED" if not existing_hotspot else "ONBOARDING",
             notes=f"Board: {board} | RouterOS: {ros_version} | MAC: {mac}",
         )
         db.add(config)

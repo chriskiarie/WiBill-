@@ -1,11 +1,11 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '@/lib/auth'
-import { api } from '@/lib/api'
+import { api, formatRelativeTime } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { CheckCircle, XCircle, Activity, Download, Copy, Terminal, Wifi, AlertTriangle, ChevronRight, RefreshCw, Search, Shield, Settings, Router, Globe, Server, Clock, Zap, ArrowRight } from 'lucide-react'
+import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, Wifi, AlertTriangle, ChevronRight, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
@@ -14,57 +14,117 @@ const C = {
   gold: 'var(--theme-gold)', green: 'var(--theme-green)', red: 'var(--theme-red)',
 }
 
-const STEPS = [
-  { id: 1, label: 'Setup', icon: Settings, desc: 'Configure your router' },
-  { id: 2, label: 'Bridge', icon: Server, desc: 'Install bridge on your PC' },
-  { id: 3, label: 'Portal', icon: Globe, desc: 'Push login page to router' },
-  { id: 4, label: 'Launch', icon: Zap, desc: 'Run checks & go live' },
-]
+const PILL = (color: string) => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '3px 10px', borderRadius: 99,
+  background: `color-mix(in srgb, ${color} 10%, transparent)`,
+  border: `0.5px solid color-mix(in srgb, ${color} 30%, transparent)`,
+  fontFamily: 'DM Mono, monospace', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em', color,
+})
 
 const Card = ({ children, style }: any) => (
   <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: 20, ...style }}>{children}</div>
 )
 
+const sectionLabel = {
+  fontSize: 10, fontWeight: 700, color: C.dim, textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em', fontFamily: 'Inter, sans-serif', marginBottom: 10,
+}
+
+function StepTracker({ steps, currentStep, isComplete }: {
+  steps: { id: number; label: string; icon: any }[]
+  currentStep: number
+  isComplete: boolean
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 0, marginBottom: 24, alignItems: 'stretch' }}>
+      {steps.map((s, i) => {
+        const isActive = currentStep === s.id
+        const isDone = currentStep > s.id || (currentStep === s.id && isComplete)
+        return (
+          <div key={s.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+            {i > 0 && (
+              <div style={{ position: 'absolute', top: 14, left: 0, right: '50%', height: 1.5, background: isDone ? C.gold : C.border, zIndex: 0 }} />
+            )}
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: isDone ? C.gold : isActive ? 'transparent' : C.mute,
+              border: `1.5px solid ${isDone ? C.gold : isActive ? C.gold : C.border2}`,
+              color: isDone ? '#000' : isActive ? C.gold : C.dim,
+              fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace', zIndex: 1, transition: 'all 0.3s',
+            }}>
+              {isDone ? <CheckCircle size={14} /> : isActive && !isComplete ? <RefreshCw size={14} style={{ animation: 'spin 1.2s linear infinite' }} /> : <s.icon size={14} />}
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: isActive || isDone ? C.gold : C.dim, marginTop: 6, textAlign: 'center' }}>
+              {s.label}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function TimeAgo({ iso }: { iso?: string | null }) {
+  if (!iso) return <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>never</span>
+  return <span style={{ color: C.dim, fontFamily: 'DM Mono, monospace' }}>{formatRelativeTime(iso)}</span>
+}
+
 function friendlyError(raw: string): string {
   if (!raw) return 'Unknown error'
-  if (raw.includes('Bridge is offline')) return 'Bridge is offline — make sure bridge.py is running on the same network as the router'
-  if (raw.includes('Bridge is busy')) return 'Bridge is busy — try again in a few seconds'
-  if (raw.includes('Bridge authentication')) return 'Bridge authentication failed — check the bridge secret'
-  if (raw.includes('Unexpected response')) return 'Bridge is not responding correctly — check that bridge.py is running'
-  if (raw.includes('502')) return 'Could not reach the bridge — ensure bridge.py is running and the tunnel is active'
-  if (raw.includes('ECONNREFUSED')) return 'Connection refused — bridge is not running on the expected port'
-  if (raw.includes('timeout')) return 'Connection timed out — bridge may be unreachable'
+  if (raw.includes('expected end of command')) return 'RouterOS rejected the script — re-paste the command, ensuring both lines are pasted (fetch + import)'
+  if (raw.includes('expected end of symbol')) return 'Router rejected the script — copy the command, do not type it by hand'
+  if (raw.includes('405')) return 'Command not supported by this router — check the RouterOS version and pick the right one'
   if (raw.includes('No MikroTik config')) return 'No router configured — run the setup wizard first'
-  if (raw.includes('<!doctype') || raw.includes('<html')) return 'Bridge returned an error page — check that bridge.py is running'
+  if (raw.includes('timeout')) return 'Connection timed out — your router may be offline'
+  if (raw.includes('Unauthorized') || raw.includes('401')) return 'Your session expired — refresh and try again'
   return raw
 }
 
-export default function MikrotikWizard() {
+// ============================================================================
+// PAGE — two top-level states: onboarding OR router management
+// ============================================================================
+
+export default function MikrotikPage() {
   const { token } = useAuth()
-  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
-  const [showWizard, setShowWizard] = useState(false)
   const [health, setHealth] = useState<any>(null)
-  const [packages, setPackages] = useState<any[]>([])
+  const [onboard, setOnboard] = useState<any>(null)
+  const [actions, setActions] = useState<any[]>([])
 
-  useEffect(() => {
+  // mode === 'manage' once a router has EVER registered/polled. "Re-run setup"
+  // drops back to onboarding; Quick Connect / Manual completion returns to manage.
+  const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
+
+  const fetchAll = useCallback(async () => {
     if (!token) return
-    Promise.all([
+    const [h, st, ac] = await Promise.all([
       api.getMikrotikHealth().catch(() => null),
-      api.getPackages().catch(() => []),
-    ]).then(([h, pkgs]) => {
-      setHealth(h)
-      setPackages(pkgs || [])
-      setLoading(false)
-    })
+      api.getOnboardStatus().catch(() => null),
+      api.getMikrotikActions().catch(() => null),
+    ])
+    setHealth(h)
+    setOnboard(st)
+    if (ac?.actions) setActions(ac.actions)
+    setLoading(false)
   }, [token])
 
-  const handleCheckHealth = async () => {
-    try {
-      const h = await api.getMikrotikHealth()
-      setHealth(h)
-    } catch { setHealth({ connected: false, configured: false }) }
+  useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
+  useEffect(() => { const t = setInterval(() => setRefreshTick(x => x + 1), 30000); return () => clearInterval(t) }, [])
+  useEffect(() => {
+    if (!loading && modeOverride === null) {
+      const everConnected = health?.connected === true || !!health?.last_poll_at || onboard?.status === 'used'
+      if (everConnected) setModeOverride('manage')
+    }
+  }, [health, onboard, loading, modeOverride])
+
+  const handleReconfigure = async () => {
+    setModeOverride('onboarding')
+    // Reset any lingering expired token so the page starts clean at Generate.
+    try { await fetchAll() } catch { /* noop */ }
   }
 
   if (loading) {
@@ -72,128 +132,165 @@ export default function MikrotikWizard() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         <Topbar title="MikroTik Setup" />
         <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <LoadingSpinner size="md" label="Loading..." />
+          <LoadingSpinner size="md" color="var(--theme-gold)" label="Loading..." />
         </div>
       </div>
     )
   }
 
-  if (!showWizard && health?.connected) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <Topbar title="MikroTik Setup" />
-        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-          <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
-            <Card>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wifi size={18} color={C.green} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Router Connected</div>
-                  <div style={{ fontSize: 10, color: C.dim }}>{health.router_identity || 'MikroTik router'} · {health.board_name || '—'}</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-                {[
-                  { label: 'OS Version', value: health.router_os_version || '—' },
-                  { label: 'Uptime', value: health.uptime || '—' },
-                  { label: 'Hotspot', value: health.hotspot_found ? 'Active' : 'Not configured', color: health.hotspot_found ? C.green : C.red },
-                  { label: 'Bridge', value: 'Online', color: C.green },
-                ].map(item => (
-                  <div key={item.label} style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
-                    <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{item.label}</div>
-                    <div style={{ fontSize: 12, color: item.color || C.text, fontFamily: 'DM Mono, monospace' }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowWizard(true)}
-                  style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Settings size={14} /> Reconfigure
-                </button>
-                <button onClick={handleCheckHealth}
-                  style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <RefreshCw size={13} /> Refresh
-                </button>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!showWizard) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <Topbar title="MikroTik Setup" />
-        <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-          <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
-            <RemoteOnboardFlow
-              onManualSetup={() => setShowWizard(true)}
-              onConfigured={handleCheckHealth}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <Topbar title="MikroTik Setup" />
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
+        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+          {modeOverride === 'manage' ? (
+            <RouterManagementView
+              health={health}
+              actions={actions}
+              onReconfigure={handleReconfigure}
+              onRefresh={() => setRefreshTick(x => x + 1)}
             />
-          </div>
+          ) : (
+            <OnboardingView
+              onboard={onboard}
+              onConfigured={() => setModeOverride('manage')}
+              onRefresh={() => setRefreshTick(x => x + 1)}
+            />
+          )}
         </div>
       </div>
-    )
-  }
-
-  return <WizardFlow onBack={() => { setShowWizard(false); handleCheckHealth() }} packages={packages} />
+    </div>
+  )
 }
 
-const ONBOARD_STEPS = [
-  { id: 1, label: 'Generate', desc: 'Get setup command' },
-  { id: 2, label: 'Running', desc: 'Router fetching script' },
-  { id: 3, label: 'Registered', desc: 'Device reported back' },
-  { id: 4, label: 'Configured', desc: 'Hotspot live' },
+// ============================================================================
+// ONBOARDING VIEW — Quick Connect (default) + collapsible Manual
+// ============================================================================
+
+const QUICK_STEPS = [
+  { id: 1, label: 'Generate', icon: Terminal },
+  { id: 2, label: 'Running', icon: Activity },
+  { id: 3, label: 'Registered', icon: Router },
+  { id: 4, label: 'Configured', icon: Zap },
 ]
 
-function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () => void; onConfigured: () => void }) {
+function OnboardingView({ onboard, onConfigured, onRefresh }: {
+  onboard: any
+  onConfigured: () => void
+  onRefresh: () => void
+}) {
+  const [showManual, setShowManual] = useState(false)
+
+  if (showManual) {
+    return (
+      <ManualSetup
+        onDone={onConfigured}
+        onBackToQuick={() => setShowManual(false)}
+      />
+    )
+  }
+
+  return <QuickConnectFlow onboard={onboard} onConfigured={onConfigured} onRefresh={onRefresh} onSwitchManual={() => setShowManual(true)} />
+}
+
+// ============================================================================
+// QUICK CONNECT — 4-step tracker with real polling + timeout
+// ============================================================================
+
+function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: {
+  onboard: any
+  onConfigured: () => void
+  onRefresh: () => void
+  onSwitchManual: () => void
+}) {
   const { showToast } = useToast()
 
   const [rosVersion, setRosVersion] = useState<string>('6')
   const [generating, setGenerating] = useState(false)
   const [onboardData, setOnboardData] = useState<any>(null)
   const [onboardStatus, setOnboardStatus] = useState<any>(null)
-  const [polling, setPolling] = useState(false)
+  const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [timedOut, setTimedOut] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [nowMs, setNowMs] = useState(Date.now())
   const [showConflict, setShowConflict] = useState(false)
   const [conflictData, setConflictData] = useState<any>(null)
+  const [configuredShown, setConfiguredShown] = useState(false)
+  const [restoredNoCommand, setRestoredNoCommand] = useState(false)
 
+  const TIMEOUT_MS = 5 * 60 * 1000
+
+  // Real polling of GET /api/onboard/status — every 4s.
   useEffect(() => {
     if (!onboardData || onboardStatus?.status === 'used') return
     let cancelled = false
     const poll = async () => {
       try {
         const st = await api.getOnboardStatus()
-        if (!cancelled) {
-          setOnboardStatus(st)
-          if (st.status === 'used') {
-            const reg = st.registration_data
-            if (reg?.existing_hotspot) {
-              setConflictData(reg)
-              setShowConflict(true)
-            }
-            setPolling(false)
+        if (cancelled) return
+        setOnboardStatus(st)
+        if (st.status === 'used') {
+          const reg = st.registration_data
+          if (reg?.existing_hotspot) {
+            setConflictData(reg)
+            setShowConflict(true)
+          } else {
+            // Doesn't return -> reuse existing; stays green
+            setConfiguredShown(true)
           }
         }
-      } catch { }
+      } catch { /* transient: keep polling */ }
     }
     poll()
     const id = setInterval(poll, 4000)
     return () => { cancelled = true; clearInterval(id) }
   }, [onboardData?.token])
 
+  // Countdown clock + timeout check.
+  useEffect(() => {
+    if (!onboardData || onboardStatus?.status === 'used') return
+    const id = setInterval(() => {
+      const now = Date.now()
+      setNowMs(now)
+      if (startedAt && now - startedAt > TIMEOUT_MS && onboardStatus?.status !== 'used') {
+        setTimedOut(true)
+      }
+    }, 1000)
+    return () => clearInterval(id)
+  }, [onboardData, onboardStatus?.status, startedAt])
+
+  // Sync from the page-level onboard snapshot if it already exists (page reload mid-onboarding).
+  useEffect(() => {
+    if (!onboardData && onboard && onboard.status === 'pending' && onboard.token) {
+      setOnboardData({ token: onboard.token, command: '', expires_at: onboard.expires_at, ros_version: onboard.ros_version })
+      setOnboardStatus(onboard)
+      setStartedAt(Date.now())
+      // Reloaded mid-onboarding: the raw command isn't persisted on the server,
+      // so indicate it must be regenerated rather than showing an empty box.
+      setRestoredNoCommand(true)
+    }
+  }, [onboard])
+
+  // Once used + no conflict, flip to the Configured state, then hand off.
+  useEffect(() => {
+    if (configuredShown && !showConflict) {
+      const t = setTimeout(() => onConfigured(), 2500)
+      return () => clearTimeout(t)
+    }
+  }, [configuredShown, showConflict, onConfigured])
+
   const handleGenerate = async () => {
     setGenerating(true)
+    setTimedOut(false)
+    setNowMs(Date.now())
     try {
       const res = await api.generateOnboardToken(rosVersion)
       setOnboardData(res)
-      setPolling(true)
+      setOnboardStatus({ status: 'pending', token: res.token })
+      setStartedAt(Date.now())
+      onRefresh()
     } catch (e: any) {
-      showToast(e?.message || 'Failed to generate token', { type: 'error' })
+      showToast(friendlyError(e?.message || 'Failed to generate token'), { type: 'error' })
     } finally { setGenerating(false) }
   }
 
@@ -209,8 +306,9 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
     try {
       await api.resolveOnboardConflict(onboardData.token, overwrite)
       setShowConflict(false)
+      setConflictData(null)
+      setConfiguredShown(true)
       showToast(overwrite ? 'Overwriting existing hotspot config' : 'Keeping existing hotspot config', { type: 'success' })
-      onConfigured()
     } catch (e: any) {
       showToast(e?.message || 'Failed to resolve conflict', { type: 'error' })
     }
@@ -219,20 +317,27 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
   const handleReset = () => {
     setOnboardData(null)
     setOnboardStatus(null)
-    setPolling(false)
+    setStartedAt(null)
+    setTimedOut(false)
     setCopied(false)
     setShowConflict(false)
     setConflictData(null)
+    setConfiguredShown(false)
+    setRestoredNoCommand(false)
   }
 
+  const reg = onboardStatus?.registration_data
   const currentStep = (() => {
     if (!onboardData) return 1
-    if (onboardStatus?.status === 'used') return 3
-    if (onboardStatus?.status === 'pending') return 2
-    return 1
+    if (onboardStatus?.status === 'used') return configuredShown ? 4 : 3
+    return 2
   })()
+  const isComplete = onboardStatus?.status === 'used' && configuredShown && !showConflict
 
-  const isComplete = onboardStatus?.status === 'used' && !showConflict
+  const expiresAt = onboardData?.expires_at ? new Date(onboardData.expires_at).getTime() : null
+  const msLeft = expiresAt ? expiresAt - nowMs : null
+  const minsLeft = msLeft !== null ? Math.floor(msLeft / 60000) : null
+  const urgent = minsLeft !== null && minsLeft <= 5
 
   return (
     <>
@@ -242,39 +347,37 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
         </div>
         <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
           Generate a one-line command, paste it into your router's terminal — Winbox, SSH, or Webfig all work.
-          No app install required.
+          No app install required. Your router registers itself and starts polling WiBill every 30 seconds.
         </div>
 
-        <div style={{ display: 'flex', gap: 0, marginBottom: 24, alignItems: 'stretch' }}>
-          {ONBOARD_STEPS.map((s, i) => {
-            const isActive = currentStep === s.id
-            const isDone = currentStep > s.id || (currentStep === s.id && isComplete)
-            return (
-              <div key={s.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                {i > 0 && (
-                  <div style={{ position: 'absolute', top: 14, left: 0, right: '50%', height: 1.5, background: isDone ? C.gold : C.border, zIndex: 0 }} />
-                )}
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isDone ? C.gold : isActive ? 'transparent' : C.mute,
-                  border: `1.5px solid ${isDone ? C.gold : isActive ? C.gold : C.border2}`,
-                  color: isDone ? '#000' : isActive ? C.gold : C.dim,
-                  fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace', zIndex: 1, transition: 'all 0.3s',
-                }}>
-                  {isDone ? <CheckCircle size={14} /> : isActive && polling ? <RefreshCw size={14} style={{ animation: 'spin 1.2s linear infinite' }} /> : s.id}
-                </div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: isActive || isDone ? C.gold : C.dim, marginTop: 6, textAlign: 'center' }}>
-                  {s.label}
-                </div>
-                <div style={{ fontSize: 9, color: isActive ? C.dim : 'transparent', marginTop: 2, textAlign: 'center', maxWidth: 80 }}>
-                  {s.desc}
-                </div>
+        <StepTracker steps={QUICK_STEPS} currentStep={currentStep} isComplete={isComplete} />
+
+        {timedOut ? (
+          <div>
+            <div style={{ padding: 16, marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.06)', border: `0.5px solid rgba(239,68,68,0.25)` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <XCircle size={16} color={C.red} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>No response from your router yet</span>
               </div>
-            )
-          })}
-        </div>
-
-        {!onboardData && (
+              <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7 }}>
+                After about 5 minutes a router that fetched the script should have registered. The token may have
+                expired, or the router never fetched it. Generate a fresh command and try again — or use manual setup
+                if the router is on a restrictive network.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleGenerate} disabled={generating}
+                style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
+                {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
+                Try Again
+              </button>
+              <button onClick={onSwitchManual}
+                style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                Switch to Manual Setup
+              </button>
+            </div>
+          </div>
+        ) : !onboardData ? (
           <>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 8 }}>RouterOS Version</label>
@@ -291,74 +394,118 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
                 ))}
               </div>
               <div style={{ fontSize: 9, color: C.mute, marginTop: 4 }}>
-                Check: Winbox - System - Resources - Version (first digit)
+                Check: Winbox → System → Resources → Version (first digit)
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleGenerate} disabled={generating}
-                style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
-                {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
-                {generating ? 'Generating...' : 'Generate Command'}
-              </button>
-              <button onClick={onManualSetup}
-                style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Settings size={13} /> Manual
-              </button>
+            <button onClick={handleGenerate} disabled={generating}
+              style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
+              {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
+              {generating ? 'Generating...' : 'Generate Command'}
+            </button>
+
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <span style={{ fontSize: 10, color: C.dim }}>
+                Prefer to do this manually, or hit a snag?{' '}
+                <a onClick={onSwitchManual} style={{ color: C.gold, cursor: 'pointer', textDecoration: 'underline' }}>Switch to manual setup</a>
+              </span>
             </div>
           </>
-        )}
-
-        {onboardData && (
+        ) : (
           <>
-            <div style={{ padding: 14, marginBottom: 12, background: 'rgba(34,197,94,0.06)', border: '0.5px solid rgba(34,197,94,0.2)', borderRadius: 7 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: C.green, marginBottom: 6 }}>Paste this into your router terminal:</div>
+            {/* Paste instructions */}
+            <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Paste this into your router terminal:</div>
               <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
                 <li>Open <strong>Winbox</strong> or <strong>SSH</strong> into your router</li>
                 <li>Go to <strong>New Terminal</strong></li>
-                <li>Paste the command below and press Enter</li>
-                <li>Wait a few seconds for the registration</li>
+                <li>Paste both lines of the command below and press Enter (first line fetches, second imports)</li>
+                <li>Wait a few seconds for registration</li>
               </ol>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <button onClick={handleCopy}
-                style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: copied ? C.green : C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Copy size={13} /> {copied ? 'Copied!' : 'Copy Command'}
-              </button>
-              <button onClick={handleReset}
-                style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                Reset
-              </button>
-            </div>
+            {restoredNoCommand ? (
+              <div style={{ padding: 16, marginBottom: 16, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)` }}>
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, marginBottom: 12 }}>
+                  You reloaded mid-onboarding, so the exact command from before is no longer available. Generate a
+                  fresh one and paste it into your router terminal — or keep waiting if you already ran the old one.
+                </div>
+                <button onClick={handleReset}
+                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Terminal size={14} /> Generate a New Command
+                </button>
+              </div>
+            ) : (
+              <>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <button onClick={handleCopy}
+                  style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: copied ? C.green : C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Copy size={13} /> {copied ? 'Copied!' : 'Copy Command'}
+                </button>
+                <button onClick={handleReset}
+                  style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                  Reset
+                </button>
+              </div>
 
-            <pre style={{
-              background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
-              fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
-              overflowX: 'auto', whiteSpace: 'pre', marginBottom: 16,
-            }}>{onboardData.command}</pre>
+              <pre style={{
+                background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
+                fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
+                overflowX: 'auto', whiteSpace: 'pre', marginBottom: 16,
+              }}>{onboardData.command}</pre>
 
-            <div style={{ fontSize: 10, color: C.dim }}>
-              <strong>Note:</strong> This command works on RouterOS {rosVersion}.x. The token expires in 30 minutes.
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, color: C.dim }}>
+                  This command works on RouterOS {rosVersion}.x.
+                </span>
+                {msLeft !== null && msLeft > 0 ? (
+                  <span style={{ ...PILL(urgent ? C.red : C.gold), ...(urgent ? {} : {}) }}>
+                    <Clock size={9} /> Expires in {minsLeft}m
+                  </span>
+                ) : (
+                  <span style={PILL(C.red)}><Clock size={9} /> Expired — generate a new one</span>
+                )}
+              </div>
+              </>
+            )}
 
-            {polling && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {currentStep === 2 && !timedOut && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <RefreshCw size={13} color={C.gold} style={{ animation: 'spin 1.2s linear infinite' }} />
                 <span style={{ fontSize: 11, color: C.gold }}>Waiting for router to register...</span>
               </div>
             )}
 
-            {isComplete && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: '0.5px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {currentStep === 3 && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CheckCircle size={13} color={C.green} />
                 <span style={{ fontSize: 11, color: C.green }}>
-                  Device registered! {conflictData?.board} - RouterOS {conflictData?.ros_version}
+                  Router identified — {reg?.board || 'MikroTik'} · RouterOS {reg?.ros_version || '?'}
+                </span>
+                <span style={{ fontSize: 9, color: C.dim, marginLeft: 'auto' }}>Finishing setup... installing poll scheduler</span>
+              </div>
+            )}
+
+            {isComplete && (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Zap size={13} color={C.green} />
+                <span style={{ fontSize: 11, color: C.green }}>
+                  Configured — {conflictData?.board || reg?.board || 'router'} · RouterOS {conflictData?.ros_version || reg?.ros_version || '?'} connected
                 </span>
               </div>
             )}
           </>
         )}
+      </Card>
+      <Card style={{ marginTop: 12, padding: '14px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>
+            Prefer to configure the port, hotspot and network yourself? Use the manual wizard.
+          </div>
+          <button onClick={onSwitchManual} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, color: C.dim, fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+            Manual Setup <ChevronRight size={12} />
+          </button>
+        </div>
       </Card>
 
       {showConflict && (
@@ -369,12 +516,13 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Existing Hotspot Found</div>
             </div>
             <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, marginBottom: 20 }}>
-              This router already has a hotspot configuration. What would you like to do?
+              This router already has a hotspot configuration. Registering it keeps working — but its current portal will
+              be replaced when you push the WiBill portal page. What would you like to do?
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => handleResolveConflict(true)}
                 style={{ flex: 1, padding: 10, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                Overwrite Hotspot
+                Register Router
               </button>
               <button onClick={() => handleResolveConflict(false)}
                 style={{ flex: 1, padding: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -384,48 +532,42 @@ function RemoteOnboardFlow({ onManualSetup, onConfigured }: { onManualSetup: () 
           </div>
         </div>
       )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </>
   )
 }
 
-function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] }) {
-  const { token } = useAuth()
+// ============================================================================
+// MANUAL SETUP — 3 steps (Setup → Portal → Launch). Bridge step retired.
+// ============================================================================
+
+const MANUAL_STEPS = [
+  { id: 1, label: 'Setup', icon: Settings },
+  { id: 2, label: 'Portal', icon: Globe },
+  { id: 3, label: 'Launch', icon: Zap },
+]
+
+const ClockIcon = () => <span style={{ marginTop: -1 }}>◷</span>
+
+function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQuick: () => void }) {
   const { showToast } = useToast()
 
   const [step, setStep] = useState(1)
 
+  // Step 1 — Setup
   const [ssid, setSsid] = useState('WiFi')
   const [networkOctet, setNetworkOctet] = useState('4')
   const [wifiInterface, setWifiInterface] = useState('wlan1')
   const [setupScript, setSetupScript] = useState<string | null>(null)
   const [setupLoading, setSetupLoading] = useState(false)
 
-  const [routerIp, setRouterIp] = useState('')
-
-  const [bridgeScript, setBridgeScript] = useState<string | null>(null)
-  const [bridgeLoading, setBridgeLoading] = useState(false)
-  const [bridgeConfirmed, setBridgeConfirmed] = useState(false)
-  const [bridgeBlocked, setBridgeBlocked] = useState<string | null>(null)
-  const [bridgeHealth, setBridgeHealth] = useState<any>(null)
-
-  useEffect(() => {
-    if (step !== 2) return
-    let cancelled = false
-    const poll = async () => {
-      try {
-        const h = await api.getMikrotikHealth()
-        if (!cancelled) setBridgeHealth(h)
-      } catch { }
-    }
-    poll()
-    const id = setInterval(poll, 3000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [step])
-
+  // Step 2 — Portal (RouterAction enqueued, poll status)
+  const [portalAction, setPortalAction] = useState<any>(null)
+  const [portalStatus, setPortalStatus] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
-  const [portalUploaded, setPortalUploaded] = useState(false)
-  const [fileOnRouter, setFileOnRouter] = useState<boolean | null>(null)
 
+  // Step 3 — Launch
   const [preflight, setPreflight] = useState<any>(null)
   const [preflightLoading, setPreflightLoading] = useState(false)
   const [goLiveDone, setGoLiveDone] = useState(false)
@@ -439,7 +581,6 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
         wifi_interface: wifiInterface.trim() || 'wlan1',
       })
       setSetupScript(script)
-      setRouterIp(`192.168.${parseInt(networkOctet) || 4}.1`)
     } catch (e: any) {
       showToast(friendlyError(e?.message || 'Failed to generate setup script'), { type: 'error' })
     } finally { setSetupLoading(false) }
@@ -451,68 +592,45 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
     showToast('Copied — paste in Winbox Terminal', { type: 'success' })
   }
 
-  const handleGenerateBridge = async () => {
-    setBridgeLoading(true)
-    setBridgeBlocked(null)
-    setBridgeHealth(null)
-    try {
-      let provisioned = false
-      try {
-        const prov = await api.provisionMikrotik()
-        provisioned = Boolean(prov && prov.tunnel_id)
-      } catch (e: any) {
-        // "Tunnel already provisioned" (HTTP 400) means the tunnel exists — proceed
-        if ((e as any)?.status === 400) {
-          provisioned = true
-        } else {
-          throw e
-        }
-      }
-
-      if (!provisioned) {
-        setBridgeBlocked(
-          'No tunnel was created — the Cloudflare API token is missing or invalid on the server. ' +
-          'Without it, cloudflared cannot be installed and your backend will never be able to reach this bridge. ' +
-          'Ask your platform admin to set CLOUDFLARE_API_TOKEN, then try again.'
-        )
-        return
-      }
-
-      const data = await api.getMikrotikInstallScript()
-      setBridgeScript(data)
-    } catch (e: any) {
-      setBridgeBlocked(friendlyError(e?.message || 'Failed to generate bridge installer'))
-    } finally { setBridgeLoading(false) }
-  }
-
-  const handleCopyBridgeScript = () => {
-    if (!bridgeScript) return
-    navigator.clipboard.writeText(bridgeScript)
-    showToast('Copied — paste in PowerShell as Admin on the PC', { type: 'success' })
-  }
-
-  // ── Step 3: Portal ──
+  // Portal step: generate login.html → enqueue push_portal action → poll status.
   const handlePushPortal = async () => {
     setPortalUploading(true)
+    setPortalAction({ status: 'pending' })
+    setPortalStatus('pending')
     try {
       const html = await api.getMikrotikLoginHtml()
       const result = await api.uploadPortalFile(html)
-      if (result.ok) {
-        showToast('login.html pushed to router', { type: 'success' })
-        setPortalUploaded(true)
-        setTimeout(async () => {
-          try {
-            const res = await api.getMikrotikFileStatus()
-            setFileOnRouter(res.exists)
-          } catch { setFileOnRouter(false) }
-        }, 3000)
+      if (result?.ok) {
+        setPortalAction(result)
+        setPortalStatus(result.status || 'pending')
+        showToast('Portal push queued — applies within ~30s', { type: 'success' })
       }
     } catch (e: any) {
+      setPortalAction(null)
+      setPortalStatus(null)
       showToast(friendlyError(e.message || 'Failed to push portal file'), { type: 'error' })
     } finally { setPortalUploading(false) }
   }
 
-  // ── Step 4: Launch ──
+  // Poll the enqueued action until acked.
+  useEffect(() => {
+    if (!portalAction?.action_id) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const fs = await api.getMikrotikFileStatus()
+        if (cancelled) return
+        setPortalStatus(fs.status)
+        if (fs.status === 'acked') showToast('Portal page is live on the router', { type: 'success' })
+      } catch { /* keep polling */ }
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portalAction?.action_id])
+
+  // Step 3 — Launch
   const handlePreflight = async () => {
     setPreflightLoading(true)
     try {
@@ -528,361 +646,319 @@ function WizardFlow({ onBack, packages }: { onBack: () => void; packages: any[] 
       await api.goLiveMikrotik()
       setGoLiveDone(true)
       showToast('Hotspot is live!', { type: 'success' })
+      setTimeout(onDone, 2000)
     } catch (e: any) {
       showToast(friendlyError(e.message || 'Failed to go live'), { type: 'error' })
     }
   }
 
-  const hasActivePackage = packages.some(p => p.is_active)
+  const portalPendingSeconds = (() => {
+    if (!portalAction?.status && !portalStatus) return null
+    if (portalStatus === 'acked') return null
+    return 45
+  })()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title="MikroTik Setup" />
-      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-        <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
+    <>
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={onBackToQuick} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Back to Quick Connect
+        </button>
+      </div>
 
-          {/* Step Tracker */}
-          <div style={{ display: 'flex', gap: 0, marginBottom: 32, alignItems: 'stretch' }}>
-            {STEPS.map((s, i) => {
-              const isActive = step === s.id
-              const isDone = step > s.id
+      <Card>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Manual Setup
+        </div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
+          Configure your router step by step. Use this path when auto-onboarding fails, or the router already has
+          partial hotspot config you want to keep.
+        </div>
+
+        <StepTracker steps={MANUAL_STEPS} currentStep={step} isComplete={step > 3 && false} />
+
+        {/* ══ STEP 1: SETUP ══ */}
+        {step === 1 && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Network Name (SSID)</label>
+              <input value={ssid} onChange={e => setSsid(e.target.value)} placeholder="My ISP WiFi"
+                style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Network Octet</label>
+                <input value={networkOctet} onChange={e => setNetworkOctet(e.target.value)} placeholder="4"
+                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Router gets 192.168.<strong>{networkOctet || '4'}</strong>.1</div>
+              </div>
+              <div>
+                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Interface</label>
+                <input value={wifiInterface} onChange={e => setWifiInterface(e.target.value)} placeholder="wlan1"
+                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Usually wlan1 on hAP lite</div>
+              </div>
+            </div>
+
+            {!setupScript && !setupLoading && (
+              <button onClick={handleGenerateSetup}
+                style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Terminal size={14} /> Generate Setup Script
+              </button>
+            )}
+
+            {setupLoading && <LoadingSpinner size="sm" color="var(--theme-gold)" label="Generating script..." />}
+
+            {setupScript && (
+              <>
+                <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Setup Instructions:</div>
+                  <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
+                    <li>Open <strong>Winbox</strong> → connect to your router</li>
+                    <li>Go to <strong>New Terminal</strong></li>
+                    <li>Paste the script below and press Enter</li>
+                    <li>Wait for "WiBill setup complete" message</li>
+                  </ol>
+                </div>
+
+                {/* Code block header with copy button */}
+                <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: C.surface, borderBottom: `0.5px solid ${C.border}` }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                    <span style={{ fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace', marginLeft: 8, flex: 1 }}>wibill-setup.rsc</span>
+                    <button onClick={handleCopySetup} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 5, background: C.base, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 9, fontWeight: 600, cursor: 'pointer' }}>
+                      <Copy size={10} /> Copy
+                    </button>
+                  </div>
+                  <pre style={{
+                    background: C.void, padding: 16, margin: 0,
+                    fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
+                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 280, overflowY: 'auto', borderBottomLeftRadius: 8, borderBottomRightRadius: 8,
+                  }}>{setupScript}</pre>
+                </div>
+
+                <button onClick={() => setStep(2)}
+                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  Script pasted into Winbox — Continue <ArrowRight size={14} />
+                </button>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ STEP 2: PORTAL ══ */}
+        {step === 2 && (
+          <>
+            <div style={{ fontSize: 11, color: C.dim, marginBottom: 16, lineHeight: 1.6 }}>
+              Push the <strong>login.html</strong> redirect file to your router. The router downloads it itself on its
+              next 30-second check-in — no bridge needed.
+            </div>
+
+            {!portalAction?.action_id && !portalUploading && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={handlePushPortal} style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {portalUploading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={14} />}
+                  Push Portal Page
+                </button>
+                <button onClick={async () => {
+                  try {
+                    const html = await api.getMikrotikLoginHtml()
+                    const blob = new Blob([html], { type: 'text/html' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = 'login.html'; a.click()
+                    URL.revokeObjectURL(url)
+                  } catch { showToast('Failed to download', { type: 'error' }) }
+                }} style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Terminal size={13} /> Download login.html
+                </button>
+              </div>
+            )}
+
+            {portalUploading && <LoadingSpinner size="sm" color="var(--theme-gold)" label="Queueing your branded portal page..." />}
+
+            {portalAction?.action_id && portalStatus !== 'acked' && (
+              <div style={{ padding: 12, marginBottom: 12, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <RefreshCw size={13} color={C.gold} style={{ animation: 'spin 1.2s linear infinite' }} />
+                <span style={{ fontSize: 11, color: C.gold }}>
+                  {portalPendingSeconds != null && portalPendingSeconds > 0
+                    ? 'This will apply the next time your router checks in (~30s intervals)'
+                    : 'Queueing your branded portal page...'}
+                </span>
+              </div>
+            )}
+
+            {portalStatus === 'acked' && (
+              <div style={{ padding: 12, marginBottom: 12, borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CheckCircle size={14} color={C.green} />
+                <span style={{ fontSize: 11, color: C.green }}>Portal live — login.html applied to router</span>
+              </div>
+            )}
+
+            <button onClick={() => setStep(3)} disabled={portalStatus !== 'acked'}
+              style={{ width: '100%', padding: 12, background: portalStatus === 'acked' ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalStatus === 'acked' ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalStatus === 'acked' ? 'pointer' : 'not-allowed', opacity: portalStatus === 'acked' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              Portal Pushed — Continue <ArrowRight size={14} />
+            </button>
+          </>
+        )}
+
+        {/* ══ STEP 3: LAUNCH ══ */}
+        {step === 3 && (
+          <>
+            {!goLiveDone && (
+              <>
+                <button onClick={handlePreflight} disabled={preflightLoading}
+                  style={{ width: '100%', padding: 12, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontWeight: 600, cursor: preflightLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+                  {preflightLoading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Shield size={14} />}
+                  {preflightLoading ? 'Running checks...' : preflight ? 'Re-run Pre-flight Checks' : 'Run Pre-flight Checks'}
+                </button>
+
+                {preflight && (
+                  <div style={{ marginBottom: 20 }}>
+                    {Object.entries(preflight.checks || {}).map(([key, check]: [string, any]) => (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
+                        {check.passed ? <CheckCircle size={12} color={C.green} /> : <XCircle size={12} color={C.red} />}
+                        <span style={{ fontSize: 10, color: C.text, textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</span>
+                        <span style={{ fontSize: 9, color: C.dim, marginLeft: 'auto' }}>{check.message}</span>
+                      </div>
+                    ))}
+                    {preflight.all_passed && (
+                      <div style={{ marginTop: 12, padding: 10, background: 'rgba(34,197,94,0.08)', borderRadius: 7, fontSize: 10, color: C.green, textAlign: 'center' }}>
+                        All checks passed — ready to go live
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button onClick={handleGoLive}
+                  style={{ width: '100%', padding: 14, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Zap size={16} /> Go Live
+                </button>
+              </>
+            )}
+
+            {goLiveDone && (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <CheckCircle size={28} color={C.green} />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Setup Complete!</div>
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, maxWidth: 400, margin: '0 auto' }}>
+                  Your MikroTik hotspot is live. Taking you to the router view...
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </>
+  )
+}
+
+// ============================================================================
+// ROUTER MANAGEMENT VIEW
+// ============================================================================
+
+function RouterManagementView({ health, actions, onReconfigure, onRefresh }: {
+  health: any
+  actions: any[]
+  onReconfigure: () => void
+  onRefresh: () => void
+}) {
+  const online = health?.connected === true
+  const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
+  const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
+
+  return (
+    <>
+      {/* Page header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, boxShadow: `0 0 10px ${statusColor}80`, flexShrink: 0, animation: online ? 'pulse 2s infinite' : 'none' }} />
+          <span style={{ fontSize: 16, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: statusColor }}>{statusText}</span>
+          {health?.last_poll_at && (
+            <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>Last seen <TimeAgo iso={health.last_poll_at} /></span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onRefresh} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, color: C.dim, fontSize: 10, cursor: 'pointer' }}>
+            <RefreshCw size={12} /> Refresh
+          </button>
+          <a href="/dashboard/network" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, color: C.dim, fontSize: 10, cursor: 'pointer', textDecoration: 'none' }}>
+            View on Network <ExternalLink size={11} />
+          </a>
+        </div>
+      </div>
+
+      {/* Router status card */}
+      <Card style={{ marginBottom: 12 }}>
+        <div style={{ ...sectionLabel, whiteSpace: 'nowrap' as const }}>Router Status</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {[
+            { label: 'RouterOS', value: health?.router_os_version || '—' },
+            { label: 'Board', value: health?.board_name || health?.router_identity || '—' },
+            { label: 'Router IP', value: health?.router_ip || '—' },
+            { label: 'Status', value: statusText, color: statusColor },
+          ].map(item => (
+            <div key={item.label} style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
+              <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{item.label}</div>
+              <div style={{ fontSize: 12, color: item.color || C.text, fontFamily: 'DM Mono, monospace' }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {health?.last_error && !online && (
+          <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.06)', border: `0.5px solid rgba(239,68,68,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={13} color={C.red} />
+            <span style={{ fontSize: 10, color: C.dim }}>{health.last_error}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onReconfigure} style={{ flex: 1, padding: 11, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Settings size={14} /> Re-run Setup
+          </button>
+          <button onClick={onRefresh} style={{ padding: '11px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Wifi size={13} /> Check Connection
+          </button>
+        </div>
+      </Card>
+
+      {/* Recent activity */}
+      <Card>
+        <div style={{ ...sectionLabel }}>Recent Activity</div>
+        {actions.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {actions.slice(0, 5).map((a: any) => {
+              const acked = a.status === 'acked'
+              const delivered = a.status === 'delivered'
+              const color = acked ? C.green : delivered ? C.gold : C.dim
+              const icon = acked ? <CheckCircle size={12} color={C.green} /> : delivered ? <Activity size={12} color={C.gold} /> : <ClockIcon />
               return (
-                <div key={s.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                  {i > 0 && (
-                    <div style={{ position: 'absolute', top: 14, left: 0, right: '50%', height: 1.5, background: isDone ? C.gold : C.border, zIndex: 0 }} />
-                  )}
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isDone ? C.gold : isActive ? 'transparent' : C.mute,
-                    border: `1.5px solid ${isDone ? C.gold : isActive ? C.gold : C.border2}`,
-                    color: isDone ? '#000' : isActive ? C.gold : C.dim,
-                    fontSize: 11, fontWeight: 700, fontFamily: 'DM Mono, monospace', zIndex: 1, transition: 'all 0.3s',
-                  }}>
-                    {isDone ? <CheckCircle size={14} /> : isActive ? <s.icon size={14} /> : s.id}
-                  </div>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: isActive || isDone ? C.gold : C.dim, marginTop: 6, textAlign: 'center' }}>
-                    {s.label}
-                  </div>
-                  <div style={{ fontSize: 9, color: isActive ? C.dim : 'transparent', marginTop: 2, textAlign: 'center', maxWidth: 80 }}>
-                    {s.desc}
-                  </div>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
+                  <span style={{ display: 'flex', alignItems: 'center', width: 14 }}>{icon}</span>
+                  <span style={{ fontSize: 10, color: C.text, textTransform: 'capitalize', fontFamily: 'DM Mono, monospace' }}>{a.action_type.replace(/_/g, ' ')}</span>
+                  <span style={{ ...PILL(color) }}>{a.status}</span>
+                  <span style={{ fontSize: 9, color: C.faint, marginLeft: 'auto', fontFamily: 'DM Mono, monospace' }}>
+                    <TimeAgo iso={a.acked_at || a.delivered_at || a.created_at} />
+                  </span>
                 </div>
               )
             })}
           </div>
-
-          {/* ══════ STEP 1: Setup ══════ */}
-          {step === 1 && (
-            <Card>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 1 of 4 — Setup Router
-              </div>
-              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-                Generate a RouterOS script that configures your fresh router from scratch — bridge, DHCP, hotspot, API user, and walled garden. Paste it into Winbox once.
-              </div>
-
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Network Name (SSID)</label>
-                <input value={ssid} onChange={e => setSsid(e.target.value)} placeholder="My ISP WiFi"
-                  style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>Network Octet</label>
-                  <input value={networkOctet} onChange={e => setNetworkOctet(e.target.value)} placeholder="4"
-                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-                  <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Router gets 192.168.<strong>{networkOctet || '4'}</strong>.1</div>
-                </div>
-                <div>
-                  <label style={{ fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: 5 }}>WiFi Interface</label>
-                  <input value={wifiInterface} onChange={e => setWifiInterface(e.target.value)} placeholder="wlan1"
-                    style={{ width: '100%', padding: '10px 12px', background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box' }} />
-                  <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Usually wlan1 on hAP lite</div>
-                </div>
-              </div>
-
-              {!setupScript && !setupLoading && (
-                <button onClick={handleGenerateSetup}
-                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <Terminal size={14} /> Generate Setup Script
-                </button>
-              )}
-
-              {setupLoading && <LoadingSpinner size="sm" label="Generating script..." />}
-
-              {setupScript && (
-                <>
-                  <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Setup Instructions:</div>
-                    <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
-                      <li>Open <strong>Winbox</strong> → connect to your router</li>
-                      <li>Go to <strong>New Terminal</strong></li>
-                      <li>Paste the script below and press Enter</li>
-                      <li>Wait for "WiBill setup complete" message</li>
-                    </ol>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                    <button onClick={handleCopySetup}
-                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Copy size={13} /> Copy Script
-                    </button>
-                    <button onClick={() => { setSetupScript(null) }}
-                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                      Reset
-                    </button>
-                  </div>
-
-                  <pre style={{
-                    background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
-                    fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
-                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 300, overflowY: 'auto', marginBottom: 16,
-                  }}>{setupScript}</pre>
-
-                  <button onClick={() => setStep(2)}
-                    style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    Script pasted into Winbox — Continue <ArrowRight size={14} />
-                  </button>
-                </>
-              )}
-            </Card>
-          )}
-
-          {/* ══════ STEP 2: Bridge ══════ */}
-          {step === 2 && (
-            <Card>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 2 of 4 — Bridge Setup
-              </div>
-              <div style={{ fontSize: 11, color: C.dim, marginBottom: 16, lineHeight: 1.6 }}>
-                Run this one-time installer on the <strong>always-on PC at your site</strong> (same network as the router). It installs the bridge that connects your router to WiBill.
-              </div>
-
-              {(() => {
-                const h = bridgeHealth
-                if (!h || !h.configured) {
-                  return (
-                    <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <RefreshCw size={13} color={C.gold} style={{ animation: 'spin 1.2s linear infinite' }} />
-                      <span style={{ fontSize: 11, color: C.gold }}>Waiting for bridge...</span>
-                    </div>
-                  )
-                }
-                if (h.connected && h.router_reachable) {
-                  return (
-                    <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle size={13} color={C.green} />
-                      <span style={{ fontSize: 11, color: C.green }}>Bridge connected &nbsp;·&nbsp; Router reachable ({h.router_ip})</span>
-                    </div>
-                  )
-                }
-                return (
-                  <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: `0.5px solid rgba(239,68,68,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <XCircle size={13} color={C.red} />
-                    <span style={{ fontSize: 11, color: C.red }}>{h.connected ? 'Bridge connected — router unreachable' : 'Bridge not reachable'} · {h.last_error || 'check the PC'}</span>
-                  </div>
-                )
-              })()}
-
-              {bridgeBlocked && (
-                <div style={{ padding: 14, marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.08)', border: `0.5px solid rgba(239,68,68,0.25)`, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <AlertTriangle size={15} color={C.red} style={{ marginTop: 1, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 4 }}>Bridge installer blocked</div>
-                    <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>{bridgeBlocked}</div>
-                    <button onClick={() => setBridgeBlocked(null)}
-                      style={{ marginTop: 8, padding: '6px 10px', background: 'transparent', border: `0.5px solid rgba(239,68,68,0.4)`, borderRadius: 5, color: C.red, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!bridgeScript && !bridgeLoading && !bridgeBlocked && (
-                <button onClick={handleGenerateBridge}
-                  style={{ padding: '12px 20px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                  <Server size={14} /> Generate Bridge Installer
-                </button>
-              )}
-
-              {bridgeLoading && <LoadingSpinner size="sm" label="Setting up bridge..." />}
-
-              {bridgeScript && (
-                <>
-                  <div style={{ padding: 14, marginBottom: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)`, borderRadius: 7 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: C.gold, marginBottom: 6 }}>Installation Steps:</div>
-                    <ol style={{ fontSize: 10, color: C.dim, lineHeight: 2, margin: 0, paddingLeft: 18 }}>
-                      <li>Open <strong>PowerShell as Administrator</strong> on the PC</li>
-                      <li>Paste the script below and press Enter</li>
-                      <li>Wait ~2 minutes for everything to install</li>
-                      <li>Keep this PC running 24/7 — the bridge must stay online</li>
-                    </ol>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                    <button onClick={handleCopyBridgeScript}
-                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Copy size={13} /> Copy Script
-                    </button>
-                    <button onClick={() => { setBridgeScript(null); setBridgeConfirmed(false); setBridgeBlocked(null) }}
-                      style={{ padding: '8px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                      Reset
-                    </button>
-                  </div>
-
-                  <pre style={{
-                    background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 7, padding: 16,
-                    fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.5,
-                    overflowX: 'auto', whiteSpace: 'pre', maxHeight: 300, overflowY: 'auto', marginBottom: 16,
-                  }}>{bridgeScript}</pre>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <input type="checkbox" id="bridge-confirm" checked={bridgeConfirmed} onChange={e => setBridgeConfirmed(e.target.checked)}
-                      style={{ width: 16, height: 16, accentColor: C.gold }} />
-                    <label htmlFor="bridge-confirm" style={{ fontSize: 11, color: C.text, cursor: 'pointer' }}>
-                      Bridge is installed and running on the PC
-                    </label>
-                  </div>
-
-                  <button onClick={() => setStep(3)} disabled={!bridgeConfirmed}
-                    style={{ width: '100%', padding: 12, background: bridgeConfirmed ? C.gold : C.mute, border: 'none', borderRadius: 7, color: bridgeConfirmed ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: bridgeConfirmed ? 'pointer' : 'not-allowed', opacity: bridgeConfirmed ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    Installed — Continue <ArrowRight size={14} />
-                  </button>
-                </>
-              )}
-            </Card>
-          )}
-
-          {/* ══════ STEP 3: Portal ══════ */}
-          {step === 3 && (
-            <Card>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 3 of 4 — Push Portal Page
-              </div>
-              <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-                Push the <strong>login.html</strong> redirect file to your router. This file sends users to your branded portal when they connect to WiFi.
-              </div>
-
-              <div style={{ padding: 14, marginBottom: 16, background: 'color-mix(in srgb, var(--theme-gold) 6%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)`, borderRadius: 7 }}>
-                <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.7 }}>
-                  The bridge pushes login.html via <strong>/tool/fetch</strong> on the router. If the bridge is down, <strong>download login.html</strong> and upload manually via Winbox → Files → hotspot/.
-                </div>
-              </div>
-
-              {!portalUploaded ? (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                  <button onClick={handlePushPortal} disabled={portalUploading}
-                    style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: portalUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: portalUploading ? 0.6 : 1 }}>
-                    {portalUploading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={14} />}
-                    {portalUploading ? 'Pushing...' : 'Generate & Push to Router'}
-                  </button>
-                  <button onClick={async () => {
-                    try {
-                      const html = await api.getMikrotikLoginHtml()
-                      const blob = new Blob([html], { type: 'text/html' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a'); a.href = url; a.download = 'login.html'; a.click()
-                      URL.revokeObjectURL(url)
-                    } catch { showToast('Failed to download', { type: 'error' }) }
-                  }} style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Download size={13} /> Download
-                  </button>
-                </div>
-              ) : (
-                <div style={{ padding: 14, marginBottom: 16, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, borderRadius: 7, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle size={14} color={C.green} />
-                  <span style={{ fontSize: 11, color: C.green }}>
-                    Pushed to router {fileOnRouter === true ? '— confirmed on filesystem' : fileOnRouter === false ? '— waiting for router to download...' : ''}
-                  </span>
-                </div>
-              )}
-
-<button onClick={() => setStep(4)} disabled={!portalUploaded}
-                    style={{ width: '100%', padding: 12, background: portalUploaded ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalUploaded ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalUploaded ? 'pointer' : 'not-allowed', opacity: portalUploaded ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    Portal Pushed — Continue <ArrowRight size={14} />
-                  </button>
-            </Card>
-          )}
-
-          {/* ══════ STEP 4: Launch ══════ */}
-          {step === 4 && (
-            <Card>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step 4 of 4 — Go Live
-              </div>
-
-              {!hasActivePackage && (
-                <div style={{ padding: 14, marginBottom: 20, borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <AlertTriangle size={14} color={C.gold} />
-                    <span style={{ fontSize: 11, fontWeight: 600, color: C.gold }}>No active packages</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>
-                    Customers won't be able to purchase internet. <a href="/dashboard/packages" style={{ color: C.gold }}>Add Packages →</a>
-                  </div>
-                </div>
-              )}
-
-              {!goLiveDone && (
-                <>
-                  <button onClick={handlePreflight} disabled={preflightLoading}
-                    style={{ width: '100%', padding: 12, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontWeight: 600, cursor: preflightLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
-                    {preflightLoading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Shield size={14} />}
-                    {preflightLoading ? 'Running checks...' : preflight ? 'Re-run Pre-flight Checks' : 'Run Pre-flight Checks'}
-                  </button>
-
-                  {preflight && (
-                    <div style={{ marginBottom: 20 }}>
-                      {Object.entries(preflight.checks || {}).map(([key, check]: [string, any]) => (
-                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
-                          {check.passed ? <CheckCircle size={12} color={C.green} /> : <XCircle size={12} color={C.red} />}
-                          <span style={{ fontSize: 10, color: C.text, textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</span>
-                          <span style={{ fontSize: 9, color: C.dim, marginLeft: 'auto' }}>{check.message}</span>
-                        </div>
-                      ))}
-                      {preflight.all_passed && (
-                        <div style={{ marginTop: 12, padding: 10, background: 'rgba(34,197,94,0.08)', borderRadius: 7, fontSize: 10, color: C.green, textAlign: 'center' }}>
-                          All checks passed — ready to go live
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {hasActivePackage && (
-                    <div style={{ padding: 12, marginBottom: 20, borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CheckCircle size={14} color={C.green} />
-                      <span style={{ fontSize: 10, color: C.green }}>{packages.filter(p => p.is_active).length} package(s) configured</span>
-                    </div>
-                  )}
-
-                  <button onClick={handleGoLive}
-                    style={{ width: '100%', padding: 14, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <Zap size={16} /> Go Live
-                  </button>
-                </>
-              )}
-
-              {goLiveDone && (
-                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <CheckCircle size={28} color={C.green} />
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 8 }}>Setup Complete!</div>
-                  <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, maxWidth: 400, margin: '0 auto 20px' }}>
-                    Your MikroTik hotspot is live. Customers connecting to your WiFi will see the branded portal and can purchase internet via M-Pesa.
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-                    <a href="/dashboard" style={{ padding: '10px 18px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>Dashboard</a>
-                    <a href="/dashboard/wizard" style={{ padding: '10px 18px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>Customize Portal</a>
-                  </div>
-                </div>
-              )}
-            </Card>
-          )}
-
-        </div>
-      </div>
-    </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px 12px' }}>
+            <Router size={22} color={C.dim} style={{ marginBottom: 8 }} />
+            <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
+              No router activity yet. Actions pushed to your router (portal push, config changes) will show here.
+            </div>
+          </div>
+        )}
+      </Card>
+      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
+    </>
   )
 }
