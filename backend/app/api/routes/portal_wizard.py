@@ -10,10 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.api.routes.auth import require_isp_admin
 from app.models.admin_user import AdminUser
 from app.models.tenant import Tenant
+from app.models.mikrotik_config import MikrotikConfig
 from app.models.portal_config_snapshot import PortalConfigSnapshot
+from app.services.router_poll_service import enqueue_action
 from app.services.portal_templates import TEMPLATE_GALLERY, get_templates_by_category, get_template, get_categories, CATEGORY_EMOJIS
 from app.services.portal_assets import save_upload, delete_asset, get_tenant_assets
 from app.services.portal_export import generate_mikrotik_zip, generate_qr_poster_html
@@ -224,11 +227,34 @@ async def save_portal_config(
     await db.commit()
     await db.refresh(tenant)
 
+    # Live router = branding updates apply on the router's next 30s check-in,
+    # no manual "push" step. Enqueue a push_portal RouterAction pointing at the
+    # public /login/{slug} stub; the poll scheduler picks it up automatically.
+    pushed = False
+    try:
+        cfg_result = await db.execute(
+            select(MikrotikConfig).where(MikrotikConfig.tenant_id == tenant.id)
+        )
+        cfg = cfg_result.scalar_one_or_none()
+        if cfg:
+            base_url = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+            await enqueue_action(
+                cfg.id,
+                "push_portal",
+                {"url": f"{base_url}/login/{tenant.slug or 'wibill'}", "dst": "hotspot/login.html"},
+                db,
+            )
+            pushed = True
+    except Exception:
+        # Portal save must never fail because a push could not be queued.
+        pushed = False
+
     return {
         "ok": True,
         "message": "Portal configuration saved",
         "portal_url": f"/portal/{tenant.slug}",
         "onboarding_complete": True,
+        "push_queued": pushed,
     }
 
 

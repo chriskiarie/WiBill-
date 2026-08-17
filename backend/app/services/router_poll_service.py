@@ -122,6 +122,25 @@ def _fetch_mode(ros_version: str, url: str = "") -> str:
     return ""
 
 
+def build_portal_fetch_line(
+    slug: str,
+    ros_version: str = "6",
+    base_url: str = "",
+    dst_path: str = "hotspot/login.html",
+) -> str:
+    """One-line installation of the tenant's login.html redirect stub.
+
+    The router /tool fetches the stub straight from WiBill's server (same way
+    it fetches the onboarding script) — no local PC, no staging folder. This is
+    folded into the fresh-router setup script so an initial portal push never
+    needs a separate step.
+    """
+    base = (base_url or settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    url = f"{base}/login/{slug}"
+    mode = _fetch_mode(ros_version, url)
+    return f':do {{ /tool fetch url="{url}"{mode} dst-path={dst_path} }} on-error={{ :log info "wibill: portal fetch failed" }}'
+
+
 def _mac_clean(mac: str) -> str:
     return (mac or "").strip().upper()
 

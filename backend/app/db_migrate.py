@@ -568,6 +568,9 @@ MIGRATIONS = [
     ("mikrotik_configs.last_poll_at", """
         ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS last_poll_at TIMESTAMPTZ
     """),
+    ("mikrotik_configs.first_poll_at", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS first_poll_at TIMESTAMPTZ
+    """),
     ("router_actions", """
         CREATE TABLE IF NOT EXISTS router_actions (
             id SERIAL PRIMARY KEY,

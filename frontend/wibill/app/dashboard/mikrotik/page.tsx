@@ -164,7 +164,9 @@ export default function MikrotikPage() {
 }
 
 // ============================================================================
-// ONBOARDING VIEW — Quick Connect (default) + collapsible Manual
+// ONBOARDING VIEW — two distinct paths based on starting condition:
+//   "Fresh router — full setup"     (builds hotspot from scratch, default)
+//   "Already have a hotspot setup"  (register + start polling only)
 // ============================================================================
 
 const QUICK_STEPS = [
@@ -179,18 +181,40 @@ function OnboardingView({ onboard, onConfigured, onRefresh }: {
   onConfigured: () => void
   onRefresh: () => void
 }) {
-  const [showManual, setShowManual] = useState(false)
+  // Fresh-router path is the default: a brand-new ISP's router almost always
+  // has no hotspot yet, and only Full Setup builds one from nothing.
+  const [path, setPath] = useState<'fresh' | 'reconnect'>('fresh')
 
-  if (showManual) {
-    return (
-      <ManualSetup
-        onDone={onConfigured}
-        onBackToQuick={() => setShowManual(false)}
-      />
-    )
-  }
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button onClick={() => setPath('fresh')}
+          style={{
+            flex: 1, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+            background: path === 'fresh' ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : C.base,
+            border: `1px solid ${path === 'fresh' ? C.gold : C.border}`, color: path === 'fresh' ? C.text : C.dim,
+          }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>Fresh router — full setup</div>
+          <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.5 }}>Builds bridge, DHCP, hotspot and portal from scratch</div>
+        </button>
+        <button onClick={() => setPath('reconnect')}
+          style={{
+            flex: 1, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+            background: path === 'reconnect' ? 'color-mix(in srgb, var(--theme-gold) 10%, transparent)' : C.base,
+            border: `1px solid ${path === 'reconnect' ? C.gold : C.border}`, color: path === 'reconnect' ? C.text : C.dim,
+          }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>Already have a hotspot setup</div>
+          <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.5 }}>Just connects WiBill billing to an existing hotspot</div>
+        </button>
+      </div>
 
-  return <QuickConnectFlow onboard={onboard} onConfigured={onConfigured} onRefresh={onRefresh} onSwitchManual={() => setShowManual(true)} />
+      {path === 'reconnect' ? (
+        <QuickConnectFlow onboard={onboard} onConfigured={onConfigured} onRefresh={onRefresh} onSwitchManual={() => setPath('fresh')} />
+      ) : (
+        <FullRouterSetup onDone={onConfigured} onBackToQuick={() => setPath('reconnect')} />
+      )}
+    </>
+  )
 }
 
 // ============================================================================
@@ -210,19 +234,23 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
   const [onboardData, setOnboardData] = useState<any>(null)
   const [onboardStatus, setOnboardStatus] = useState<any>(null)
   const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [registeredAt, setRegisteredAt] = useState<number | null>(null)
+  const [forceConfigured, setForceConfigured] = useState(false)
   const [timedOut, setTimedOut] = useState(false)
   const [copied, setCopied] = useState(false)
   const [nowMs, setNowMs] = useState(Date.now())
   const [showConflict, setShowConflict] = useState(false)
   const [conflictData, setConflictData] = useState<any>(null)
-  const [configuredShown, setConfiguredShown] = useState(false)
   const [restoredNoCommand, setRestoredNoCommand] = useState(false)
 
   const TIMEOUT_MS = 5 * 60 * 1000
+  const REGISTER_TIMEOUT_MS = 2 * 60 * 1000
 
-  // Real polling of GET /api/onboard/status — every 4s.
+  // Real polling of GET /api/onboard/status — every 4s. Keeps running past
+  // REGISTERED so CONFIGURED is triggered by the router's first real poll
+  // (first_poll_at), not merely by registration succeeding.
   useEffect(() => {
-    if (!onboardData || onboardStatus?.status === 'used') return
+    if (!onboardData) return
     let cancelled = false
     const poll = async () => {
       try {
@@ -230,25 +258,25 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
         if (cancelled) return
         setOnboardStatus(st)
         if (st.status === 'used') {
-          const reg = st.registration_data
-          if (reg?.existing_hotspot) {
-            setConflictData(reg)
+          if (registeredAt === null) setRegisteredAt(Date.now())
+          if (st.registration_data?.existing_hotspot) {
+            setConflictData(st.registration_data)
             setShowConflict(true)
-          } else {
-            // Doesn't return -> reuse existing; stays green
-            setConfiguredShown(true)
           }
+          // Auto-advance the moment the poll scheduler has genuinely run.
+          if (st.first_poll_at) setForceConfigured(true)
         }
       } catch { /* transient: keep polling */ }
     }
     poll()
     const id = setInterval(poll, 4000)
     return () => { cancelled = true; clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboardData?.token])
 
-  // Countdown clock + timeout check.
+  // Countdown clock + timeout check (pending phase).
   useEffect(() => {
-    if (!onboardData || onboardStatus?.status === 'used') return
+    if (!onboardData) return
     const id = setInterval(() => {
       const now = Date.now()
       setNowMs(now)
@@ -271,13 +299,15 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
     }
   }, [onboard])
 
-  // Once used + no conflict, flip to the Configured state, then hand off.
+  const configured = (forceConfigured || !!onboardStatus?.first_poll_at) && !showConflict
+
+  // Once truly configured (first poll observed, or forced), hand off.
   useEffect(() => {
-    if (configuredShown && !showConflict) {
+    if (configured) {
       const t = setTimeout(() => onConfigured(), 2500)
       return () => clearTimeout(t)
     }
-  }, [configuredShown, showConflict, onConfigured])
+  }, [configured, onConfigured])
 
   const handleGenerate = async () => {
     setGenerating(true)
@@ -307,7 +337,6 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
       await api.resolveOnboardConflict(onboardData.token, overwrite)
       setShowConflict(false)
       setConflictData(null)
-      setConfiguredShown(true)
       showToast(overwrite ? 'Overwriting existing hotspot config' : 'Keeping existing hotspot config', { type: 'success' })
     } catch (e: any) {
       showToast(e?.message || 'Failed to resolve conflict', { type: 'error' })
@@ -318,21 +347,27 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
     setOnboardData(null)
     setOnboardStatus(null)
     setStartedAt(null)
+    setRegisteredAt(null)
+    setForceConfigured(false)
     setTimedOut(false)
     setCopied(false)
     setShowConflict(false)
     setConflictData(null)
-    setConfiguredShown(false)
     setRestoredNoCommand(false)
   }
 
   const reg = onboardStatus?.registration_data
   const currentStep = (() => {
     if (!onboardData) return 1
-    if (onboardStatus?.status === 'used') return configuredShown ? 4 : 3
+    if (onboardStatus?.status === 'used') return configured ? 4 : 3
     return 2
   })()
-  const isComplete = onboardStatus?.status === 'used' && configuredShown && !showConflict
+  const isComplete = configured
+
+  // "Continue anyway" escape hatch: if the router registered but no first poll
+  // arrived within REGISTER_TIMEOUT_MS, let the ISP proceed instead of waiting
+  // forever on REGISTERED (mirrors the RUNNING-phase timeout).
+  const registerStuck = !!registeredAt && onboardStatus?.status === 'used' && !configured && nowMs - registeredAt > REGISTER_TIMEOUT_MS
 
   const expiresAt = onboardData?.expires_at ? new Date(onboardData.expires_at).getTime() : null
   const msLeft = expiresAt ? expiresAt - nowMs : null
@@ -343,7 +378,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
     <>
       <Card>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Quick Connect
+          Reconnect existing hotspot
         </div>
         <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
           Generate a one-line command, paste it into your router's terminal — Winbox, SSH, or Webfig all work.
@@ -361,8 +396,8 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
               </div>
               <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7 }}>
                 After about 5 minutes a router that fetched the script should have registered. The token may have
-                expired, or the router never fetched it. Generate a fresh command and try again — or use manual setup
-                if the router is on a restrictive network.
+                expired, or the router never fetched it. Generate a fresh command and try again — or use full router
+                setup if the router is on a restrictive network.
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -373,7 +408,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
               </button>
               <button onClick={onSwitchManual}
                 style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                Switch to Manual Setup
+                Fresh Router Setup
               </button>
             </div>
           </div>
@@ -406,8 +441,8 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
 
             <div style={{ marginTop: 20, textAlign: 'center' }}>
               <span style={{ fontSize: 10, color: C.dim }}>
-                Prefer to do this manually, or hit a snag?{' '}
-                <a onClick={onSwitchManual} style={{ color: C.gold, cursor: 'pointer', textDecoration: 'underline' }}>Switch to manual setup</a>
+                Need the full hotspot built from scratch?{' '}
+                <a onClick={onSwitchManual} style={{ color: C.gold, cursor: 'pointer', textDecoration: 'underline' }}>Use fresh router setup</a>
               </span>
             </div>
           </>
@@ -477,13 +512,29 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
             )}
 
             {currentStep === 3 && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <CheckCircle size={13} color={C.green} />
-                <span style={{ fontSize: 11, color: C.green }}>
-                  Router identified — {reg?.board || 'MikroTik'} · RouterOS {reg?.ros_version || '?'}
-                </span>
-                <span style={{ fontSize: 9, color: C.dim, marginLeft: 'auto' }}>Finishing setup... installing poll scheduler</span>
-              </div>
+              <>
+                <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: `0.5px solid rgba(34,197,94,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle size={13} color={C.green} />
+                  <span style={{ fontSize: 11, color: C.green }}>
+                    Router identified — {reg?.board || 'MikroTik'} · RouterOS {reg?.ros_version || '?'}
+                  </span>
+                  <span style={{ fontSize: 9, color: C.dim, marginLeft: 'auto' }}>Waiting for first poll...</span>
+                </div>
+
+                {registerStuck && (
+                  <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 7, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: `0.5px solid color-mix(in srgb, var(--theme-gold) 25%, transparent)` }}>
+                    <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6, marginBottom: 10 }}>
+                      No first poll received in a couple of minutes. Your router registered, but the 30-second poll
+                      scheduler hasn&apos;t checked in yet — check the wifi source isn&apos;t blocking outgoing HTTPS, or continue
+                      anyway.
+                    </div>
+                    <button onClick={() => setForceConfigured(true)}
+                      style={{ padding: '8px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      Continue anyway
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {isComplete && (
@@ -500,10 +551,10 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
       <Card style={{ marginTop: 12, padding: '14px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>
-            Prefer to configure the port, hotspot and network yourself? Use the manual wizard.
+            Router isn&apos;t hotspot-configured yet? Full setup builds the hotspot from scratch.
           </div>
           <button onClick={onSwitchManual} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, color: C.dim, fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-            Manual Setup <ChevronRight size={12} />
+            Fresh Router Setup <ChevronRight size={12} />
           </button>
         </div>
       </Card>
@@ -544,13 +595,12 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
 
 const MANUAL_STEPS = [
   { id: 1, label: 'Setup', icon: Settings },
-  { id: 2, label: 'Portal', icon: Globe },
-  { id: 3, label: 'Launch', icon: Zap },
+  { id: 2, label: 'Apply & Go Live', icon: Globe },
 ]
 
 const ClockIcon = () => <span style={{ marginTop: -1 }}>◷</span>
 
-function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQuick: () => void }) {
+function FullRouterSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQuick: () => void }) {
   const { showToast } = useToast()
 
   const [step, setStep] = useState(1)
@@ -668,14 +718,14 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
 
       <Card>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Manual Setup
+          Full Router Setup
         </div>
         <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-          Configure your router step by step. Use this path when auto-onboarding fails, or the router already has
-          partial hotspot config you want to keep.
+          Configure your router step by step. Use this path when the router isn&apos;t hotspot-configured yet and you want
+          WiBill to build the hotspot from the ground up.
         </div>
 
-        <StepTracker steps={MANUAL_STEPS} currentStep={step} isComplete={step > 3 && false} />
+        <StepTracker steps={MANUAL_STEPS} currentStep={step} isComplete={step > 2 && false} />
 
         {/* ══ STEP 1: SETUP ══ */}
         {step === 1 && (
@@ -797,16 +847,14 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
               </div>
             )}
 
-            <button onClick={() => setStep(3)} disabled={portalStatus !== 'acked'}
-              style={{ width: '100%', padding: 12, background: portalStatus === 'acked' ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalStatus === 'acked' ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalStatus === 'acked' ? 'pointer' : 'not-allowed', opacity: portalStatus === 'acked' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              Portal Pushed — Continue <ArrowRight size={14} />
-            </button>
-          </>
-        )}
+            <div style={{ margin: '20px 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Zap size={13} color={C.gold} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.text, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Go Live</span>
+            </div>
+            <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6, marginBottom: 12 }}>
+              Portal page must be {portalStatus === 'acked' ? <span style={{ color: C.green }}>live (applied)</span> : <span style={{ color: C.gold }}>applied (see above)</span>} before going live. Run a pre-flight to catch issues.
+            </div>
 
-        {/* ══ STEP 3: LAUNCH ══ */}
-        {step === 3 && (
-          <>
             {!goLiveDone && (
               <>
                 <button onClick={handlePreflight} disabled={preflightLoading}
@@ -832,8 +880,8 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
                   </div>
                 )}
 
-                <button onClick={handleGoLive}
-                  style={{ width: '100%', padding: 14, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={handleGoLive} disabled={portalStatus !== 'acked'}
+                  style={{ width: '100%', padding: 14, background: portalStatus === 'acked' ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalStatus === 'acked' ? '#000' : C.dim, fontSize: 13, fontWeight: 700, cursor: portalStatus === 'acked' ? 'pointer' : 'not-allowed', opacity: portalStatus === 'acked' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <Zap size={16} /> Go Live
                 </button>
               </>

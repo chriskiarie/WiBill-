@@ -15,12 +15,13 @@ from app.models.admin_user import AdminUser
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import encrypt, decrypt
 from app.services.mikrotik_service import get_active_users, get_hotspot_hosts
-from app.services.router_poll_service import ensure_poll_token, build_poll_scheduler_block, resolve_ros_version, router_status, enqueue_action
+from app.services.router_poll_service import ensure_poll_token, build_poll_scheduler_block, resolve_ros_version, router_status, enqueue_action, build_portal_fetch_line
 from app.models.router_action import RouterAction
 from app.models.tenant import Tenant
 
 
 router = APIRouter()
+public_router = APIRouter()
 
 
 class MikrotikConfigPayload(BaseModel):
@@ -345,9 +346,15 @@ async def generate_parameterized_script(
     # device/infrastructure step is ever needed.
     poll_token = ensure_poll_token(config)
     await db.commit()
+    ros = resolve_ros_version(config)
     scheduler_block = build_poll_scheduler_block(
-        config.id, poll_token, resolve_ros_version(config)
+        config.id, poll_token, ros
     )
+
+    # Portal page: fetch the tenant's login.html redirect stub directly from
+    # WiBill as part of this same script — collapsed the former Portal step
+    # away; there is no staging folder or separate push for initial setup.
+    portal_line = build_portal_fetch_line(slug, ros, settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL)
 
     script = f""":do {{ /interface bridge add name=WiBillBridge }} on-error={{}}
 :do {{ /ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge }} on-error={{}}
@@ -363,6 +370,7 @@ async def generate_parameterized_script(
 :do {{ /ip service set api port=8728 address="" }} on-error={{}}
 :do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{}}
 :do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{}}
+{portal_line}
 {scheduler_block}:log info "WiBill setup complete for {name}"
 """
     return PlainTextResponse(
@@ -531,7 +539,8 @@ async def run_preflight_checks(
         else ("Router has never polled" if status == "never_connected" else "Router offline — last poll more than 90s ago"),
     }
 
-    # 2. Portal file has reached the router (latest push_portal action acked)
+    # 2. Portal file reached the router (latest push_portal action acked, or
+    #    router online — the fresh-router setup script fetches login.html itself).
     action_result = await db.execute(
         select(RouterAction)
         .where(
@@ -545,7 +554,14 @@ async def run_preflight_checks(
     if push_action:
         checks["portal_file"] = {
             "passed": push_action.status == "acked",
-            "message": "login.html applied to router" if push_action.status == "acked" else f"Portal push {push_action.status} — retry if stuck",
+            "message": "login.html applied to router" if push_action.status == "acked" else f"Portal push {push_action.status} — will retry on next check-in",
+        }
+    elif config.last_poll_at is not None:
+        # Fresh-router setup script includes the portal fetch; a router that has
+        # polled has pulled login.html as part of that same paste.
+        checks["portal_file"] = {
+            "passed": True,
+            "message": "login.html fetched during setup (router online)",
         }
     else:
         checks["portal_file"] = {"passed": False, "message": "Portal file not pushed yet"}
@@ -716,3 +732,32 @@ async def list_active_users(
 ):
     users = await get_active_users(str(current_user.tenant_id), db)
     return {"users": users, "count": len(users)}
+
+
+# ── Public: login.html redirect stub (no auth — router fetches directly) ───
+def _login_stub_html(tenant: Tenant, base_url: str) -> str:
+    """Meta-refresh redirect that hands WiFi users off to the hosted portal."""
+    slug = tenant.slug or "wibill"
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0;url={base_url}/portal/{slug}?mac=$(mac)&ip=$(ip)&link=$(link-login-only)&error=$(error)">
+</head>
+<body style="background:#000;color:#fff;font-family:monospace;text-align:center;padding-top:40vh;font-size:14px">
+  Connecting to WiFi...
+</body>
+</html>"""
+
+
+@public_router.get("/login/{slug}")
+async def public_login_stub(slug: str, db: AsyncSession = Depends(get_db)):
+    """Serve the tenant's login.html stub without auth so a fresh-router setup
+    script (or a push_portal action) can fetch it straight from WiBill."""
+    result = await db.execute(select(Tenant).where(Tenant.slug == slug))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Unknown portal slug")
+
+    base_url = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    return PlainTextResponse(content=_login_stub_html(tenant, base_url), media_type="text/html", headers={"Cache-Control": "no-store"})

@@ -220,6 +220,11 @@ app.include_router(public_onboard_router, prefix="", tags=["public-onboard"])
 # /poll/{router_id}/ack. The router's scheduler fetches these directly.
 app.include_router(poll_routes.router, prefix="", tags=["poll"])
 
+# Public router-facing endpoints (no auth, no /api): /login/{slug} serves the
+# tenant's login.html redirect stub for the fresh-router setup script / portal
+# pushes, exactly like the onboarding/poll endpoints.
+app.include_router(mikrotik.public_router, prefix="", tags=["mikrotik-public"])
+
 # Serve uploaded assets
 import os
 from pathlib import Path

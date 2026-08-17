@@ -103,6 +103,11 @@ async def poll_actions(
 
     # Liveness: bump regardless of whether any actions were pending.
     config.last_poll_at = now
+    # First-poll proof: stamp only the very first successful poll. The frontend
+    # uses this to advance past REGISTERED to CONFIGURED once it has evidence
+    # the 30s scheduler is genuinely running, not just that registration worked.
+    if config.first_poll_at is None:
+        config.first_poll_at = now
     await db.commit()
 
     # Build snippet after committing so delivered/acked transitions are not

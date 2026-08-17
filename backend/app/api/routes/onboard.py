@@ -152,6 +152,19 @@ async def get_onboarding_status(
         return {"status": "none", "token": None}
 
     latest = tokens[0]
+
+    # Router poll proof: load the tenant's config and expose whether the router
+    # has made a real first poll (scheduler actually running) vs. registration
+    # succeeding. The frontend uses first_poll_at to advance past REGISTERED.
+    config = None
+    if latest.router_id:
+        config = await db.get(MikrotikConfig, latest.router_id)
+    elif latest.tenant_id:
+        cfg_result = await db.execute(
+            select(MikrotikConfig).where(MikrotikConfig.tenant_id == latest.tenant_id)
+        )
+        config = cfg_result.scalar_one_or_none()
+
     return {
         "status": latest.status,
         "token": latest.token,
@@ -160,6 +173,9 @@ async def get_onboarding_status(
         "expires_at": latest.expires_at.isoformat() if latest.expires_at else None,
         "used_at": latest.used_at.isoformat() if latest.used_at else None,
         "registration_data": json.loads(latest.registration_data) if latest.registration_data else None,
+        "router_id": str(latest.router_id) if latest.router_id else None,
+        "first_poll_at": config.first_poll_at.isoformat() if config and config.first_poll_at else None,
+        "last_poll_at": config.last_poll_at.isoformat() if config and config.last_poll_at else None,
     }
 
 
