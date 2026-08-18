@@ -142,6 +142,21 @@ async def update_config(
     return {"ok": True}
 
 
+def _sanitize_notes_value(value: str) -> str:
+    """Replace literal RouterOS command strings with a human-readable fallback.
+
+    If the router failed to evaluate inline expressions (RouterOS 6.x bug),
+    the notes field would contain raw commands like
+    ``{{/system resource get version}}`` instead of resolved values.
+    """
+    import re
+    # Matches patterns like {{/system resource get version}} or
+    # {[/system resource get board-name]} — any un-evaluated RSC command.
+    if re.search(r'\{+\[?/system\s+', value) or re.search(r'\{+\[?/interface\s+', value):
+        return "unknown"
+    return value
+
+
 def _notes_parts(config: MikrotikConfig | None) -> dict:
     """Parse registration notes ("Board: ... | RouterOS: ... | MAC: ...")."""
     parts: dict = {}
@@ -151,7 +166,7 @@ def _notes_parts(config: MikrotikConfig | None) -> dict:
         tok = tok.strip()
         if ":" in tok:
             k, _, v = tok.partition(":")
-            parts[k.strip().lower()] = v.strip()
+            parts[k.strip().lower()] = _sanitize_notes_value(v.strip())
     return parts
 
 

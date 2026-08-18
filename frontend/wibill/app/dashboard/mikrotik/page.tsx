@@ -148,7 +148,6 @@ export default function MikrotikPage() {
               health={health}
               actions={actions}
               onReconfigure={handleReconfigure}
-              onRefresh={() => setRefreshTick(x => x + 1)}
             />
           ) : (
             <OnboardingView
@@ -884,54 +883,55 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
 // ROUTER MANAGEMENT VIEW
 // ============================================================================
 
-function RouterManagementView({ health, actions, onReconfigure, onRefresh }: {
+function displayClean(value: string | null | undefined): string {
+  if (!value) return '—'
+  if (/^\{+\[?\//.test(value)) return 'unknown (re-run setup)'
+  return value
+}
+
+function RouterManagementView({ health, actions, onReconfigure }: {
   health: any
   actions: any[]
   onReconfigure: () => void
-  onRefresh: () => void
 }) {
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
   const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
 
+  const rosVersion = displayClean(health?.router_os_version)
+  const boardName = displayClean(health?.board_name || health?.router_identity)
+  const deviceLine = rosVersion !== '—' && boardName !== '—'
+    ? `RouterOS ${rosVersion} \u00b7 ${boardName}`
+    : rosVersion !== '—' ? rosVersion
+    : boardName !== '—' ? boardName
+    : '—'
+
   return (
     <>
-      {/* Page header row */}
+      {/* Header: status pill + last seen */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, boxShadow: `0 0 10px ${statusColor}80`, flexShrink: 0, animation: online ? 'pulse 2s infinite' : 'none' }} />
           <span style={{ fontSize: 16, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: statusColor }}>{statusText}</span>
-          {health?.last_poll_at && (
-            <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>Last seen <TimeAgo iso={health.last_poll_at} /></span>
-          )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onRefresh} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, color: C.dim, fontSize: 10, cursor: 'pointer' }}>
-            <RefreshCw size={12} /> Refresh
-          </button>
-          <a href="/dashboard/network" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, color: C.dim, fontSize: 10, cursor: 'pointer', textDecoration: 'none' }}>
-            View on Network <ExternalLink size={11} />
-          </a>
-        </div>
+        {health?.last_poll_at && (
+          <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+            Last seen <TimeAgo iso={health.last_poll_at} />
+          </span>
+        )}
       </div>
 
       {/* Router status card */}
       <Card style={{ marginBottom: 12 }}>
-        <div style={{ ...sectionLabel, whiteSpace: 'nowrap' as const }}>Router Status</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: 'RouterOS', value: health?.router_os_version || '—' },
-            { label: 'Board', value: health?.board_name || health?.router_identity || '—' },
-            { label: 'Router IP', value: health?.router_ip || '—' },
-            { label: 'Status', value: statusText, color: statusColor },
-          ].map(item => (
-            <div key={item.label} style={{ padding: 12, background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}` }}>
-              <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{item.label}</div>
-              <div style={{ fontSize: 12, color: item.color || C.text, fontFamily: 'DM Mono, monospace' }}>{item.value}</div>
-            </div>
-          ))}
+        {/* Device info */}
+        <div style={{ fontSize: 13, color: C.text, fontFamily: 'DM Mono, monospace', marginBottom: 6 }}>
+          {deviceLine}
+        </div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>
+          {health?.router_ip || '—'}
         </div>
 
+        {/* Offline warning */}
         {health?.last_error && !online && (
           <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.06)', border: `0.5px solid rgba(239,68,68,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertTriangle size={13} color={C.red} />
@@ -939,13 +939,14 @@ function RouterManagementView({ health, actions, onReconfigure, onRefresh }: {
           </div>
         )}
 
+        {/* Actions */}
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onReconfigure} style={{ flex: 1, padding: 11, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Settings size={14} /> Re-run Setup
           </button>
-          <button onClick={onRefresh} style={{ padding: '11px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Wifi size={13} /> Check Connection
-          </button>
+          <a href="/dashboard/network" style={{ padding: '11px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+            View on Network <ExternalLink size={12} />
+          </a>
         </div>
       </Card>
 

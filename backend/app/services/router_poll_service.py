@@ -293,23 +293,22 @@ def build_onboard_script(
     base = (base_url or settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
     mode = _fetch_mode(ros_version, register_url)
 
-    # http-data string: RouterOS evaluates the {...} expressions at runtime.
-    # The [:if] uses unquoted boolean literals (true/false) — a bare "true"
-    # inside the double-quoted http-data value would terminate the string
-    # early and fail the .rsc import with "expected end of command".
-    http_data = (
-        "ros_version={[/system resource get version]}"
-        "&board={[/system resource get board-name]}"
-        "&mac={[/interface get [find default] mac-address]}"
-        "&existing_hotspot={[:if ({len [/ip hotspot find]} > 0) do=true else=false]}"
-    )
-
+    # Use explicit :local variable assignments instead of inline {[command]}
+    # expressions.  RouterOS 6.x does not reliably evaluate inline expressions
+    # inside /tool fetch http-data; the router would send back literal
+    # "{[/system resource get version]}" instead of the resolved value.
+    # Explicit :local + string concatenation works on both 6.x and 7.x.
     scheduler_block = build_poll_scheduler_block(router_id, poll_token, ros_version, base)
 
     parts = [
+        ":local version [/system resource get version]",
+        ":local board [/system resource get board-name]",
+        ":local mac [/interface get [find default] mac-address]",
+        ":local existingHotspot \"false\"",
+        ":if ([/ip hotspot find] != \"\") do={:set existingHotspot \"true\"}",
         f'/tool fetch url="{register_url}"{mode} \\',
-        "    http-method=post \\",
-        f'    http-data="{http_data}"',
+        '    http-method=post \\',
+        '    http-data=("ros_version=" . $version . "&board=" . $board . "&mac=" . $mac . "&existing_hotspot=" . $existingHotspot)',
         f':log info "WiBill onboarding registration sent for {tenant_name}"',
         scheduler_block,
     ]
