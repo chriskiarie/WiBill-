@@ -538,11 +538,24 @@ async def fix_poll_token(
         db=db,
     )
 
+    # Fallback script (idempotent): pasting this into Winbox replaces the
+    # router's poll scheduler with the fresh token — no bridge required.
+    fallback_script = (
+        ":do { /system script remove [find name=wibill-poll-script] } on-error={}\n"
+        ":do { /system scheduler remove [find name=wibill-poll] } on-error={}\n"
+        + build_poll_scheduler_block(config.id, new_token, ros, base)
+    )
+
     if result.get("success"):
         return {"success": True, "message": "Poll token rotated and scheduler updated on router"}
     else:
-        # Token is saved to DB even if bridge push fails — next re-push will use it
-        return {"success": False, "message": f"Token saved but router update failed: {result.get('error', 'Unknown error')}"}
+        # Token is saved to DB even if bridge push fails — the fallback
+        # script lets the user fix the router from Winbox in one paste.
+        return {
+            "success": False,
+            "message": f"Bridge could not update the router ({result.get('error', 'Unknown error')}). Paste the script below into Winbox to finish.",
+            "fallback_script": fallback_script,
+        }
 
 
 # ── Wizard: RouterAction status list (for frontend polling) ─────────
