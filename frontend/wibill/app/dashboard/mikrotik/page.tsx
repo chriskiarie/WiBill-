@@ -572,7 +572,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh }: {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handleGenerate} disabled={generating}
-                style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
+                style={{ flex: 1, padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
                 {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
                 Try Again
               </button>
@@ -600,7 +600,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh }: {
             </div>
 
             <button onClick={handleGenerate} disabled={generating}
-              style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
+              style={{ width: '100%', padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
               {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
               {generating ? 'Generating...' : 'Generate Command'}
             </button>
@@ -625,7 +625,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh }: {
                   fresh one and paste it into your router terminal — or keep waiting if you already ran the old one.
                 </div>
                 <button onClick={handleReset}
-                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  style={{ width: '100%', padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <Terminal size={14} /> Generate a New Command
                 </button>
               </div>
@@ -715,11 +715,11 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh }: {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => handleResolveConflict(true)}
-                style={{ flex: 1, padding: 10, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '12px 14px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                 Register Router
               </button>
               <button onClick={() => handleResolveConflict(false)}
-                style={{ flex: 1, padding: 10, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '12px 14px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 Keep Existing
               </button>
             </div>
@@ -759,6 +759,14 @@ function FullSetup({ onDone }: { onDone: () => void }) {
   const [portalAction, setPortalAction] = useState<any>(null)
   const [portalStatus, setPortalStatus] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
+  const [portalPreviewHtml, setPortalPreviewHtml] = useState<string | null>(null)
+
+  // Fetch portal HTML for preview when step 2 mounts
+  useEffect(() => {
+    if (step === 2 && !portalPreviewHtml) {
+      api.getMikrotikLoginHtml().then(setPortalPreviewHtml).catch(() => {})
+    }
+  }, [step])
 
   // Step 3 — Launch
   const [preflight, setPreflight] = useState<any>(null)
@@ -890,7 +898,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
 
             {!setupScript && !setupLoading && (
               <button onClick={handleGenerateSetup}
-                style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                style={{ width: '100%', padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Terminal size={14} /> Generate Setup Script
               </button>
             )}
@@ -928,7 +936,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
                 </div>
 
                 <button onClick={() => setStep(2)}
-                  style={{ width: '100%', padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  style={{ width: '100%', padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   Script pasted into Winbox — Continue <ArrowRight size={14} />
                 </button>
               </>
@@ -944,9 +952,23 @@ function FullSetup({ onDone }: { onDone: () => void }) {
               next 30-second check-in — no bridge needed.
             </div>
 
+            {portalPreviewHtml && (
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: 260, borderRadius: 28, border: `1px solid ${C.border}`, background: '#000', padding: '10px 0 6px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
+                  <div style={{ width: 72, height: 5, borderRadius: 3, background: C.border, margin: '0 auto 8px' }} />
+                  <iframe
+                    srcDoc={portalPreviewHtml}
+                    title="Portal preview"
+                    sandbox="allow-same-origin"
+                    style={{ width: '100%', height: 360, border: 'none', background: '#fff', borderRadius: '0 0 20px 20px' }}
+                  />
+                </div>
+              </div>
+            )}
+
             {!portalAction?.action_id && !portalUploading && (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={handlePushPortal} style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={handlePushPortal} style={{ flex: 1, padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {portalUploading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={14} />}
                   Push Portal Page
                 </button>
@@ -958,7 +980,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
                     const a = document.createElement('a'); a.href = url; a.download = 'login.html'; a.click()
                     URL.revokeObjectURL(url)
                   } catch { showToast('Failed to download', { type: 'error' }) }
-                }} style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                }} style={{ padding: '14px 20px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Terminal size={13} /> Download login.html
                 </button>
               </div>
@@ -985,7 +1007,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
             )}
 
             <button onClick={() => setStep(3)} disabled={portalStatus !== 'acked'}
-              style={{ width: '100%', padding: 12, background: portalStatus === 'acked' ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalStatus === 'acked' ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalStatus === 'acked' ? 'pointer' : 'not-allowed', opacity: portalStatus === 'acked' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              style={{ width: '100%', padding: '14px 16px', background: portalStatus === 'acked' ? C.gold : C.mute, border: 'none', borderRadius: 7, color: portalStatus === 'acked' ? '#000' : C.dim, fontSize: 12, fontWeight: 700, cursor: portalStatus === 'acked' ? 'pointer' : 'not-allowed', opacity: portalStatus === 'acked' ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               Portal Pushed — Continue <ArrowRight size={14} />
             </button>
           </>
@@ -997,7 +1019,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
             {!goLiveDone && (
               <>
                 <button onClick={handlePreflight} disabled={preflightLoading}
-                  style={{ width: '100%', padding: 12, background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontWeight: 600, cursor: preflightLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
+                  style={{ width: '100%', padding: '14px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text, fontSize: 12, fontWeight: 600, cursor: preflightLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
                   {preflightLoading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Shield size={14} />}
                   {preflightLoading ? 'Running checks...' : preflight ? 'Re-run Pre-flight Checks' : 'Run Pre-flight Checks'}
                 </button>
@@ -1223,11 +1245,11 @@ function RouterSettingsPanel({ health, onBack }: {
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
           <button onClick={handleUpdateSettings} disabled={setupLoading}
-            style={{ flex: 1, padding: 11, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: setupLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: setupLoading ? 0.6 : 1 }}>
+            style={{ flex: 1, padding: '14px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: setupLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: setupLoading ? 0.6 : 1 }}>
             <Terminal size={13} /> {setupLoading ? 'Generating...' : 'Update Settings'}
           </button>
           <button onClick={handlePushPortal} disabled={portalUploading}
-            style={{ flex: 1, padding: 11, background: 'transparent', border: `0.5px solid ${C.gold}`, borderRadius: 7, color: C.gold, fontSize: 12, fontWeight: 700, cursor: portalUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: portalUploading ? 0.6 : 1 }}>
+            style={{ flex: 1, padding: '14px 16px', background: 'transparent', border: `0.5px solid ${C.gold}`, borderRadius: 7, color: C.gold, fontSize: 12, fontWeight: 700, cursor: portalUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: portalUploading ? 0.6 : 1 }}>
             <Globe size={13} /> {portalUploading ? 'Pushing...' : 'Re-push Portal'}
           </button>
         </div>
