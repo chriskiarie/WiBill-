@@ -853,5 +853,24 @@
                 .catch(function() { /* fail-silently */ });
         })();
     </script>
+<script>
+    // If a logo image fails to load (deleted asset, stale host), swap to the
+    // emoji mark instead of leaving a broken-image icon on a guest's phone.
+    document.addEventListener('error', function (ev) {
+        var t = ev.target;
+        if (t && t.tagName === 'IMG') {
+            var box = t.closest ? t.closest('.bl, .lp-logo, .hero-emoji') : null;
+            if (box) {
+                t.style.display = 'none';
+                if (!box.querySelector('.wb-emoji-fallback')) {
+                    var s = document.createElement('span');
+                    s.className = 'wb-emoji-fallback';
+                    s.textContent = '{{ brand.emoji or '📡' }}';
+                    box.appendChild(s);
+                }
+            }
+        }
+    }, true);
+</script>
 </body>
 </html>

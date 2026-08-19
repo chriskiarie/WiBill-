@@ -23,7 +23,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 function toAbsoluteUrl(url: string | null | undefined): string | null {
   if (!url) return null
   if (url.startsWith('blob:') || url.startsWith('data:')) return url
-  if (url.startsWith('/uploads/') || url.startsWith('\\uploads\\')) return `${API}${url}`
+  if (url.startsWith('/uploads/') || url.startsWith('\\uploads\\')) return `${API}${url.replace(/\\/g, '/')}`
   if (url.includes('/uploads/')) {
     const idx = url.indexOf('/uploads/')
     return `${API}${url.slice(idx)}`
@@ -36,6 +36,10 @@ function toRelativeUrl(url: string | null | undefined): string | null {
   if (!url) return null
   if (url.startsWith('blob:') || url.startsWith('data:')) return url
   if (url.startsWith(API)) return url.slice(API.length)
+  if (url.includes('/uploads/')) {
+    const idx = url.indexOf('/uploads/')
+    return url.slice(idx)
+  }
   if (url.startsWith('http://') || url.startsWith('https://')) return url
   return url
 }

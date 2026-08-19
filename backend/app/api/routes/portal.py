@@ -158,18 +158,14 @@ async def preview_portal(template_id: str, request: Request):
         "technician_phone": params.get("technician_phone", ""),
     }
 
-    # Normalize logo URL
+    # Normalize logo URL (rebase stale hosts, drop blob/data/foreign-host)
     logo_url = live_brand.get("logo_url")
     if logo_url:
-        if logo_url.startswith('/uploads/') or logo_url.startswith('\\uploads\\'):
-            pass
-        elif '/uploads/' in logo_url:
-            idx = logo_url.index('/uploads/')
-            logo_url = logo_url[idx:]
-        if not logo_url.startswith(('blob:', 'data:')):
-            live_brand["logo_url"] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo_url}" if not logo_url.startswith(('http://', 'https://')) else logo_url
+        normalized = _normalize_logo_url(logo_url, request)
+        if normalized:
+            live_brand["logo_url"] = normalized
         else:
-            live_brand["logo_url"] = logo_url
+            live_brand.pop("logo_url", None)
 
     # 4. Parse Network Status
     show_status = params.get("showSB", "true").lower() == "true"
@@ -210,6 +206,31 @@ async def preview_portal(template_id: str, request: Request):
             </pre>
         </body></html>
         """
+
+
+def _normalize_logo_url(logo: str, request: Request) -> str | None:
+    """Return the logo URL rewritten against THIS API host — or None.
+
+    Handles every flavor a logo can be stored as:
+      - /uploads/...            → absolute against the current host
+      - <host>/uploads/...      → rebased to the current host (old API
+                                  domains baked in by earlier saves)
+      - http(s) on another host → dropped (would render a broken image)
+      - blob:/data:             → dropped (device-local only)
+    """
+    if not logo:
+        return None
+    if logo.startswith("blob:") or logo.startswith("data:"):
+        return None
+    base = f"{request.base_url.scheme}://{request.base_url.netloc}"
+    if logo.startswith("/uploads/") or logo.startswith("\\uploads\\"):
+        return base + logo.replace("\\", "/")
+    if "/uploads/" in logo:
+        idx = logo.index("/uploads/")
+        return base + logo[idx:]
+    if logo.startswith("http://") or logo.startswith("https://"):
+        return logo if logo.startswith(base) else None
+    return base + logo
 
 
 def _default_portal_config(tenant: Tenant) -> dict:
@@ -378,19 +399,15 @@ async def get_live_portal(
     if 'support_phone' in brand and 'support_number' not in brand:
         brand['support_number'] = brand['support_phone']
     # Normalize logo URL: strip any host prefix, rebuild with correct one.
-    # blob:/data: logos only exist in a browser tab — never send them to a
-    # phone; fall back to the emoji mark instead of showing a broken image.
+    # blob:/data:/foreign-host logos never render on a guest device — fall
+    # back to the emoji mark instead of showing a broken image.
     logo = brand.get('logo_url')
     if logo:
-        if logo.startswith('blob:') or logo.startswith('data:'):
-            brand.pop('logo_url', None)
+        normalized = _normalize_logo_url(logo, request)
+        if normalized:
+            brand['logo_url'] = normalized
         else:
-            if logo.startswith('/uploads/') or logo.startswith('\\uploads\\'):
-                pass  # already relative, will be made absolute below
-            elif '/uploads/' in logo:
-                idx = logo.index('/uploads/')
-                logo = logo[idx:]  # strip everything before /uploads/
-            brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo}" if not logo.startswith(('http://', 'https://')) else logo
+            brand.pop('logo_url', None)
     network = portal_config.get('network_awareness', {}) or {}
     theme = portal_config.get('theme', {}) or {}
     typography = portal_config.get('typography', {}) or {}
