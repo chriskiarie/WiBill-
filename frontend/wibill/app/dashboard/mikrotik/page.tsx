@@ -5,7 +5,7 @@ import { api, formatRelativeTime } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, Wifi, AlertTriangle, ChevronRight, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink } from 'lucide-react'
+import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, AlertTriangle, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink, Plus } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
@@ -94,8 +94,9 @@ export default function MikrotikPage() {
   const [onboard, setOnboard] = useState<any>(null)
   const [actions, setActions] = useState<any[]>([])
 
-  // mode === 'manage' once a router has EVER registered/polled. "Re-run setup"
-  // drops back to onboarding; Quick Connect / Manual completion returns to manage.
+  // mode === 'onboarding' once "Add router" / "Re-run setup" is clicked;
+  // otherwise the page state machine picks manage (router exists) or the
+  // empty state (zero routers).
   const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
 
@@ -116,21 +117,21 @@ export default function MikrotikPage() {
   useEffect(() => { const t = setInterval(() => setRefreshTick(x => x + 1), 30000); return () => clearInterval(t) }, [])
   useEffect(() => {
     if (!loading && modeOverride === null) {
-      const everConnected = health?.connected === true || !!health?.last_poll_at || onboard?.status === 'used'
-      if (everConnected) setModeOverride('manage')
+      const hasRouter = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
+      if (hasRouter) setModeOverride('manage')
     }
   }, [health, onboard, loading, modeOverride])
 
-  const handleReconfigure = async () => {
+  const handleAddRouter = () => {
     setModeOverride('onboarding')
     // Reset any lingering expired token so the page starts clean at Generate.
-    try { await fetchAll() } catch { /* noop */ }
+    try { fetchAll() } catch { /* noop */ }
   }
 
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <Topbar title="MikroTik Setup" />
+        <Topbar title="MikroTik" />
         <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <LoadingSpinner size="md" color="var(--theme-gold)" label="Loading..." />
         </div>
@@ -138,27 +139,58 @@ export default function MikrotikPage() {
     )
   }
 
+  const hasRouter = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
+  const showOnboarding = modeOverride === 'onboarding'
+  const showManage = modeOverride === 'manage' || (modeOverride === null && hasRouter)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-      <Topbar title="MikroTik Setup" />
+      <Topbar title={showOnboarding ? 'MikroTik Setup' : 'MikroTik'} />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
-          {modeOverride === 'manage' ? (
-            <RouterManagementView
-              health={health}
-              actions={actions}
-              onReconfigure={handleReconfigure}
-            />
-          ) : (
+          {showOnboarding ? (
             <OnboardingView
               onboard={onboard}
               onConfigured={() => setModeOverride('manage')}
               onRefresh={() => setRefreshTick(x => x + 1)}
             />
+          ) : showManage ? (
+            <RouterManagementView
+              health={health}
+              onboard={onboard}
+              actions={actions}
+              onReconfigure={handleAddRouter}
+              onAddRouter={handleAddRouter}
+            />
+          ) : (
+            <EmptyState onAddRouter={handleAddRouter} />
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+// ============================================================================
+// EMPTY STATE — zero routers configured
+// ============================================================================
+
+function EmptyState({ onAddRouter }: { onAddRouter: () => void }) {
+  return (
+    <Card style={{ padding: '56px 24px', textAlign: 'center' }}>
+      <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 22%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <Router size={22} color={C.gold} />
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 8 }}>
+        Connect your first router
+      </div>
+      <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, maxWidth: 360, margin: '0 auto 24px' }}>
+        Link your MikroTik router to activate WiFi billing — packages, sessions, and M-Pesa payments all run through it.
+      </div>
+      <button onClick={onAddRouter} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 22px', borderRadius: 7, background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        Add router
+      </button>
+    </Card>
   )
 }
 
@@ -569,8 +601,6 @@ const MANUAL_STEPS = [
   { id: 3, label: 'Launch', icon: Zap },
 ]
 
-const ClockIcon = () => <span style={{ marginTop: -1 }}>◷</span>
-
 function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQuick: () => void }) {
   const { showToast } = useToast()
 
@@ -880,108 +910,220 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
 }
 
 // ============================================================================
-// ROUTER MANAGEMENT VIEW
+// ROUTER MANAGEMENT VIEW — list of router cards (one today, N tomorrow)
 // ============================================================================
 
 function displayClean(value: string | null | undefined): string {
   if (!value) return '—'
-  if (/^\{+\[?\//.test(value)) return 'unknown (re-run setup)'
+  if (/^\{+\[?\//.test(value)) return 'unknown'
   return value
 }
 
-function RouterManagementView({ health, actions, onReconfigure }: {
+// Plain-language activity entry for an action
+function activityLabel(a: any): string {
+  const status = a?.status
+  switch (a?.action_type) {
+    case 'push_portal':
+      if (status === 'acked') return 'Portal pushed and confirmed'
+      if (status === 'delivered') return 'Portal push delivered'
+      return 'Portal push queued'
+    case 'add_bypass': return status === 'acked' ? 'Bypass added' : 'Bypass add queued'
+    case 'remove_bypass': return status === 'acked' ? 'Bypass removed' : 'Bypass remove queued'
+    default: return (a?.action_type || 'action').replace(/_/g, ' ')
+  }
+}
+
+function activityTone(a: any): 'done' | 'pending' {
+  return a?.status === 'acked' ? 'done' : 'pending'
+}
+
+function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter }: {
   health: any
+  onboard: any
   actions: any[]
   onReconfigure: () => void
+  onAddRouter: () => void
 }) {
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
   const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
 
-  const rosVersion = displayClean(health?.router_os_version)
   const boardName = displayClean(health?.board_name || health?.router_identity)
-  const deviceLine = rosVersion !== '—' && boardName !== '—'
-    ? `RouterOS ${rosVersion} \u00b7 ${boardName}`
-    : rosVersion !== '—' ? rosVersion
-    : boardName !== '—' ? boardName
-    : '—'
+  const rosVersion = displayClean(health?.router_os_version)
+  const ssid = displayClean(health?.ssid)
+
+  // Latest portal push → SETUP checkmark state
+  const portalAction = [...actions].reverse().find((a: any) => a.action_type === 'push_portal')
+  const portalState = !portalAction ? 'none' : portalAction.status  // none | pending | delivered | acked
+
+  // Build activity timeline (registration + actions, newest first), capped at 5
+  const now = Date.now()
+  const entries: { id: string; label: string; time: number; tone: 'done' | 'pending' | 'warn'; kind: string }[] = []
+
+  if (onboard?.registration_data) {
+    entries.push({
+      id: 'registered', label: 'Router registered', kind: 'registration',
+      time: new Date(onboard.used_at || now).getTime(),
+      tone: 'done',
+    })
+  }
+  // Offline transition is the newest entry when the router stops checking in
+  if (!online && health?.last_poll_at) {
+    entries.push({
+      id: 'offline', label: 'Stopped checking in', kind: 'offline',
+      time: new Date(health.last_poll_at).getTime(),
+      tone: 'warn',
+    })
+  }
+  for (const a of actions) {
+    entries.push({
+      id: `a-${a.id}`, label: activityLabel(a), kind: a.action_type,
+      time: new Date(a.acked_at || a.delivered_at || a.created_at).getTime(),
+      tone: activityTone(a),
+    })
+  }
+  entries.sort((x, y) => y.time - x.time)
+  const timeline = entries.slice(0, 5)
+
+  const setupItems = [
+    {
+      label: 'SSID',
+      value: ssid !== '—' ? ssid : 'Not set',
+      confirmed: ssid !== '—',
+    },
+    {
+      label: 'Portal',
+      value: portalState === 'acked' ? 'Live' : portalState === 'delivered' ? 'Pushing…' : portalState === 'pending' ? 'Queued' : 'Not pushed',
+      confirmed: portalState === 'acked',
+    },
+    {
+      label: 'Walled garden',
+      value: health?.walled_garden === 'yes' ? 'Configured' : 'Not confirmed',
+      confirmed: health?.walled_garden === 'yes',
+    },
+  ]
 
   return (
     <>
-      {/* Header: status pill + last seen */}
+      {/* Page header row — same pattern as Network: status left, action right */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, boxShadow: `0 0 10px ${statusColor}80`, flexShrink: 0, animation: online ? 'pulse 2s infinite' : 'none' }} />
           <span style={{ fontSize: 16, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: statusColor }}>{statusText}</span>
+          {health?.last_poll_at && (
+            <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>last seen <TimeAgo iso={health.last_poll_at} /></span>
+          )}
         </div>
-        {health?.last_poll_at && (
-          <span style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-            Last seen <TimeAgo iso={health.last_poll_at} />
-          </span>
-        )}
+        <button onClick={onAddRouter} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
+          background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
+          border: '0.5px solid color-mix(in srgb, var(--theme-gold) 30%, transparent)',
+          color: C.gold, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+        }}>
+          <Plus size={12} /> Add router
+        </button>
       </div>
 
-      {/* Router status card */}
-      <Card style={{ marginBottom: 12 }}>
-        {/* Device info */}
-        <div style={{ fontSize: 13, color: C.text, fontFamily: 'DM Mono, monospace', marginBottom: 6 }}>
-          {deviceLine}
-        </div>
-        <div style={{ fontSize: 11, color: C.dim, marginBottom: 16 }}>
-          {health?.router_ip || '—'}
-        </div>
-
-        {/* Offline warning */}
-        {health?.last_error && !online && (
-          <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 7, background: 'rgba(239,68,68,0.06)', border: `0.5px solid rgba(239,68,68,0.2)`, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={13} color={C.red} />
-            <span style={{ fontSize: 10, color: C.dim }}>{health.last_error}</span>
+      {/* Router cards — vertical stack */}
+      <Card style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
+        {/* Identity row */}
+        <div style={{ padding: '18px 20px 14px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: online
+              ? 'color-mix(in srgb, var(--theme-green) 10%, transparent)'
+              : health?.last_poll_at
+                ? 'color-mix(in srgb, var(--theme-red) 10%, transparent)'
+                : 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
+            border: `0.5px solid color-mix(in srgb, ${statusColor} 28%, transparent)`,
+          }}>
+            <Router size={18} color={statusColor} />
           </div>
-        )}
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onReconfigure} style={{ flex: 1, padding: 11, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <Settings size={14} /> Re-run Setup
-          </button>
-          <a href="/dashboard/network" style={{ padding: '11px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-            View on Network <ExternalLink size={12} />
-          </a>
-        </div>
-      </Card>
-
-      {/* Recent activity */}
-      <Card>
-        <div style={{ ...sectionLabel }}>Recent Activity</div>
-        {actions.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {actions.slice(0, 5).map((a: any) => {
-              const acked = a.status === 'acked'
-              const delivered = a.status === 'delivered'
-              const color = acked ? C.green : delivered ? C.gold : C.dim
-              const icon = acked ? <CheckCircle size={12} color={C.green} /> : delivered ? <Activity size={12} color={C.gold} /> : <ClockIcon />
-              return (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `0.5px solid ${C.border}` }}>
-                  <span style={{ display: 'flex', alignItems: 'center', width: 14 }}>{icon}</span>
-                  <span style={{ fontSize: 10, color: C.text, textTransform: 'capitalize', fontFamily: 'DM Mono, monospace' }}>{a.action_type.replace(/_/g, ' ')}</span>
-                  <span style={{ ...PILL(color) }}>{a.status}</span>
-                  <span style={{ fontSize: 9, color: C.faint, marginLeft: 'auto', fontFamily: 'DM Mono, monospace' }}>
-                    <TimeAgo iso={a.acked_at || a.delivered_at || a.created_at} />
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '20px 12px' }}>
-            <Router size={22} color={C.dim} style={{ marginBottom: 8 }} />
-            <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
-              No router activity yet. Actions pushed to your router (portal push, config changes) will show here.
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {boardName}
+              </span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'DM Mono, monospace', color: statusColor, flexShrink: 0 }}>{statusText}</span>
+            </div>
+            <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {health?.router_ip || '—'} · RouterOS {rosVersion} · polls every 30s
             </div>
           </div>
-        )}
+          {/* Ghost icon actions: re-run setup + view on network */}
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button onClick={onReconfigure} title="Re-run setup" style={{ ...ghostIcon }}>
+              <Settings size={13} color={C.dim} />
+            </button>
+            <a href="/dashboard/network" title="View on network" style={{ ...ghostIcon, textDecoration: 'none' }}>
+              <ExternalLink size={13} color={C.dim} />
+            </a>
+          </div>
+        </div>
+
+        {/* Setup section */}
+        <div style={{ padding: '12px 20px 16px', borderTop: `0.5px solid ${C.border}` }}>
+          <div style={{ ...sectionLabel, marginBottom: 10 }}>Setup</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {setupItems.map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}`, flex: '1 1 160px', minWidth: 0 }}>
+                {item.confirmed ? (
+                  <CheckCircle size={13} color={C.green} style={{ flexShrink: 0 }} />
+                ) : (
+                  <span style={{ width: 13, height: 13, borderRadius: '50%', border: `1.5px solid ${C.border2}`, flexShrink: 0, display: 'inline-block' }} />
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>{item.label}</div>
+                  <div style={{ fontSize: 11, color: item.confirmed ? C.text : C.dim, fontFamily: 'DM Mono, monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Activity timeline */}
+        <div style={{ padding: '14px 20px 18px', borderTop: `0.5px solid ${C.border}` }}>
+          <div style={{ ...sectionLabel, marginBottom: 12 }}>Activity</div>
+          {timeline.length > 0 ? (
+            <div>
+              {timeline.map((e, i) => {
+                const dotColor = e.tone === 'warn' ? C.red : e.tone === 'done' ? (e.kind === 'registration' ? C.gold : C.green) : C.dim
+                const isNewest = i === 0
+                return (
+                  <div key={e.id} style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 12, flexShrink: 0 }}>
+                      <span style={{
+                        width: isNewest ? 9 : 7, height: isNewest ? 9 : 7, borderRadius: '50%', flexShrink: 0, marginTop: 3,
+                        background: isNewest ? dotColor : 'transparent',
+                        border: `1.5px solid ${dotColor}`,
+                        boxShadow: isNewest ? `0 0 8px ${dotColor}60` : 'none',
+                      }} />
+                      {i < timeline.length - 1 && <span style={{ width: 1, flex: 1, background: C.border, marginTop: 4 }} />}
+                    </div>
+                    <div style={{ paddingBottom: i < timeline.length - 1 ? 14 : 0, minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 11, color: C.text }}>{e.label}</div>
+                      <div style={{ fontSize: 9, color: C.faint, fontFamily: 'DM Mono, monospace', marginTop: 2 }}>
+                        <TimeAgo iso={new Date(e.time).toISOString()} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
+              No activity yet. Actions pushed to your router will show here.
+            </div>
+          )}
+        </div>
       </Card>
       <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
     </>
   )
+}
+
+const ghostIcon = {
+  width: 30, height: 30, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'transparent', border: 'none', cursor: 'pointer', color: C.dim,
 }

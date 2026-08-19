@@ -249,6 +249,8 @@ async def health_check(
         "router_identity": parts.get("board"),
         "router_os_version": parts.get("routeros"),
         "board_name": parts.get("board"),
+        "ssid": parts.get("ssid"),
+        "walled_garden": parts.get("walledgarden"),
         "uptime": None,
         "hotspot_found": None,
         "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
@@ -342,7 +344,7 @@ async def generate_parameterized_script(
             config.api_password_enc = encrypt(api_password)
             await db.commit()
         else:
-            new_config = MikrotikConfig(
+            config = MikrotikConfig(
                 id=uuid.uuid4(),
                 tenant_id=current_user.tenant_id,
                 router_ip=f"192.168.{network_octet}.1",
@@ -351,7 +353,7 @@ async def generate_parameterized_script(
                 api_password_enc=encrypt(api_password),
                 hotspot_server="hotspot1",
             )
-            db.add(new_config)
+            db.add(config)
             await db.commit()
 
     backend_host = backend_host_override or (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).replace("https://", "").replace("http://", "").rstrip("/")
@@ -388,6 +390,14 @@ async def generate_parameterized_script(
 {portal_line}
 {scheduler_block}:log info "WiBill setup complete for {name}"
 """
+    # Persist the setup parameters the generated script bakes in, so the
+    # management view can show real checkmarks instead of guessing. Notes is
+    # the existing de-facto "detected config" store (Board/RouterOS/MAC), so
+    # SSID + walled garden ride along in the same pipe-delimited format.
+    prior = (config.notes or "").strip(" |")
+    config.notes = f"{prior} | SSID: {ssid} | WalledGarden: yes".strip(" |")
+    await db.commit()
+
     return PlainTextResponse(
         content=script,
         headers={"Content-Disposition": f'attachment; filename="wibill-{slug}-setup.rsc"'}
@@ -714,6 +724,13 @@ async def get_routeros_script(
 /ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
 {scheduler_block}:log info "WiBill setup complete for {name}"
 """
+    # This static script includes the walled-garden rule but no SSID (the
+    # wizard's generate-script is where SSID gets baked in). Record the
+    # walled-garden fact so the management view can checkmark it.
+    if config:
+        prior = (config.notes or "").strip(" |")
+        config.notes = f"{prior} | WalledGarden: yes".strip(" |")
+        await db.commit()
     return PlainTextResponse(
         content=script,
         headers={
