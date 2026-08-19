@@ -82,6 +82,63 @@ function friendlyError(raw: string): string {
   return raw
 }
 
+// MikroTik board_name → product catalog with CDN images
+// CDN pattern: https://cdn.mikrotik.com/web-assets/rb_images/{id}_tm.webp
+const ROUTER_CATALOG: Record<string, { name: string; image: string; url: string }> = {
+  // hAP wireless routers
+  'hAP ac^2': { name: 'hAP ac²', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1468_tm.webp', url: 'https://mikrotik.com/products/hap_ac2' },
+  'hAP ac²': { name: 'hAP ac²', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1468_tm.webp', url: 'https://mikrotik.com/products/hap_ac2' },
+  'hAP ac³': { name: 'hAP ac³', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1975_tm.webp', url: 'https://mikrotik.com/products/hap_ac3' },
+  'hAP ax^3': { name: 'hAP ax³', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2211_tm.webp', url: 'https://mikrotik.com/products/hap_ax3' },
+  'hAP ax^2': { name: 'hAP ax²', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2203_tm.webp', url: 'https://mikrotik.com/products/hap_ax2' },
+  'hAP ax lite': { name: 'hAP ax lite', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2225_tm.webp', url: 'https://mikrotik.com/products/hap_ax_lite' },
+  'hAP ac lite': { name: 'hAP ac lite', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1413_tm.webp', url: 'https://mikrotik.com/products/hap_ac_lite' },
+  'hAP ac lite TC': { name: 'hAP ac lite TC', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1230_tm.webp', url: 'https://mikrotik.com/products/hap_ac_lite_tc' },
+  'hAP ac': { name: 'hAP ac', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1169_tm.webp', url: 'https://mikrotik.com/products/hap_ac' },
+  'hAP lite': { name: 'hAP lite', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1007_tm.webp', url: 'https://mikrotik.com/products/hap_lite' },
+  'hAP lite TC': { name: 'hAP lite TC', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1766_tm.webp', url: 'https://mikrotik.com/products/hap_lite_tc' },
+  'hAP mini': { name: 'hAP mini', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1007_tm.webp', url: 'https://mikrotik.com/products/hap_lite' },
+  'hAP': { name: 'hAP', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1059_tm.webp', url: 'https://mikrotik.com/products/hap' },
+  // hEX wired routers
+  'hEX S': { name: 'hEX S', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1539_tm.webp', url: 'https://mikrotik.com/products/hex_s' },
+  'hEX refresh': { name: 'hEX refresh', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2408_tm.webp', url: 'https://mikrotik.com/products/hex_2024' },
+  'hEX': { name: 'hEX', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1405_tm.webp', url: 'https://mikrotik.com/products/hex' },
+  'hEX lite': { name: 'hEX lite', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1040_tm.webp', url: 'https://mikrotik.com/products/hex_lite' },
+  'hEX PoE': { name: 'hEX PoE', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1219_tm.webp', url: 'https://mikrotik.com/products/hex_poe' },
+  'hEX PoE lite': { name: 'hEX PoE lite', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1412_tm.webp', url: 'https://mikrotik.com/products/hex_poe_lite' },
+  // L009 series
+  'L009UiGS-RM': { name: 'L009UiGS-RM', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2267_tm.webp', url: 'https://mikrotik.com/products/l009uigs_rm' },
+  'L009UiGS-2HaxD-IN': { name: 'L009UiGS-2HaxD-IN', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2263_tm.webp', url: 'https://mikrotik.com/products/l009uigs_2haxd_in' },
+  // RB series
+  'RB951Ui-2HnD': { name: 'RB951Ui-2HnD', image: 'https://cdn.mikrotik.com/web-assets/rb_images/902_tm.webp', url: 'https://mikrotik.com/products/rb951ui_2hnd' },
+  'RB4011iGS+RM': { name: 'RB4011iGS+RM', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1633_tm.webp', url: 'https://mikrotik.com/products/rb4011igs_rm' },
+  'RB4011iGS+5HacQ2HnD-IN': { name: 'RB4011iGS+5HacQ2HnD-IN', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1630_tm.webp', url: 'https://mikrotik.com/products/rb4011igs_5hacq2hnd_in' },
+  'RB5009UGS+IN': { name: 'RB5009UGS+IN', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2065_tm.webp', url: 'https://mikrotik.com/products/rb5009ugs_in' },
+  'RB5009UPr+S+IN': { name: 'RB5009UPr+S+IN', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2190_tm.webp', url: 'https://mikrotik.com/products/rb5009upr_s_in' },
+  'RB5009UPr+S+OUT': { name: 'RB5009UPr+S+OUT', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2250_tm.webp', url: 'https://mikrotik.com/products/rb5009upr_s_out' },
+  'CCR2004-16G-2S+': { name: 'CCR2004-16G-2S+', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2563_tm.webp', url: 'https://mikrotik.com/products/ccr2004_16g_2splus' },
+  'CCR2004-1G-12S+2XS': { name: 'CCR2004-1G-12S+2XS', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1935_tm.webp', url: 'https://mikrotik.com/products/ccr2004_1g_12s_2xs' },
+  // Chateau
+  'Chateau': { name: 'Chateau', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2187_tm.webp', url: 'https://mikrotik.com/products/chateau' },
+  'Chateau5G ax': { name: 'Chateau 5G ax', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2205_tm.webp', url: 'https://mikrotik.com/products/chateau_5g_ax' },
+  // Audience / cAP / wAP
+  'Audience': { name: 'Audience', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2247_tm.webp', url: 'https://mikrotik.com/products/audience' },
+  'cAP ac': { name: 'cAP ac', image: 'https://cdn.mikrotik.com/web-assets/rb_images/1447_tm.webp', url: 'https://mikrotik.com/products/cap_ac' },
+  'cAP XL ac': { name: 'cAP XL ac', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2099_tm.webp', url: 'https://mikrotik.com/products/cap_xl_ac' },
+  'wAP ac': { name: 'wAP ac', image: 'https://cdn.mikrotik.com/web-assets/rb_images/2410_tm.webp', url: 'https://mikrotik.com/products/wap_ac' },
+}
+
+function lookupRouter(boardName: string | null | undefined) {
+  if (!boardName || boardName === '—' || boardName === 'unknown') return null
+  if (ROUTER_CATALOG[boardName]) return ROUTER_CATALOG[boardName]
+  const normalized = boardName.toLowerCase().replace(/[^a-z0-9]/g, '')
+  for (const [key, value] of Object.entries(ROUTER_CATALOG)) {
+    const keyNorm = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (normalized.includes(keyNorm) || keyNorm.includes(normalized)) return value
+  }
+  return null
+}
+
 // ============================================================================
 // PAGE — two top-level states: onboarding OR router management
 // ============================================================================
@@ -99,6 +156,7 @@ export default function MikrotikPage() {
   // empty state (zero routers).
   const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
+  const [startManual, setStartManual] = useState(false)
 
   const fetchAll = useCallback(async () => {
     if (!token) return
@@ -123,8 +181,14 @@ export default function MikrotikPage() {
   }, [health, onboard, loading, modeOverride])
 
   const handleAddRouter = () => {
+    setStartManual(false)
     setModeOverride('onboarding')
-    // Reset any lingering expired token so the page starts clean at Generate.
+    try { fetchAll() } catch { /* noop */ }
+  }
+
+  const handleRerunSetup = () => {
+    setStartManual(true)
+    setModeOverride('onboarding')
     try { fetchAll() } catch { /* noop */ }
   }
 
@@ -147,19 +211,20 @@ export default function MikrotikPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title={showOnboarding ? 'MikroTik Setup' : 'MikroTik'} />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
-        <div style={{ maxWidth: 720, width: '100%', margin: '0 auto' }}>
+        <div style={{ maxWidth: 900, width: '100%', margin: '0 auto' }}>
           {showOnboarding ? (
             <OnboardingView
               onboard={onboard}
-              onConfigured={() => setModeOverride('manage')}
+              onConfigured={() => { setModeOverride('manage'); setStartManual(false) }}
               onRefresh={() => setRefreshTick(x => x + 1)}
+              startManual={startManual}
             />
           ) : showManage ? (
             <RouterManagementView
               health={health}
               onboard={onboard}
               actions={actions}
-              onReconfigure={handleAddRouter}
+              onReconfigure={handleRerunSetup}
               onAddRouter={handleAddRouter}
             />
           ) : (
@@ -206,12 +271,13 @@ const QUICK_STEPS = [
   { id: 4, label: 'Configured', icon: Zap },
 ]
 
-function OnboardingView({ onboard, onConfigured, onRefresh }: {
+function OnboardingView({ onboard, onConfigured, onRefresh, startManual }: {
   onboard: any
   onConfigured: () => void
   onRefresh: () => void
+  startManual?: boolean
 }) {
-  const [showManual, setShowManual] = useState(false)
+  const [showManual, setShowManual] = useState(!!startManual)
 
   if (showManual) {
     return <ManualSetup onDone={onConfigured} onBackToQuick={() => setShowManual(false)} />
@@ -951,61 +1017,36 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
   const boardName = displayClean(health?.board_name || health?.router_identity)
   const rosVersion = displayClean(health?.router_os_version)
   const ssid = displayClean(health?.ssid)
+  const routerIp = displayClean(health?.router_ip)
 
-  // Latest portal push → SETUP checkmark state
+  const catalog = lookupRouter(health?.board_name || health?.router_identity)
+  const [imgFailed, setImgFailed] = useState(false)
+
   const portalAction = [...actions].reverse().find((a: any) => a.action_type === 'push_portal')
-  const portalState = !portalAction ? 'none' : portalAction.status  // none | pending | delivered | acked
+  const portalState = !portalAction ? 'none' : portalAction.status
 
-  // Build activity timeline (registration + actions, newest first), capped at 5
   const now = Date.now()
   const entries: { id: string; label: string; time: number; tone: 'done' | 'pending' | 'warn'; kind: string }[] = []
-
   if (onboard?.registration_data) {
-    entries.push({
-      id: 'registered', label: 'Router registered', kind: 'registration',
-      time: new Date(onboard.used_at || now).getTime(),
-      tone: 'done',
-    })
+    entries.push({ id: 'registered', label: 'Router registered', kind: 'registration', time: new Date(onboard.used_at || now).getTime(), tone: 'done' })
   }
-  // Offline transition is the newest entry when the router stops checking in
   if (!online && health?.last_poll_at) {
-    entries.push({
-      id: 'offline', label: 'Stopped checking in', kind: 'offline',
-      time: new Date(health.last_poll_at).getTime(),
-      tone: 'warn',
-    })
+    entries.push({ id: 'offline', label: 'Stopped checking in', kind: 'offline', time: new Date(health.last_poll_at).getTime(), tone: 'warn' })
   }
   for (const a of actions) {
-    entries.push({
-      id: `a-${a.id}`, label: activityLabel(a), kind: a.action_type,
-      time: new Date(a.acked_at || a.delivered_at || a.created_at).getTime(),
-      tone: activityTone(a),
-    })
+    entries.push({ id: `a-${a.id}`, label: activityLabel(a), kind: a.action_type, time: new Date(a.acked_at || a.delivered_at || a.created_at).getTime(), tone: activityTone(a) })
   }
   entries.sort((x, y) => y.time - x.time)
   const timeline = entries.slice(0, 5)
 
   const setupItems = [
-    {
-      label: 'SSID',
-      value: ssid !== '—' ? ssid : 'Not set',
-      confirmed: ssid !== '—',
-    },
-    {
-      label: 'Portal',
-      value: portalState === 'acked' ? 'Live' : portalState === 'delivered' ? 'Pushing…' : portalState === 'pending' ? 'Queued' : 'Not pushed',
-      confirmed: portalState === 'acked',
-    },
-    {
-      label: 'Walled garden',
-      value: health?.walled_garden === 'yes' ? 'Configured' : 'Not confirmed',
-      confirmed: health?.walled_garden === 'yes',
-    },
+    { label: 'SSID', value: ssid !== '—' ? ssid : 'Not set', confirmed: ssid !== '—' },
+    { label: 'Portal', value: portalState === 'acked' ? 'Live' : portalState === 'delivered' ? 'Pushing…' : portalState === 'pending' ? 'Queued' : 'Not pushed', confirmed: portalState === 'acked' },
+    { label: 'Walled garden', value: health?.walled_garden === 'yes' ? 'Configured' : 'Not confirmed', confirmed: health?.walled_garden === 'yes' },
   ]
 
   return (
     <>
-      {/* Page header row — same pattern as Network: status left, action right */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusColor, boxShadow: `0 0 10px ${statusColor}80`, flexShrink: 0, animation: online ? 'pulse 2s infinite' : 'none' }} />
@@ -1024,54 +1065,77 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         </button>
       </div>
 
-      {/* Router cards — vertical stack */}
-      <Card style={{ marginBottom: 12, padding: 0, overflow: 'hidden' }}>
-        {/* Identity row */}
-        <div style={{ padding: '18px 20px 14px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Hero image area */}
+        <div style={{
+          height: 220, background: 'linear-gradient(180deg, #111 0%, #0d0d0d 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+          borderBottom: `0.5px solid ${C.border}`,
+        }}>
+          {catalog && !imgFailed ? (
+            <img
+              src={catalog.image}
+              alt={catalog.name}
+              onError={() => setImgFailed(true)}
+              style={{ maxHeight: 180, maxWidth: '80%', objectFit: 'contain', userSelect: 'none', pointerEvents: 'none' }}
+            />
+          ) : (
+            <Router size={64} color={C.dim} strokeWidth={1} />
+          )}
+          {/* Status pill overlay */}
           <div style={{
-            width: 40, height: 40, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: online
-              ? 'color-mix(in srgb, var(--theme-green) 10%, transparent)'
-              : health?.last_poll_at
-                ? 'color-mix(in srgb, var(--theme-red) 10%, transparent)'
-                : 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
-            border: `0.5px solid color-mix(in srgb, ${statusColor} 28%, transparent)`,
+            position: 'absolute', top: 16, right: 16,
+            display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+            border: `0.5px solid ${statusColor}40`,
           }}>
-            <Router size={18} color={statusColor} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, boxShadow: `0 0 6px ${statusColor}80` }} />
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'DM Mono, monospace', color: statusColor }}>{statusText}</span>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {boardName}
-              </span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'DM Mono, monospace', color: statusColor, flexShrink: 0 }}>{statusText}</span>
-            </div>
-            <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {health?.router_ip || '—'} · RouterOS {rosVersion} · polls every 30s
-            </div>
-          </div>
-          {/* Ghost icon actions: re-run setup + view on network */}
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            <button onClick={onReconfigure} title="Re-run setup" style={{ ...ghostIcon }}>
+          {/* Settings + External link overlay */}
+          <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 4 }}>
+            <button onClick={onReconfigure} title="Re-run setup" style={{ ...ghostIcon, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}>
               <Settings size={13} color={C.dim} />
             </button>
-            <a href="/dashboard/network" title="View on network" style={{ ...ghostIcon, textDecoration: 'none' }}>
+            <a href="/dashboard/network" title="View on network" style={{ ...ghostIcon, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)', textDecoration: 'none' }}>
               <ExternalLink size={13} color={C.dim} />
             </a>
           </div>
         </div>
 
+        {/* Identity + specs row */}
+        <div style={{ padding: '18px 20px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>
+                  {boardName}
+                </span>
+                {catalog && (
+                  <a href={catalog.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 9, color: C.dim, textDecoration: 'none', fontFamily: 'DM Mono, monospace', opacity: 0.6 }}>view on mikrotik.com ↗</a>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+                <span>{routerIp}</span>
+                <span style={{ color: C.border2 }}>·</span>
+                <span>RouterOS {rosVersion}</span>
+                <span style={{ color: C.border2 }}>·</span>
+                <span>polls every 30s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Setup section */}
-        <div style={{ padding: '12px 20px 16px', borderTop: `0.5px solid ${C.border}` }}>
+        <div style={{ padding: '0 20px 18px' }}>
           <div style={{ ...sectionLabel, marginBottom: 10 }}>Setup</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {setupItems.map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}`, flex: '1 1 160px', minWidth: 0 }}>
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: C.void, borderRadius: 7, border: `0.5px solid ${C.border}`, flex: '1 1 160px', minWidth: 0 }}>
                 {item.confirmed ? (
-                  <CheckCircle size={13} color={C.green} style={{ flexShrink: 0 }} />
+                  <CheckCircle size={14} color={C.green} style={{ flexShrink: 0 }} />
                 ) : (
-                  <span style={{ width: 13, height: 13, borderRadius: '50%', border: `1.5px solid ${C.border2}`, flexShrink: 0, display: 'inline-block' }} />
+                  <span style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${C.border2}`, flexShrink: 0, display: 'inline-block' }} />
                 )}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 9, color: C.dim, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>{item.label}</div>
@@ -1083,7 +1147,7 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         </div>
 
         {/* Activity timeline */}
-        <div style={{ padding: '14px 20px 18px', borderTop: `0.5px solid ${C.border}` }}>
+        <div style={{ padding: '0 20px 20px', borderTop: `0.5px solid ${C.border}`, paddingTop: 18 }}>
           <div style={{ ...sectionLabel, marginBottom: 12 }}>Activity</div>
           {timeline.length > 0 ? (
             <div>
