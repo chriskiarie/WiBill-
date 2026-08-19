@@ -219,6 +219,32 @@ def build_poll_snippet(
     return "\n".join(lines) + "\n" + ack_line + "\n"
 
 
+def build_identity_report_line(
+    router_id,
+    poll_token: str = "",
+    ros_version: str = "6",
+    base_url: str = "",
+) -> str:
+    """Fire-and-forget line that makes the router report its identity.
+
+    Served inside the poll snippet (and hence imported by the router every
+    30s) until the backend has a real Board/RouterOS value in notes. Uses the
+    same explicit :local + string concatenation pattern as build_onboard_script
+    — RouterOS 6.x does not reliably evaluate inline {[command]} expressions
+    inside /tool fetch http-data.
+    """
+    base = (base_url or settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    url = f"{base}/poll/{router_id}/identity"
+    mode = _fetch_mode(ros_version, url)
+    auth = f' http-header-field="Authorization: Bearer {poll_token}"' if poll_token else ""
+    return (
+        ':local wbVer [/system resource get version]\n'
+        ':local wbBoard [/system resource get board-name]\n'
+        f':do {{ /tool fetch url="{url}"{mode}{auth} http-method=post '
+        'http-data=("ros_version=" . $wbVer . "&board=" . $wbBoard) } on-error={ }'
+    )
+
+
 def build_poll_scheduler_block(
     router_id,
     poll_token: str,

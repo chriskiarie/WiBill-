@@ -15,6 +15,7 @@ Auth is per-router: the token must match the specific router_id (Section 5).
 """
 import hmac
 import logging
+import re
 import uuid
 from datetime import datetime
 
@@ -28,6 +29,7 @@ from app.models.mikrotik_config import MikrotikConfig
 from app.models.router_action import RouterAction
 from app.services.crypto_service import decrypt
 from app.services.router_poll_service import (
+    build_identity_report_line,
     build_poll_snippet,
     MAX_ACTIONS_PER_POLL,
     resolve_ros_version,
@@ -36,6 +38,24 @@ from app.services.router_poll_service import (
 logger = logging.getLogger("wibill.poll")
 
 router = APIRouter()
+
+
+def _notes_missing_identity(notes: str | None) -> bool:
+    """True when notes don't pin a real Board/RouterOS value yet.
+
+    "Real" means: a Board token exists and its value is not empty, not the
+    literal "unknown", and not an unevaluated RouterOS command (the 6.x bug
+    where ``{{/system resource get board-name}}`` was stored verbatim).
+    """
+    if not notes:
+        return True
+    m = re.search(r'\bBoard\s*:\s*([^|]+)', notes, flags=re.IGNORECASE)
+    if not m:
+        return True
+    val = m.group(1).strip().lower()
+    if not val or val == "unknown" or re.match(r'^\{+\[?/', val):
+        return True
+    return False
 
 
 async def _load_and_authorize(router_id: str, request: Request, db: AsyncSession) -> MikrotikConfig:
@@ -112,12 +132,25 @@ async def poll_actions(
 
     # Build snippet after committing so delivered/acked transitions are not
     # re-included if the router immediately acks and polls again.
+    ros = resolve_ros_version(config)
     script = build_poll_snippet(
         router_id=config.id,
         actions=actions,
-        ros_version=resolve_ros_version(config),
+        ros_version=ros,
         poll_token=decrypt(config.poll_token_enc),
     )
+
+    # Until we have a real board name, smuggle an identity-report line into
+    # every poll response. The router imports the snippet, so within one poll
+    # cycle it POSTs its board-name + RouterOS version to /identity — no
+    # bridge, no tunnel, no manual entry needed.
+    if _notes_missing_identity(config.notes):
+        identity_line = build_identity_report_line(
+            router_id=config.id,
+            poll_token=decrypt(config.poll_token_enc),
+            ros_version=ros,
+        )
+        script = identity_line + "\n" + script
 
     logger.info(
         f"poll router={config.id} actions={[a.id for a in actions]} status={len(actions)}"
@@ -174,3 +207,56 @@ async def ack_actions(
     await db.commit()
     logger.info(f"ack router={config.id} ids={[a.id for a in rows]}")
     return PlainTextResponse(content=f"ok: acked {len(rows)}", status_code=200)
+
+
+# ── POST /poll/{router_id}/identity ────────────────────────────────────────
+@router.post("/poll/{router_id}/identity")
+async def report_identity(
+    router_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Receive the router's self-reported identity and persist it to notes.
+
+    The poll snippet includes an identity-report fetch until notes pin a real
+    Board name. The router POSTs form data ``ros_version``, ``board`` (and
+    optionally ``mac``) with the same per-router Bearer token used for acking.
+    Values are upserted into config.notes so the dashboard card (name + photo)
+    resolves from real data instead of "unknown".
+    """
+    config = await _load_and_authorize(router_id, request, db)
+
+    form = {}
+    try:
+        form = await request.form()
+    except Exception:
+        form = {}
+
+    board = (form.get("board") or "").strip()
+    version = (form.get("ros_version") or "").strip()
+    mac = (form.get("mac") or "").strip()
+
+    if not (board or version or mac):
+        return PlainTextResponse(content="ok: nothing to report", status_code=200)
+
+    prior = (config.notes or "").strip(" |")
+    merged = prior
+
+    def _upsert(value: str, key: str) -> None:
+        nonlocal merged
+        merged = re.sub(rf'\|\s*{key}\s*:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
+        merged = f"{merged} | {key}: {value}".strip(" |")
+
+    if board:
+        _upsert(board, "Board")
+    if version:
+        _upsert(version, "RouterOS")
+    if mac:
+        _upsert(mac, "MAC")
+
+    if merged != prior:
+        config.notes = merged
+        await db.commit()
+
+    logger.info(f"identity router={config.id} board={board} ros={version}")
+    return PlainTextResponse(content="ok: identity recorded", status_code=200)
