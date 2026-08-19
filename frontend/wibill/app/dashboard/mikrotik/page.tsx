@@ -5,7 +5,7 @@ import { api, formatRelativeTime } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, AlertTriangle, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink, Plus } from 'lucide-react'
+import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, AlertTriangle, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink, Plus, Wifi } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
@@ -154,7 +154,7 @@ export default function MikrotikPage() {
   // mode === 'onboarding' once "Add router" / "Re-run setup" is clicked;
   // otherwise the page state machine picks manage (router exists) or the
   // empty state (zero routers).
-  const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | null>(null)
+  const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | 'choose' | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
   const [startManual, setStartManual] = useState(false)
 
@@ -181,8 +181,11 @@ export default function MikrotikPage() {
   }, [health, onboard, loading, modeOverride])
 
   const handleAddRouter = () => {
-    const existingRouter = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
-    setStartManual(existingRouter)
+    setModeOverride('choose')
+  }
+
+  const handleChoice = (path: 'quick' | 'manual') => {
+    setStartManual(path === 'manual')
     setModeOverride('onboarding')
     try { fetchAll() } catch { /* noop */ }
   }
@@ -191,6 +194,10 @@ export default function MikrotikPage() {
     setStartManual(true)
     setModeOverride('onboarding')
     try { fetchAll() } catch { /* noop */ }
+  }
+
+  const handleBackToManage = () => {
+    setModeOverride('manage')
   }
 
   if (loading) {
@@ -205,6 +212,7 @@ export default function MikrotikPage() {
   }
 
   const hasRouter = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
+  const showChoose = modeOverride === 'choose' || (modeOverride === null && !hasRouter)
   const showOnboarding = modeOverride === 'onboarding'
   const showManage = modeOverride === 'manage' || (modeOverride === null && hasRouter)
 
@@ -213,7 +221,12 @@ export default function MikrotikPage() {
       <Topbar title={showOnboarding ? 'MikroTik Setup' : 'MikroTik'} />
       <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void }}>
         <div style={{ maxWidth: 900, width: '100%', margin: '0 auto' }}>
-          {showOnboarding ? (
+          {showChoose ? (
+            <RouterChoiceScreen
+              onSelect={handleChoice}
+              onBack={modeOverride === 'choose' ? handleBackToManage : undefined}
+            />
+          ) : showOnboarding ? (
             <OnboardingView
               onboard={onboard}
               onConfigured={() => { setModeOverride('manage'); setStartManual(false) }}
@@ -228,9 +241,7 @@ export default function MikrotikPage() {
               onReconfigure={handleRerunSetup}
               onAddRouter={handleAddRouter}
             />
-          ) : (
-            <EmptyState onAddRouter={handleAddRouter} />
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -238,25 +249,82 @@ export default function MikrotikPage() {
 }
 
 // ============================================================================
-// EMPTY STATE — zero routers configured
+// ROUTER CHOICE SCREEN — entry point for adding a router (new or existing)
 // ============================================================================
 
-function EmptyState({ onAddRouter }: { onAddRouter: () => void }) {
+function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | 'manual') => void; onBack?: () => void }) {
+  const [hovered, setHovered] = useState<string | null>(null)
+
+  const cardBase: React.CSSProperties = {
+    flex: 1, padding: '32px 28px', borderRadius: 12, background: C.base,
+    cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center',
+  }
+
   return (
-    <Card style={{ padding: '56px 24px', textAlign: 'center' }}>
-      <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 22%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-        <Router size={22} color={C.gold} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 440, textAlign: 'center' }}>
+      {onBack && (
+        <button onClick={onBack} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.dim, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 20, fontFamily: 'Inter, sans-serif' }}>
+          ← Back
+        </button>
+      )}
+      <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 8 }}>
+        Add Router
       </div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 8 }}>
-        Connect your first router
+      <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.7, maxWidth: 420, marginBottom: 36 }}>
+        Connect a new router or link an existing hotspot to WiBill
       </div>
-      <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7, maxWidth: 360, margin: '0 auto 24px' }}>
-        Link your MikroTik router to activate WiFi billing — packages, sessions, and M-Pesa payments all run through it.
+      <div style={{ display: 'flex', gap: 16, width: '100%', maxWidth: 580 }}>
+        {/* New Router */}
+        <div
+          style={{
+            ...cardBase,
+            border: `0.5px solid ${hovered === 'quick' ? C.gold : C.border}`,
+            boxShadow: hovered === 'quick' ? '0 0 24px rgba(232,184,75,0.08)' : 'none',
+          }}
+          onClick={() => onSelect('quick')}
+          onMouseEnter={() => setHovered('quick')}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+            <Terminal size={22} color={C.gold} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 10 }}>
+            New Router
+          </div>
+          <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7, marginBottom: 24 }}>
+            Fresh setup. Paste a one-line command into your router's terminal.
+          </div>
+          <div style={{ padding: '11px 24px', borderRadius: 7, background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: 'Inter, sans-serif' }}>
+            Get Started
+          </div>
+        </div>
+
+        {/* Existing Hotspot */}
+        <div
+          style={{
+            ...cardBase,
+            border: `0.5px solid ${hovered === 'manual' ? C.gold : C.border}`,
+            boxShadow: hovered === 'manual' ? '0 0 24px rgba(232,184,75,0.08)' : 'none',
+          }}
+          onClick={() => onSelect('manual')}
+          onMouseEnter={() => setHovered('manual')}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+            <Wifi size={22} color={C.gold} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 10 }}>
+            Existing Hotspot
+          </div>
+          <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7, marginBottom: 24 }}>
+            Router already has hotspot config. Configure WiBill to match.
+          </div>
+          <div style={{ padding: '11px 24px', borderRadius: 7, background: 'transparent', border: `0.5px solid ${C.gold}`, color: C.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: 'Inter, sans-serif' }}>
+            Connect
+          </div>
+        </div>
       </div>
-      <button onClick={onAddRouter} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '11px 22px', borderRadius: 7, background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-        Add router
-      </button>
-    </Card>
+    </div>
   )
 }
 
