@@ -93,6 +93,14 @@ async def generate_onboard_token(
     token_value = secrets.token_urlsafe(32)
     poll_token_value = secrets.token_urlsafe(32)
     now = datetime.now(tz.utc)
+
+    # Record the onboarding path so re-run setup routes back to the same flow.
+    # Quick Connect = register + poll only (non-destructive). Never overwrite
+    # an existing full_setup record — the script build is the authoritative one.
+    prior_notes = (config.notes or "").strip(" |")
+    if "onboardpath:" not in prior_notes.lower():
+        config.notes = f"{prior_notes} | OnboardPath: quick_connect".strip(" |")
+
     onboard_token = OnboardingToken(
         token=token_value,
         tenant_id=current_user.tenant_id,

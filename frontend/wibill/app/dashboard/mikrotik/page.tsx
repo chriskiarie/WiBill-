@@ -157,6 +157,7 @@ export default function MikrotikPage() {
   const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | 'choose' | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
   const [startManual, setStartManual] = useState(false)
+  const [onboardFrom, setOnboardFrom] = useState<'choice' | 'gear' | null>(null)
 
   const fetchAll = useCallback(async () => {
     if (!token) return
@@ -184,20 +185,29 @@ export default function MikrotikPage() {
     setModeOverride('choose')
   }
 
-  const handleChoice = (path: 'quick' | 'manual') => {
-    setStartManual(path === 'manual')
+  // Choice screen: 'quick' = Existing Hotspot (register + poll only),
+  // 'full' = New Router (build the whole network from scratch).
+  const handleChoice = (path: 'quick' | 'full') => {
+    setStartManual(path === 'full')
+    setOnboardFrom('choice')
     setModeOverride('onboarding')
     try { fetchAll() } catch { /* noop */ }
   }
 
+  // Gear icon: route by the path the router was actually onboarded through.
+  // Never force a quick-connect router through the full build (conflict risk)
+  // and never open Quick Connect for a full-setup router.
   const handleRerunSetup = () => {
-    setStartManual(true)
+    const path = health?.onboard_path || 'quick_connect'
+    setStartManual(path === 'full_setup')
+    setOnboardFrom('gear')
     setModeOverride('onboarding')
     try { fetchAll() } catch { /* noop */ }
   }
 
   const handleBackToManage = () => {
-    setModeOverride('manage')
+    const existing = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
+    setModeOverride(existing ? 'manage' : null)
   }
 
   if (loading) {
@@ -216,6 +226,13 @@ export default function MikrotikPage() {
   const showOnboarding = modeOverride === 'onboarding'
   const showManage = modeOverride === 'manage' || (modeOverride === null && hasRouter)
 
+  const boardLabel = displayClean(health?.board_name || health?.router_identity || 'router')
+  const backLabel = onboardFrom === 'gear' ? `Back to ${boardLabel}` : 'Back to choices'
+  const handleOnboardingBack = () => {
+    setModeOverride(onboardFrom === 'gear' ? 'manage' : 'choose')
+    setOnboardFrom(null)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <Topbar title={showOnboarding ? 'MikroTik Setup' : 'MikroTik'} />
@@ -229,9 +246,11 @@ export default function MikrotikPage() {
           ) : showOnboarding ? (
             <OnboardingView
               onboard={onboard}
-              onConfigured={() => { setModeOverride('manage'); setStartManual(false) }}
+              onConfigured={() => { setModeOverride('manage'); setStartManual(false); setOnboardFrom(null) }}
               onRefresh={() => setRefreshTick(x => x + 1)}
               startManual={startManual}
+              onBack={handleOnboardingBack}
+              backLabel={backLabel}
             />
           ) : showManage ? (
             <RouterManagementView
@@ -252,7 +271,7 @@ export default function MikrotikPage() {
 // ROUTER CHOICE SCREEN — entry point for adding a router (new or existing)
 // ============================================================================
 
-function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | 'manual') => void; onBack?: () => void }) {
+function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | 'full') => void; onBack?: () => void }) {
   const [hovered, setHovered] = useState<string | null>(null)
 
   const cardBase: React.CSSProperties = {
@@ -274,7 +293,32 @@ function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | '
         Connect a new router or link an existing hotspot to WiBill
       </div>
       <div style={{ display: 'flex', gap: 16, width: '100%', maxWidth: 580 }}>
-        {/* New Router */}
+        {/* New Router → Full Setup: build the whole network from scratch */}
+        <div
+          style={{
+            ...cardBase,
+            border: `0.5px solid ${hovered === 'full' ? C.gold : C.border}`,
+            boxShadow: hovered === 'full' ? '0 0 24px rgba(232,184,75,0.08)' : 'none',
+          }}
+          onClick={() => onSelect('full')}
+          onMouseEnter={() => setHovered('full')}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+            <Terminal size={22} color={C.gold} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 10 }}>
+            New Router
+          </div>
+          <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7, marginBottom: 24 }}>
+            Factory-fresh — we build the whole network, hotspot, billing, and portal from scratch. You pick the WiFi name.
+          </div>
+          <div style={{ padding: '11px 24px', borderRadius: 7, background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: 'Inter, sans-serif' }}>
+            Full Setup
+          </div>
+        </div>
+
+        {/* Existing Hotspot → Quick Connect: register + poll only */}
         <div
           style={{
             ...cardBase,
@@ -286,41 +330,16 @@ function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | '
           onMouseLeave={() => setHovered(null)}
         >
           <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-            <Terminal size={22} color={C.gold} />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 10 }}>
-            New Router
-          </div>
-          <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7, marginBottom: 24 }}>
-            Fresh setup. Paste a one-line command into your router's terminal.
-          </div>
-          <div style={{ padding: '11px 24px', borderRadius: 7, background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: 'Inter, sans-serif' }}>
-            Get Started
-          </div>
-        </div>
-
-        {/* Existing Hotspot */}
-        <div
-          style={{
-            ...cardBase,
-            border: `0.5px solid ${hovered === 'manual' ? C.gold : C.border}`,
-            boxShadow: hovered === 'manual' ? '0 0 24px rgba(232,184,75,0.08)' : 'none',
-          }}
-          onClick={() => onSelect('manual')}
-          onMouseEnter={() => setHovered('manual')}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--theme-gold) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
             <Wifi size={22} color={C.gold} />
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif', marginBottom: 10 }}>
             Existing Hotspot
           </div>
           <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7, marginBottom: 24 }}>
-            Router already has hotspot config. Configure WiBill to match.
+            Already running a hotspot — connect it to WiBill with a one-line command and start billing. Nothing gets rebuilt.
           </div>
           <div style={{ padding: '11px 24px', borderRadius: 7, background: 'transparent', border: `0.5px solid ${C.gold}`, color: C.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-block', fontFamily: 'Inter, sans-serif' }}>
-            Connect
+            Quick Connect
           </div>
         </div>
       </div>
@@ -329,8 +348,10 @@ function RouterChoiceScreen({ onSelect, onBack }: { onSelect: (path: 'quick' | '
 }
 
 // ============================================================================
-// ONBOARDING VIEW — Quick Connect is the default self-serve path. Manual
-// setup is a fallback for restrictive networks or partial configs.
+// ONBOARDING VIEW — two flows:
+//   Quick Connect (startManual=false) → register + poll only (existing hotspot)
+//   Full Setup    (startManual=true)  → build the whole network (new router)
+// Back destination is decided by the entry point (choice screen vs gear icon).
 // ============================================================================
 
 const QUICK_STEPS = [
@@ -340,35 +361,28 @@ const QUICK_STEPS = [
   { id: 4, label: 'Configured', icon: Zap },
 ]
 
-function OnboardingView({ onboard, onConfigured, onRefresh, startManual }: {
+function OnboardingView({ onboard, onConfigured, onRefresh, startManual, onBack, backLabel }: {
   onboard: any
   onConfigured: () => void
   onRefresh: () => void
   startManual?: boolean
+  onBack: () => void
+  backLabel: string
 }) {
-  // If router already registered, skip QuickConnect entirely — it would just
-  // auto-detect the existing registration and flash back to manage.
-  const existingRouter = onboard?.status === 'used' || onboard?.registration_data
-  const [showManual, setShowManual] = useState(startManual || existingRouter)
-
-  if (showManual) {
-    return <ManualSetup onDone={onConfigured} onBackToQuick={() => setShowManual(false)} />
-  }
+  const [showManual] = useState(!!startManual)
 
   return (
     <>
-      <QuickConnectFlow onboard={onboard} onConfigured={onConfigured} onRefresh={onRefresh} onSwitchManual={() => setShowManual(true)} />
-      <Card style={{ marginTop: 12, padding: '14px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.6 }}>
-            Prefer to do this manually, or hit a snag?
-          </div>
-          <button onClick={() => setShowManual(true)}
-            style={{ padding: '7px 12px', borderRadius: 7, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, color: C.dim, fontSize: 10, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-            Switch to manual setup
-          </button>
-        </div>
-      </Card>
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'Inter, sans-serif' }}>
+          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> {backLabel}
+        </button>
+      </div>
+      {showManual ? (
+        <FullSetup onDone={onConfigured} />
+      ) : (
+        <QuickConnectFlow onboard={onboard} onConfigured={onConfigured} onRefresh={onRefresh} />
+      )}
     </>
   )
 }
@@ -377,11 +391,10 @@ function OnboardingView({ onboard, onConfigured, onRefresh, startManual }: {
 // QUICK CONNECT — 4-step tracker with real polling + timeout
 // ============================================================================
 
-function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: {
+function QuickConnectFlow({ onboard, onConfigured, onRefresh }: {
   onboard: any
   onConfigured: () => void
   onRefresh: () => void
-  onSwitchManual: () => void
 }) {
   const { showToast } = useToast()
 
@@ -552,8 +565,7 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
               </div>
               <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.7 }}>
                 After about 5 minutes a router that fetched the script should have registered. The token may have
-                expired, or the router never fetched it. Generate a fresh command and try again — or use manual setup
-                if the router is on a restrictive network.
+                expired, or the router never fetched it. Generate a fresh command and try again.
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -561,10 +573,6 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
                 style={{ flex: 1, padding: 12, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: generating ? 0.6 : 1 }}>
                 {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
                 Try Again
-              </button>
-              <button onClick={onSwitchManual}
-                style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                Switch to manual setup
               </button>
             </div>
           </div>
@@ -594,13 +602,6 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
               {generating ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Terminal size={14} />}
               {generating ? 'Generating...' : 'Generate Command'}
             </button>
-
-            <div style={{ marginTop: 20, textAlign: 'center' }}>
-              <span style={{ fontSize: 10, color: C.dim }}>
-                Prefer to do this manually, or hit a snag?{' '}
-                <a onClick={onSwitchManual} style={{ color: C.gold, cursor: 'pointer', textDecoration: 'underline' }}>Switch to manual setup</a>
-              </span>
-            </div>
           </>
         ) : (
           <>
@@ -730,16 +731,17 @@ function QuickConnectFlow({ onboard, onConfigured, onRefresh, onSwitchManual }: 
 }
 
 // ============================================================================
-// MANUAL SETUP — 3 steps (Setup → Portal → Launch). Bridge step retired.
+// FULL SETUP — 3 steps (Setup → Portal → Launch). Bridge step retired.
+// Builds the whole network from scratch: bridge, DHCP, hotspot, SSID, portal.
 // ============================================================================
 
-const MANUAL_STEPS = [
+const FULL_STEPS = [
   { id: 1, label: 'Setup', icon: Settings },
   { id: 2, label: 'Portal', icon: Globe },
   { id: 3, label: 'Launch', icon: Zap },
 ]
 
-function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQuick: () => void }) {
+function FullSetup({ onDone }: { onDone: () => void }) {
   const { showToast } = useToast()
 
   const [step, setStep] = useState(1)
@@ -849,22 +851,16 @@ function ManualSetup({ onDone, onBackToQuick }: { onDone: () => void; onBackToQu
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <button onClick={onBackToQuick} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.dim, fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
-          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Back to Quick Connect
-        </button>
-      </div>
-
       <Card>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Manual Setup
+          Full Setup
         </div>
         <div style={{ fontSize: 11, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>
-          Configure your router step by step. Use this path when auto-onboarding fails, or the router already has
-          partial hotspot config you want to keep.
+          Build the whole network from scratch — bridge, DHCP, hotspot, and portal. For a factory-fresh router with
+          nothing configured yet.
         </div>
 
-        <StepTracker steps={MANUAL_STEPS} currentStep={step} isComplete={step > 3 && false} />
+        <StepTracker steps={FULL_STEPS} currentStep={step} isComplete={step > 3 && false} />
 
         {/* ══ STEP 1: SETUP ══ */}
         {step === 1 && (

@@ -251,6 +251,7 @@ async def health_check(
         "board_name": parts.get("board"),
         "ssid": parts.get("ssid"),
         "walled_garden": parts.get("walledgarden"),
+        "onboard_path": parts.get("onboardpath") or "quick_connect",
         "uptime": None,
         "hotspot_found": None,
         "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
@@ -395,7 +396,7 @@ async def generate_parameterized_script(
     # the existing de-facto "detected config" store (Board/RouterOS/MAC), so
     # SSID + walled garden ride along in the same pipe-delimited format.
     prior = (config.notes or "").strip(" |")
-    config.notes = f"{prior} | SSID: {ssid} | WalledGarden: yes".strip(" |")
+    config.notes = f"{prior} | SSID: {ssid} | WalledGarden: yes | OnboardPath: full_setup".strip(" |")
     await db.commit()
 
     return PlainTextResponse(
