@@ -229,6 +229,28 @@ async def health_check(
     connected = status == "online"
     parts = _notes_parts(config)
 
+    # If the Full Setup path never captured the board/RouterOS identity (only
+    # Quick Connect writes Board/RouterOS via /register), probe the local
+    # bridge /test endpoint and persist what we find into notes so the
+    # dashboard can show the real model name + image instead of "unknown".
+    if connected and not (parts.get("board") or parts.get("routeros")):
+        from app.services.mikrotik_service import check_mikrotik_connection
+        probe = await check_mikrotik_connection(str(current_user.tenant_id), db)
+        if probe.get("connected"):
+            identity = probe.get("router_identity") or probe.get("board_name") or ""
+            version = probe.get("router_os_version") or ""
+            if identity or version:
+                prior = (config.notes or "").strip(" |")
+                merged = prior
+                if identity and "board:" not in prior.lower():
+                    merged = f"{merged} | Board: {identity}".strip(" |")
+                if version and "routeros:" not in prior.lower():
+                    merged = f"{merged} | RouterOS: {version}".strip(" |")
+                if merged != prior:
+                    config.notes = merged
+                    await db.commit()
+                parts = _notes_parts(config)
+
     new_status = "CONNECTED" if connected else "ERROR"
     if connected:
         config.last_connected_at = datetime.utcnow().replace(tzinfo=tz.utc)
