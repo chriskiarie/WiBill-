@@ -1,3 +1,4 @@
+import re
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -233,18 +234,22 @@ async def health_check(
     # Quick Connect writes Board/RouterOS via /register), probe the local
     # bridge /test endpoint and persist what we find into notes so the
     # dashboard can show the real model name + image instead of "unknown".
-    if connected and not (parts.get("board") or parts.get("routeros")):
+    _has_real_board = parts.get("board") and parts["board"] != "unknown"
+    _has_real_ros = parts.get("routeros") and parts["routeros"] != "unknown"
+    if connected and not (_has_real_board and _has_real_ros):
         from app.services.mikrotik_service import check_mikrotik_connection
         probe = await check_mikrotik_connection(str(current_user.tenant_id), db)
         if probe.get("connected"):
-            identity = probe.get("router_identity") or probe.get("board_name") or ""
+            identity = probe.get("board_name") or probe.get("router_identity") or ""
             version = probe.get("router_os_version") or ""
             if identity or version:
                 prior = (config.notes or "").strip(" |")
                 merged = prior
-                if identity and "board:" not in prior.lower():
+                if identity and (not parts.get("board") or parts["board"] == "unknown"):
+                    merged = re.sub(r'\|\s*Board:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
                     merged = f"{merged} | Board: {identity}".strip(" |")
-                if version and "routeros:" not in prior.lower():
+                if version and (not parts.get("routeros") or parts["routeros"] == "unknown"):
+                    merged = re.sub(r'\|\s*RouterOS:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
                     merged = f"{merged} | RouterOS: {version}".strip(" |")
                 if merged != prior:
                     config.notes = merged
