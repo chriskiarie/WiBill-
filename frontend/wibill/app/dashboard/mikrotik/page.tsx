@@ -145,6 +145,7 @@ function lookupRouter(boardName: string | null | undefined) {
 
 export default function MikrotikPage() {
   const { token } = useAuth()
+  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [health, setHealth] = useState<any>(null)
@@ -206,6 +207,22 @@ export default function MikrotikPage() {
     setModeOverride(existing ? 'manage' : null)
   }
 
+  const [fixingPoll, setFixingPoll] = useState(false)
+  const handleFixPollToken = async () => {
+    setFixingPoll(true)
+    try {
+      const res = await api.fixPollToken()
+      if (res?.success) {
+        showToast('Poll token rotated — router will connect within 30s', { type: 'success' })
+        setTimeout(() => fetchAll(), 35000)
+      } else {
+        showToast(res?.message || 'Failed to update router', { type: 'error' })
+      }
+    } catch (e: any) {
+      showToast(e?.message || 'Failed to fix connection', { type: 'error' })
+    } finally { setFixingPoll(false) }
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -261,6 +278,8 @@ export default function MikrotikPage() {
               actions={actions}
               onReconfigure={handleRerunSetup}
               onAddRouter={handleAddRouter}
+              onFixPoll={handleFixPollToken}
+              fixingPoll={fixingPoll}
             />
           ) : null}
         </div>
@@ -1284,12 +1303,14 @@ function RouterSettingsPanel({ health, onBack }: {
   )
 }
 
-function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter }: {
+function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter, onFixPoll, fixingPoll }: {
   health: any
   onboard: any
   actions: any[]
   onReconfigure: () => void
   onAddRouter: () => void
+  onFixPoll: () => void
+  fixingPoll: boolean
 }) {
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
@@ -1335,6 +1356,13 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
           <span style={{ fontSize: 18, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: statusColor }}>{statusText}</span>
           {health?.last_poll_at && (
             <span style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>last seen <TimeAgo iso={health.last_poll_at} /></span>
+          )}
+          {!online && health?.last_poll_at && (
+            <button onClick={onFixPoll} disabled={fixingPoll}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 6, background: 'transparent', border: `0.5px solid ${C.gold}`, color: C.gold, fontSize: 10, fontWeight: 600, cursor: fixingPoll ? 'not-allowed' : 'pointer', opacity: fixingPoll ? 0.5 : 1 }}>
+              {fixingPoll ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Wifi size={11} />}
+              {fixingPoll ? 'Fixing…' : 'Fix Connection'}
+            </button>
           )}
         </div>
         <button onClick={onAddRouter} style={{

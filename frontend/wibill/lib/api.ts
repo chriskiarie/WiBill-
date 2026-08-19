@@ -237,6 +237,7 @@ getMikrotikHealth: () =>
     getMikrotikHosts: () => request<any>('/api/mikrotik/hosts'),
     getMikrotikPreflight: () => request<any>('/api/mikrotik/preflight'),
     goLiveMikrotik: () => request<any>('/api/mikrotik/go-live', { method: 'POST' }),
+    fixPollToken: () => request<any>('/api/mikrotik/fix-poll-token', { method: 'POST' }),
 
   // ========================================================================
   // REMOTE ONBOARDING

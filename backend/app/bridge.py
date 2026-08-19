@@ -669,6 +669,79 @@ def subscriber_reconcile():
         return {"success": False, "error": str(e), "subscribers": []}
 
 
+class UpdateSchedulerPayload(BaseModel):
+    poll_token: str
+    poll_url: str
+    ros_version: str = "6"
+
+
+@app.post("/poll/update-scheduler")
+def update_poll_scheduler(p: UpdateSchedulerPayload):
+    """Regenerate the wibill-poll-script on the router with a fresh token.
+
+    Removes the existing script + scheduler, re-creates them, and runs
+    the script immediately so the router starts polling with the new token.
+    """
+    try:
+        api = get_api()
+
+        # Build the poll script body (same logic as build_poll_scheduler_block)
+        mode = ""
+        if p.ros_version == "6" and p.poll_url.lower().startswith("https"):
+            mode = " mode=https"
+
+        poll_script_body = (
+            f'/tool fetch url="{p.poll_url}"'
+            f' http-header-field="Authorization: Bearer {p.poll_token}"'
+            f'{mode} dst-path=wibill-poll.rsc\n'
+            f':do {{ /import wibill-poll.rsc }} on-error={{ :log info "wibill: poll import failed" }}'
+        )
+
+        # 1. Remove existing script and scheduler
+        try:
+            scripts = list(api("/system/script/print", **{"?name": "wibill-poll-script"}))
+            for s in scripts:
+                api("/system/script/remove", **{"=.id": s[".id"]})
+        except Exception:
+            pass
+
+        try:
+            schedulers = list(api("/system/scheduler/print", **{"?name": "wibill-poll"}))
+            for s in schedulers:
+                api("/system/scheduler/remove", **{"=.id": s[".id"]})
+        except Exception:
+            pass
+
+        # 2. Add updated script
+        api("/system/script/add", **{
+            "=name": "wibill-poll-script",
+            "=source": poll_script_body,
+        })
+
+        # 3. Add scheduler
+        api("/system/scheduler/add", **{
+            "=name": "wibill-poll",
+            "=interval": "30s",
+            "=on-event": "wibill-poll-script",
+            "=start-time": "startup",
+        })
+
+        # 4. Run immediately
+        try:
+            api("/system/script/run", **{"=name": "wibill-poll-script"})
+        except Exception:
+            pass  # run may fail if script errors, but scheduler is installed
+
+        api.close()
+        return {"success": True, "message": "Poll scheduler updated with new token"}
+    except FatalError as e:
+        raise HTTPException(status_code=401, detail=f"Router auth failed: {e}")
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Entry point ──────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn

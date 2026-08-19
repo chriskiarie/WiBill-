@@ -554,3 +554,48 @@ async def remove_hotspot_bypass(
     action = await enqueue_action(config.id, "remove_bypass", {"mac_address": mac_address}, db)
     logger.info(f"Queued remove_bypass for {mac_address} on router {config.id} (action {action.id})")
     return {"success": True, "message": "Bypass removal queued", "action_id": action.id}
+
+
+# ============================================================================
+# POLL TOKEN RECOVERY — push fresh scheduler to router via bridge
+# ============================================================================
+
+async def fix_poll_scheduler(
+    tenant_id: str,
+    poll_token: str,
+    poll_url: str,
+    ros_version: str = "6",
+    db: AsyncSession = None,
+) -> dict:
+    """Push an updated poll scheduler to the router via the bridge.
+
+    Called when the router's poll token is stale (401s) and needs to be
+    replaced with a fresh token. The bridge connects to the router via
+    librouteros and replaces the wibill-poll-script + scheduler in-place.
+    """
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "error": "No MikroTik config"}
+
+    payload = {
+        "poll_token": poll_token,
+        "poll_url": poll_url,
+        "ros_version": ros_version,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/poll/update-scheduler",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                return {"success": True, "message": "Poll scheduler updated on router"}
+            return {"success": False, "error": f"Bridge error {r.status_code}: {r.text[:200]}"}
+    except httpx.ConnectError:
+        return {"success": False, "error": "Cannot reach bridge — ensure bridge.py is running on the ISP network"}
+    except httpx.TimeoutException:
+        return {"success": False, "error": "Bridge timed out — try again in a few seconds"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

@@ -497,6 +497,54 @@ async def get_file_status(
     }
 
 
+# ── Fix stale poll token — push fresh scheduler via bridge ─────────
+@router.post("/mikrotik/fix-poll-token")
+async def fix_poll_token(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Regenerate the poll token and push an updated scheduler to the router.
+
+    Used when the router's poll token is stale (401s). Generates a fresh token,
+    saves it to DB, and pushes the updated wibill-poll-script to the router
+    via the bridge. The router starts polling with the new token immediately.
+    """
+    from app.core.config import settings
+    from app.services.mikrotik_service import fix_poll_scheduler
+
+    config_result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = config_result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=400, detail="No MikroTik config found")
+
+    # Generate a fresh poll token
+    new_token = secrets.token_urlsafe(32)
+    config.poll_token_enc = encrypt(new_token)
+    await db.commit()
+
+    # Build the full poll URL
+    base = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    poll_url = f"{base}/poll/{config.id}"
+
+    # Push to router via bridge
+    ros = resolve_ros_version(config)
+    result = await fix_poll_scheduler(
+        tenant_id=str(current_user.tenant_id),
+        poll_token=new_token,
+        poll_url=poll_url,
+        ros_version=ros,
+        db=db,
+    )
+
+    if result.get("success"):
+        return {"success": True, "message": "Poll token rotated and scheduler updated on router"}
+    else:
+        # Token is saved to DB even if bridge push fails — next re-push will use it
+        return {"success": False, "message": f"Token saved but router update failed: {result.get('error', 'Unknown error')}"}
+
+
 # ── Wizard: RouterAction status list (for frontend polling) ─────────
 @router.get("/mikrotik/actions")
 async def list_router_actions(
