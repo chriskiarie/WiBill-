@@ -151,10 +151,10 @@ export default function MikrotikPage() {
   const [onboard, setOnboard] = useState<any>(null)
   const [actions, setActions] = useState<any[]>([])
 
-  // mode === 'onboarding' once "Add router" / "Re-run setup" is clicked;
-  // otherwise the page state machine picks manage (router exists) or the
-  // empty state (zero routers).
-  const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | 'choose' | null>(null)
+  // modeOverride drives the view: 'choose' (add-router picker), 'onboarding'
+  // (quick connect / full setup), 'settings' (gear icon on a configured
+  // router), 'manage' (router card), or null (auto-derive from data).
+  const [modeOverride, setModeOverride] = useState<'onboarding' | 'manage' | 'choose' | 'settings' | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
   const [startManual, setStartManual] = useState(false)
   const [onboardFrom, setOnboardFrom] = useState<'choice' | 'gear' | null>(null)
@@ -194,15 +194,11 @@ export default function MikrotikPage() {
     try { fetchAll() } catch { /* noop */ }
   }
 
-  // Gear icon: route by the path the router was actually onboarded through.
-  // Never force a quick-connect router through the full build (conflict risk)
-  // and never open Quick Connect for a full-setup router.
+  // Gear icon on a configured router: open the settings panel (reconfigure).
+  // Re-running the onboarding wizard on a live router made no sense — the
+  // settings panel regenerates the script with new values instead.
   const handleRerunSetup = () => {
-    const path = health?.onboard_path || 'quick_connect'
-    setStartManual(path === 'full_setup')
-    setOnboardFrom('gear')
-    setModeOverride('onboarding')
-    try { fetchAll() } catch { /* noop */ }
+    setModeOverride('settings')
   }
 
   const handleBackToManage = () => {
@@ -224,6 +220,7 @@ export default function MikrotikPage() {
   const hasRouter = health?.configured === true || !!health?.last_poll_at || onboard?.status === 'used'
   const showChoose = modeOverride === 'choose' || (modeOverride === null && !hasRouter)
   const showOnboarding = modeOverride === 'onboarding'
+  const showSettings = modeOverride === 'settings'
   const showManage = modeOverride === 'manage' || (modeOverride === null && hasRouter)
 
   const boardLabel = displayClean(health?.board_name || health?.router_identity || 'router')
@@ -251,6 +248,11 @@ export default function MikrotikPage() {
               startManual={startManual}
               onBack={handleOnboardingBack}
               backLabel={backLabel}
+            />
+          ) : showSettings ? (
+            <RouterSettingsPanel
+              health={health}
+              onBack={() => setModeOverride('manage')}
             />
           ) : showManage ? (
             <RouterManagementView
@@ -1071,6 +1073,195 @@ function activityTone(a: any): 'done' | 'pending' {
   return a?.status === 'acked' ? 'done' : 'pending'
 }
 
+// ============================================================================
+// ROUTER SETTINGS — reconfiguration panel (gear icon on a configured router).
+// Edits SSID / octet / interface, regenerates the setup script, and can
+// re-push the portal design. Not an onboarding wizard — the router is live.
+// ============================================================================
+
+function RouterSettingsPanel({ health, onBack }: {
+  health: any
+  onBack: () => void
+}) {
+  const { showToast } = useToast()
+
+  const online = health?.connected === true
+  const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
+  const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
+  const boardName = displayClean(health?.board_name || health?.router_identity)
+  const routerIp = displayClean(health?.router_ip)
+  const rosVersion = displayClean(health?.router_os_version)
+
+  const rawSsid = displayClean(health?.ssid)
+  const ipOctet = (() => {
+    const m = routerIp.match(/^192\.168\.(\d+)\./)
+    return m ? m[1] : '4'
+  })()
+
+  const [ssid, setSsid] = useState(rawSsid && rawSsid !== '—' ? rawSsid : 'WiFi')
+  const [networkOctet, setNetworkOctet] = useState(ipOctet)
+  const [wifiInterface, setWifiInterface] = useState('wlan1')
+  const [setupScript, setSetupScript] = useState<string | null>(null)
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [portalAction, setPortalAction] = useState<any>(null)
+  const [portalStatus, setPortalStatus] = useState<string | null>(null)
+  const [portalUploading, setPortalUploading] = useState(false)
+
+  const handleUpdateSettings = async () => {
+    setSetupLoading(true)
+    try {
+      const script = await api.generateMikrotikScript({
+        ssid: ssid.trim() || 'WiFi',
+        network_octet: parseInt(networkOctet) || 4,
+        wifi_interface: wifiInterface.trim() || 'wlan1',
+      })
+      setSetupScript(script)
+      showToast('Script generated — paste it into your router', { type: 'success' })
+    } catch (e: any) {
+      showToast(friendlyError(e?.message || 'Failed to generate setup script'), { type: 'error' })
+    } finally { setSetupLoading(false) }
+  }
+
+  const handleCopySetup = () => {
+    if (!setupScript) return
+    navigator.clipboard.writeText(setupScript)
+    setCopied(true)
+    showToast('Copied — paste in Winbox Terminal', { type: 'success' })
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handlePushPortal = async () => {
+    setPortalUploading(true)
+    setPortalAction({ status: 'pending' })
+    setPortalStatus('pending')
+    try {
+      const html = await api.getMikrotikLoginHtml()
+      const result = await api.uploadPortalFile(html)
+      if (result?.ok) {
+        setPortalAction(result)
+        setPortalStatus(result.status || 'pending')
+        showToast('Portal push queued — applies within ~30s', { type: 'success' })
+      }
+    } catch (e: any) {
+      setPortalAction(null)
+      setPortalStatus(null)
+      showToast(friendlyError(e.message || 'Failed to push portal file'), { type: 'error' })
+    } finally { setPortalUploading(false) }
+  }
+
+  useEffect(() => {
+    if (!portalAction?.action_id) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const fs = await api.getMikrotikFileStatus()
+        if (cancelled) return
+        setPortalStatus(fs.status)
+        if (fs.status === 'acked') showToast('Portal page is live on the router', { type: 'success' })
+      } catch { /* keep polling */ }
+    }
+    poll()
+    const id = setInterval(poll, 3000)
+    return () => { cancelled = true; clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portalAction?.action_id])
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px 12px', background: C.void,
+    border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.text,
+    fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none', boxSizing: 'border-box',
+  }
+  const labelStyle: React.CSSProperties = {
+    fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.6px', display: 'block', marginBottom: 5,
+  }
+
+  return (
+    <>
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'Inter, sans-serif' }}>
+          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Back to {boardName}
+        </button>
+      </div>
+
+      <Card style={{ padding: 24 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          Router Settings
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 11, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, boxShadow: `0 0 8px ${statusColor}80`, flexShrink: 0 }} />
+          <span style={{ color: statusColor, fontWeight: 600 }}>{statusText}</span>
+          <span style={{ color: C.border2 }}>·</span>
+          <span>{routerIp}</span>
+          <span style={{ color: C.border2 }}>·</span>
+          <span>RouterOS {rosVersion}</span>
+        </div>
+
+        <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, marginBottom: 20, maxWidth: 520 }}>
+          Change the network details and regenerate the setup script when you're ready. The router applies the new
+          config when you paste the script into its terminal.
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={labelStyle}>WiFi Network Name (SSID)</label>
+          <input value={ssid} onChange={e => setSsid(e.target.value)} placeholder="My ISP WiFi" style={inputStyle} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+          <div>
+            <label style={labelStyle}>Network Octet</label>
+            <input value={networkOctet} onChange={e => setNetworkOctet(e.target.value)} placeholder="4" style={inputStyle} />
+            <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Router gets 192.168.<strong>{networkOctet || '4'}</strong>.1</div>
+          </div>
+          <div>
+            <label style={labelStyle}>WiFi Interface</label>
+            <input value={wifiInterface} onChange={e => setWifiInterface(e.target.value)} placeholder="wlan1" style={inputStyle} />
+            <div style={{ fontSize: 9, color: C.mute, marginTop: 3 }}>Usually wlan1 on hAP lite</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <button onClick={handleUpdateSettings} disabled={setupLoading}
+            style={{ flex: 1, padding: 11, background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: setupLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: setupLoading ? 0.6 : 1 }}>
+            <Terminal size={13} /> {setupLoading ? 'Generating...' : 'Update Settings'}
+          </button>
+          <button onClick={handlePushPortal} disabled={portalUploading}
+            style={{ flex: 1, padding: 11, background: 'transparent', border: `0.5px solid ${C.gold}`, borderRadius: 7, color: C.gold, fontSize: 12, fontWeight: 700, cursor: portalUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: portalUploading ? 0.6 : 1 }}>
+            <Globe size={13} /> {portalUploading ? 'Pushing...' : 'Re-push Portal'}
+          </button>
+        </div>
+
+        {portalStatus && (
+          <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: portalStatus === 'acked' ? C.green : C.gold, flexShrink: 0 }} />
+            Portal: {portalStatus === 'acked' ? 'Live on router' : portalStatus === 'pending' ? 'Push queued' : portalStatus}
+          </div>
+        )}
+
+        {setupScript && (
+          <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: C.surface, borderBottom: `0.5px solid ${C.border}` }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+              <span style={{ fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace', marginLeft: 8, flex: 1 }}>wibill-setup.rsc</span>
+              <button onClick={handleCopySetup} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 5, background: C.base, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 9, fontWeight: 600, cursor: 'pointer' }}>
+                <Copy size={10} /> {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <pre style={{
+              background: C.void, padding: 16, margin: 0,
+              fontSize: 9, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6,
+              overflowX: 'auto', whiteSpace: 'pre', maxHeight: 280, overflowY: 'auto',
+            }}>{setupScript}</pre>
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
 function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter }: {
   health: any
   onboard: any
@@ -1163,7 +1354,7 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
           </div>
           {/* Settings + External link overlay */}
           <div style={{ position: 'absolute', top: 20, left: 20, display: 'flex', gap: 6 }}>
-            <button onClick={onReconfigure} title="Re-run setup" style={{ ...ghostIcon, width: 36, height: 36, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
+            <button onClick={onReconfigure} title="Router settings" style={{ ...ghostIcon, width: 36, height: 36, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
               <Settings size={16} color={C.dim} />
             </button>
             <a href="/dashboard/network" title="View on network" style={{ ...ghostIcon, width: 36, height: 36, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', textDecoration: 'none' }}>
