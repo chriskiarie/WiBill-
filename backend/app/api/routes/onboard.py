@@ -23,7 +23,7 @@ from app.models.tenant import Tenant
 from app.models.mikrotik_config import MikrotikConfig
 from app.models.onboarding_token import OnboardingToken
 from app.services.crypto_service import encrypt, decrypt
-from app.services.router_poll_service import ensure_poll_token
+from app.services.router_poll_service import ensure_poll_token, enqueue_action, WALLED_GARDEN_EXTRA_HOSTS
 
 logger = logging.getLogger("wibill.onboard")
 
@@ -114,6 +114,25 @@ async def generate_onboard_token(
     # so /poll/{router_id} authorizes from the very first poll.
     config.poll_token_enc = encrypt(poll_token_value)
     db.add(onboard_token)
+
+    # Auto-push on first contact: the moment the router checks in it should
+    # already have its login.html + font walled-garden queued — a fresh
+    # onboarded router must never serve MikroTik's default white login page.
+    public_base = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    await enqueue_action(
+        config.id,
+        "push_portal",
+        {"url": f"{public_base}/login/{tenant.slug or 'wibill'}", "dst": "hotspot/login.html"},
+        db,
+        commit=False,
+    )
+    await enqueue_action(
+        config.id,
+        "add_walled_garden",
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        db,
+        commit=False,
+    )
     await db.commit()
 
     # Build the one-liner command appropriate for the declared RouterOS version

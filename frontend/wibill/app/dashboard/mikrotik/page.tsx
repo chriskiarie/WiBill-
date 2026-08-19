@@ -7,6 +7,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
 import { CheckCircle, XCircle, Activity, Clock, Copy, Terminal, AlertTriangle, RefreshCw, Shield, Settings, Router, Globe, Zap, ArrowRight, ExternalLink, Plus, Wifi } from 'lucide-react'
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', surface: 'var(--theme-surface)',
   border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -801,6 +803,8 @@ const FULL_STEPS = [
 
 function FullSetup({ onDone }: { onDone: () => void }) {
   const { showToast } = useToast()
+  const { user } = useAuth()
+  const portalPreviewUrl = user?.tenant_slug ? `${API}/portal/${user.tenant_slug}?preview=1` : null
 
   const [step, setStep] = useState(1)
 
@@ -815,14 +819,7 @@ function FullSetup({ onDone }: { onDone: () => void }) {
   const [portalAction, setPortalAction] = useState<any>(null)
   const [portalStatus, setPortalStatus] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
-  const [portalPreviewHtml, setPortalPreviewHtml] = useState<string | null>(null)
-
-  // Fetch portal HTML for preview when step 2 mounts
-  useEffect(() => {
-    if (step === 2 && !portalPreviewHtml) {
-      api.getMikrotikLoginHtml().then(setPortalPreviewHtml).catch(() => {})
-    }
-  }, [step])
+  const prevPortalStatusRef = useRef<string | null>(null)
 
   // Step 3 — Launch
   const [preflight, setPreflight] = useState<any>(null)
@@ -869,7 +866,8 @@ function FullSetup({ onDone }: { onDone: () => void }) {
     } finally { setPortalUploading(false) }
   }
 
-  // Poll the enqueued action until acked.
+  // Poll the enqueued action until acked. Toast only on the queued→acked
+  // transition, and stop polling once acked (no notification spam).
   useEffect(() => {
     if (!portalAction?.action_id) return
     let cancelled = false
@@ -878,7 +876,10 @@ function FullSetup({ onDone }: { onDone: () => void }) {
         const fs = await api.getMikrotikFileStatus()
         if (cancelled) return
         setPortalStatus(fs.status)
-        if (fs.status === 'acked') showToast('Portal page is live on the router', { type: 'success' })
+        if (fs.status === 'acked' && prevPortalStatusRef.current !== 'acked') {
+          showToast('Portal page is live on the router', { type: 'success' })
+        }
+        prevPortalStatusRef.current = fs.status
       } catch { /* keep polling */ }
     }
     poll()
@@ -1008,17 +1009,25 @@ function FullSetup({ onDone }: { onDone: () => void }) {
               next 30-second check-in — no bridge needed.
             </div>
 
-            {portalPreviewHtml && (
+            {portalPreviewUrl ? (
               <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
                 <div style={{ width: 260, borderRadius: 28, border: `1px solid ${C.border}`, background: '#000', padding: '10px 0 6px', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}>
                   <div style={{ width: 72, height: 5, borderRadius: 3, background: C.border, margin: '0 auto 8px' }} />
                   <iframe
-                    srcDoc={portalPreviewHtml}
-                    title="Portal preview"
-                    sandbox="allow-same-origin"
-                    style={{ width: '100%', height: 360, border: 'none', background: '#fff', borderRadius: '0 0 20px 20px' }}
+                    key={portalStatus === 'acked' ? `acked-${portalAction?.action_id}` : 'pending'}
+                    src={portalPreviewUrl}
+                    title="Live portal preview"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    style={{ width: '100%', height: 380, border: 'none', background: '#000', borderRadius: '0 0 20px 20px' }}
                   />
+                  <div style={{ fontSize: 9, color: C.mute, textAlign: 'center', padding: '6px 0 2px', fontFamily: 'DM Mono, monospace' }}>
+                    what guests see after redirect
+                  </div>
                 </div>
+              </div>
+            ) : (
+              <div style={{ padding: 14, marginBottom: 16, borderRadius: 7, background: C.void, border: `0.5px solid ${C.border}`, fontSize: 11, color: C.dim }}>
+                Portal preview needs your ISP slug — save your portal in the wizard first.
               </div>
             )}
 
@@ -1185,6 +1194,10 @@ function RouterSettingsPanel({ health, onBack }: {
   const [portalAction, setPortalAction] = useState<any>(null)
   const [portalStatus, setPortalStatus] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
+  const prevPortalStatusRef = useRef<string | null>(null)
+
+  const { user } = useAuth()
+  const portalPreviewUrl = user?.tenant_slug ? `${API}/portal/${user.tenant_slug}?preview=1` : null
 
   const handleUpdateSettings = async () => {
     setSetupLoading(true)
@@ -1236,7 +1249,10 @@ function RouterSettingsPanel({ health, onBack }: {
         const fs = await api.getMikrotikFileStatus()
         if (cancelled) return
         setPortalStatus(fs.status)
-        if (fs.status === 'acked') showToast('Portal page is live on the router', { type: 'success' })
+        if (fs.status === 'acked' && prevPortalStatusRef.current !== 'acked') {
+          showToast('Portal page is live on the router', { type: 'success' })
+        }
+        prevPortalStatusRef.current = fs.status
       } catch { /* keep polling */ }
     }
     poll()
@@ -1310,6 +1326,32 @@ function RouterSettingsPanel({ health, onBack }: {
           </button>
         </div>
 
+        {portalPreviewUrl && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ ...sectionLabel, marginBottom: 8 }}>Portal Preview — what guests see</div>
+            <div style={{ borderRadius: 10, border: `0.5px solid ${C.border}`, overflow: 'hidden', background: '#000' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: C.surface, borderBottom: `0.5px solid ${C.border}` }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.mute }} />
+                <span style={{ fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace', marginLeft: 8, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {API}/portal/{user?.tenant_slug}
+                </span>
+                <a href={portalPreviewUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 5, background: C.base, border: `0.5px solid ${C.border}`, color: C.text, fontSize: 9, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                  <ExternalLink size={10} /> Open
+                </a>
+              </div>
+              <iframe
+                key={portalStatus === 'acked' ? `acked-${portalAction?.action_id}` : 'pending'}
+                src={portalPreviewUrl}
+                title="Live portal preview"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                style={{ width: '100%', height: 360, border: 'none', background: '#000', display: 'block' }}
+              />
+            </div>
+          </div>
+        )}
+
         {portalStatus && (
           <div style={{ fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: portalStatus === 'acked' ? C.green : C.gold, flexShrink: 0 }} />
@@ -1376,7 +1418,15 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
     entries.push({ id: `a-${a.id}`, label: activityLabel(a), kind: a.action_type, time: new Date(a.acked_at || a.delivered_at || a.created_at).getTime(), tone: activityTone(a) })
   }
   entries.sort((x, y) => y.time - x.time)
-  const timeline = entries.slice(0, 5)
+  // Collapse repeats of the same action kind (e.g. auto-pushed portal files
+  // during every settings update) — newest event per kind only, so the
+  // timeline reads as a changelog instead of an action dump.
+  const seenKinds = new Set<string>()
+  const timeline = entries.filter(e => {
+    if (seenKinds.has(e.kind)) return false
+    seenKinds.add(e.kind)
+    return true
+  }).slice(0, 5)
 
   const setupItems = [
     { label: 'SSID', value: ssid !== '—' ? ssid : 'Not set', confirmed: ssid !== '—' },

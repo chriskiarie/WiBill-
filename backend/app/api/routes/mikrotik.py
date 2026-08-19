@@ -16,7 +16,7 @@ from app.models.admin_user import AdminUser
 from app.models.mikrotik_config import MikrotikConfig
 from app.services.crypto_service import encrypt, decrypt
 from app.services.mikrotik_service import get_active_users, get_hotspot_hosts
-from app.services.router_poll_service import ensure_poll_token, build_poll_scheduler_block, resolve_ros_version, router_status, enqueue_action, build_portal_fetch_line
+from app.services.router_poll_service import ensure_poll_token, build_poll_scheduler_block, resolve_ros_version, router_status, enqueue_action, build_portal_fetch_line, WALLED_GARDEN_EXTRA_HOSTS
 from app.models.router_action import RouterAction
 from app.models.tenant import Tenant
 
@@ -401,6 +401,11 @@ async def generate_parameterized_script(
     # away; there is no staging folder or separate push for initial setup.
     portal_line = build_portal_fetch_line(slug, ros, settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL)
 
+    font_garden_lines = "\n".join(
+        f':do {{ /ip hotspot walled-garden add dst-host={h} action=allow }} on-error={{ }}'
+        for h in WALLED_GARDEN_EXTRA_HOSTS
+    )
+
     script = f""":do {{ /interface bridge add name=WiBillBridge }} on-error={{}}
 :do {{ /ip address add address=192.168.{network_octet}.1/24 interface=WiBillBridge }} on-error={{}}
 :do {{ /interface bridge port add bridge=WiBillBridge interface={wifi_interface} }} on-error={{}}
@@ -415,6 +420,7 @@ async def generate_parameterized_script(
 :do {{ /ip service set api port=8728 address="" }} on-error={{}}
 :do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{}}
 :do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{}}
+{font_garden_lines}
 {portal_line}
 {scheduler_block}:log info "WiBill setup complete for {name}"
 """
@@ -424,6 +430,24 @@ async def generate_parameterized_script(
     # SSID + walled garden ride along in the same pipe-delimited format.
     prior = (config.notes or "").strip(" |")
     config.notes = f"{prior} | SSID: {ssid} | WalledGarden: yes | OnboardPath: full_setup".strip(" |")
+
+    # Auto-push: enqueue the portal-file + font-garden actions so the router
+    # self-updates hotspot/login.html on its next poll — no manual step.
+    public_base = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    await enqueue_action(
+        config.id,
+        "push_portal",
+        {"url": f"{public_base}/login/{slug}", "dst": "hotspot/login.html"},
+        db,
+        commit=False,
+    )
+    await enqueue_action(
+        config.id,
+        "add_walled_garden",
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        db,
+        commit=False,
+    )
     await db.commit()
 
     return PlainTextResponse(
@@ -439,17 +463,15 @@ async def upload_portal_file(
     db: AsyncSession = Depends(get_db),
     current_user: AdminUser = Depends(require_isp_admin),
 ):
-    """Accept login.html content, stage it, and enqueue a push_portal action.
+    """Enqueue a push_portal action so the router re-fetches its login.html.
 
-    The router fetches the file itself on its next poll (the .rsc snippet
-    renders /tool fetch against /mikrotik/temp-portal/{file_id}). The frontend
-    polls the returned action_id until the router acks it.
+    The router pulls the action on its next poll (30s) and /tool fetches the
+    tenant's login stub straight from the public /login/{slug} endpoint —
+    always fresh, never a staged file that can go missing (the old in-memory
+    temp store died across workers/restarts and the router then acked a 404,
+    which made "Re-push Portal" look like it did nothing).
     """
     from app.core.config import settings
-    body = await request.json()
-    html_content = body.get("html", "")
-    if not html_content:
-        raise HTTPException(status_code=400, detail="No HTML content provided")
 
     config_result = await db.execute(
         select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
@@ -458,11 +480,11 @@ async def upload_portal_file(
     if not config:
         raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
 
-    file_id = str(uuid.uuid4())
-    _temp_file_store[file_id] = html_content
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    slug = tenant.slug if tenant else "wibill"
 
     backend_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
-    fetch_url = f"{backend_base}/mikrotik/temp-portal/{file_id}"
+    fetch_url = f"{backend_base}/login/{slug}"
 
     action = await enqueue_action(
         config.id,
@@ -471,10 +493,18 @@ async def upload_portal_file(
         db,
     )
 
+    # Font unity: make sure the router's walled garden lets captive phones
+    # load Google Fonts so the portal matches the admin preview.
+    await enqueue_action(
+        config.id,
+        "add_walled_garden",
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        db,
+    )
+
     return {
         "ok": True,
         "action_id": action.id,
-        "file_id": file_id,
         "fetch_url": fetch_url,
         "status": action.status,
     }
@@ -719,21 +749,9 @@ async def generate_login_html(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
 
-    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    base_url = f"{scheme}://{request.url.hostname}"
-    if "localhost" in request.url.hostname or "127.0.0.1" in request.url.hostname:
-        base_url = settings.PUBLIC_BASE_URL.rstrip("/")
+    base_url = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
     slug = tenant.slug
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0;url={base_url}/portal/{slug}?mac=$(mac)&ip=$(ip)&link=$(link-login-only)&error=$(error)">
-</head>
-<body style="background:#000;color:#fff;font-family:monospace;text-align:center;padding-top:40vh;font-size:14px">
-  Connecting to WiFi...
-</body>
-</html>"""
+    html = _login_stub_html(tenant, base_url)
     return PlainTextResponse(content=html, media_type="text/html")
 
 
@@ -811,14 +829,35 @@ async def get_routeros_script(
 
 # 10. Walled garden (allow portal before payment)
 /ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
-{scheduler_block}:log info "WiBill setup complete for {name}"
 """
+    font_garden_lines = "\n".join(
+        f'/ip hotspot walled-garden add dst-host={h} action=allow comment="WiBill fonts"'
+        for h in WALLED_GARDEN_EXTRA_HOSTS
+    )
+    script = script.rstrip() + "\n" + font_garden_lines + "\n" + scheduler_block + f':log info "WiBill setup complete for {name}"' + "\n"
     # This static script includes the walled-garden rule but no SSID (the
     # wizard's generate-script is where SSID gets baked in). Record the
     # walled-garden fact so the management view can checkmark it.
     if config:
         prior = (config.notes or "").strip(" |")
         config.notes = f"{prior} | WalledGarden: yes".strip(" |")
+
+        # Auto-push: router self-updates hotspot/login.html + font garden.
+        public_base = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+        await enqueue_action(
+            config.id,
+            "push_portal",
+            {"url": f"{public_base}/login/{slug}", "dst": "hotspot/login.html"},
+            db,
+            commit=False,
+        )
+        await enqueue_action(
+            config.id,
+            "add_walled_garden",
+            {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+            db,
+            commit=False,
+        )
         await db.commit()
     return PlainTextResponse(
         content=script,
@@ -857,16 +896,61 @@ async def list_active_users(
 
 # ── Public: login.html redirect stub (no auth — router fetches directly) ───
 def _login_stub_html(tenant: Tenant, base_url: str) -> str:
-    """Meta-refresh redirect that hands WiFi users off to the hosted portal."""
+    """Branded connecting screen that hands WiFi users off to the hosted portal.
+
+    Three redundant redirect paths so every captive-portal browser (iOS
+    Safari, Android WebView, plain HTTP clients) actually leaves this file:
+      1. <meta http-equiv="refresh"> — respected by nearly every captive client.
+      2. JS window.location.replace on load — for WebViews that ignore meta.
+      3. Visible tap link + body onClick — manual last resort.
+
+    The $(mac)/$(ip)/$(link-login-only)/$(error) tokens are substituted by
+    MikroTik when it serves this file as hotspot/login.html. The walled garden
+    opens the portal host, so the redirect works before payment.
+    """
     slug = tenant.slug or "wibill"
+    name = (tenant.name or "WiFi").replace('"', "'").replace("\\", "")
+    emoji = "📡"
+    try:
+        emoji = (tenant.portal_config or {}).get("brand", {}).get("emoji") or emoji
+    except Exception:
+        pass
+    target = f"{base_url}/portal/{slug}?mac=$(mac)&ip=$(ip)&link=$(link-login-only)&error=$(error)"
     return f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0;url={base_url}/portal/{slug}?mac=$(mac)&ip=$(ip)&link=$(link-login-only)&error=$(error)">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0;url={target}">
+<title>{name} — Connecting</title>
+<script>
+  window.addEventListener('load', function() {{
+    window.location.replace("{target}");
+  }}, {{ once: true }});
+</script>
+<style>
+  html, body {{ margin:0; padding:0; height:100%; background:#0c0c1a; color:#e8e6ff;
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+  .wrap {{ min-height:100%; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:32px; box-sizing:border-box; }}
+  .logo {{ font-size:44px; line-height:1; margin-bottom:16px; }}
+  h1 {{ font-size:19px; font-weight:700; margin:0 0 6px; letter-spacing:-0.01em; }}
+  p {{ font-size:13px; color:rgba(232,230,255,.55); margin:0 0 22px; }}
+  a.cta {{ display:inline-block; padding:12px 26px; border-radius:999px; background:#5b4fff;
+    color:#fff; font-size:14px; font-weight:600; text-decoration:none; }}
+  .err {{ margin-top:18px; font-size:11px; color:#f87171; word-break:break-word; max-width:340px; }}
+  .hint {{ margin-top:18px; font-size:10px; color:rgba(232,230,255,.3); }}
+</style>
 </head>
-<body style="background:#000;color:#fff;font-family:monospace;text-align:center;padding-top:40vh;font-size:14px">
-  Connecting to WiFi...
+<body onclick="window.location.replace('{target}')">
+  <div class="wrap">
+    <div class="logo">{emoji}</div>
+    <h1>{name}</h1>
+    <p>Connecting you to the WiFi portal…</p>
+    <a class="cta" href="{target}">Tap to continue</a>
+    <div class="err">$(if error == 'yes')$(error)$(endif)</div>
+    <div class="hint">If nothing happens, tap the button above.</div>
+  </div>
 </body>
 </html>"""
 

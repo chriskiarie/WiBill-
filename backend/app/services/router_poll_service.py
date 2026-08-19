@@ -35,6 +35,11 @@ POLL_INTERVAL_SECONDS = 30
 STALE_AFTER_SECONDS = 3 * POLL_INTERVAL_SECONDS  # 3x missed intervals → offline
 MAX_ACTIONS_PER_POLL = 20
 
+# Extra walled-garden hosts every ISP router needs so captive phones load
+# the portal fonts the wizard advertises (font unity between admin preview
+# and the phone). The portal host itself is always allowed separately.
+WALLED_GARDEN_EXTRA_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"]
+
 
 # ── Router liveness (Section 8) ────────────────────────────────────────────
 def router_status(router: MikrotikConfig) -> str:
@@ -175,6 +180,17 @@ def _render_push_portal(action: RouterAction, ros_version: str) -> str:
     )
 
 
+def _render_add_walled_garden(action: RouterAction) -> str:
+    """Idempotent walled-garden additions (duplicates are harmless in RouterOS)."""
+    hosts = action.payload.get("hosts") or WALLED_GARDEN_EXTRA_HOSTS
+    lines = [
+        f':do {{ /ip hotspot walled-garden add dst-host={h} action=allow }} on-error={{ }}'
+        for h in hosts
+        if isinstance(h, str) and h.strip()
+    ]
+    return "\n".join(lines) if lines else f':log info "wibill: skip add_walled_garden {action.id} — no hosts"'
+
+
 def render_action_line(action: RouterAction, ros_version: str) -> str:
     if action.action_type == "add_bypass":
         return _render_add_bypass(action)
@@ -182,6 +198,8 @@ def render_action_line(action: RouterAction, ros_version: str) -> str:
         return _render_remove_bypass(action)
     if action.action_type == "push_portal":
         return _render_push_portal(action, ros_version)
+    if action.action_type == "add_walled_garden":
+        return _render_add_walled_garden(action)
     return f':log info "wibill: unknown action {action.action_type} ({action.id})"'
 
 

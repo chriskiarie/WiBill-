@@ -212,6 +212,38 @@ async def preview_portal(template_id: str, request: Request):
         """
 
 
+def _default_portal_config(tenant: Tenant) -> dict:
+    """Fallback portal config so /portal/{slug} NEVER 400s on a phone.
+
+    A blank/white captive portal page is the worst possible failure — any
+    guest device must always get a branded page, even before the wizard has
+    been run. Mirrors the seed default; brand comes from the tenant row.
+    """
+    return {
+        "template_id": "dashboard",
+        "version": "2.0",
+        "palette_index": 0,
+        "brand": {
+            "name": tenant.name or "WiFi",
+            "emoji": "📡",
+            "tagline": f"Fast, reliable internet by {tenant.name or 'this WiFi'}",
+            "location": "Nairobi, Kenya",
+            "support_phone": "+254 700 000 000",
+        },
+        "theme": {
+            "primary_color": "#5b4fff",
+            "secondary_color": "#0c0c1a",
+            "accent_color": "#5b4fff",
+            "background_type": "solid",
+            "background_value": "#0c0c1a",
+        },
+        "typography": {"font_family": "Inter", "heading_size": 36, "body_size": 16},
+        "card": {"style": "glass", "radius": 16},
+        "network_awareness": {"show_status_banner": True, "custom_status_message": "✅ Network is online and stable"},
+        "enabled_features": {"mpesa_stk": True, "card_payments": False, "vouchers": False},
+    }
+
+
 @router.get("/portal/{slug}", response_class=HTMLResponse)
 async def get_live_portal(
     slug: str,
@@ -297,15 +329,12 @@ async def get_live_portal(
     if not tenant:
         raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
     
-    # Check portal is configured
-    if not tenant.portal_config:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Portal not configured for ISP '{slug}'. Run seed_portal_configs.py to initialize."
-        )
-    
+    # Check portal is configured — if not, render with a sensible default
+    # instead of erroring: a captive phone must never see a white page.
+    portal_config = tenant.portal_config or _default_portal_config(tenant)
+
     # Get template ID
-    template_id = tenant.portal_config.get('template_id', 'dashboard')
+    template_id = portal_config.get('template_id', 'dashboard')
     
     template_map = {
         'spotlight': 'portal_spotlight.html',
@@ -341,26 +370,34 @@ async def get_live_portal(
         packages_data = DEMO_PACKAGES
     
     # Prepare context from tenant's portal_config; inject slug for JS URLs
-    brand = dict(tenant.portal_config.get('brand', {}))
+    brand = dict(portal_config.get('brand', {}) or {})
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
+    brand.setdefault('name', tenant.name or 'WiFi')
+    brand.setdefault('emoji', '📡')
+    brand.setdefault('tagline', f'Fast, reliable internet by {tenant.name or "this WiFi"}')
     if 'support_phone' in brand and 'support_number' not in brand:
         brand['support_number'] = brand['support_phone']
-    # Normalize logo URL: strip any host prefix, rebuild with correct one
+    # Normalize logo URL: strip any host prefix, rebuild with correct one.
+    # blob:/data: logos only exist in a browser tab — never send them to a
+    # phone; fall back to the emoji mark instead of showing a broken image.
     logo = brand.get('logo_url')
     if logo:
-        if logo.startswith('/uploads/') or logo.startswith('\\uploads\\'):
-            pass  # already relative, will be made absolute below
-        elif '/uploads/' in logo:
-            idx = logo.index('/uploads/')
-            logo = logo[idx:]  # strip everything before /uploads/
-        brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo}" if not logo.startswith(('blob:', 'data:')) else logo
-    network = tenant.portal_config.get('network_awareness', {})
-    theme = tenant.portal_config.get('theme', {})
-    typography = tenant.portal_config.get('typography', {})
-    card = tenant.portal_config.get('card', {})
-    
+        if logo.startswith('blob:') or logo.startswith('data:'):
+            brand.pop('logo_url', None)
+        else:
+            if logo.startswith('/uploads/') or logo.startswith('\\uploads\\'):
+                pass  # already relative, will be made absolute below
+            elif '/uploads/' in logo:
+                idx = logo.index('/uploads/')
+                logo = logo[idx:]  # strip everything before /uploads/
+            brand['logo_url'] = f"{request.base_url.scheme}://{request.base_url.netloc}{logo}" if not logo.startswith(('http://', 'https://')) else logo
+    network = portal_config.get('network_awareness', {}) or {}
+    theme = portal_config.get('theme', {}) or {}
+    typography = portal_config.get('typography', {}) or {}
+    card = portal_config.get('card', {}) or {}
+
     # Resolve palette index — stored directly, or match by primary color, or default 0
-    palette_idx = tenant.portal_config.get('palette_index')
+    palette_idx = portal_config.get('palette_index')
     if palette_idx is None:
         try:
             pc = (theme.get('primary_color') or '').lower()
@@ -402,10 +439,26 @@ async def get_live_portal(
         html = PortalRenderer.render(filename, context)
         return html
     except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Template rendering error: {str(e)}"
-        )
+        # Never hand a captive phone a white error page — render a minimal
+        # branded fallback instead.
+        brand_name = brand.get('name') or tenant.name or 'WiFi'
+        brand_emoji = brand.get('emoji') or '📡'
+        return HTMLResponse(content=f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{brand_name}</title>
+<style>
+  html,body {{ margin:0; padding:0; height:100%; background:#0c0c1a; color:#e8e6ff;
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+  .wrap {{ min-height:100%; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:32px; box-sizing:border-box; }}
+  .logo {{ font-size:44px; line-height:1; margin-bottom:16px; }}
+  h1 {{ font-size:19px; font-weight:700; margin:0 0 6px; }}
+  p {{ font-size:13px; color:rgba(232,230,255,.55); margin:0; }}
+</style></head>
+<body><div class="wrap"><div class="logo">{brand_emoji}</div>
+<h1>{brand_name}</h1>
+<p>This portal is temporarily unavailable. Please try again shortly.</p>
+</div></body></html>""")
 
 
 @router.get("/api/v1/portal/{slug}/config")
