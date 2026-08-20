@@ -648,6 +648,7 @@ export default function PortalWizard() {
                         setEmoji(st.name)
                         setSelectedSticker(st.src)
                         setLogoUrl(null)
+                        setStickerUploading(true)
                         // Upload sticker to backend so portal template can render it as an image
                         try {
                           const res = await fetch(st.src)
@@ -662,7 +663,7 @@ export default function PortalWizard() {
                             const data = await uploadRes.json()
                             if (data.asset?.url) setLogoUrl(toAbsoluteUrl(data.asset.url))
                           }
-                        } catch {}
+                        } catch {} finally { setStickerUploading(false) }
                       }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: active ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
@@ -889,14 +890,14 @@ export default function PortalWizard() {
 
         {/* Save Bar */}
         <div style={{ padding: 12, borderTop: '1px solid #141414' }}>
-          <button onClick={handleSave} disabled={saving} style={{
+          <button onClick={handleSave} disabled={saving || stickerUploading} style={{
             width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
             background: saved ? '#22c55e' : 'var(--theme-gold)', color: '#000', cursor: 'pointer',
             fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             transition: 'background 0.3s', fontFamily: 'Inter, sans-serif',
           }}>
-            {saving ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : saved ? <Check size={16} /> : <Save size={16} />}
-            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save & Publish'}
+            {saving || stickerUploading ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : saved ? <Check size={16} /> : <Save size={16} />}
+            {saving ? 'Saving...' : stickerUploading ? 'Uploading logo...' : saved ? 'Saved!' : 'Save & Publish'}
           </button>
         </div>
       </div>
