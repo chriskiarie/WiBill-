@@ -1,7 +1,7 @@
 """add speed_limit_mbps to packages
 
 Revision ID: o1p2q3r4s5t6
-Revises: n1o2p3q4r5s6
+Revises: f1a2b3c4d5e6, n1o2p3q4r5s6
 Create Date: 2026-08-20 12:00:00.000000
 
 """
@@ -10,13 +10,17 @@ import sqlalchemy as sa
 
 
 revision = 'o1p2q3r4s5t6'
-down_revision = 'n1o2p3q4r5s6'
+down_revision = ('f1a2b3c4d5e6', 'n1o2p3q4r5s6')
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column('packages', sa.Column('speed_limit_mbps', sa.Integer(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('packages')]
+    if 'speed_limit_mbps' not in columns:
+        op.add_column('packages', sa.Column('speed_limit_mbps', sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:
