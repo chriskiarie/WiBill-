@@ -162,13 +162,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: C.gold, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0,
-          }}>
-            <Wifi size={16} color="#3D2A06" />
-          </div>
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} />
           <span style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontSize: collapsed ? 0 : 16, fontWeight: 600, color: C.text,

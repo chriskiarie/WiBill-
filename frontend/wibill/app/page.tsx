@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, Check, Zap } from 'lucide-react'
+import { ArrowRight, ChevronRight, Check } from 'lucide-react'
 
 const gold = '#E8B84B'
 const goldText = '#3a2000'
@@ -129,21 +129,9 @@ export default function LandingPage() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '20px 48px', maxWidth: 1200, margin: '0 auto',
       }}>
-        {/* Logo placeholder — drop your own logo here */}
+        {/* WiBill wordmark badge */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(232, 184, 75, 0.12)',
-            border: '1px dashed rgba(232, 184, 75, 0.4)',
-            color: gold,
-          }}><Zap size={18} /></div>
-          <span className="brand-graffiti" style={{
-            fontFamily: "'Dyzero Vandals', 'Instrument Serif', serif",
-            fontSize: 30, lineHeight: 1,
-            letterSpacing: '0.02em',
-            color: cream,
-          }}>WiBill</span>
+          <img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 44, width: 'auto', objectFit: 'contain', display: 'block' }} />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
           <a href="#how" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
@@ -447,7 +435,7 @@ export default function LandingPage() {
           >
             <div className="connect-bg" />
             <div className="connect-voice">Say hello</div>
-            <div className="connect-logo">WiBill</div>
+            <div className="connect-logo"><img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 56, width: 'auto', objectFit: 'contain', display: 'block' }} /></div>
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
               <div className="connect-box connect-box1">
                 <span className="c-icon">
@@ -512,17 +500,6 @@ export default function LandingPage() {
       <style>{`
         @keyframes pulseFade{0%,100%{opacity:1;}50%{opacity:0.35;}}
         @keyframes scrollPulse{0%{opacity:0.2;}50%{opacity:1;}100%{opacity:0.2;}}
-
-        /* Graffiti brandmark font — licensed for commercial use.
-           Place the licensed .woff2 at frontend/wibill/public/fonts/dyzero-vandals.woff2
-           Works with the fallback (serif italic) until then. */
-        @font-face {
-          font-family: 'Dyzero Vandals';
-          src: url('/fonts/dyzero-vandals.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
 
         /* ── PRICING CARD ── */
         .pricing-card {

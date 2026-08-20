@@ -156,14 +156,7 @@ export default function MyDashLayout({ children }: { children: React.ReactNode }
           display: 'flex', alignItems: 'center', gap: 12,
           borderBottom: '0.5px solid rgba(255,255,255,0.06)',
         }}>
-          <span style={{
-            fontFamily: '"Space Grotesk", sans-serif', fontSize: 26, fontWeight: 700,
-            lineHeight: 1,
-          }}>
-            <span style={{ color: '#E8B84B' }}>X</span>
-            <span style={{ color: '#EDEBE6' }}>w</span>
-            <span style={{ color: '#E8B84B' }}>B</span>
-          </span>
+          <img src="/logos/wibill-wb-monogram-192.png" alt="WiBill" style={{ width: 38, height: 38, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{
               fontFamily: '"Syne", sans-serif', fontSize: 20, fontWeight: 800,

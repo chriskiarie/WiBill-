@@ -217,9 +217,7 @@ function JoinPageInner() {
         }}>
           <div style={{ background: '#080808', borderRadius: 12, border: '0.5px solid #141414', padding: 28 }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#E8B84B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 20, fontWeight: 700, color: '#3D2A06' }}>{'>'}_</span>
-              </div>
+              <img src="/logos/wibill-wb-monogram-192.png" alt="WiBill" style={{ width: 60, height: 60, objectFit: 'contain', display: 'block', margin: '0 auto 16px' }} />
               <h1 style={{ fontSize: 20, fontWeight: 700, color: '#e0e0e0', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 4 }}>Join WiBill</h1>
               <p style={{ fontSize: 12, color: '#555', fontFamily: 'Inter, sans-serif' }}>Create your ISP account</p>
             </div>

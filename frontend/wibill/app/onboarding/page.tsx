@@ -280,7 +280,7 @@ export default function OnboardingWizard() {
       <div className="app">
         <aside className="sidebar">
           <div className="logo">
-            <div className="logo-mark">W</div>
+            <img src="/logos/wibill-wb-monogram-192.png" alt="WiBill" className="logo-mark" style={{ width: 34, height: 34, objectFit: 'contain', display: 'block', borderRadius: 999 }} />
             <div><div className="logo-text">WiBill</div><div className="logo-sub">Portal Wizard</div></div>
           </div>
           <div className="steps">

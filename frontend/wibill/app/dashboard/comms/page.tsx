@@ -24,6 +24,7 @@ import {
   getSmsStats,
   subscriberCount,
 } from '@/lib/api'
+import Topbar from '@/components/Topbar'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -197,49 +198,16 @@ export default function CommsPage() {
   const charCount = message.length
 
   return (
-    <div style={{ padding: '20px 32px 40px', minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: `linear-gradient(135deg, ${C.gold}15, ${C.gold}08)`,
-              border: `1px solid ${C.gold}30`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <MessageSquare size={20} style={{ color: C.gold }} />
-          </div>
-          <div>
-            <h1
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 20,
-                fontWeight: 700,
-                color: C.text,
-                margin: 0,
-              }}
-            >
-              Bulk SMS
-            </h1>
-            <p style={{ fontSize: 11, color: C.dim, margin: 0 }}>
-              Send messages to your subscribers via Africa's Talking
-            </p>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: 16 }}>
-          {[
-            { label: 'Bursts sent', value: stats.total_bursts, icon: <Send size={14} /> },
-            { label: 'Total messages', value: stats.total_messages, icon: <MessageSquare size={14} /> },
-            { label: 'Subscribers', value: targetCount, icon: <Users size={14} /> },
-          ].map((s) => (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <Topbar title="Bulk SMS" />
+      <div className="dashboard-content" style={{ flex: 1, overflowY: 'auto', background: C.void, padding: '20px 32px 40px' }}>
+      {/* Stats */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginBottom: 24 }}>
+        {[
+          { label: 'Bursts sent', value: stats.total_bursts, icon: <Send size={14} /> },
+          { label: 'Total messages', value: stats.total_messages, icon: <MessageSquare size={14} /> },
+          { label: 'Subscribers', value: targetCount, icon: <Users size={14} /> },
+        ].map((s) => (
             <div
               key={s.label}
               style={{
@@ -270,7 +238,6 @@ export default function CommsPage() {
             </div>
           ))}
         </div>
-      </div>
 
       {/* Tab bar */}
       <div
@@ -661,6 +628,7 @@ export default function CommsPage() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+      </div>
     </div>
   )
 }

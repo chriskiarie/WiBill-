@@ -377,12 +377,38 @@ export default function NetworkPage() {
                         </div>
                       ))}
                     </div>
-                    {mikrotik.notes && mikrotik.notes.includes('Board:') && (
-                      <div style={{ padding: '8px 10px', marginBottom: 12, borderRadius: 6, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Router size={12} color={C.gold} />
-                        <span style={{ fontSize: 9, color: C.dim, fontFamily: 'DM Mono, monospace' }}>
-                          {mikrotik.notes.split('|').map((p: string) => p.trim()).filter(Boolean).join(' · ')}
-                        </span>
+                    {mikrotik.notes && (mikrotik.board_name || mikrotik.mac || mikrotik.ssid || mikrotik.router_os_version) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px', marginBottom: 12, borderRadius: 6, background: 'var(--theme-surface)', border: `0.5px solid ${C.border}` }}>
+                        {mikrotik.board_name && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0' }}>
+                            <span style={{ color: C.dim }}>Board</span>
+                            <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{mikrotik.board_name}</span>
+                          </div>
+                        )}
+                        {mikrotik.router_os_version && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0' }}>
+                            <span style={{ color: C.dim }}>RouterOS</span>
+                            <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{mikrotik.router_os_version}</span>
+                          </div>
+                        )}
+                        {mikrotik.mac && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0' }}>
+                            <span style={{ color: C.dim }}>MAC</span>
+                            <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{mikrotik.mac}</span>
+                          </div>
+                        )}
+                        {mikrotik.ssid && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0' }}>
+                            <span style={{ color: C.dim }}>SSID</span>
+                            <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{mikrotik.ssid}</span>
+                          </div>
+                        )}
+                        {mikrotik.walled_garden && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0' }}>
+                            <span style={{ color: C.dim }}>Walled garden</span>
+                            <span style={{ color: C.text, fontFamily: 'DM Mono, monospace' }}>{mikrotik.walled_garden === 'yes' ? 'Configured' : mikrotik.walled_garden}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     <button onClick={handleTest} disabled={testing} style={{

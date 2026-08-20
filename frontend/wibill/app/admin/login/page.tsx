@@ -137,14 +137,11 @@ export default function MyDashLoginPage() {
         }}>
           {/* Logo + branding */}
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{
-              width: 56, height: 56,
-              background: '#E8B84B',
-              borderRadius: 14,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 900, color: '#000000',
-              margin: '0 auto 16px',
-            }}>XwB</div>
+            <img
+              src="/logos/wibill-wb-monogram-192.png"
+              alt="WiBill"
+              style={{ width: 56, height: 56, objectFit: 'contain', display: 'block', margin: '0 auto 16px' }}
+            />
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               marginBottom: 4,

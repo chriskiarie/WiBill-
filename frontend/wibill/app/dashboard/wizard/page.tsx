@@ -15,7 +15,7 @@ import {
   Signal, Radio, Globe, Server, Antenna, Activity, WifiOff,
   Smartphone, Laptop, Tablet, Tv, WifiHigh, WifiZero,
   Network, Router, MonitorSmartphone,
-  Zap, Shield, Rocket, Layers, Cloud, Satellite, Lock, Database,
+  Zap, Shield, Rocket, Layers, Cloud, Satellite, Lock, Database, Trash2,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -465,6 +465,23 @@ export default function PortalWizard() {
     } catch { toast('Network error') }
   }
 
+  function resetDesign() {
+    if (!confirm('Reset the current design to a blank state? Your saved versions are kept — this only clears the unsaved editor.')) return
+    setTpl('dashboard')
+    setPalette(0)
+    setFont('Inter')
+    setName(''); setTagline(''); setLocation(''); setEmoji('📡')
+    setPhone(''); setSupportEmail(''); setWhatsapp(''); setWebsiteUrl('')
+    setFacebookUrl(''); setTwitterUrl(''); setInstagramUrl('')
+    setTechnicianName(''); setTechnicianPhone('')
+    setHeroTitle(''); setSectionHeading(''); setFooterText(''); setTermsUrl('')
+    setPrimaryColor('#5b4fff'); setSecondaryColor('#0c0c1a'); setAccentColor('#5b4fff')
+    setLogoUrl(null); setSelectedSticker(null); setStickerDataUrl(null)
+    setActiveSnapshotId(null)
+    setSaved(false)
+    toast('Design reset — Save to publish')
+  }
+
   async function deleteSnapshot(id: string, tag: string) {
     if (!confirm(`Delete "${tag}"? This cannot be undone.`)) return
     try {
@@ -480,7 +497,7 @@ export default function PortalWizard() {
 
   if (loadingConfig) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--theme-bg)', color: 'var(--theme-text)' }}>
         <Topbar title="Portal Design" />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--theme-gold)' }} />
@@ -491,19 +508,19 @@ export default function PortalWizard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#000', color: '#f0f0f0', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--theme-bg)', color: 'var(--theme-text)', overflow: 'hidden' }}>
         <Topbar title="Portal Design" />
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Left side */}
-      <div className="wizard-left-panel" style={{ width: 420, background: '#0a0a0a', borderRight: '1px solid #141414', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #141414', padding: '0 4px' }}>
+      <div className="wizard-left-panel" style={{ width: 420, background: 'var(--theme-card-base)', borderRight: '1px solid var(--theme-border)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--theme-border)', padding: '0 4px' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, padding: '12px 0 10px', background: 'transparent', border: 'none',
               borderBottom: tab === t.id ? '2px solid var(--theme-gold)' : '2px solid transparent',
-              color: tab === t.id ? 'var(--theme-gold)' : '#666', cursor: 'pointer', fontSize: 10, fontWeight: 600,
+              color: tab === t.id ? 'var(--theme-gold)' : 'var(--theme-dim)', cursor: 'pointer', fontSize: 10, fontWeight: 600,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               transition: 'all 0.15s', fontFamily: 'Inter, sans-serif',
             }}>
@@ -518,7 +535,7 @@ export default function PortalWizard() {
              ══════════════════════════════════════════════ */}
           {tab === 'template' && (
             <div style={{ animation: 'fadeIn 0.25s ease' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 14 }}>
                 Choose Layout
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -528,8 +545,8 @@ export default function PortalWizard() {
                     <button key={t.id} onClick={() => { setTpl(t.id) }}
                       style={{
                         display: 'flex', gap: 16, alignItems: 'center', cursor: 'pointer',
-                        background: active ? '#0f0f0f' : 'transparent',
-                        border: active ? `1px solid ${accentRgba(0.3)}` : '1px solid #141414',
+                        background: active ? 'var(--theme-surface)' : 'transparent',
+                        border: active ? `1px solid ${accentRgba(0.3)}` : '1px solid var(--theme-border)',
                         borderRadius: 14, padding: '10px 14px',
                         transition: 'all 0.25s cubic-bezier(.34,1.56,.64,1)',
                       }}>
@@ -554,8 +571,8 @@ export default function PortalWizard() {
                         </div>
                       </div>
                         <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
-                          <div style={{ fontSize: 16, fontWeight: 600, color: active ? '#f0f0f0' : '#999', marginBottom: 2 }}>{t.label}</div>
-                          <div style={{ fontSize: 13, color: '#555' }}>{t.desc}</div>
+                          <div style={{ fontSize: 16, fontWeight: 600, color: active ? 'var(--theme-text)' : 'var(--theme-dim)', marginBottom: 2 }}>{t.label}</div>
+                          <div style={{ fontSize: 13, color: 'var(--theme-text-muted)' }}>{t.desc}</div>
                       </div>
                       {active && <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--theme-gold)', color: '#000', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>}
                     </button>
@@ -582,51 +599,51 @@ export default function PortalWizard() {
                 {location && <div style={{ fontSize: 10, color: 'rgba(232,230,255,0.4)', marginTop: 1 }}>{location}</div>}
               </div>
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10 }}>Brand Details</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-dim)', textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10 }}>Brand Details</div>
               {[
                 { label: 'WiFi Name', value: name, set: setName, placeholder: 'Vertex WiFi' },
                 { label: 'Tagline', value: tagline, set: setTagline, placeholder: 'Fast, reliable internet' },
                 { label: 'Location', value: location, set: setLocation, placeholder: 'Nairobi, Kenya' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--theme-text-muted)', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--theme-border)', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--theme-text)', background: 'var(--theme-bg)', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
-                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--theme-border)'} />
                 </div>
               ))}
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Card Text</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-dim)', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Card Text</div>
               {[
                 { label: 'Hero Title', value: heroTitle, set: setHeroTitle, placeholder: 'Choose Your Plan' },
                 { label: 'Section Heading', value: sectionHeading, set: setSectionHeading, placeholder: 'Internet Packages' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--theme-text-muted)', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--theme-border)', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--theme-text)', background: 'var(--theme-bg)', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
-                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--theme-border)'} />
                 </div>
               ))}
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Contact</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-dim)', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Contact</div>
               {[
                 { label: 'Support Phone', value: phone, set: setPhone, placeholder: '+254 700 123 456', type: 'tel' },
                 { label: 'WhatsApp', value: whatsapp, set: setWhatsapp, placeholder: '+254 700 123 456', type: 'tel' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--theme-text-muted)', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type || 'text'}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--theme-border)', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--theme-text)', background: 'var(--theme-bg)', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
-                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--theme-border)'} />
                 </div>
               ))}
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Technician Contact (optional)</div>
-              <div style={{ fontSize: 10, color: '#888', marginBottom: 6, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-dim)', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 10px' }}>Technician Contact (optional)</div>
+              <div style={{ fontSize: 10, color: 'var(--theme-dim)', marginBottom: 6, lineHeight: 1.4 }}>
                 Shown on first portal visit — clients can save this number to their phone for support.
               </div>
               {[
@@ -634,15 +651,15 @@ export default function PortalWizard() {
                 { label: 'Technician Phone', value: technicianPhone, set: setTechnicianPhone, placeholder: '+254 712 345 678', type: 'tel' },
               ].map(f => (
                 <div key={f.label} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#555', marginBottom: 3 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--theme-text-muted)', marginBottom: 3 }}>{f.label}</div>
                   <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type || 'text'}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #141414', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: '#f0f0f0', background: '#000', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--theme-border)', borderRadius: 9, fontSize: 13, fontFamily: 'Inter, sans-serif', color: 'var(--theme-text)', background: 'var(--theme-bg)', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }}
                     onFocus={e => e.currentTarget.style.borderColor = 'var(--theme-gold)'}
-                    onBlur={e => e.currentTarget.style.borderColor = '#141414'} />
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--theme-border)'} />
                 </div>
               ))}
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 8px' }}>Brand Sticker</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-dim)', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 8px' }}>Brand Sticker</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5, marginBottom: 10 }}>
                 {BRAND_STICKERS.map(st => {
                   const active = selectedSticker === st.src
@@ -669,7 +686,7 @@ export default function PortalWizard() {
                         } catch {} finally { setStickerUploading(false) }
                       }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: active ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
+                      border: active ? '1px solid var(--theme-gold)' : '1px solid var(--theme-border2)',
                       background: active ? accentRgba(0.15) : 'rgba(255,255,255,0.1)', cursor: 'pointer',
                     }} title={st.name}>
                       <img src={st.src} style={{ width: 24, height: 24, objectFit: 'contain' }} alt={st.name} />
@@ -680,9 +697,9 @@ export default function PortalWizard() {
 
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{
-                  flex: 1, padding: '10px 0', borderRadius: 9, border: '1px solid #141414',
-                  background: uploading ? 'rgba(255,255,255,0.03)' : '#000',
-                  color: uploading ? '#555' : '#666', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 11,
+                  flex: 1, padding: '10px 0', borderRadius: 9, border: '1px solid var(--theme-border)',
+                  background: uploading ? 'rgba(255,255,255,0.03)' : 'var(--theme-bg)',
+                  color: uploading ? 'var(--theme-text-muted)' : 'var(--theme-dim)', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 11,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'Inter, sans-serif',
                 }}>
                   {uploading ? <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={13} />}
@@ -696,7 +713,7 @@ export default function PortalWizard() {
                   }}>Remove</button>
                 )}
               </div>
-              <div style={{ fontSize: 9, color: '#444', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 9, color: 'var(--theme-faint)', lineHeight: 1.4 }}>
                 Recommended: 180×180px PNG or SVG. Files larger than recommended size? Use <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--theme-gold)' }}>TinyPNG</a> or <a href="https://www.iloveimg.com/resize-image" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--theme-gold)' }}>iLoveIMG</a> to resize.
               </div>
 
@@ -741,12 +758,12 @@ export default function PortalWizard() {
              ══════════════════════════════════════════════ */}
           {tab === 'fonts' && (
             <div style={{ animation: 'fadeIn 0.25s ease' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 14 }}>
                 Choose a Font
               </div>
               {Object.entries(FONT_CATEGORIES).map(([catKey, cat]) => (
                 <div key={catKey} style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#555', marginBottom: 8, letterSpacing: 0.5 }}>{cat.name}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--theme-text-muted)', marginBottom: 8, letterSpacing: 0.5 }}>{cat.name}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {cat.fonts.map(f => {
                       const sel = font === f.family
@@ -754,13 +771,13 @@ export default function PortalWizard() {
                         <button key={f.family} onClick={() => setFont(f.family)} style={{
                           display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
                           background: sel ? accentRgba(0.06) : 'transparent',
-                          border: sel ? `1px solid ${accentRgba(0.25)}` : '1px solid #141414',
+                          border: sel ? `1px solid ${accentRgba(0.25)}` : '1px solid var(--theme-border)',
                           borderRadius: 10, padding: '10px 14px', textAlign: 'left',
                           transition: 'all 0.2s',
                         }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontFamily: `'${f.family}',sans-serif`, fontSize: 15, fontWeight: 600, color: sel ? '#f0f0f0' : '#999', marginBottom: 3, letterSpacing: 0 }}>{f.family}</div>
-                            <div style={{ fontFamily: `'${f.family}',sans-serif`, fontSize: 13, color: '#555', letterSpacing: 0, lineHeight: 1.3 }}>{f.preview}</div>
+                            <div style={{ fontFamily: `'${f.family}',sans-serif`, fontSize: 15, fontWeight: 600, color: sel ? 'var(--theme-text)' : 'var(--theme-dim)', marginBottom: 3, letterSpacing: 0 }}>{f.family}</div>
+                            <div style={{ fontFamily: `'${f.family}',sans-serif`, fontSize: 13, color: 'var(--theme-text-muted)', letterSpacing: 0, lineHeight: 1.3 }}>{f.preview}</div>
                           </div>
                           {sel && (
                             <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--theme-gold)', color: '#000', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>✓</div>
@@ -779,7 +796,7 @@ export default function PortalWizard() {
              ══════════════════════════════════════════════ */}
           {tab === 'colors' && (
             <div style={{ animation: 'fadeIn 0.25s ease' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 12 }}>
                 Palette Presets
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
@@ -787,9 +804,9 @@ export default function PortalWizard() {
                   const active = palette === sp.p
                   return (
                     <button key={sp.p} onClick={() => { setPalette(sp.p); setPrimaryColor(sp.hd); setSecondaryColor(sp.bg); setAccentColor(sp.ac) }} style={{
-                      border: active ? '1px solid #fff' : '1px solid #1a1a1a',
+                      border: active ? '1px solid #fff' : '1px solid var(--theme-border-card)',
                       borderRadius: 12, padding: 12, cursor: 'pointer', textAlign: 'center',
-                      background: active ? '#0a0a0a' : '#050505',
+                      background: active ? 'var(--theme-card-base)' : 'var(--theme-surface)',
                       boxShadow: active ? '0 0 16px rgba(255,255,255,0.2)' : 'none',
                       transform: active ? 'translateY(-2px) scale(1.02)' : 'none',
                       transition: 'all 0.25s cubic-bezier(.34,1.56,.64,1)',
@@ -799,19 +816,19 @@ export default function PortalWizard() {
                           <div key={i} style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.1)' }} />
                         ))}
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#f0f0f0', marginBottom: 2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--theme-text)', marginBottom: 2 }}>
                         {sp.n}
                         {TEMPLATE_PALETTE_REC[tpl] === sp.p && (
                           <span style={{ display: 'block', fontSize: 9, color: 'var(--theme-gold)', fontWeight: 600, marginTop: 2 }}>★ Recommended</span>
                         )}
                       </div>
-                      <div style={{ fontSize: 10, color: '#666', fontFamily: `'${sp.f}',sans-serif`, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', display: 'inline-block' }}>{sp.f}</div>
+                      <div style={{ fontSize: 10, color: 'var(--theme-dim)', fontFamily: `'${sp.f}',sans-serif`, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', display: 'inline-block' }}>{sp.f}</div>
                     </button>
                   )
                 })}
               </div>
 
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 12 }}>Custom Colors</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 12 }}>Custom Colors</div>
               <div style={{ marginBottom: 16 }}>
                 {[
                   { label: 'Primary', value: primaryColor, set: setPrimaryColor },
@@ -821,7 +838,7 @@ export default function PortalWizard() {
                   <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <input type="color" value={c.value} onChange={e => c.set(e.target.value)}
                       style={{ width: 32, height: 32, borderRadius: 6, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />
-                    <div style={{ fontSize: 11, color: '#666', width: 60 }}>{c.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--theme-dim)', width: 60 }}>{c.label}</div>
                     <input type="text" value={c.value} onChange={e => c.set(e.target.value)}
                       style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '6px 10px', color: '#fff', fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
                   </div>
@@ -835,7 +852,7 @@ export default function PortalWizard() {
              ══════════════════════════════════════════════ */}
           {tab === 'export' && (
             <div style={{ animation: 'fadeIn 0.25s ease' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 16 }}>
                 Export & Versions
               </div>
               <button onClick={handleExportZip} disabled={exporting} style={{
@@ -847,52 +864,63 @@ export default function PortalWizard() {
                 {exporting ? 'Generating...' : 'Download MikroTik ZIP'}
               </button>
               <button onClick={handleExportQR} style={{
-                width: '100%', padding: '14px 0', borderRadius: 10, border: '1px solid #141414',
-                background: '#0a0a0a', color: '#666', cursor: 'pointer',
+                width: '100%', padding: '14px 0', borderRadius: 10, border: '1px solid var(--theme-border)',
+                background: 'var(--theme-card-base)', color: 'var(--theme-dim)', cursor: 'pointer',
                 fontSize: 13, fontWeight: 500, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
                 <QrCode size={16} /> Download QR Poster
               </button>
-              <div style={{ borderTop: '1px solid #141414', paddingTop: 20 }}>
+              <div style={{ borderTop: '1px solid var(--theme-border)', paddingTop: 20 }}>
                 <button onClick={createSnapshot} style={{
-                  width: '100%', padding: '12px 0', borderRadius: 10, border: '1px solid #141414',
-                  background: '#0a0a0a', color: '#f0f0f0', cursor: 'pointer',
+                  width: '100%', padding: '12px 0', borderRadius: 10, border: '1px solid var(--theme-border)',
+                  background: 'var(--theme-card-base)', color: 'var(--theme-text)', cursor: 'pointer',
                   fontSize: 13, fontWeight: 600, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}>
                   <Plus size={16} /> Save Current as Version
                 </button>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#666', marginBottom: 12 }}>Saved Versions</div>
-                {snapshots.length === 0 && <p style={{ fontSize: 12, color: '#555', textAlign: 'center', padding: 20 }}>No versions saved yet.</p>}
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-dim)', marginBottom: 12 }}>Saved Versions</div>
+                {snapshots.length === 0 && <p style={{ fontSize: 12, color: 'var(--theme-faint)', textAlign: 'center', padding: 20 }}>No versions saved yet.</p>}
                 {snapshots.map((s: any) => {
                   const isActive = activeSnapshotId === s.id
+                  // Load is only meaningful when switching between multiple
+                  // saved versions; with a single snapshot it has nothing to
+                  // switch to, so disable it (finish/reset is the action).
+                  const canLoad = snapshots.length > 1
                   return (
                   <div key={s.id} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8,
-                    background: isActive ? accentRgba(0.1) : '#0a0a0a', marginBottom: 8,
-                    border: isActive ? `1.5px solid var(--theme-gold)` : '1px solid #141414',
+                    background: isActive ? accentRgba(0.1) : 'var(--theme-card-base)', marginBottom: 8,
+                    border: isActive ? `1.5px solid var(--theme-gold)` : '1px solid var(--theme-border)',
                   }}>
-                    <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : '#2a2a2a', flexShrink: 0 }} />
+                    <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : 'var(--theme-mute)', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 13, fontWeight: 500 }}>{s.version_tag}</span>
                         {isActive && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--theme-gold)', background: accentRgba(0.15), padding: '1px 5px', borderRadius: 3, fontFamily: "'DM Mono', monospace" }}>ACTIVE</span>}
                       </div>
-                      <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                      <div style={{ fontSize: 10, color: 'var(--theme-faint)' }}>{new Date(s.created_at).toLocaleDateString()}</div>
                     </div>
-                    <button onClick={() => restoreSnapshot(s.id)} style={{
-                      padding: '4px 10px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid #141414',
-                      background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : '#666', cursor: 'pointer', fontSize: 10,
+                    <button onClick={() => canLoad && restoreSnapshot(s.id)} disabled={!canLoad} title={canLoad ? 'Switch to this version' : 'Only one version saved — nothing to switch to'} style={{
+                      padding: '4px 10px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid var(--theme-border)',
+                      background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : 'var(--theme-dim)', cursor: canLoad ? 'pointer' : 'not-allowed', fontSize: 10, opacity: canLoad ? 1 : 0.4,
                     }}><RotateCcw size={12} /></button>
                   </div>
                   )
                 })}
+                <button onClick={resetDesign} style={{
+                  width: '100%', padding: '10px 0', borderRadius: 10, border: '1px solid #ef444466',
+                  background: 'transparent', color: '#ef4444', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}>
+                  <Trash2 size={14} /> Reset Current Design
+                </button>
               </div>
             </div>
           )}
         </div>
 
         {/* Save Bar */}
-        <div style={{ padding: 12, borderTop: '1px solid #141414' }}>
+        <div style={{ padding: 12, borderTop: '1px solid var(--theme-border)' }}>
           <button onClick={handleSave} disabled={saving || stickerUploading} style={{
             width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
             background: saved ? '#22c55e' : 'var(--theme-gold)', color: '#000', cursor: 'pointer',
@@ -916,43 +944,44 @@ export default function PortalWizard() {
           <div style={{ width: '100%', maxWidth: 340 }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--theme-gold)', marginBottom: 6 }}>Your Portal</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f0', marginBottom: 4 }}>Saved Portal Found</div>
-              <div style={{ fontSize: 12, color: '#666' }}>Preview your saved versions or unlock to customize.</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--theme-text)', marginBottom: 4 }}>Saved Portal Found</div>
+              <div style={{ fontSize: 12, color: 'var(--theme-dim)' }}>Preview your saved versions or unlock to customize.</div>
             </div>
 
             {/* Saved Versions List */}
             <div style={{ maxHeight: 340, overflowY: 'auto', marginBottom: 16 }}>
               {snapshots.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: '#555', fontSize: 12 }}>No saved versions yet.</div>
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--theme-text-muted)', fontSize: 12 }}>No saved versions yet.</div>
               ) : snapshots.map((s: any) => {
                 const isActive = activeSnapshotId === s.id
                 const isPreview = previewingSnapshot === s.id
+                const canLoad = snapshots.length > 1
                 return (
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
                   borderRadius: 10, marginBottom: 6, cursor: 'pointer',
-                  background: isActive ? accentRgba(0.15) : isPreview ? accentRgba(0.08) : '#0a0a0a',
-                  border: isActive ? `1.5px solid var(--theme-gold)` : isPreview ? `1px solid ${accentRgba(0.3)}` : '1px solid #1a1a1a',
+background: isActive ? accentRgba(0.15) : isPreview ? accentRgba(0.08) : 'var(--theme-card-base)',
+                  border: isActive ? `1.5px solid var(--theme-gold)` : isPreview ? `1px solid ${accentRgba(0.3)}` : '1px solid var(--theme-border-card)',
                   transition: 'all 0.15s',
                 }}
-                  onMouseEnter={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = '#2a2a2a' }}
-                  onMouseLeave={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = '#1a1a1a' }}
+                  onMouseEnter={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = 'var(--theme-border2)' }}
+                  onMouseLeave={e => { if (!isActive && !isPreview) e.currentTarget.style.borderColor = 'var(--theme-border-card)' }}
                 >
-                  <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : isPreview ? 'var(--theme-gold)' : '#444', flexShrink: 0 }} />
+                  <Clock size={14} style={{ color: isActive ? 'var(--theme-gold)' : isPreview ? 'var(--theme-gold)' : 'var(--theme-faint)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--theme-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.version_tag}</span>
                       {isActive && <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--theme-gold)', background: accentRgba(0.15), padding: '1px 5px', borderRadius: 3, fontFamily: "'DM Mono', monospace" }}>ACTIVE</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: '#555' }}>{new Date(s.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                    <div style={{ fontSize: 10, color: 'var(--theme-text-muted)' }}>{new Date(s.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); restoreSnapshot(s.id) }} style={{
-                    padding: '5px 8px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
-                    background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : '#888', cursor: 'pointer', fontSize: 10,
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }} title="Restore this version"><RotateCcw size={11} /> {isActive ? 'Loaded' : 'Load'}</button>
+                  <button onClick={(e) => { e.stopPropagation(); if (canLoad) restoreSnapshot(s.id) }} disabled={!canLoad} style={{
+                    padding: '5px 8px', borderRadius: 6, border: isActive ? '1px solid var(--theme-gold)' : '1px solid var(--theme-border2)',
+                    background: isActive ? accentRgba(0.1) : 'transparent', color: isActive ? 'var(--theme-gold)' : 'var(--theme-dim)', cursor: canLoad ? 'pointer' : 'not-allowed', fontSize: 10,
+                    display: 'flex', alignItems: 'center', gap: 4, opacity: canLoad ? 1 : 0.4,
+                  }} title={canLoad ? 'Restore this version' : 'Only one version saved — nothing to switch to'}><RotateCcw size={11} /> {isActive ? 'Loaded' : 'Load'}</button>
                   <button onClick={(e) => { e.stopPropagation(); deleteSnapshot(s.id, s.version_tag) }} style={{
-                    padding: '5px 8px', borderRadius: 6, border: '1px solid #2a2a2a',
+                    padding: '5px 8px', borderRadius: 6, border: '1px solid var(--theme-border2)',
                     background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: 10,
                     display: 'flex', alignItems: 'center', gap: 4,
                   }} title="Delete this version"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
@@ -976,21 +1005,21 @@ export default function PortalWizard() {
       )}
 
       {/* Right: Phone Preview */}
-      <div className="wizard-right-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#000' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderBottom: '1px solid #141414', background: '#0a0a0a' }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0' }}>
+      <div className="wizard-right-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--theme-bg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderBottom: '1px solid var(--theme-border)', background: 'var(--theme-card-base)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--theme-text)' }}>
             {sel?.label || 'Portal'} — {snaps?.n || 'Custom'}
           </span>
         </div>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' }}>
             <div style={{
               width: 380, borderRadius: 44, background: '#111', padding: 12,
-              boxShadow: '0 0 0 1px #2a2a2a, 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
+              boxShadow: '0 0 0 1px var(--theme-border2), 0 30px 80px rgba(0,0,0,0.7)', position: 'relative',
             }}>
               <div style={{
                 position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%)',
                 width: 80, height: 6, background: '#111', borderRadius: 99, zIndex: 10,
-                border: '1px solid #2a2a2a',
+                border: '1px solid var(--theme-border2)',
               }} />
               <div style={{ width: 356, height: 780, borderRadius: 32, overflow: 'hidden', position: 'relative' }}>
                 {React.createElement('iframe', {
@@ -1011,7 +1040,7 @@ export default function PortalWizard() {
       </div>
       </div>
 
-      <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#f0f0f0', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid #2a2a2a', bottom: toastMsg ? 24 : -80 }}>
+      <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', background: 'var(--theme-surface)', color: 'var(--theme-text)', padding: '12px 24px', borderRadius: 99, fontSize: 14, fontWeight: 500, zIndex: 200, transition: 'all 0.3s', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', whiteSpace: 'nowrap', border: '1px solid var(--theme-border2)', bottom: toastMsg ? 24 : -80 }}>
         {toastMsg}
       </div>
     </div>

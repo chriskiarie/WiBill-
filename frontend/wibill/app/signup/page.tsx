@@ -131,18 +131,11 @@ export default function SignupPage() {
         {/* Wordmark */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
-            <div style={{
-              fontFamily: "'Instrument Serif', serif",
-              fontStyle: 'italic',
-              fontSize: 56,
-              fontWeight: 400,
-              letterSpacing: '-0.03em',
-              color: '#EDEBE6',
-              textShadow: '0 0 60px rgba(237,235,230,0.08)',
-              lineHeight: 1,
-            }}>
-              WiBill
-            </div>
+            <img
+              src="/logos/wibill-wordmark-badge-512.png"
+              alt="WiBill"
+              style={{ width: 280, height: 'auto', objectFit: 'contain', display: 'block' }}
+            />
           </Link>
           <div style={{
             fontFamily: "'Space Grotesk', sans-serif",

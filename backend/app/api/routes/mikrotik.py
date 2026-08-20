@@ -60,6 +60,7 @@ async def get_config(
     config = result.scalar_one_or_none()
     if not config:
         return {"configured": False}
+    parts = _notes_parts(config)
     return {
         "configured": True,
         "router_ip": config.router_ip,
@@ -72,6 +73,12 @@ async def get_config(
         "status": config.status,
         "tunnel_id": config.tunnel_id,
         "notes": config.notes,
+        "board_name": parts.get("board"),
+        "router_os_version": parts.get("routeros"),
+        "ssid": parts.get("ssid"),
+        "mac": parts.get("mac"),
+        "walled_garden": parts.get("walledgarden"),
+        "onboard_path": parts.get("onboardpath"),
         "last_connected_at": config.last_connected_at.isoformat() if config.last_connected_at else None,
         "last_error_message": config.last_error_message,
     }

@@ -122,18 +122,11 @@ function LoginContent() {
 
   const wordmarkSection = (
     <div className="text-center">
-      <div style={{
-        fontFamily: '"Instrument Serif", serif',
-        fontStyle: 'italic',
-        fontSize: 110,
-        fontWeight: 400,
-        letterSpacing: '-0.04em',
-        color: '#EDEBE6',
-        textShadow: '0 0 80px rgba(237,235,230,0.12)',
-        lineHeight: 1,
-      }}>
-        WiBill
-      </div>
+      <img
+        src="/logos/wibill-wordmark-badge-512.png"
+        alt="WiBill"
+        style={{ width: 240, height: 'auto', objectFit: 'contain', display: 'inline-block' }}
+      />
       <div style={{
         fontFamily: '"Space Grotesk", sans-serif',
         fontSize: 11,
@@ -401,18 +394,11 @@ function LoginContent() {
         paddingTop: 40,
         paddingBottom: 60,
       }}>
-        <div style={{
-          fontFamily: '"Instrument Serif", serif',
-          fontStyle: 'italic',
-          fontSize: 110,
-          fontWeight: 400,
-          letterSpacing: '-0.04em',
-          color: '#EDEBE6',
-          textShadow: '0 0 80px rgba(237,235,230,0.12)',
-          lineHeight: 1,
-        }}>
-          WiBill
-        </div>
+        <img
+          src="/logos/wibill-wordmark-badge-1024.png"
+          alt="WiBill"
+          style={{ width: 'min(560px, 85vw)', height: 'auto', objectFit: 'contain', display: 'inline-block' }}
+        />
         <div style={{
           fontFamily: '"Space Grotesk", sans-serif',
           fontSize: 11,
