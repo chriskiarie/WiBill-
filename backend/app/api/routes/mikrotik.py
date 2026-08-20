@@ -150,7 +150,6 @@ def _sanitize_notes_value(value: str) -> str:
     the notes field would contain raw commands like
     ``{{/system resource get version}}`` instead of resolved values.
     """
-    import re
     # Matches patterns like {{/system resource get version}} or
     # {[/system resource get board-name]} — any un-evaluated RSC command.
     if re.search(r'\{+\[?/system\s+', value) or re.search(r'\{+\[?/interface\s+', value):
@@ -245,16 +244,30 @@ async def health_check(
             if identity or version:
                 prior = (config.notes or "").strip(" |")
                 merged = prior
+                # Also strip any raw unresolved RouterOS expressions that leaked in.
+                merged = re.sub(r'\{+\[?/?/system\s+[^|]*', '', merged).strip(" |")
+                merged = re.sub(r'\{+\[?/?/interface\s+[^|]*', '', merged).strip(" |")
                 if identity and (not parts.get("board") or parts["board"] == "unknown"):
-                    merged = re.sub(r'\|\s*Board:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
+                    merged = re.sub(r'(?:\|\s*)?Board:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
                     merged = f"{merged} | Board: {identity}".strip(" |")
                 if version and (not parts.get("routeros") or parts["routeros"] == "unknown"):
-                    merged = re.sub(r'\|\s*RouterOS:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
+                    merged = re.sub(r'(?:\|\s*)?RouterOS:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
                     merged = f"{merged} | RouterOS: {version}".strip(" |")
                 if merged != prior:
                     config.notes = merged
                     await db.commit()
-                parts = _notes_parts(config)
+    parts = _notes_parts(config)
+
+    # Always strip lingering unresolved RouterOS expressions from notes
+    # (e.g. {[/system resource get board-name]}) even when the router is
+    # offline — this keeps the displayed notes clean without a live probe.
+    raw_notes = (config.notes or "").strip(" |")
+    cleaned = re.sub(r'\{+\[?/?/system\s+[^|]*', '', raw_notes).strip(" |")
+    cleaned = re.sub(r'\{+\[?/?/interface\s+[^|]*', '', cleaned).strip(" |")
+    if cleaned != raw_notes:
+        config.notes = cleaned
+        await db.commit()
+        parts = _notes_parts(config)
 
     new_status = "CONNECTED" if connected else "ERROR"
     if connected:
@@ -429,6 +442,12 @@ async def generate_parameterized_script(
     # the existing de-facto "detected config" store (Board/RouterOS/MAC), so
     # SSID + walled garden ride along in the same pipe-delimited format.
     prior = (config.notes or "").strip(" |")
+    # Strip stale duplicate keys so each key appears only once (last wins).
+    for key in ("SSID", "WalledGarden", "OnboardPath"):
+        prior = re.sub(rf'\|\s*{key}:\s*[^|]*', '', prior, flags=re.IGNORECASE).strip(" |")
+    # Also strip any raw unresolved RouterOS expressions that leaked in.
+    prior = re.sub(r'\{+\[?/?/system\s+[^|]*\|?', '', prior).strip(" |")
+    prior = re.sub(r'\{+\[?/?/interface\s+[^|]*\|?', '', prior).strip(" |")
     config.notes = f"{prior} | SSID: {ssid} | WalledGarden: yes | OnboardPath: full_setup".strip(" |")
 
     # Auto-push: enqueue the portal-file + font-garden actions so the router
@@ -840,6 +859,8 @@ async def get_routeros_script(
     # walled-garden fact so the management view can checkmark it.
     if config:
         prior = (config.notes or "").strip(" |")
+        for key in ("WalledGarden",):
+            prior = re.sub(rf'\|\s*{key}:\s*[^|]*', '', prior, flags=re.IGNORECASE).strip(" |")
         config.notes = f"{prior} | WalledGarden: yes".strip(" |")
 
         # Auto-push: router self-updates hotspot/login.html + font garden.

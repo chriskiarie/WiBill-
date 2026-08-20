@@ -17,6 +17,7 @@ class Package(Base):
     duration_hours: Mapped[int] = mapped_column(Integer, nullable=False)
     duration_label: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. "1 Hour", "24 Hours", "7 Days"
     max_devices: Mapped[int] = mapped_column(Integer, default=1)
+    speed_limit_mbps: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     display_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

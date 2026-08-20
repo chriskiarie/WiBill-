@@ -27,6 +27,7 @@ class PackageCreate(BaseModel):
     duration_hours: int
     duration_label: str
     max_devices: int = 1
+    speed_limit_mbps: int | None = None
     display_order: int = 0
 
 
@@ -36,6 +37,7 @@ class PackageUpdate(BaseModel):
     duration_hours: int | None = None
     duration_label: str | None = None
     max_devices: int | None = None
+    speed_limit_mbps: int | None = None
     is_active: bool | None = None
     display_order: int | None = None
 
@@ -63,6 +65,7 @@ async def list_packages(
             "duration_hours": p.duration_hours,
             "duration_label": p.duration_label,
             "max_devices": p.max_devices,
+            "speed_limit_mbps": p.speed_limit_mbps,
         }
         for p in packages
     ]
@@ -89,6 +92,7 @@ async def list_mine(
             "duration_hours": p.duration_hours,
             "duration_label": p.duration_label,
             "max_devices": p.max_devices,
+            "speed_limit_mbps": p.speed_limit_mbps,
             "display_order": p.display_order,
             "is_active": p.is_active,
         }
@@ -109,6 +113,7 @@ async def create_package(
         duration_hours=data.duration_hours,
         duration_label=data.duration_label or auto_label(data.duration_hours),
         max_devices=data.max_devices,
+        speed_limit_mbps=data.speed_limit_mbps,
         display_order=data.display_order,
         is_active=True,
     )

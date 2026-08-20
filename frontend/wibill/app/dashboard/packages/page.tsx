@@ -16,11 +16,13 @@ const C = {
 interface PackageT {
   id: string; name: string; duration_hours: number; price_ksh: number
   is_active: boolean; duration_label?: string; max_devices?: number; display_order?: number
+  speed_limit_mbps?: number | null; description?: string
 }
 
 interface PackageForm {
   name: string; duration_hours: number; duration_label: string
   price_ksh: number; max_devices: number; is_active: boolean
+  speed_limit_mbps?: number | null; description?: string
 }
 
 function autoLabel(h: number): string {
@@ -45,6 +47,7 @@ export default function PackagesPage() {
   const [editingPackage, setEditingPackage] = useState<PackageT | null>(null)
   const [formData, setFormData] = useState<PackageForm>({
     name: '', duration_hours: 1, duration_label: '1 hr', price_ksh: 0, max_devices: 1, is_active: true,
+    speed_limit_mbps: null, description: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
@@ -98,7 +101,7 @@ export default function PackagesPage() {
 
   const openCreate = () => {
     setEditingPackage(null)
-    setFormData({ name: '', duration_hours: 1, duration_label: autoLabel(1), price_ksh: 0, max_devices: 1, is_active: true })
+    setFormData({ name: '', duration_hours: 1, duration_label: autoLabel(1), price_ksh: 0, max_devices: 1, is_active: true, speed_limit_mbps: null, description: '' })
     setShowModal(true)
   }
 
@@ -127,6 +130,7 @@ export default function PackagesPage() {
       name: pkg.name, duration_hours: pkg.duration_hours,
       duration_label: pkg.duration_label || autoLabel(pkg.duration_hours),
       price_ksh: pkg.price_ksh, max_devices: pkg.max_devices || 1, is_active: pkg.is_active,
+      speed_limit_mbps: pkg.speed_limit_mbps ?? null, description: pkg.description || '',
     })
     setShowModal(true)
   }
@@ -273,7 +277,13 @@ export default function PackagesPage() {
                   {/* Duration */}
                   <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: C.gold, fontWeight: 500 }}>
                     {pkg.duration_label || `${pkg.duration_hours}h`}
+                    {pkg.speed_limit_mbps ? ` · ${pkg.speed_limit_mbps} Mbps` : ''}
                   </div>
+                  {pkg.description && (
+                    <div style={{ fontSize: 11, color: C.dim, fontFamily: 'Inter, sans-serif', marginTop: -8 }}>
+                      {pkg.description}
+                    </div>
+                  )}
 
                   {/* Divider */}
                   <div style={{ height: 1, background: C.border, margin: '0 -4px' }} />
@@ -320,6 +330,16 @@ export default function PackagesPage() {
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Price (KSH) *</label>
                 <input type="number" min="1" step="1" value={formData.price_ksh} onChange={e => setFormData(p => ({ ...p, price_ksh: parseInt(e.target.value) || 0 }))} style={inputSx} required />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Speed Cap (Mbps)</label>
+                <input type="number" min="0" step="1" placeholder="No limit" value={formData.speed_limit_mbps ?? ''} onChange={e => setFormData(p => ({ ...p, speed_limit_mbps: e.target.value ? parseInt(e.target.value) : null }))} style={inputSx} />
+                <div style={{ fontSize: 10, color: C.mute, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>Leave empty for unlimited speed</div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Description</label>
+                <input type="text" placeholder="e.g. Best for streaming" value={formData.description || ''} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} style={inputSx} />
+                <div style={{ fontSize: 10, color: C.mute, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>Shown on the portal package card</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
                 <input type="checkbox" checked={formData.is_active} onChange={e => setFormData(p => ({ ...p, is_active: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.gold }} />

@@ -8,6 +8,7 @@ Backend pushes config only after the router reports in.
 import secrets
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone as tz
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse
@@ -246,11 +247,15 @@ async def resolve_hotspot_conflict(
     if payload.overwrite_hotspot:
         # Mark config as ready for the full setup wizard to proceed
         config.status = "PROVISIONED"
-        config.notes = (config.notes or "") + " | Overwrite hotspot: confirmed"
+        prior = (config.notes or "").strip(" |")
+        prior = re.sub(r'(?:\|\s*)?(?:Overwrite hotspot|Keep existing hotspot):\s*[^|]*', '', prior, flags=re.IGNORECASE).strip(" |")
+        config.notes = f"{prior} | Overwrite hotspot: confirmed".strip(" |")
     else:
         # Keep existing hotspot, just register the device
         config.status = "CONNECTED"
-        config.notes = (config.notes or "") + " | Keep existing hotspot: confirmed"
+        prior = (config.notes or "").strip(" |")
+        prior = re.sub(r'(?:\|\s*)?(?:Overwrite hotspot|Keep existing hotspot):\s*[^|]*', '', prior, flags=re.IGNORECASE).strip(" |")
+        config.notes = f"{prior} | Keep existing hotspot: confirmed".strip(" |")
 
     await db.commit()
 

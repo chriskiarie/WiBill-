@@ -224,6 +224,7 @@
         .rn{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .rd{font-size:.7rem;color:var(--dim);display:flex;gap:8px;margin-top:2px}
         .rd span{display:flex;align-items:center;gap:3px}
+        .rdesc{font-size:.65rem;color:var(--dim);line-height:1.3;margin-top:3px}
 
         .rp-price{text-align:right;flex-shrink:0}
         .rp-label{font-size:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
@@ -433,8 +434,9 @@
                         <div class="rn">{{ pkg.name }}</div>
                         <div class="rd">
                             <span>⏱ {{ pkg.duration_label }}</span>
-                            {% if pkg.speed %}<span>{{ pkg.speed }}</span>{% endif %}
+                            {% if pkg.speed %}<span>⚡ {{ pkg.speed }}</span>{% endif %}
                         </div>
+                        {% if pkg.description %}<div class="rdesc">{{ pkg.description }}</div>{% endif %}
                     </div>
                     <div class="rp-price">
                         <div class="rp-label">Price</div>

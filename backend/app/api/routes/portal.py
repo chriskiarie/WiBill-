@@ -26,9 +26,12 @@ router = APIRouter()
 
 # Demo data for previews
 DEMO_PACKAGES = [
-    {"n": "1 Hour", "p": 20, "d": "60 min", "s": "Up to 5 Mbps", "star": False},
-    {"n": "6 Hours", "p": 80, "d": "6 hrs", "s": "Up to 10 Mbps", "star": False},
-    {"n": "Daily", "p": 150, "d": "24 hrs", "s": "Up to 15 Mbps", "star": True},
+    {"n": "1 Hour", "p": 20, "d": "60 min", "s": "Up to 5 Mbps", "star": False,
+     "name": "1 Hour", "price_ksh": 20, "duration_label": "60 min", "speed": "Up to 5 Mbps", "description": "Quick browse", "max_devices": 1, "id": "demo-1", "duration_hours": 1},
+    {"n": "6 Hours", "p": 80, "d": "6 hrs", "s": "Up to 10 Mbps", "star": False,
+     "name": "6 Hours", "price_ksh": 80, "duration_label": "6 hrs", "speed": "Up to 10 Mbps", "description": "Half-day browsing", "max_devices": 1, "id": "demo-2", "duration_hours": 6},
+    {"n": "Daily", "p": 150, "d": "24 hrs", "s": "Up to 15 Mbps", "star": True,
+     "name": "Daily", "price_ksh": 150, "duration_label": "24 hrs", "speed": "Up to 15 Mbps", "description": "All-day access", "max_devices": 1, "id": "demo-3", "duration_hours": 24},
 ]
 
 DEMO_BRAND = {
@@ -383,6 +386,13 @@ async def get_live_portal(
             "d": pkg.duration_label,
             "s": "High Speed",
             "star": False,
+            "name": pkg.name,
+            "price_ksh": float(pkg.price_ksh),
+            "duration_label": pkg.duration_label,
+            "duration_hours": pkg.duration_hours,
+            "speed": f"{pkg.speed_limit_mbps} Mbps" if pkg.speed_limit_mbps else "",
+            "description": pkg.description or "",
+            "max_devices": pkg.max_devices,
         }
         for pkg in packages_list
     ]
@@ -454,7 +464,10 @@ async def get_live_portal(
     
     try:
         html = PortalRenderer.render(filename, context)
-        return html
+        return HTMLResponse(
+            content=html,
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"},
+        )
     except Exception as e:
         # Never hand a captive phone a white error page — render a minimal
         # branded fallback instead.

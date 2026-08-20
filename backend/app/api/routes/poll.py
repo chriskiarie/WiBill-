@@ -244,7 +244,10 @@ async def report_identity(
 
     def _upsert(value: str, key: str) -> None:
         nonlocal merged
-        merged = re.sub(rf'\|\s*{key}\s*:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
+        # Strip any raw unresolved RouterOS expressions first.
+        merged = re.sub(r'\{+\[?/?/system\s+[^|]*', '', merged).strip(" |")
+        merged = re.sub(r'\{+\[?/?/interface\s+[^|]*', '', merged).strip(" |")
+        merged = re.sub(rf'(?:\|\s*)?{key}\s*:\s*[^|]*', '', merged, flags=re.IGNORECASE).strip(" |")
         merged = f"{merged} | {key}: {value}".strip(" |")
 
     if board:
