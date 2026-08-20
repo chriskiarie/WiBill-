@@ -32,6 +32,17 @@ function autoLabel(h: number): string {
   return `${h} hrs`
 }
 
+const PRESET_DESCRIPTIONS = [
+  'Quick browse — email & messaging',
+  'Best for streaming',
+  'Half-day browsing',
+  'All-day access',
+  'Perfect for students',
+  'Great for remote work',
+  'Premium unthrottled',
+  'Family shared plan',
+]
+
 const inputSx: React.CSSProperties = {
   width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.mute}`, borderRadius: 7, color: C.text,
@@ -338,7 +349,23 @@ export default function PackagesPage() {
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 10, color: C.dim, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>Description</label>
-                <input type="text" placeholder="e.g. Best for streaming" value={formData.description || ''} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} style={inputSx} />
+                <select
+                  value={PRESET_DESCRIPTIONS.includes(formData.description || '') ? (formData.description || '') : '__custom'}
+                  onChange={e => {
+                    if (e.target.value === '__custom') {
+                      setFormData(p => ({ ...p, description: '' }))
+                    } else {
+                      setFormData(p => ({ ...p, description: e.target.value }))
+                    }
+                  }}
+                  style={{ ...inputSx, cursor: 'pointer' }}>
+                  <option value="">None</option>
+                  {PRESET_DESCRIPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  <option value="__custom">Custom...</option>
+                </select>
+                {(!formData.description || !PRESET_DESCRIPTIONS.includes(formData.description)) && (
+                  <input type="text" placeholder="Type custom description" value={formData.description || ''} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} style={{ ...inputSx, marginTop: 6 }} />
+                )}
                 <div style={{ fontSize: 10, color: C.mute, marginTop: 4, fontFamily: 'Inter, sans-serif' }}>Shown on the portal package card</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>

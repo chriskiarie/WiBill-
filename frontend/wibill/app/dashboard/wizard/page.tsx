@@ -199,6 +199,8 @@ export default function PortalWizard() {
   if (livePackages.length > 0) {
     const pkgsJson = JSON.stringify(livePackages.filter((p: any) => p.is_active !== false).map((p: any) => ({
       n: p.name, p: p.price_ksh, d: p.duration_label || `${p.duration_hours}h`, star: false,
+      s: p.speed_limit_mbps ? `${p.speed_limit_mbps} Mbps` : '',
+      desc: p.description || '',
     })))
     previewParams.set('pkgs', pkgsJson)
   }
@@ -388,7 +390,7 @@ export default function PortalWizard() {
 
   async function fetchLivePackages() {
     try {
-      const res = await fetch(`${API}/api/packages`, {
+      const res = await fetch(`${API}/api/packages/mine`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) { const data = await res.json(); setLivePackages(Array.isArray(data) ? data : []) }
@@ -454,6 +456,7 @@ export default function PortalWizard() {
           if (match) setPalette(match.p)
         }
         loadSnapshots()
+        fetchLivePackages()
         setActiveSnapshotId(id)
         toast('Version restored!')
       } else {

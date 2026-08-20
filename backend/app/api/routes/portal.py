@@ -111,12 +111,15 @@ async def preview_portal(template_id: str, request: Request):
         else:
             live_packages = [
                 {
+                    "id": p.get("id", str(i + 1)),
                     "name": p.get("n", "Plan"),
                     "price_ksh": float(p.get("p", 0)),
                     "duration_label": p.get("d", "1 hr"),
-                    "star": p.get("star", False)
+                    "star": p.get("star", False),
+                    "speed": p.get("s", ""),
+                    "description": p.get("desc", ""),
                 }
-                for p in packages_raw
+                for i, p in enumerate(packages_raw)
             ]
     except Exception as e:
         live_packages = DEMO_PACKAGES
