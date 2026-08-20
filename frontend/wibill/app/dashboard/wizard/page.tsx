@@ -162,6 +162,7 @@ export default function PortalWizard() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null)
   const [stickerDataUrl, setStickerDataUrl] = useState<string | null>(null)
+  const [stickerUploading, setStickerUploading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -641,9 +642,28 @@ export default function PortalWizard() {
               <div style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: 0.7, margin: '12px 0 8px' }}>Brand Sticker</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5, marginBottom: 10 }}>
                 {BRAND_STICKERS.map(st => {
-                  const active = !logoUrl && selectedSticker === st.src
+                  const active = selectedSticker === st.src
                   return (
-                    <button key={st.name} onClick={() => { setEmoji(st.name); setSelectedSticker(st.src); setLogoUrl(null) }} style={{
+                    <button key={st.name} onClick={async () => {
+                        setEmoji(st.name)
+                        setSelectedSticker(st.src)
+                        setLogoUrl(null)
+                        // Upload sticker to backend so portal template can render it as an image
+                        try {
+                          const res = await fetch(st.src)
+                          const blob = await res.blob()
+                          const file = new File([blob], `${st.name.toLowerCase().replace(/\s+/g, '-')}.png`, { type: blob.type })
+                          const form = new FormData()
+                          form.append('file', file); form.append('subfolder', 'assets')
+                          const uploadRes = await fetch(`${API}/api/portal/assets/upload`, {
+                            method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+                          })
+                          if (uploadRes.ok) {
+                            const data = await uploadRes.json()
+                            if (data.asset?.url) setLogoUrl(toAbsoluteUrl(data.asset.url))
+                          }
+                        } catch {}
+                      }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       border: active ? '1px solid var(--theme-gold)' : '1px solid #2a2a2a',
                       background: active ? accentRgba(0.15) : 'rgba(255,255,255,0.1)', cursor: 'pointer',
