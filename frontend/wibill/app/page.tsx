@@ -131,7 +131,7 @@ export default function LandingPage() {
       }}>
         {/* WiBill wordmark badge */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ height: 96, width: 96, objectFit: 'contain', display: 'block' }} />
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ height: 128, width: 128, objectFit: 'contain', display: 'block' }} />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
           <a href="#how" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
