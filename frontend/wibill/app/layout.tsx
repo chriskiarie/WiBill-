@@ -15,6 +15,15 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'WiBill — ISP Management',
   description: 'HonestBill ISP Dashboard',
+  icons: {
+    icon: '/logos/wibill-wb-monogram-192.png',
+    apple: '/logos/wibill-wb-monogram-180.png',
+  },
+  openGraph: {
+    title: 'WiBill — ISP Management',
+    description: 'HonestBill ISP Dashboard',
+    images: ['/logos/wibill-wordmark-badge-2048.png'],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

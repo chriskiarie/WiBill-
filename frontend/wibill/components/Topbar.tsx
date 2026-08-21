@@ -159,11 +159,11 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 0 }}>
         {/* Mobile logo — hidden on desktop */}
         <div className="topbar-mobile-logo" style={{
-          width: 28, height: 28, borderRadius: 7,
+          width: 36, height: 36, borderRadius: 8,
           display: 'none', alignItems: 'center',
           justifyContent: 'center', flexShrink: 0, marginRight: 8,
         }}>
-          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: 30, height: 30, objectFit: 'contain', display: 'block' }} />
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: 36, height: 36, objectFit: 'contain', display: 'block' }} />
         </div>
         <h1
           className="page-title"

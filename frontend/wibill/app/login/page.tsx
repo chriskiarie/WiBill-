@@ -395,7 +395,7 @@ function LoginContent() {
         paddingBottom: 60,
       }}>
         <img
-          src="/logos/wibill-wordmark-badge-1024.png"
+          src="/logos/wibill-wordmark-badge-2048.png"
           alt="WiBill"
           style={{ width: 'min(560px, 85vw)', height: 'auto', objectFit: 'contain', display: 'inline-block' }}
         />
