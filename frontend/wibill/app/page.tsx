@@ -131,7 +131,7 @@ export default function LandingPage() {
       }}>
         {/* WiBill wordmark badge */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 56, width: 'auto', objectFit: 'contain', display: 'block' }} />
+          <img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 48, width: 'auto', objectFit: 'contain', display: 'block' }} />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 14, color: dim }}>
           <a href="#how" style={{ color: dim, textDecoration: 'none', transition: 'color 0.15s' }}
@@ -161,6 +161,7 @@ export default function LandingPage() {
         padding: '72px 28px 56px',
         maxWidth: 760, margin: '0 auto',
       }}>
+        <img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 80, width: 'auto', objectFit: 'contain', display: 'block', margin: '0 auto 32px' }} />
         <h1 style={{
           fontFamily: "'Instrument Serif', serif",
           fontStyle: 'italic', fontWeight: 500,
