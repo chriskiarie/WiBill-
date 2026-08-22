@@ -132,9 +132,9 @@ export default function SignupPage() {
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <Link href="/" style={{ textDecoration: 'none', display: 'inline-block' }}>
             <img
-              src="/logos/wibill-wordmark-badge-512.png"
+              src="/logos/wibill-wb-monogram-192.png"
               alt="WiBill"
-              style={{ width: 220, height: 'auto', objectFit: 'contain', display: 'block' }}
+              style={{ width: 120, height: 120, objectFit: 'contain', display: 'block' }}
             />
           </Link>
           <div style={{
