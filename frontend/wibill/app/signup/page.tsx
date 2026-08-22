@@ -134,7 +134,7 @@ export default function SignupPage() {
             <img
               src="/logos/wibill-wordmark-badge-512.png"
               alt="WiBill"
-              style={{ width: 280, height: 'auto', objectFit: 'contain', display: 'block' }}
+              style={{ width: 220, height: 'auto', objectFit: 'contain', display: 'block' }}
             />
           </Link>
           <div style={{

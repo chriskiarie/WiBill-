@@ -221,7 +221,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fontFamily: 'Inter, sans-serif', padding: 40,
       }}>
         <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 52, width: 'auto', objectFit: 'contain', display: 'block' }} />
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ height: 48, width: 48, objectFit: 'contain', display: 'block' }} />
         </div>
         <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: 28, fontWeight: 700, color: '#E5707A', margin: '0 0 12px' }}>Account Suspended</h1>
         <p style={{ fontSize: 14, color: '#8C8A84', margin: '0 0 32px', maxWidth: 400, textAlign: 'center', lineHeight: 1.6 }}>

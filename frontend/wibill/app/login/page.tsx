@@ -125,7 +125,7 @@ function LoginContent() {
       <img
         src="/logos/wibill-wordmark-badge-512.png"
         alt="WiBill"
-        style={{ width: 240, height: 'auto', objectFit: 'contain', display: 'inline-block' }}
+        style={{ width: 220, height: 'auto', objectFit: 'contain', display: 'inline-block' }}
       />
       <div style={{
         fontFamily: '"Space Grotesk", sans-serif',
@@ -397,7 +397,7 @@ function LoginContent() {
         <img
           src="/logos/wibill-wordmark-badge-2048.png"
           alt="WiBill"
-          style={{ width: 'min(320px, 60vw)', height: 'auto', objectFit: 'contain', display: 'inline-block' }}
+          style={{ width: 'min(220px, 60vw)', height: 'auto', objectFit: 'contain', display: 'inline-block' }}
         />
         <div style={{
           fontFamily: '"Space Grotesk", sans-serif',

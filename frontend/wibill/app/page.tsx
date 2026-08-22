@@ -436,7 +436,7 @@ export default function LandingPage() {
           >
             <div className="connect-bg" />
             <div className="connect-voice">Say hello</div>
-            <div className="connect-logo"><img src="/logos/wibill-wordmark-badge-512.png" alt="WiBill" style={{ height: 56, width: 'auto', objectFit: 'contain', display: 'block' }} /></div>
+            <div className="connect-logo"><img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ height: 56, width: 56, objectFit: 'contain', display: 'block' }} /></div>
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
               <div className="connect-box connect-box1">
                 <span className="c-icon">
