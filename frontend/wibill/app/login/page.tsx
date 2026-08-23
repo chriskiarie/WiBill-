@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import { Eye, EyeOff } from 'lucide-react'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
 const inp: React.CSSProperties = {
   width: '100%',
   background: 'rgba(255,255,255,0.04)',
@@ -39,29 +37,20 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const { login } = useAuth()
 
-  const [tab, setTab] = useState<'login' | 'signup'>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [inviteToken, setInviteToken] = useState<string | null>(null)
   const [focusField, setFocusField] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const [ispName, setIspName] = useState('')
-  const [slug, setSlug] = useState('')
-  const [regEmail, setRegEmail] = useState('')
-  const [regPass, setRegPass] = useState('')
-  const [phone, setPhone] = useState('')
-
   useEffect(() => {
     const token = searchParams?.get('ref') || searchParams?.get('token')
     if (token) {
-      setInviteToken(token)
-      setTab('signup')
+      router.push(`/signup?ref=${encodeURIComponent(token)}`)
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -72,46 +61,6 @@ function LoginContent() {
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSignup = async (e: FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      let registerUrl = `${API}/api/auth/register`
-      if (inviteToken) registerUrl += `?token=${encodeURIComponent(inviteToken)}`
-
-      const res = await fetch(registerUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isp_name: ispName,
-          isp_slug: slug,
-          admin_email: regEmail,
-          admin_password: regPass,
-          admin_phone: phone || '254700000000',
-          support_phone: phone || null,
-        }),
-      })
-
-      if (!res.ok) {
-        const d = await res.json()
-        throw new Error(d.detail || 'Registration failed')
-      }
-
-      setError('')
-      try {
-        await login(regEmail, regPass)
-        router.push('/dashboard')
-      } catch {
-        router.push(`/login?email=${encodeURIComponent(regEmail)}`)
-      }
-    } catch (err: any) {
-      setError(err.message || 'Registration failed')
     } finally {
       setLoading(false)
     }
@@ -142,60 +91,6 @@ function LoginContent() {
 
   const formSection = (
     <>
-
-      {/* Invite banner */}
-      {inviteToken && (
-        <div style={{
-          background: 'rgba(34,197,94,0.08)',
-          border: '0.5px solid rgba(34,197,94,0.2)',
-          borderRadius: 10,
-          padding: '12px 16px',
-          marginBottom: 20,
-          color: '#22c55e',
-          fontSize: 12,
-          textAlign: 'center',
-          fontFamily: '"Space Grotesk", sans-serif',
-        }}>
-          You have been invited. Create your account below.
-        </div>
-      )}
-
-      {/* Tabs */}
-      {!inviteToken && (
-        <div style={{
-          display: 'flex',
-          background: 'rgba(255,255,255,0.03)',
-          border: '0.5px solid rgba(255,255,255,0.06)',
-          borderRadius: 10,
-          padding: 3,
-          marginBottom: 20,
-          gap: 3,
-        }}>
-          {(['login', 'signup'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => { setTab(t); setError('') }}
-              style={{
-                flex: 1,
-                padding: '9px',
-                border: 'none',
-                borderRadius: 7,
-                cursor: 'pointer',
-                background: tab === t ? '#141414' : 'transparent',
-                color: tab === t ? '#E8B84B' : '#555',
-                fontFamily: '"Syne", sans-serif',
-                fontSize: 12,
-                fontWeight: tab === t ? 700 : 500,
-                letterSpacing: '0.3px',
-                transition: 'all 0.2s',
-              }}
-            >
-              {t === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Card */}
       <div style={{
         background: 'rgba(10, 10, 10, 0.6)',
@@ -205,161 +100,88 @@ function LoginContent() {
         borderRadius: 16,
         padding: 28,
       }}>
-        {(tab === 'login' && !inviteToken) ? (
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label style={lbl}>EMAIL</label>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label style={lbl}>EMAIL</label>
+            <input
+              style={inputStyle('email')}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setFocusField('email')}
+              onBlur={() => setFocusField(null)}
+              required
+            />
+          </div>
+          <div>
+            <label style={lbl}>PASSWORD</label>
+            <div style={{ position: 'relative' }}>
               <input
-                style={inputStyle('email')}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setFocusField('email')}
+                style={{ ...inputStyle('password'), paddingRight: 44 }}
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setFocusField('password')}
                 onBlur={() => setFocusField(null)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: 12, top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: 4, display: 'flex',
+                  color: showPassword ? '#E8B84B' : 'rgba(255,255,255,0.5)',
+                  transition: 'color 200ms',
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            <div>
-              <label style={lbl}>PASSWORD</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  style={{ ...inputStyle('password'), paddingRight: 44 }}
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusField('password')}
-                  onBlur={() => setFocusField(null)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute', right: 12, top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    padding: 4, display: 'flex',
-                    color: showPassword ? '#E8B84B' : 'rgba(255,255,255,0.5)',
-                    transition: 'color 200ms',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+          </div>
+          {error && (
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '0.5px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '10px 14px', color: '#ef4444', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
+              {error}
             </div>
-            {error && (
-              <div style={{ background: 'rgba(239,68,68,0.08)', border: '0.5px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '10px 14px', color: '#ef4444', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
-                {error}
-              </div>
-            )}
-            <button type="submit" style={{
-              width: '100%',
-              padding: '14px',
-              background: loading ? '#555' : '#E8B84B',
-              border: 'none',
-              borderRadius: 9,
-              color: '#000',
-              fontFamily: '"Syne", sans-serif',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              letterSpacing: '0.5px',
-              transition: 'opacity 0.2s',
-            }}>
-              {loading ? 'Signing in...' : 'SIGN IN'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <label style={lbl}>ISP NAME</label>
-              <input
-                style={inputStyle('ispName')}
-                type="text"
-                value={ispName}
-                onChange={(e) => setIspName(e.target.value)}
-                onFocus={() => setFocusField('ispName')}
-                onBlur={() => setFocusField(null)}
-                placeholder="Your ISP Name"
-                required
-              />
-            </div>
-            <div>
-              <label style={lbl}>SLUG (URL-SAFE)</label>
-              <input
-                style={inputStyle('slug')}
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                onFocus={() => setFocusField('slug')}
-                onBlur={() => setFocusField(null)}
-                placeholder="my-isp"
-                required
-              />
-            </div>
-            <div>
-              <label style={lbl}>ADMIN EMAIL</label>
-              <input
-                style={inputStyle('regEmail')}
-                type="email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                onFocus={() => setFocusField('regEmail')}
-                onBlur={() => setFocusField(null)}
-                placeholder="admin@yourisp.co.ke"
-                required
-              />
-            </div>
-            <div>
-              <label style={lbl}>PASSWORD</label>
-              <input
-                style={inputStyle('regPass')}
-                type="password"
-                value={regPass}
-                onChange={(e) => setRegPass(e.target.value)}
-                onFocus={() => setFocusField('regPass')}
-                onBlur={() => setFocusField(null)}
-                placeholder="ÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇó"
-                required
-              />
-            </div>
-            <div>
-              <label style={lbl}>PHONE (OPTIONAL)</label>
-              <input
-                style={inputStyle('phone')}
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onFocus={() => setFocusField('phone')}
-                onBlur={() => setFocusField(null)}
-                placeholder="+254..."
-              />
-            </div>
-            {error && (
-              <div style={{ background: 'rgba(239,68,68,0.08)', border: '0.5px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '10px 14px', color: '#ef4444', fontSize: 12, fontFamily: 'DM Mono, monospace' }}>
-                {error}
-              </div>
-            )}
-            <button type="submit" style={{
-              width: '100%',
-              padding: '14px',
-              background: loading ? '#555' : '#E8B84B',
-              border: 'none',
-              borderRadius: 9,
-              color: '#000',
-              fontFamily: '"Syne", sans-serif',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              letterSpacing: '0.5px',
-              transition: 'opacity 0.2s',
-            }}>
-              {loading ? 'Creating...' : inviteToken ? 'LAUNCH MY DASHBOARD' : 'CREATE ACCOUNT'}
-            </button>
-          </form>
-        )}
+          )}
+          <button type="submit" style={{
+            width: '100%',
+            padding: '14px',
+            background: loading ? '#555' : '#E8B84B',
+            border: 'none',
+            borderRadius: 9,
+            color: '#000',
+            fontFamily: '"Syne", sans-serif',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.6 : 1,
+            letterSpacing: '0.5px',
+            transition: 'opacity 0.2s',
+          }}>
+            {loading ? 'Signing in...' : 'SIGN IN'}
+          </button>
+        </form>
+      </div>
+
+      {/* Create account link */}
+      <div style={{ textAlign: 'center', marginTop: 16 }}>
+        <a
+          href="/signup"
+          style={{
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 12,
+            fontFamily: '"Space Grotesk", sans-serif',
+            textDecoration: 'none',
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#E8B84B')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
+        >
+          Create account →
+        </a>
       </div>
     </>
   )
