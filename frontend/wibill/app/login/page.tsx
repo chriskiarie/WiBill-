@@ -69,26 +69,6 @@ function LoginContent() {
   const inputStyle = (name: string): React.CSSProperties =>
     focusField === name ? inpFocus : inp
 
-  const wordmarkSection = (
-    <div className="text-center">
-        <img
-          src="/logos/wibill-wb-monogram-192.png"
-          alt="WiBill"
-          style={{ width: 120, height: 120, objectFit: 'contain', display: 'inline-block' }}
-        />
-      <div style={{
-        fontFamily: '"Space Grotesk", sans-serif',
-        fontSize: 11,
-        color: '#555',
-        marginTop: 8,
-        letterSpacing: '2.5px',
-        fontWeight: 600,
-      }}>
-        ISP MANAGEMENT PORTAL
-      </div>
-    </div>
-  )
-
   const formSection = (
     <>
       {/* Card */}
@@ -219,7 +199,7 @@ function LoginContent() {
         <img
           src="/logos/wibill-wb-monogram-192.png"
           alt="WiBill"
-          style={{ width: 120, height: 120, objectFit: 'contain', display: 'inline-block' }}
+          style={{ width: 160, height: 160, objectFit: 'contain', display: 'inline-block' }}
         />
         <div style={{
           fontFamily: '"Space Grotesk", sans-serif',
