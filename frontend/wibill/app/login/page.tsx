@@ -7,9 +7,9 @@ import { Eye, EyeOff } from 'lucide-react'
 
 const inp: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.04)',
-  border: '0.5px solid rgba(255,255,255,0.08)',
-  borderRadius: 9,
+  background: '#0a0a0a',
+  border: '0.5px solid #141414',
+  borderRadius: 7,
   padding: '13px 16px',
   color: '#f0f0f0',
   fontFamily: 'DM Mono, monospace',
@@ -24,7 +24,7 @@ const inpFocus: React.CSSProperties = {
 }
 const lbl: React.CSSProperties = {
   fontSize: 10,
-  color: '#777',
+  color: '#666',
   fontWeight: 700,
   letterSpacing: '0.6px',
   marginBottom: 6,
@@ -73,12 +73,11 @@ function LoginContent() {
     <>
       {/* Card */}
       <div style={{
-        background: 'rgba(10, 10, 10, 0.6)',
-        backdropFilter: 'blur(24px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-        border: '0.5px solid rgba(255,255,255,0.06)',
-        borderRadius: 16,
+        background: '#0a0a0a',
+        border: '0.5px solid #141414',
+        borderRadius: 11,
         padding: 28,
+        boxShadow: '0 20px 60px -15px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.03)',
       }}>
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
@@ -169,7 +168,7 @@ function LoginContent() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#030303',
+      background: '#050505',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -177,17 +176,14 @@ function LoginContent() {
       position: 'relative',
       overflow: 'auto',
     }}>
-      {/* ÔöÇÔöÇ Full-screen background image ÔöÇÔöÇ */}
-      <img
-        src="/login-bg.jpg"
-        alt=""
-        style={{
-          position: 'fixed', inset: 0,
-          width: '100%', height: '100%',
-          objectFit: 'cover',
-          opacity: 0.4,
-        }}
-      />
+      {/* Background texture */}
+      <div style={{
+        position: 'fixed', inset: 0,
+        backgroundImage: 'url(/landing-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        opacity: 0.15,
+      }} />
 
       {/* ÔöÇÔöÇ WiBill wordmark - centered across full screen ÔöÇÔöÇ */}
       <div style={{
@@ -199,7 +195,7 @@ function LoginContent() {
         <img
           src="/logos/wibill-wb-monogram-192.png"
           alt="WiBill"
-          style={{ width: 160, height: 160, objectFit: 'contain', display: 'inline-block' }}
+          style={{ width: 180, height: 180, objectFit: 'contain', display: 'inline-block' }}
         />
         <div style={{
           fontFamily: '"Space Grotesk", sans-serif',
@@ -230,7 +226,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+      <div style={{ minHeight: '100vh', background: '#050505', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
         <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid #E8B84B', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     }>

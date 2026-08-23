@@ -11,9 +11,9 @@ const dim = '#777'
 
 const inp: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.04)',
-  border: '0.5px solid rgba(255,255,255,0.08)',
-  borderRadius: 9,
+  background: '#0a0a0a',
+  border: '0.5px solid #141414',
+  borderRadius: 7,
   padding: '12px 14px',
   color: '#f0f0f0',
   fontFamily: "'DM Mono', monospace",
@@ -30,7 +30,7 @@ const inpFocus: React.CSSProperties = {
 }
 const lbl: React.CSSProperties = {
   fontSize: 10,
-  color: '#777',
+  color: '#666',
   fontWeight: 700,
   letterSpacing: '0.6px',
   marginBottom: 6,
@@ -87,7 +87,7 @@ export default function SignupPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#000',
+      background: '#050505',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -101,7 +101,7 @@ export default function SignupPage() {
         backgroundImage: 'url(/landing-bg.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        opacity: 0.2,
+        opacity: 0.15,
       }} />
 
       {/* Back to home */}
@@ -134,7 +134,7 @@ export default function SignupPage() {
             <img
               src="/logos/wibill-wb-monogram-192.png"
               alt="WiBill"
-              style={{ width: 120, height: 120, objectFit: 'contain', display: 'block' }}
+              style={{ width: 180, height: 180, objectFit: 'contain', display: 'block' }}
             />
           </Link>
           <div style={{
@@ -150,12 +150,11 @@ export default function SignupPage() {
         </div>
 
         <div style={{
-          background: 'rgba(10, 10, 10, 0.65)',
-          backdropFilter: 'blur(24px) saturate(1.4)',
-          WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-          border: '0.5px solid rgba(255,255,255,0.06)',
-          borderRadius: 16,
+          background: '#0a0a0a',
+          border: '0.5px solid #141414',
+          borderRadius: 11,
           padding: 32,
+          boxShadow: '0 20px 60px -15px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.03)',
         }}>
           {submitted ? (
             /* ── Success state ── */
@@ -280,14 +279,14 @@ export default function SignupPage() {
                       color: howHeard ? '#f0f0f0' : '#555',
                     }}
                   >
-                    <option value="" style={{ background: '#111', color: '#555' }}>Select an option...</option>
-                    <option value="Google" style={{ background: '#111' }}>Google</option>
-                    <option value="WhatsApp group" style={{ background: '#111' }}>WhatsApp group</option>
-                    <option value="Friend / colleague" style={{ background: '#111' }}>Friend / colleague</option>
-                    <option value="Social media" style={{ background: '#111' }}>Social media</option>
-                    <option value="Existing ISP recommendation" style={{ background: '#111' }}>Existing ISP recommendation</option>
-                    <option value="Trade show / event" style={{ background: '#111' }}>Trade show / event</option>
-                    <option value="Other" style={{ background: '#111' }}>Other</option>
+                    <option value="" style={{ background: '#0a0a0a', color: '#555' }}>Select an option...</option>
+                    <option value="Google" style={{ background: '#0a0a0a' }}>Google</option>
+                    <option value="WhatsApp group" style={{ background: '#0a0a0a' }}>WhatsApp group</option>
+                    <option value="Friend / colleague" style={{ background: '#0a0a0a' }}>Friend / colleague</option>
+                    <option value="Social media" style={{ background: '#0a0a0a' }}>Social media</option>
+                    <option value="Existing ISP recommendation" style={{ background: '#0a0a0a' }}>Existing ISP recommendation</option>
+                    <option value="Trade show / event" style={{ background: '#0a0a0a' }}>Trade show / event</option>
+                    <option value="Other" style={{ background: '#0a0a0a' }}>Other</option>
                   </select>
                   <div style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
