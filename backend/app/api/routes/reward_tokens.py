@@ -248,7 +248,7 @@ async def redeem_token(
     await db.commit()
 
     # Provision on MikroTik (non-blocking)
-    from app.services.mikrotik_service import create_mikrotik_user
+    from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
     try:
         await create_mikrotik_user(
             tenant_id=str(token.tenant_id),
@@ -262,6 +262,19 @@ async def redeem_token(
         )
     except Exception:
         pass
+
+    # Queue ip-binding bypass
+    if payload.mac_address and payload.mac_address != "00:00:00:00:00:00":
+        try:
+            await add_hotspot_bypass(
+                tenant_id=str(token.tenant_id),
+                mac_address=payload.mac_address,
+                ip_address=payload.ip_address or "0.0.0.0",
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception:
+            pass
 
     return {
         "success": True,

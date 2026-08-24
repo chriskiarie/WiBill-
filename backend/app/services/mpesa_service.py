@@ -323,7 +323,7 @@ async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
         dashboard_txn.confirmed_at = datetime.utcnow()
 
     # Provision hotspot user on MikroTik router
-    from app.services.mikrotik_service import create_mikrotik_user
+    from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
     mikrotik_result = await create_mikrotik_user(
         tenant_id=str(session.tenant_id),
         session_id=str(session.id),
@@ -339,6 +339,19 @@ async def _handle_session_paid(txn: MpesaTransaction, db: AsyncSession):
     else:
         logger.info(f"MikroTik user provisioned: {mikrotik_result.get('message')}")
         session.mikrotik_user_id = mikrotik_result.get("user_id")
+
+    # Queue ip-binding bypass so device gets internet without hotspot login
+    if session.mac_address and session.mac_address != "00:00:00:00:00:00":
+        try:
+            await add_hotspot_bypass(
+                tenant_id=str(session.tenant_id),
+                mac_address=session.mac_address,
+                ip_address=session.ip_address or "0.0.0.0",
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception as e:
+            logger.error(f"Failed to queue hotspot bypass for session {session.id}: {e}")
 
 
 def _parse_mpesa_date(date_int) -> datetime | None:

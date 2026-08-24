@@ -341,7 +341,7 @@ async def get_live_portal(
         await db.commit()
 
         # Provision on MikroTik (non-blocking)
-        from app.services.mikrotik_service import create_mikrotik_user
+        from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
         try:
             await create_mikrotik_user(
                 tenant_id=str(rtoken.tenant_id),
@@ -355,6 +355,19 @@ async def get_live_portal(
             )
         except Exception:
             pass
+
+        # Queue ip-binding bypass
+        if mac and mac != "00:00:00:00:00:00":
+            try:
+                await add_hotspot_bypass(
+                    tenant_id=str(rtoken.tenant_id),
+                    mac_address=mac,
+                    ip_address=request.client.host if request else "0.0.0.0",
+                    expires_at=session.expires_at,
+                    db=db,
+                )
+            except Exception:
+                pass
 
         return HTMLResponse(content=f"""<html><body style="font-family:monospace;padding:40px;background:#030303;color:#f0f0f0;text-align:center">
             <div style="font-size:48px;margin-bottom:16px">&#10004;&#65039;</div>
@@ -781,7 +794,7 @@ async def reconnect_mpesa(
     Looks up the transaction by mpesa_receipt, finds the associated session,
     and re-activates it on MikroTik if the session is still valid.
     """
-    from app.services.mikrotik_service import create_mikrotik_user
+    from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
     from app.services.session_service import activate_session as svc_activate
     from app.models.transaction import Transaction
 
@@ -837,6 +850,19 @@ async def reconnect_mpesa(
         )
     except Exception as e:
         logger.warning(f"MikroTik reconnect failed for session {session.id}: {e}")
+
+    # Queue ip-binding bypass
+    if mac_address and mac_address != "00:00:00:00:00:00":
+        try:
+            await add_hotspot_bypass(
+                tenant_id=str(session.tenant_id),
+                mac_address=mac_address,
+                ip_address=ip_address,
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception:
+            pass
 
     session.status = "active"
     session.mac_address = mac_address

@@ -487,7 +487,9 @@ async def redeem_voucher_portal(
         await db.commit()
 
         # Provision on MikroTik (non-blocking — don't fail redemption if router unreachable)
-        from app.services.mikrotik_service import create_mikrotik_user
+        from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
+        mikrotik_result = {"success": False, "message": "not attempted"}
+        bypass_result = None
         try:
             mikrotik_result = await create_mikrotik_user(
                 tenant_id=str(voucher.tenant_id),
@@ -503,12 +505,27 @@ async def redeem_voucher_portal(
             logger.error(f"MikroTik provisioning error for voucher redemption: {e}")
             mikrotik_result = {"success": False, "message": str(e)}
 
+        # Also queue an ip-binding bypass so the device gets internet immediately
+        # without needing to complete hotspot login again
+        if mac != "00:00:00:00:00:00":
+            try:
+                bypass_result = await add_hotspot_bypass(
+                    tenant_id=str(voucher.tenant_id),
+                    mac_address=mac,
+                    ip_address=payload.ip_address or "0.0.0.0",
+                    expires_at=session.expires_at,
+                    db=db,
+                )
+            except Exception as e:
+                logger.error(f"Failed to queue hotspot bypass: {e}")
+
         return {
             "success": True,
             "session_id": str(session.id),
             "package_name": pkg_name,
             "duration_hours": duration.total_seconds() / 3600,
             "mikrotik": mikrotik_result.get("success", False),
+            "bypass_queued": bypass_result.get("success", False) if bypass_result else False,
             "message": f"Voucher redeemed! {duration.total_seconds() / 3600:.1f}h of internet access activated.",
             "expires_at": session.expires_at.isoformat() + "Z",
         }

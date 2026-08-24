@@ -417,7 +417,7 @@ async def redeem_loyalty_portal(
     await db.commit()
 
     # Provision on MikroTik (non-blocking — don't fail redemption if router unreachable)
-    from app.services.mikrotik_service import create_mikrotik_user
+    from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
     try:
         mikrotik_result = await create_mikrotik_user(
             tenant_id=str(account.tenant_id),
@@ -432,6 +432,19 @@ async def redeem_loyalty_portal(
     except Exception as e:
         logger.error(f"MikroTik provisioning error for loyalty redemption: {e}")
         mikrotik_result = {"success": False, "message": str(e)}
+
+    # Queue ip-binding bypass
+    if mac_address and mac_address != "00:00:00:00:00:00":
+        try:
+            await add_hotspot_bypass(
+                tenant_id=str(account.tenant_id),
+                mac_address=mac_address,
+                ip_address=ip_address or "0.0.0.0",
+                expires_at=session.expires_at,
+                db=db,
+            )
+        except Exception:
+            pass
 
     return {
         "success": True,

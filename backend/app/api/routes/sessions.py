@@ -27,7 +27,7 @@ from app.services.session_service import create_session, expire_session
 from app.services.mpesa_service import initiate_session_payment
 from app.api.routes.auth import get_current_user
 
-from app.services.mikrotik_service import create_mikrotik_user
+from app.services.mikrotik_service import create_mikrotik_user, add_hotspot_bypass
 
 router = APIRouter(prefix="/portal", tags=["portal-sessions"])
 
@@ -333,6 +333,19 @@ async def activate_session(
                 status_code=500,
                 detail=f"Failed to activate on network: {mk_result.get('message')}"
             )
+        
+        # Queue ip-binding bypass
+        if session.mac_address and session.mac_address != "00:00:00:00:00:00":
+            try:
+                await add_hotspot_bypass(
+                    tenant_id=tenant.id,
+                    mac_address=session.mac_address,
+                    ip_address=session.ip_address or "0.0.0.0",
+                    expires_at=session.expires_at,
+                    db=db,
+                )
+            except Exception:
+                pass
         
         # Mark session as active
         stmt = update(DBSession).where(
