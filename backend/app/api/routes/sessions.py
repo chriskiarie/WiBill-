@@ -232,8 +232,8 @@ async def get_session_status(
         return {
             "session_id": str(session.id),
             "status": "active",
-            "message": f"Connected! Internet available until {session.expires_at.isoformat()}",
-            "internet_available_until": session.expires_at.isoformat(),
+            "message": f"Connected! Internet available until {session.expires_at.isoformat()}Z",
+            "internet_available_until": session.expires_at.isoformat() + "Z",
             "reconnect_code": session.reconnect_code,
             "package_name": package.name if package else "Unknown",
             "phone_number": session.phone_number,
@@ -246,7 +246,7 @@ async def get_session_status(
             "session_id": str(session.id),
             "status": "expired",
             "message": "Session has expired. Please purchase again.",
-            "expired_at": session.expires_at.isoformat()
+            "expired_at": session.expires_at.isoformat() + "Z"
         }
     
     elif session.status == "failed":
@@ -415,8 +415,8 @@ async def list_isp_sessions(
             "ip_address": s.ip_address,
             "phone_number": s.phone_number,
             "status": s.status.value if hasattr(s.status, "value") else s.status,
-            "created_at": s.created_at.isoformat(),
-            "expires_at": s.expires_at.isoformat() if s.expires_at else None,
+            "created_at": s.created_at.isoformat() + "Z",
+            "expires_at": s.expires_at.isoformat() + "Z" if s.expires_at else None,
             "package_id": str(s.package_id) if s.package_id else None,
             "package_name": _pkg_name(s.package_id),
             "amount_ksh": _pkg_amount(s.package_id),

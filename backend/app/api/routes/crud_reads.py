@@ -118,7 +118,7 @@ async def get_session_full(
         "ip_address": getattr(session, "ip_address", None),
         "status": session.status.value if hasattr(session.status, 'value') else session.status,
         "started_at": session.started_at.isoformat() if getattr(session, "started_at", None) else None,
-        "expires_at": session.expires_at.isoformat() if getattr(session, "expires_at", None) else None,
+        "expires_at": session.expires_at.isoformat() + "Z" if getattr(session, "expires_at", None) else None,
         "reconnect_code": getattr(session, "reconnect_code", None),
         "last_seen_at": getattr(session, "last_seen_at", None).isoformat() if getattr(session, "last_seen_at", None) else None,
     }
@@ -476,8 +476,8 @@ async def list_sessions(
             "mac_address": s.mac_address,
             "ip_address": s.ip_address,
             "status": s.status.value if hasattr(s.status, "value") else s.status,
-            "created_at": s.created_at.isoformat(),
-            "expires_at": s.expires_at.isoformat() if s.expires_at else None,
+            "created_at": s.created_at.isoformat() + "Z",
+            "expires_at": s.expires_at.isoformat() + "Z" if s.expires_at else None,
             "package_id": str(s.package_id) if s.package_id else None,
         }
         for s in rows

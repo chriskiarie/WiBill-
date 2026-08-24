@@ -122,7 +122,7 @@ async def generate_compensation_token(
         "token_id": str(token.id),
         "token_code": code,
         "minutes": payload.minutes,
-        "new_expires_at": new_expires.isoformat(),
+        "new_expires_at": new_expires.isoformat() + "Z",
         "reason": token.reason,
         "message": f"Session extended by {payload.minutes} minutes. New expiry: {new_expires.strftime('%H:%M')}",
     }
