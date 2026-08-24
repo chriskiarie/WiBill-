@@ -400,6 +400,8 @@ getMikrotikHealth: () =>
   unsuspendVoucher: (id: string) => request<any>(`/api/vouchers/${id}/unsuspend`, { method: 'POST' }),
   suspendVoucherBatch: (batchId: string) => request<any>(`/api/vouchers/batch/${batchId}/suspend`, { method: 'POST' }),
   unsuspendVoucherBatch: (batchId: string) => request<any>(`/api/vouchers/batch/${batchId}/unsuspend`, { method: 'POST' }),
+  batchVoidVouchers: (data: { voucher_ids?: string[]; batch_id?: string; void_all?: boolean }) =>
+    request<any>('/api/vouchers/batch/void', { method: 'POST', body: JSON.stringify(data) }),
 
   // ========================================================================
   // REWARD TOKENS (Premium Tier)

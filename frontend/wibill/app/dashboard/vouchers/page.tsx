@@ -29,6 +29,8 @@ export default function VouchersPage() {
   const [showGenerate, setShowGenerate] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [genForm, setGenForm] = useState({ duration_minutes: 60, quantity: 50, expires_in_days: 365 })
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkVoiding, setBulkVoiding] = useState(false)
 
   const PRESET_DURATIONS = [
     { label: '30 min', minutes: 30 },
@@ -85,6 +87,32 @@ export default function VouchersPage() {
       fetchVouchers()
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
   }
+
+  const handleBulkVoid = async (voidAll = false) => {
+    const count = voidAll ? data.vouchers.filter((v: any) => v.status === 'unused').length : selected.size
+    if (count === 0) return
+    const label = voidAll ? `VOID ALL ${count} unused vouchers` : `void ${count} selected voucher(s)`
+    if (!confirm(`${label}? This cannot be undone.`)) return
+    setBulkVoiding(true)
+    try {
+      const payload: any = voidAll ? { void_all: true } : { voucher_ids: Array.from(selected) }
+      const result = await api.batchVoidVouchers(payload)
+      showToast(result?.message || `Voided ${count} voucher(s)`, { type: 'success' })
+      setSelected(new Set())
+      fetchVouchers()
+    } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setBulkVoiding(false) }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const unusedVouchers = data.vouchers?.filter((v: any) => v.status === 'unused') || []
+  const allSelected = unusedVouchers.length > 0 && unusedVouchers.every((v: any) => selected.has(v.id))
 
   const exportCSV = () => {
     const rows = [['Code', 'Status', 'Suspended', 'Type', 'Batch', 'Created', 'Expires', 'Used At', 'MAC']]
@@ -147,7 +175,19 @@ export default function VouchersPage() {
           ))}
         </div>
 
-
+        {/* Bulk Action Bar */}
+        {selected.size > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'rgba(232,184,75,0.08)', border: '1px solid rgba(232,184,75,0.2)', borderRadius: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.gold }}>{selected.size} selected</span>
+            <button onClick={() => handleBulkVoid(false)} disabled={bulkVoiding} style={{ padding: '6px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: C.red, fontSize: 11, fontWeight: 700, cursor: bulkVoiding ? 'not-allowed' : 'pointer' }}>
+              {bulkVoiding ? 'Voiding...' : 'Void Selected'}
+            </button>
+            <button onClick={() => handleBulkVoid(true)} disabled={bulkVoiding} style={{ padding: '6px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, color: C.red, fontSize: 11, fontWeight: 700, cursor: bulkVoiding ? 'not-allowed' : 'pointer' }}>
+              Void All Unused
+            </button>
+            <button onClick={() => setSelected(new Set())} style={{ padding: '6px 10px', background: 'transparent', border: 'none', color: C.dim, fontSize: 11, cursor: 'pointer' }}>Clear</button>
+          </div>
+        )}
 
         {/* Loading */}
         {loading && <div style={{ textAlign: 'center', padding: 40, color: C.dim, fontSize: 13, fontFamily: 'Inter, sans-serif' }}>Loading...</div>}
@@ -156,7 +196,13 @@ export default function VouchersPage() {
         {!loading && data.vouchers?.length > 0 && (
           <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 640, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+              <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <input type="checkbox" checked={allSelected} onChange={() => {
+                  if (allSelected) setSelected(new Set())
+                  else setSelected(new Set(unusedVouchers.map((v: any) => v.id)))
+                }} style={{ width: 14, height: 14, accentColor: C.gold, cursor: 'pointer' }} />
+              </div>
               {['Code', 'Status', 'Type', 'Batch', 'Created', 'Suspended', 'Actions'].map(h => (
                 <div key={h} style={{ padding: '11px 16px', fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px', fontFamily: 'Inter, sans-serif' }}>{h}</div>
               ))}
@@ -166,7 +212,12 @@ export default function VouchersPage() {
               const d = v.duration_minutes || 60
               const typeLabel = d >= 1440 ? `${(d / 1440).toFixed(0)}d` : d >= 60 ? `${(d / 60).toFixed(0)}h` : `${d}m`
               return (
-                <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 600, borderBottom: i < data.vouchers.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
+                <div key={v.id} style={{ display: 'grid', gridTemplateColumns: '32px 1fr 0.6fr 0.6fr 0.6fr 0.6fr 0.5fr 1fr', minWidth: 640, borderBottom: i < data.vouchers.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center', background: selected.has(v.id) ? 'rgba(232,184,75,0.05)' : 'transparent' }}>
+                  <div style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {v.status === 'unused' && (
+                      <input type="checkbox" checked={selected.has(v.id)} onChange={() => toggleSelect(v.id)} style={{ width: 14, height: 14, accentColor: C.gold, cursor: 'pointer' }} />
+                    )}
+                  </div>
                   <div style={{ padding: '12px 16px', fontFamily: 'DM Mono, monospace', fontSize: 12, fontWeight: 600, color: C.text }}>{v.code}</div>
                   <div style={{ padding: '8px 12px' }}>
                     <div style={{ padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, color: statusColor, background: `${statusColor}20`, textTransform: 'uppercase', display: 'inline-block' }}>{v.status}</div>

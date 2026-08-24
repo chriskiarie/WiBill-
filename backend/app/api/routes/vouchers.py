@@ -248,6 +248,51 @@ async def void_voucher(
     return {"message": "Voucher voided", "code": voucher.code}
 
 
+class BatchVoidRequest(BaseModel):
+    voucher_ids: list[str] = []
+    batch_id: str | None = None
+    void_all: bool = False
+
+
+@router.post("/batch/void")
+async def batch_void_vouchers(
+    payload: BatchVoidRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = uuid.UUID(str(tenant_id_raw))
+
+    if not payload.void_all and not payload.voucher_ids and not payload.batch_id:
+        raise HTTPException(status_code=400, detail="Provide voucher_ids, batch_id, or set void_all=true")
+
+    query = select(Voucher).where(
+        Voucher.tenant_id == tenant_id,
+        Voucher.status == "unused",
+    )
+
+    if payload.void_all:
+        pass  # no additional filter
+    elif payload.batch_id:
+        query = query.where(Voucher.batch_id == payload.batch_id)
+    elif payload.voucher_ids:
+        ids = [uuid.UUID(vid) for vid in payload.voucher_ids]
+        query = query.where(Voucher.id.in_(ids))
+
+    result = await db.execute(query)
+    vouchers = result.scalars().all()
+
+    count = 0
+    for v in vouchers:
+        v.status = "expired"
+        count += 1
+
+    await db.commit()
+    return {"message": f"Voided {count} voucher(s)", "count": count}
+
+
 @router.post("/{voucher_id}/suspend")
 async def suspend_voucher(
     voucher_id: str,
