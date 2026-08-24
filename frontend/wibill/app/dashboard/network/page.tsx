@@ -122,11 +122,11 @@ export default function NetworkPage() {
     : { text: 'Not Monitoring Yet', color: C.gold, pulse: false }
 
   const statusTint = isOnline
-    ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 8%, ${C.void}) 0%, color-mix(in srgb, ${C.green} 4%, ${C.void}) 40%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 10%, ${C.void}) 0%, color-mix(in srgb, ${C.green} 4%, ${C.void}) 50%, ${C.void} 100%)`
     : isDegraded
-    ? `linear-gradient(180deg, color-mix(in srgb, ${C.gold} 8%, ${C.void}) 0%, color-mix(in srgb, ${C.gold} 4%, ${C.void}) 40%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, ${C.gold} 10%, ${C.void}) 0%, color-mix(in srgb, ${C.gold} 4%, ${C.void}) 50%, ${C.void} 100%)`
     : isOffline
-    ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 8%, ${C.void}) 0%, color-mix(in srgb, #E8634A 4%, ${C.void}) 40%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 10%, ${C.void}) 0%, color-mix(in srgb, #E8634A 4%, ${C.void}) 50%, ${C.void} 100%)`
     : C.void
 
   const uptimePercent = events.length > 0
@@ -135,26 +135,6 @@ export default function NetworkPage() {
 
   const lastChecked = status?.checked_at ? formatRelativeTime(status.checked_at) : '—'
   const routerIp = mikrotik?.router_ip || 'Not configured'
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-  const uptimeTimeline = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (13 - i))
-    const dayEvents = events.filter((e: any) => {
-      const ed = new Date(e.checked_at || e.created_at)
-      return ed.toDateString() === d.toDateString()
-    })
-    const upCount = dayEvents.filter((e: any) => e.status === 'UP' || e.status === 'up').length
-    const ratio = dayEvents.length > 0 ? upCount / dayEvents.length : null
-    return {
-      date: d,
-      label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      dayName: dayLabels[d.getDay() === 0 ? 6 : d.getDay() - 1],
-      ratio,
-      hasData: dayEvents.length > 0,
-      color: ratio === null ? C.dim : ratio > 0.8 ? C.green : ratio > 0.4 ? C.gold : '#E8634A',
-    }
-  })
 
   const activeUsers = status?.active_users ?? status?.active_sessions ?? 0
   const latencyMs = status?.latency_ms
@@ -313,31 +293,20 @@ export default function NetworkPage() {
 
             {/* ───── UPTIME BAR ───── */}
             <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, padding: '18px 20px', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>14-Day Uptime</div>
-              {events.length > 0 ? (
-                <div style={{ display: 'flex', gap: 3, height: 32 }}>
-                  {uptimeTimeline.map((day, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                      {day.hasData ? (
-                        <div style={{
-                          height: `${Math.max(day.ratio! * 100, 8)}%`,
-                          background: day.color, borderRadius: 3, transition: 'height 0.3s',
-                        }} title={`${day.label}: ${Math.round(day.ratio! * 100)}%`} />
-                      ) : (
-                        <div style={{ height: '100%', background: 'var(--theme-surface)', borderRadius: 3, opacity: 0.4 }} title={`${day.label}: No data`} />
-                      )}
-                    </div>
-                  ))}
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.mute, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Network Uptime</div>
+              {uptimePercent !== null ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 32, fontWeight: 500, color: uptimePercent >= 95 ? C.green : uptimePercent >= 70 ? C.gold : '#E8634A' }}>{uptimePercent}%</span>
+                    <span style={{ fontSize: 11, color: C.dim }}>of the last {events.length} checks</span>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--theme-surface)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${uptimePercent}%`, background: uptimePercent >= 95 ? C.green : uptimePercent >= 70 ? C.gold : '#E8634A', borderRadius: 3, transition: 'width 0.5s' }} />
+                  </div>
                 </div>
               ) : (
-                <div style={{ height: 32, background: 'var(--theme-surface)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 11, color: C.mute }}>No uptime data yet — events will appear after the first network check</span>
-                </div>
+                <div style={{ padding: '8px 0', fontSize: 12, color: C.mute }}>No uptime data yet — checks run every 60s</div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 10, color: C.faint, fontFamily: 'DM Mono, monospace' }}>{uptimeTimeline[0]?.label}</span>
-                <span style={{ fontSize: 10, color: C.faint, fontFamily: 'DM Mono, monospace' }}>{uptimeTimeline[uptimeTimeline.length - 1]?.label}</span>
-              </div>
             </div>
 
             {/* ───── BOTTOM: Events + Router ───── */}
