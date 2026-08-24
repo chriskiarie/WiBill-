@@ -194,8 +194,8 @@ export default function SmsConfigPage() {
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           {/* Logo + Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 28 }}>
-            <div style={{ width: 72, height: 72, borderRadius: 12, background: '#1a1a1a', border: `0.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <img src="/integrations/africastalking.png" alt="Africa's Talking" style={{ width: 48, height: 48, objectFit: 'contain' }} />
+            <div style={{ width: 72, height: 72, borderRadius: 12, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+              <img src="/integrations/africastalking.png" alt="Africa's Talking" style={{ width: 72, height: 72, objectFit: 'cover' }} />
             </div>
             <div style={{ flex: 1 }}>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text }}>Africa's Talking</h1>

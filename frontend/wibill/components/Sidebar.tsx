@@ -152,9 +152,9 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       position: 'sticky', top: 0,
       transition: 'width 0.3s cubic-bezier(0.19, 1, 0.22, 1)',
     }}>
-      {/* ── BRAND ROW (80px) ── */}
+      {/* ── BRAND ROW (88px) ── */}
       <div style={{
-        height: 80, minHeight: 80,
+        height: 88, minHeight: 88,
         padding: collapsed ? '0' : '0 16px',
         display: 'flex', alignItems: 'center',
         justifyContent: 'center',
@@ -163,7 +163,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: collapsed ? 0 : '6px 0' }}>
-          <img src="/logos/wibill-wb-monogram-512.png" alt="WiBill" style={{ width: collapsed ? 44 : 64, height: collapsed ? 44 : 64, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
+          <img src="/logos/wibill-wb-monogram-512.png" alt="WiBill" style={{ width: collapsed ? 48 : 72, height: collapsed ? 48 : 72, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
           <span style={{
             position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--sidebar-card-bg)', borderRadius: 4,
