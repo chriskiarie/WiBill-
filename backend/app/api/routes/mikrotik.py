@@ -236,6 +236,17 @@ async def health_check(
     connected = status == "online"
     parts = _notes_parts(config)
 
+    # Proactively check if the poll token is still decryptable. If the
+    # encryption key changed between deploys, all stored tokens are garbage.
+    # Flag it now so the frontend can show a clear alert instead of waiting
+    # for the router to fail silently.
+    if config.poll_token_enc and getattr(config, 'token_valid', True):
+        try:
+            decrypt(config.poll_token_enc)
+        except Exception:
+            config.token_valid = False
+            await db.commit()
+
     # If the Full Setup path never captured the board/RouterOS identity (only
     # Quick Connect writes Board/RouterOS via /register), probe the local
     # bridge /test endpoint and persist what we find into notes so the
