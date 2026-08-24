@@ -13,7 +13,7 @@ from app.models.package import Package
 from app.models.tenant import Tenant
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
-from app.services.session_service import create_session, activate_session
+from app.services.session_service import create_session, activate_session, expire_session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -397,9 +397,35 @@ async def redeem_voucher_portal(
         if pkg_id is None and package is not None:
             pkg_id = package.id
 
+        mac = payload.mac_address or "00:00:00:00:00:00"
+
+        # Expire any existing active session for this device so the new voucher works
+        if mac != "00:00:00:00:00:00":
+            existing_result = await db.execute(
+                select(Session).where(
+                    Session.mac_address == mac.upper(),
+                    Session.tenant_id == voucher.tenant_id,
+                    Session.status.in_(["pending_payment", "active"]),
+                )
+            )
+            old_session = existing_result.scalar_one_or_none()
+            if old_session:
+                try:
+                    from app.services.mikrotik_service import remove_mikrotik_user
+                    if old_session.reconnect_code:
+                        await remove_mikrotik_user(
+                            tenant_id=str(voucher.tenant_id),
+                            session_id=str(old_session.id),
+                            username=old_session.reconnect_code,
+                            db=db,
+                        )
+                except Exception:
+                    pass
+                await expire_session(session_id=str(old_session.id), db=db)
+
         session = await create_session(
             tenant_id=voucher.tenant_id,
-            mac_address=payload.mac_address or "00:00:00:00:00:00",
+            mac_address=mac,
             ip_address=payload.ip_address or "0.0.0.0",
             package_id=pkg_id,
             expires_at=now + duration,
