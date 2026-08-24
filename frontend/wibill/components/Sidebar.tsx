@@ -163,7 +163,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: collapsed ? 0 : '6px 0' }}>
-          <img src="/logos/wibill-wb-monogram-512.png" alt="WiBill" style={{ width: collapsed ? 48 : 72, height: collapsed ? 48 : 72, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
+          <img src="/logos/wibill-wb-monogram-512.png" alt="WiBill" style={{ width: collapsed ? 52 : 80, height: collapsed ? 52 : 80, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
           <span style={{
             position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--sidebar-card-bg)', borderRadius: 4,
@@ -264,7 +264,7 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
                     padding: '7px 10px', borderRadius: 8, marginBottom: 1,
                     background: active ? 'var(--sidebar-active-bg)' : 'transparent',
                     color: active ? C.gold : 'var(--sidebar-icon)',
-                    fontWeight: active ? 700 : 400, fontSize: 12,
+                    fontWeight: active ? 700 : 400, fontSize: 13,
                     cursor: 'pointer', position: 'relative',
                     transition: 'all 0.15s',
                   }}>

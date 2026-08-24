@@ -168,9 +168,9 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         <h1
           className="page-title"
           style={{
-            fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700,
+            fontFamily: "'Space Grotesk', sans-serif", fontSize: 26, fontWeight: 800,
             color: 'var(--theme-gold)',
-            margin: 0, letterSpacing: '-0.3px',
+            margin: 0, letterSpacing: '-0.5px',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}
         >
