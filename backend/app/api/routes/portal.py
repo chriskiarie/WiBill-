@@ -167,13 +167,18 @@ async def preview_portal(template_id: str, request: Request):
     }
 
     # Normalize logo URL (rebase stale hosts, drop blob/data/foreign-host)
-    logo_url = live_brand.get("logo_url")
-    if logo_url:
-        normalized = _normalize_logo_url(logo_url, request)
-        if normalized:
-            live_brand["logo_url"] = normalized
-        else:
-            live_brand.pop("logo_url", None)
+    # For preview: prefer logo_data (base64) over logo_url (file URL from query params)
+    logo_data = params.get("logo_data")
+    if logo_data and logo_data.startswith('data:'):
+        live_brand["logo_url"] = logo_data
+    else:
+        logo_url = live_brand.get("logo_url")
+        if logo_url:
+            normalized = _normalize_logo_url(logo_url, request)
+            if normalized:
+                live_brand["logo_url"] = normalized
+            else:
+                live_brand.pop("logo_url", None)
 
     # 4. Parse Network Status
     show_status = params.get("showSB", "true").lower() == "true"
@@ -419,13 +424,18 @@ async def get_live_portal(
     # Normalize logo URL: strip any host prefix, rebuild with correct one.
     # blob:/data:/foreign-host logos never render on a guest device — fall
     # back to the emoji mark instead of showing a broken image.
-    logo = brand.get('logo_url')
-    if logo:
-        normalized = _normalize_logo_url(logo, request)
-        if normalized:
-            brand['logo_url'] = normalized
-        else:
-            brand.pop('logo_url', None)
+    # Prefer logo_data (base64, persists across deploys) over logo_url (file, may be stale).
+    logo_data = brand.get('logo_data')
+    if logo_data and logo_data.startswith('data:'):
+        brand['logo_url'] = logo_data
+    else:
+        logo = brand.get('logo_url')
+        if logo:
+            normalized = _normalize_logo_url(logo, request)
+            if normalized:
+                brand['logo_url'] = normalized
+            else:
+                brand.pop('logo_url', None)
     network = portal_config.get('network_awareness', {}) or {}
     theme = portal_config.get('theme', {}) or {}
     typography = portal_config.get('typography', {}) or {}

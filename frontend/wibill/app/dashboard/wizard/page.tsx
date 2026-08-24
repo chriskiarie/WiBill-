@@ -204,7 +204,7 @@ export default function PortalWizard() {
     })))
     previewParams.set('pkgs', pkgsJson)
   }
-  const effectiveLogo = logoUrl || stickerDataUrl
+  const effectiveLogo = logoUrl
   if (effectiveLogo && !effectiveLogo.startsWith('data:')) previewParams.set('logo_url', effectiveLogo)
   if (whatsapp) previewParams.set('whatsapp', whatsapp)
   if (technicianName) previewParams.set('technician_name', technicianName)
@@ -212,7 +212,7 @@ export default function PortalWizard() {
   const previewUrl = `${API}/api/v1/portal-previews/${tpl}?${previewParams.toString()}`
 
   useEffect(() => {
-    if (!selectedSticker) { setStickerDataUrl(null); return }
+    if (!selectedSticker) return
     fetch(selectedSticker)
       .then(r => r.blob())
       .then(blob => {
@@ -307,24 +307,11 @@ export default function PortalWizard() {
     return () => clearTimeout(timer)
   }, [previewKey, stickerDataUrl, previewUrl])
 
-  // Send logo to preview iframe via postMessage when it's a data URL
-  // (can't fit in query string, so we push it after iframe loads)
-  useEffect(() => {
-    const iframe = iframeRef.current
-    if (!iframe || !effectiveLogo) return
-    const timer = setTimeout(() => {
-      try {
-        iframe.contentWindow?.postMessage({ type: 'UPDATE_BRAND', logo_url: effectiveLogo }, '*')
-      } catch {}
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [effectiveLogo])
-
   function buildConfig() {
     return {
       template_id: tpl,
       palette_index: palette,
-      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: toRelativeUrl(logoUrl), hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl, technician_name: technicianName, technician_phone: technicianPhone },
+      brand: { name, tagline, location, emoji, support_phone: phone, support_email: supportEmail, whatsapp, website_url: websiteUrl, facebook_url: facebookUrl, twitter_url: twitterUrl, instagram_url: instagramUrl, logo_url: toRelativeUrl(logoUrl), logo_data: stickerDataUrl || null, hero_title: heroTitle, section_heading: sectionHeading, footer_text: footerText, terms_url: termsUrl, technician_name: technicianName, technician_phone: technicianPhone },
       theme: {
         primary_color: primaryColor || snaps?.hd || '#5b4fff',
         secondary_color: secondaryColor || snaps?.bg || '#0c0c1a',
@@ -685,12 +672,16 @@ export default function PortalWizard() {
                         try {
                           const res = await fetch(st.src)
                           const blob = await res.blob()
-                          const reader = new FileReader()
-                          reader.onload = () => {
-                            const dataUrl = reader.result as string
-                            setLogoUrl(dataUrl)
+                          const formData = new FormData()
+                          formData.append('file', new File([blob], `${st.name.toLowerCase().replace(/\s+/g, '-')}.svg`, { type: 'image/svg+xml' }))
+                          const uploadRes = await fetch(`${API}/api/portal/assets/upload`, {
+                            method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                            body: formData,
+                          })
+                          const uploadData = await uploadRes.json()
+                          if (uploadData.ok && uploadData.asset) {
+                            setLogoUrl(`${API}${uploadData.asset.url}`)
                           }
-                          reader.readAsDataURL(blob)
                         } catch {} finally { setStickerUploading(false) }
                       }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -714,7 +705,7 @@ export default function PortalWizard() {
                   {uploading ? 'Uploading...' : 'Upload Logo'}
                 </button>
                 {logoUrl && (
-                  <button onClick={() => { setLogoUrl(null); setSelectedSticker(null); setEmoji('') }} style={{
+                  <button onClick={() => { setLogoUrl(null); setSelectedSticker(null); setStickerDataUrl(null); setEmoji('') }} style={{
                     padding: '10px 14px', borderRadius: 9, border: '1px solid #ef4444',
                     background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer', fontSize: 11,
                     fontFamily: 'Inter, sans-serif',
@@ -731,13 +722,20 @@ export default function PortalWizard() {
                   if (!file) return
                   setUploading(true)
                   try {
-                    const reader = new FileReader()
-                    reader.onload = () => {
-                      const dataUrl = reader.result as string
-                      setLogoUrl(dataUrl)
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    const uploadRes = await fetch(`${API}/api/portal/assets/upload`, {
+                      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+                      body: formData,
+                    })
+                    const uploadData = await uploadRes.json()
+                    if (uploadData.ok && uploadData.asset) {
+                      setLogoUrl(`${API}${uploadData.asset.url}`)
                       setEmoji(''); setSelectedSticker(null)
+                      const reader = new FileReader()
+                      reader.onload = () => setStickerDataUrl(reader.result as string)
+                      reader.readAsDataURL(file)
                     }
-                    reader.readAsDataURL(file)
                   } catch {
                     const fallback = URL.createObjectURL(file)
                     setLogoUrl(fallback)
