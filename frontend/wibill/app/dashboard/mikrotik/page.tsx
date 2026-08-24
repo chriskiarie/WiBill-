@@ -1334,9 +1334,38 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
   onReconfigure: () => void
   onAddRouter: () => void
 }) {
+  const { token } = useAuth()
+  const { showToast } = useToast()
+  const [fixing, setFixing] = useState(false)
+  const [fixScript, setFixScript] = useState<string | null>(null)
+
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
   const statusColor = online ? C.green : health?.last_poll_at ? '#E8634A' : C.gold
+
+  const handleFixToken = async () => {
+    setFixing(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/mikrotik/fix-poll-token`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        showToast('Token rotated and pushed to router', { type: 'success' })
+        setFixScript(null)
+      } else if (data.script) {
+        setFixScript(data.script)
+        showToast('Token rotated — paste the script below into Winbox', { type: 'success' })
+      } else {
+        showToast(data.detail || 'Failed to fix token', { type: 'error' })
+      }
+    } catch (e: any) {
+      showToast(e.message || 'Failed to fix token', { type: 'error' })
+    } finally {
+      setFixing(false)
+    }
+  }
 
   const boardName = displayClean(health?.board_name || health?.router_identity)
   const rosVersion = displayClean(health?.router_os_version)
@@ -1392,6 +1421,18 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
             <span style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>last seen <TimeAgo iso={health.last_poll_at} /></span>
           )}
         </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!online && (
+            <button onClick={handleFixToken} disabled={fixing} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 7,
+              background: 'rgba(232,99,74,0.08)', border: '0.5px solid rgba(232,99,74,0.2)',
+              color: '#E8634A', fontSize: 12, fontWeight: 600, cursor: fixing ? 'not-allowed' : 'pointer',
+              opacity: fixing ? 0.6 : 1,
+            }}>
+              <RefreshCw size={13} style={fixing ? { animation: 'spin 1s linear infinite' } : {}} />
+              {fixing ? 'Fixing…' : 'Fix Connection'}
+            </button>
+          )}
         <button onClick={onAddRouter} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 7,
           background: 'color-mix(in srgb, var(--theme-gold) 8%, transparent)',
@@ -1400,6 +1441,7 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         }}>
           <Plus size={14} /> Add router
         </button>
+        </div>
       </div>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -1525,7 +1567,23 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
           )}
         </div>
       </Card>
-      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
+
+      {/* Fix token script display */}
+      {fixScript && (
+        <Card style={{ marginTop: 16 }}>
+          <div style={{ ...sectionLabel, marginBottom: 10 }}>Paste this into Winbox Terminal</div>
+          <div style={{ padding: '10px 14px', background: 'rgba(232,99,74,0.06)', border: '0.5px solid rgba(232,99,74,0.2)', borderRadius: 7, marginBottom: 12, fontSize: 12, color: '#E8634A', lineHeight: 1.6 }}>
+            The poll token was stale. This script replaces it with a fresh one. Run it once in the terminal.
+          </div>
+          <pre style={{
+            background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16,
+            fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.text, lineHeight: 1.6,
+            overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          }}>{fixScript}</pre>
+        </Card>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } } @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }' }} />
     </>
   )
 }
