@@ -1407,9 +1407,9 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         <div style={{
           height: 280,
           background: online
-            ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 6%, ${C.void}) 0%, ${C.base} 100%)`
+            ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 14%, ${C.void}) 0%, ${C.base} 100%)`
             : health?.last_poll_at
-              ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 6%, ${C.void}) 0%, ${C.base} 100%)`
+              ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 14%, ${C.void}) 0%, ${C.base} 100%)`
               : `linear-gradient(180deg, ${C.void} 0%, ${C.base} 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
           borderBottom: `0.5px solid ${C.border}`,
