@@ -211,6 +211,38 @@ async def remove_mikrotik_user(
         return {"success": False, "message": str(e)}
 
 
+async def update_mikrotik_user(
+    tenant_id: str,
+    session_id: str,
+    username: str,
+    new_expires_at: datetime,
+    db: AsyncSession,
+) -> dict:
+    config = await _get_config(tenant_id, db)
+    if not config:
+        return {"success": False, "message": "No MikroTik config"}
+
+    payload = {
+        "username": username,
+        "limit_uptime": _duration_str(new_expires_at),
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{_bridge_url(config)}/users/update",
+                json=payload,
+                headers=_bridge_headers(config),
+            )
+            if r.status_code == 200:
+                logger.info(f"MikroTik user '{username}' updated via bridge (new expiry)")
+                return r.json()
+            return {"success": False, "message": r.text[:200]}
+    except Exception as e:
+        logger.error(f"Bridge error updating MikroTik user: {e}")
+        return {"success": False, "message": str(e)}
+
+
 async def remove_hotspot_user_by_session(
     tenant_id: str,
     session_id: str,

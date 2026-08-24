@@ -20,6 +20,7 @@ interface OutageEvent {
 export default function NetworkPage() {
   const { user, token } = useAuth()
   const [status, setStatus] = useState<any>(null)
+  const [dashData, setDashData] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
   const [mikrotik, setMikrotik] = useState<any>(null)
   const [mikrotikHealth, setMikrotikHealth] = useState<any>(null)
@@ -47,7 +48,7 @@ export default function NetworkPage() {
         api.getMikrotikHealth().catch(() => null),
         api.getOutages('active').catch(() => []),
       ])
-      if (dash) setStatus(dash.network || dash)
+      if (dash) { setStatus(dash.network || dash); setDashData(dash) }
       setEvents(Array.isArray(evts) ? evts : [])
       setMikrotik(mik)
       setMikrotikHealth(mikHealth)
@@ -136,7 +137,7 @@ export default function NetworkPage() {
   const lastChecked = status?.checked_at ? formatRelativeTime(status.checked_at) : '—'
   const routerIp = mikrotik?.router_ip || 'Not configured'
 
-  const activeUsers = status?.active_users ?? status?.active_sessions ?? 0
+  const activeUsers = dashData?.active_sessions ?? status?.active_users ?? status?.active_sessions ?? 0
   const latencyMs = status?.latency_ms
 
   // Merge outage events into recent events timeline

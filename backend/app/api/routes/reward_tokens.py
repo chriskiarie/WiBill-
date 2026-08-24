@@ -1,16 +1,19 @@
 import uuid
 import secrets
 import string
+import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, update, func
 from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.reward_token import RewardToken
 from app.models.session import Session
 from app.api.routes.auth import get_current_user
 from app.services.session_service import create_session, activate_session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["reward-tokens"])
 
@@ -68,6 +71,29 @@ async def generate_compensation_token(
     if payload.minutes < 5 or payload.minutes > 1440:
         raise HTTPException(status_code=400, detail="Compensation minutes must be between 5 and 1440")
 
+    now = datetime.utcnow()
+
+    # Extend the session's expires_at directly (the real fix)
+    new_expires = (session.expires_at or now) + timedelta(minutes=payload.minutes)
+    await db.execute(
+        update(Session).where(Session.id == session_uuid).values(expires_at=new_expires)
+    )
+
+    # Update MikroTik user with new expiry if session is active
+    if session.status == "active" and session.reconnect_code:
+        try:
+            from app.services.mikrotik_service import update_mikrotik_user
+            await update_mikrotik_user(
+                tenant_id=str(tenant_id),
+                session_id=str(session.id),
+                username=session.reconnect_code,
+                new_expires_at=new_expires,
+                db=db,
+            )
+        except Exception as e:
+            logger.warning(f"MikroTik update failed during compensation: {e}")
+
+    # Also create a reward token record for audit trail
     code = generate_token_code()
     while True:
         existing = await db.execute(select(RewardToken).where(RewardToken.token_code == code))
@@ -75,7 +101,6 @@ async def generate_compensation_token(
             break
         code = generate_token_code()
 
-    now = datetime.utcnow()
     token = RewardToken(
         id=uuid.uuid4(),
         tenant_id=tenant_id,
@@ -85,7 +110,8 @@ async def generate_compensation_token(
         bound_mac=payload.bound_mac,
         session_id=session_uuid,
         reason=payload.reason or "compensation",
-        redeemed=False,
+        redeemed=True,
+        redeemed_at=now,
         expires_at=now + timedelta(days=30),
         created_at=now,
     )
@@ -96,8 +122,9 @@ async def generate_compensation_token(
         "token_id": str(token.id),
         "token_code": code,
         "minutes": payload.minutes,
-        "expires_at": token.expires_at.isoformat(),
+        "new_expires_at": new_expires.isoformat(),
         "reason": token.reason,
+        "message": f"Session extended by {payload.minutes} minutes. New expiry: {new_expires.strftime('%H:%M')}",
     }
 
 
