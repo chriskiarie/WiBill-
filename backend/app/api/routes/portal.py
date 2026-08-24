@@ -4,6 +4,7 @@ Uses Jinja2 (PortalRenderer) to render ACTUAL templates with LIVE data from the 
 """
 import json
 import logging
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -509,6 +510,80 @@ async def get_live_portal(
 </div></body></html>""")
 
 
+@router.get("/portal/{slug}/device-session-status")
+async def device_session_status(
+    slug: str,
+    mac: str = Query(""),
+    request: Request = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Check if a device has an active session for this tenant.
+    Used by captive portal templates to poll session status after voucher redemption.
+    
+    Returns:
+    - active: Device has an active session
+    - pending: Session exists but not yet active
+    - expired: Session has expired
+    - none: No session found for this MAC
+    """
+    from datetime import datetime
+    
+    # Find tenant
+    result = await db.execute(select(Tenant).where(Tenant.slug == slug))
+    tenant = result.scalar_one_or_none()
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail=f"ISP '{slug}' not found")
+    
+    if not mac:
+        return {"status": "none", "message": "No MAC address provided"}
+    
+    # Find active session for this MAC
+    session_result = await db.execute(
+        select(DBSession).where(
+            DBSession.mac_address == mac.upper(),
+            DBSession.tenant_id == tenant.id,
+            DBSession.status == "active"
+        ).order_by(DBSession.created_at.desc())
+    )
+    session = session_result.scalar_one_or_none()
+    
+    if not session:
+        # Check if there's any session (even expired) for this MAC
+        any_session_result = await db.execute(
+            select(DBSession).where(
+                DBSession.mac_address == mac.upper(),
+                DBSession.tenant_id == tenant.id
+            ).order_by(DBSession.created_at.desc())
+        )
+        any_session = any_session_result.scalar_one_or_none()
+        
+        if any_session:
+            if any_session.status == "expired":
+                return {"status": "expired", "message": "Session has expired"}
+            elif any_session.status == "pending_payment":
+                return {"status": "pending", "message": "Waiting for payment"}
+            else:
+                return {"status": "none", "message": "No active session"}
+        
+        return {"status": "none", "message": "No session found"}
+    
+    # Check if session is still valid (not expired)
+    now = datetime.utcnow()
+    if session.expires_at and session.expires_at.replace(tzinfo=None) < now:
+        return {"status": "expired", "message": "Session has expired"}
+    
+    return {
+        "status": "active",
+        "session_id": str(session.id),
+        "expires_at": session.expires_at.isoformat() + "Z",
+        "package_id": str(session.package_id) if session.package_id else None,
+        "reconnect_code": session.reconnect_code,
+        "message": "Session is active"
+    }
+
+
 @router.get("/api/v1/portal/{slug}/config")
 async def get_portal_config(
     slug: str,
@@ -627,6 +702,7 @@ async def seed_portal_for_slug(
 async def portal_success_page(
     slug: str,
     session_id: str,
+    mac: str = Query(""),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -679,8 +755,9 @@ async def portal_success_page(
             "phone_number": session.phone_number or "Unknown",
             "amount_paid": float(txn.amount_ksh) if txn else 0,
         },
-        "expires_at": session.expires_at.isoformat(),
+        "expires_at": session.expires_at.isoformat() + "Z",
         "slug": slug,
+        "mac": mac or session.mac_address or "",
     }
 
     try:

@@ -15,6 +15,7 @@
   <h2 style="color:#065f46;font-size:1.2rem">Payment Confirmed!</h2>
   <p style="color:#64748b;font-size:0.9rem;margin-top:6px">You're connected. Time remaining:</p>
   <div id="timer">--:--:--</div>
+  <div id="status" style="margin-top:12px;font-size:0.85rem;color:#64748b">Checking internet status...</div>
 
   <div class="receipt">
     <div class="row"><span>Package</span><span>{{ package.name }}</span></div>
@@ -26,6 +27,9 @@
 
 <script>
 const expiresAt = new Date("{{ expires_at }}");
+const slug = "{{ slug }}";
+const mac = "{{ mac }}";
+
 function tick() {
   const now = new Date();
   const diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -37,6 +41,63 @@ function tick() {
   else document.getElementById('timer').textContent = "Expired";
 }
 tick();
+
+// Poll device session status and attempt to close captive portal
+let pollCount = 0;
+const maxPolls = 10;
+
+function pollSessionStatus() {
+  if (pollCount >= maxPolls || !mac) return;
+  
+  fetch(`/portal/${slug}/device-session-status?mac=${encodeURIComponent(mac)}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'active') {
+        // Session is active, try to close captive portal
+        document.getElementById('status').textContent = 'Internet is now active!';
+        document.getElementById('status').style.color = '#22c55e';
+        
+        // Try to close the captive portal
+        try {
+          // Different methods for different devices
+          window.close();
+          // For iOS captive portal
+          if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+            window.location.href = 'http://captive.apple.com/hotspot-detect.html';
+          }
+          // For Android
+          else if (navigator.userAgent.includes('Android')) {
+            window.location.href = 'http://connectivitycheck.gstatic.com/generate_204';
+          }
+          // Generic
+          else {
+            window.location.href = 'about:blank';
+          }
+        } catch (e) {
+          console.log('Could not close captive portal:', e);
+        }
+      } else if (data.status === 'expired') {
+        document.getElementById('status').textContent = 'Session expired';
+        document.getElementById('status').style.color = '#ef4444';
+      } else if (data.status === 'pending') {
+        document.getElementById('status').textContent = 'Waiting for activation...';
+        document.getElementById('status').style.color = '#f59e0b';
+        pollCount++;
+        setTimeout(pollSessionStatus, 3000);
+      } else {
+        pollCount++;
+        setTimeout(pollSessionStatus, 3000);
+      }
+    })
+    .catch(err => {
+      console.error('Poll error:', err);
+      pollCount++;
+      setTimeout(pollSessionStatus, 3000);
+    });
+}
+
+// Start polling after 2 seconds
+setTimeout(pollSessionStatus, 2000);
 </script>
 
 {% endblock %}

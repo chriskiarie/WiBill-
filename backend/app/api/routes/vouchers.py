@@ -510,6 +510,7 @@ async def redeem_voucher_portal(
             "duration_hours": duration.total_seconds() / 3600,
             "mikrotik": mikrotik_result.get("success", False),
             "message": f"Voucher redeemed! {duration.total_seconds() / 3600:.1f}h of internet access activated.",
+            "expires_at": session.expires_at.isoformat() + "Z",
         }
     except HTTPException:
         raise

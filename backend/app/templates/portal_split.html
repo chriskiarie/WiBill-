@@ -677,8 +677,10 @@
                 });
                 var d = await r.json();
                 if (r.ok) {
-                    showStatus('success', d.package_name || 'Your Package', d.duration || 'Enjoy your internet!');
-                    setTimeout(function() { window.location.reload(); }, 4000);
+                    var slug = '{{ brand.slug }}';
+                    var mac = p.get('mac') || '';
+                    var successUrl = '/portal/' + slug + '/success/' + d.session_id + '?mac=' + encodeURIComponent(mac);
+                    window.location.href = successUrl;
                     return;
                 }
                 var dt = (d.detail || '').toLowerCase();
