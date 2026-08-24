@@ -140,7 +140,7 @@ function LoginContent() {
             letterSpacing: '0.5px',
             transition: 'opacity 0.2s',
           }}>
-            {loading ? 'Signing in...' : 'SIGN IN'}
+            {loading ? 'Signing in...' : 'Sign in →'}
           </button>
         </form>
       </div>
@@ -185,24 +185,33 @@ function LoginContent() {
         opacity: 0.15,
       }} />
 
-      {/* ÔöÇÔöÇ WiBill wordmark - centered across full screen ÔöÇÔöÇ */}
+      {/* ── WiBill wordmark - centered across full screen ── */}
       <div style={{
         position: 'relative', zIndex: 2,
         textAlign: 'center',
         paddingTop: 40,
-        paddingBottom: 60,
+        paddingBottom: 48,
       }}>
         <img
           src="/logos/wibill-wb-monogram-192.png"
           alt="WiBill"
           style={{ width: 180, height: 180, objectFit: 'contain', display: 'inline-block' }}
         />
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontStyle: 'italic',
+          fontWeight: 500,
+          fontSize: 28,
+          color: '#f0f0f0',
+          margin: '20px 0 0',
+          letterSpacing: '-0.01em',
+        }}>Welcome back</h1>
         <div style={{
-          fontFamily: '"Space Grotesk", sans-serif',
-          fontSize: 11,
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 10,
           color: '#555',
           marginTop: 8,
-          letterSpacing: '2.5px',
+          letterSpacing: '2px',
           fontWeight: 600,
         }}>
           ISP MANAGEMENT PORTAL

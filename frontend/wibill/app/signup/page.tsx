@@ -137,15 +137,24 @@ export default function SignupPage() {
               style={{ width: 180, height: 180, objectFit: 'contain', display: 'block' }}
             />
           </Link>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontStyle: 'italic',
+            fontWeight: 500,
+            fontSize: 28,
+            color: '#f0f0f0',
+            margin: '20px 0 0',
+            letterSpacing: '-0.01em',
+          }}>Request access</h1>
           <div style={{
             fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 11,
+            fontSize: 10,
             color: '#555',
             marginTop: 8,
-            letterSpacing: '2.5px',
+            letterSpacing: '2px',
             fontWeight: 600,
           }}>
-            REQUEST ACCESS
+            ISP MANAGEMENT PORTAL
           </div>
         </div>
 
@@ -322,7 +331,7 @@ export default function SignupPage() {
                 letterSpacing: '0.5px',
                 transition: 'opacity 0.2s',
               }}>
-                {loading ? 'Submitting...' : 'SUBMIT REQUEST'}
+                {loading ? 'Submitting...' : 'Submit request →'}
               </button>
 
               <p style={{
