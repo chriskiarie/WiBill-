@@ -167,6 +167,7 @@ from app.api.routes import subscriber_plans, monthly_subscribers, ipam
 from app.api.routes import portal_wizard
 from app.api.routes import system, leads, bulk_sms
 from app.api.routes import outages, devices, onboard
+from app.api.routes import sms_config
 from app.api.routes.onboard import public_router as public_onboard_router
 from app.api.routes import poll as poll_routes
 from fastapi.staticfiles import StaticFiles
@@ -209,6 +210,7 @@ app.include_router(portal_wizard.router, prefix="", tags=["portal-wizard"])
 app.include_router(system.router, prefix="/api", tags=["system"])
 app.include_router(leads.router, prefix="/api", tags=["leads"])
 app.include_router(bulk_sms.router, prefix="/api/sms", tags=["bulk-sms"])
+app.include_router(sms_config.router, prefix="/api", tags=["sms-config"])
 app.include_router(outages.router, prefix="/api", tags=["outages"])
 app.include_router(devices.router, prefix="/api", tags=["portal-devices"])
 app.include_router(onboard.router, prefix="/api", tags=["onboard"])

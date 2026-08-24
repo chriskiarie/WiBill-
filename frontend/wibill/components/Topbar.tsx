@@ -168,7 +168,7 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         <h1
           className="page-title"
           style={{
-            fontFamily: "'Outfit', sans-serif", fontSize: 24, fontWeight: 600,
+            fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700,
             color: 'var(--theme-gold)',
             margin: 0, letterSpacing: '-0.3px',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -178,8 +178,8 @@ export default function Topbar({ title, subsection, networkUp = true }: Props) {
         </h1>
         {subsection && (
           <span className="topbar-subsection" style={{
-            fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 400,
-            color: 'var(--topbar-dim)', marginLeft: 10, opacity: 0.6,
+            fontFamily: "'Space Grotesk', sans-serif", fontSize: 12, fontWeight: 500,
+            color: 'var(--topbar-dim)', marginLeft: 10, opacity: 0.5,
           }}>
             {subsection}
           </span>

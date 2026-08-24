@@ -88,6 +88,7 @@ class Tenant(Base):
     outage_events: Mapped[list["OutageEvent"]] = relationship("OutageEvent", back_populates="tenant", cascade="all, delete-orphan")
     client_devices: Mapped[list["ClientDevice"]] = relationship("ClientDevice", back_populates="tenant", cascade="all, delete-orphan")
     onboarding_tokens: Mapped[list["OnboardingToken"]] = relationship("OnboardingToken", back_populates="tenant", cascade="all, delete-orphan")
+    sms_config: Mapped["SmsConfig"] = relationship("SmsConfig", back_populates="tenant", uselist=False)
 
     def __repr__(self) -> str:
         return f"<Tenant {self.slug}>"

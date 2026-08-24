@@ -34,6 +34,7 @@ const nav = [
     { href: '/dashboard/packages', icon: Package, label: 'Packages' },
     { href: '/dashboard/mikrotik', icon: Router, label: 'MikroTik' },
     { href: '/dashboard/mpesa', icon: CreditCard, label: 'M-Pesa' },
+    { href: '/dashboard/sms', icon: MessageSquare, label: 'SMS' },
     { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ]},
 ]
@@ -161,15 +162,8 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       }}>
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 10, position: 'relative', flex: collapsed ? 1 : undefined, justifyContent: collapsed ? 'center' : undefined }}>
-          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
-          <span style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: collapsed ? 0 : 16, fontWeight: 600, color: C.text,
-            display: collapsed ? 'none' : 'inline',
-          }}>
-            WiBill
-          </span>
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', position: 'relative', flex: collapsed ? 1 : undefined, padding: collapsed ? 0 : '0 2px' }}>
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
           <span style={{
             position: 'absolute', bottom: -18, left: 0,
             background: 'var(--sidebar-card-bg)', borderRadius: 4,

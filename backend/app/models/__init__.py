@@ -37,6 +37,7 @@ from app.models.router_health_check import RouterHealthCheck
 from app.models.client_device import ClientDevice
 from app.models.onboarding_token import OnboardingToken
 from app.models.router_action import RouterAction
+from app.models.sms_config import SmsConfig, SmsProvider, SmsConfigStatus
 
 __all__ = [
     "Tenant",
@@ -94,4 +95,7 @@ __all__ = [
     "ClientDevice",
     "OnboardingToken",
     "RouterAction",
+    "SmsConfig",
+    "SmsProvider",
+    "SmsConfigStatus",
 ]

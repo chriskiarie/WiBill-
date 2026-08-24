@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models.tenant import Tenant
+from app.models.sms_config import SmsConfig
+from app.services.crypto_service import decrypt
 
 logger = logging.getLogger("wibill.sms")
 
@@ -19,21 +21,21 @@ AT_PRODUCTION_URL = "https://api.africastalking.com/version1/messaging"
 
 async def _get_sms_config(tenant_id: str, db: AsyncSession) -> dict | None:
     """
-    Get SMS config for a tenant. For now, we use a simple approach:
-    The ISP's Africa's Talking credentials are stored in the tenant or mikrotik_config.
-    Returns dict with api_key, username, sender_id or None if not configured.
+    Get SMS config for a tenant from the sms_configs table.
+    Returns dict with api_key, username, sender_id, environment or None if not configured.
     """
-    # For MVP, we check if the tenant has an Africa's Talking config
-    # In production, this would be a dedicated SmsConfig model
-    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
+    result = await db.execute(select(SmsConfig).where(SmsConfig.tenant_id == tenant_id))
+    config = result.scalar_one_or_none()
+
+    if not config or not config.is_active:
         return None
 
-    # Check if tenant has sms config attributes (we'll add these to the tenant model later)
-    # For now, return a mock config to enable the feature
-    # TODO: Add AT_API_KEY, AT_USERNAME, AT_SENDER_ID to tenant or a dedicated config
-    return None  # Will fall back to mock mode
+    return {
+        "api_key": decrypt(config.api_key_enc),
+        "username": decrypt(config.username_enc),
+        "sender_id": config.sender_id,
+        "environment": config.environment,
+    }
 
 
 async def send_bulk_sms(

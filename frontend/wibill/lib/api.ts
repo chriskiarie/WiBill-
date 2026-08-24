@@ -591,6 +591,37 @@ export async function subscriberCount(): Promise<{ count: number }> {
 }
 
 /**
+ * SMS Config API methods
+ */
+export async function getSmsConfig() {
+  return request<any>('/api/sms/config')
+}
+
+export async function saveSmsConfig(data: {
+  api_key: string
+  username: string
+  sender_id?: string
+  environment?: string
+}) {
+  return request<{ success: boolean; id: string; status: string }>('/api/sms/config', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function testSmsConfig() {
+  return request<{ success: boolean; message: string }>('/api/sms/config/test', {
+    method: 'POST',
+  })
+}
+
+export async function deleteSmsConfig() {
+  return request<{ success: boolean }>('/api/sms/config', {
+    method: 'DELETE',
+  })
+}
+
+/**
  * Bulk SMS API methods
  */
 export async function getSmsTemplates() {
