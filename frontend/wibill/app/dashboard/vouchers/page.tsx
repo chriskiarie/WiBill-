@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth'
 import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { useToast } from '@/context/ToastContext'
-import { Plus, Download, X, Search, ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
+import { Plus, Download, X, Search, ChevronDown, ChevronRight, Copy, Check, Trash2 } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -16,22 +16,6 @@ const inputSx: React.CSSProperties = {
   width: '100%', padding: '10px 12px', background: 'var(--theme-bg)',
   border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.text,
   fontSize: 12, boxSizing: 'border-box', outline: 'none',
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; fg: string; label: string }> = {
-    unused: { bg: 'rgba(34,197,94,0.12)', fg: '#22c55e', label: 'UNUSED' },
-    used: { bg: 'rgba(232,184,75,0.12)', fg: '#E8B84B', label: 'USED' },
-    expired: { bg: 'rgba(239,68,68,0.12)', fg: '#ef4444', label: 'EXPIRED' },
-  }
-  const c = colors[status] || colors.expired
-  return (
-    <span style={{
-      display: 'inline-block', padding: '3px 8px', borderRadius: 4,
-      fontSize: 9, fontWeight: 700, color: c.fg, background: c.bg,
-      textTransform: 'uppercase', letterSpacing: '0.3px', fontFamily: 'Inter, sans-serif',
-    }}>{c.label}</span>
-  )
 }
 
 interface Voucher {
@@ -51,6 +35,24 @@ interface BatchGroup {
   totalCount: number
 }
 
+function formatDuration(min: number) {
+  if (min >= 10080) return `${(min / 10080).toFixed(0)} day`
+  if (min >= 1440) return `${(min / 1440).toFixed(0)} day`
+  if (min >= 60 && min < 1440) { const h = min / 60; return h === 1 ? '1 hour' : `${h} hours` }
+  return `${min} min`
+}
+
+function formatBatchLabel(b: BatchGroup) {
+  const d = formatDuration(b.duration_minutes)
+  const date = b.created_at ? new Date(b.created_at).toLocaleDateString('en-KE', { month: 'short', day: 'numeric' }) : ''
+  return `${d} · ${date}`
+}
+
+function StatusDot({ status }: { status: string }) {
+  const colors: Record<string, string> = { unused: '#22c55e', used: '#E8B84B', expired: '#ef4444' }
+  return <span style={{ width: 6, height: 6, borderRadius: '50%', background: colors[status] || '#666', flexShrink: 0 }} />
+}
+
 export default function VouchersPage() {
   const { token } = useAuth()
   const { showToast } = useToast()
@@ -63,9 +65,10 @@ export default function VouchersPage() {
   const [generating, setGenerating] = useState(false)
   const [genForm, setGenForm] = useState({ duration_minutes: 60, quantity: 50, expires_in_days: 365 })
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [bulkVoiding, setBulkVoiding] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set())
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ voucher: Voucher; x: number; y: number } | null>(null)
 
   const PRESET_DURATIONS = [
     { label: '30 min', minutes: 30 },
@@ -88,6 +91,11 @@ export default function VouchersPage() {
 
   useEffect(() => { fetchVouchers() }, [token, statusFilter])
 
+  useEffect(() => {
+    const close = () => setContextMenu(null)
+    if (contextMenu) { window.addEventListener('click', close); return () => window.removeEventListener('click', close) }
+  }, [contextMenu])
+
   const batches = useMemo(() => {
     const map = new Map<string, Voucher[]>()
     vouchers.forEach(v => {
@@ -97,17 +105,14 @@ export default function VouchersPage() {
     })
     const groups: BatchGroup[] = []
     map.forEach((vs, bid) => {
-      const unused = vs.filter(v => v.status === 'unused').length
-      const used = vs.filter(v => v.status === 'used').length
-      const expired = vs.filter(v => v.status === 'expired').length
       groups.push({
         batch_id: bid,
         vouchers: vs.sort((a, b) => a.code.localeCompare(b.code)),
         duration_minutes: vs[0]?.duration_minutes || 60,
         created_at: vs[0]?.created_at || '',
-        unusedCount: unused,
-        usedCount: used,
-        expiredCount: expired,
+        unusedCount: vs.filter(v => v.status === 'unused').length,
+        usedCount: vs.filter(v => v.status === 'used').length,
+        expiredCount: vs.filter(v => v.status === 'expired').length,
         totalCount: vs.length,
       })
     })
@@ -134,16 +139,26 @@ export default function VouchersPage() {
     })
   }
 
-  const toggleBatchSelect = (batch: BatchGroup) => {
-    const unusedIds = batch.vouchers.filter(v => v.status === 'unused').map(v => v.id)
-    const allSelected = unusedIds.every(id => selected.has(id))
+  const selectAllUnused = () => {
+    setSelected(new Set(vouchers.filter(v => v.status === 'unused').map(v => v.id)))
+  }
+
+  const selectAllUsed = () => {
+    setSelected(new Set(vouchers.filter(v => v.status === 'used').map(v => v.id)))
+  }
+
+  const selectBatch = (batch: BatchGroup) => {
+    const ids = batch.vouchers.map(v => v.id)
+    const allSelected = ids.every(id => selected.has(id))
     setSelected(prev => {
       const next = new Set(prev)
-      if (allSelected) unusedIds.forEach(id => next.delete(id))
-      else unusedIds.forEach(id => next.add(id))
+      if (allSelected) ids.forEach(id => next.delete(id))
+      else ids.forEach(id => next.add(id))
       return next
     })
   }
+
+  const exitSelectMode = () => { setSelectMode(false); setSelected(new Set()) }
 
   const handleGenerate = async () => {
     const minutes = selectedPreset === 0 ? parseInt(genForm.duration_minutes as any) : selectedPreset
@@ -159,76 +174,54 @@ export default function VouchersPage() {
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setGenerating(false) }
   }
 
-  const handleSuspend = async (id: string, isSuspended: boolean) => {
-    try {
-      if (isSuspended) await api.unsuspendVoucher(id)
-      else await api.suspendVoucher(id)
-      showToast(isSuspended ? 'Voucher unsuspended' : 'Voucher suspended', { type: 'success' })
-      fetchVouchers()
-    } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
-  }
-
   const handleVoid = async (id: string) => {
-    if (!confirm('Void this voucher? This cannot be undone.')) return
-    try {
-      await api.voidVoucher(id)
-      showToast('Voucher voided', { type: 'success' })
-      fetchVouchers()
-    } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
+    setContextMenu(null)
+    if (!confirm('Void this voucher?')) return
+    try { await api.voidVoucher(id); showToast('Voucher voided', { type: 'success' }); fetchVouchers() }
+    catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
   }
 
-  const handleBulkVoid = async (voidAll = false) => {
-    const count = voidAll ? totalUnused : selected.size
-    if (count === 0) return
-    const label = voidAll ? `VOID ALL ${count} unused vouchers` : `void ${count} selected voucher(s)`
-    if (!confirm(`${label}? This cannot be undone.`)) return
-    setBulkVoiding(true)
+  const handleBulkVoid = async () => {
+    if (selected.size === 0) return
+    if (!confirm(`Void ${selected.size} voucher(s)?`)) return
     try {
-      const payload: any = voidAll ? { void_all: true } : { voucher_ids: Array.from(selected) }
-      const result = await api.batchVoidVouchers(payload)
-      showToast(result?.message || `Voided ${count} voucher(s)`, { type: 'success' })
-      setSelected(new Set())
-      fetchVouchers()
-    } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) } finally { setBulkVoiding(false) }
-  }
-
-  const handleBatchSuspend = async (batchId: string, suspend: boolean) => {
-    try {
-      if (suspend) await api.suspendVoucherBatch(batchId)
-      else await api.unsuspendVoucherBatch(batchId)
-      showToast(suspend ? 'Batch suspended' : 'Batch unsuspended', { type: 'success' })
-      fetchVouchers()
+      const result = await api.batchVoidVouchers({ voucher_ids: Array.from(selected) })
+      showToast(result?.message || `Voided`, { type: 'success' })
+      setSelected(new Set()); fetchVouchers()
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
   }
 
   const handleBatchVoid = async (batchId: string) => {
     const batch = batches.find(b => b.batch_id === batchId)
     if (!batch || batch.unusedCount === 0) return
-    if (!confirm(`Void all ${batch.unusedCount} unused vouchers in this batch?`)) return
+    if (!confirm(`Void all ${batch.unusedCount} unused vouchers?`)) return
+    try { await api.batchVoidVouchers({ batch_id: batchId }); showToast('Batch voided', { type: 'success' }); fetchVouchers() }
+    catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
+  }
+
+  const handleBatchSuspend = async (batchId: string, suspend: boolean) => {
     try {
-      const result = await api.batchVoidVouchers({ batch_id: batchId })
-      showToast(result?.message || 'Batch voided', { type: 'success' })
-      fetchVouchers()
+      if (suspend) await api.suspendVoucherBatch(batchId)
+      else await api.unsuspendVoucherBatch(batchId)
+      showToast(suspend ? 'Batch suspended' : 'Batch unsuspended', { type: 'success' }); fetchVouchers()
     } catch (e: any) { showToast(e.message || 'Failed', { type: 'error' }) }
   }
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code)
-    setCopiedCode(code)
-    setTimeout(() => setCopiedCode(null), 1500)
+    setCopiedCode(code); setTimeout(() => setCopiedCode(null), 1500)
   }
 
   const copyBatchCodes = (batch: BatchGroup) => {
-    const codes = batch.vouchers.map(v => v.code).join('\n')
-    navigator.clipboard.writeText(codes)
+    navigator.clipboard.writeText(batch.vouchers.map(v => v.code).join('\n'))
     showToast(`Copied ${batch.vouchers.length} codes`, { type: 'success' })
   }
 
   const exportCSV = () => {
     const rows = [['Code', 'Status', 'Duration', 'Batch', 'Created', 'Expires', 'Used At', 'MAC']]
-    vouchers.forEach((v: any) => rows.push([
-      v.code, v.status, v.duration_minutes ? `${v.duration_minutes}min` : 'Package',
-      v.batch_id?.slice(0, 8) || '', v.created_at?.slice(0, 10) || '', v.expires_at?.slice(0, 10) || '',
+    vouchers.forEach(v => rows.push([
+      v.code, v.status, `${v.duration_minutes}min`, v.batch_id?.slice(0, 8) || '',
+      v.created_at?.slice(0, 10) || '', v.expires_at?.slice(0, 10) || '',
       v.used_at?.slice(0, 10) || '', v.mac_address || ''
     ]))
     const csv = rows.map(r => r.join(',')).join('\n')
@@ -236,14 +229,14 @@ export default function VouchersPage() {
     a.download = `vouchers-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
   }
 
-  const formatDuration = (min: number) => {
-    if (min >= 10080) return `${(min / 10080).toFixed(0)}d`
-    if (min >= 1440) return `${(min / 1440).toFixed(0)}d`
-    if (min >= 60) return `${(min / 60).toFixed(0)}h`
-    return `${min}m`
-  }
-
-  const allUnusedSelected = batches.every(b => b.vouchers.filter(v => v.status === 'unused').every(v => selected.has(v.id)))
+  const btn = (label: string, color: string, onClick: () => void, opts?: { disabled?: boolean; small?: boolean }) => (
+    <button onClick={onClick} disabled={opts?.disabled} style={{
+      padding: opts?.small ? '4px 10px' : '6px 12px', background: 'transparent',
+      border: `0.5px solid ${color}40`, borderRadius: 5, color,
+      fontSize: 10, fontWeight: 700, cursor: opts?.disabled ? 'not-allowed' : 'pointer',
+      opacity: opts?.disabled ? 0.5 : 1, whiteSpace: 'nowrap',
+    }}>{label}</button>
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -258,7 +251,7 @@ export default function VouchersPage() {
               <Download size={14} /> Export
             </button>
             <button onClick={() => setShowGenerate(true)} style={{ padding: '8px 14px', background: C.gold, border: 'none', borderRadius: 7, color: C.void, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Plus size={14} /> Generate Batch
+              <Plus size={14} /> Generate
             </button>
           </div>
         </div>
@@ -278,9 +271,9 @@ export default function VouchersPage() {
           ))}
         </div>
 
-        {/* Filters + Bulk */}
+        {/* Toolbar */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: 280 }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 260 }}>
             <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#333' }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search codes..." onKeyDown={e => { if (e.key === 'Enter') fetchVouchers() }}
               style={{ width: '100%', padding: '9px 12px 9px 34px', background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 7, color: C.text, fontSize: 12, boxSizing: 'border-box', outline: 'none' }} />
@@ -295,113 +288,107 @@ export default function VouchersPage() {
               {f.label}
             </button>
           ))}
-          {selected.size > 0 && (
-            <>
-              <div style={{ flex: 1 }} />
+          <div style={{ flex: 1 }} />
+          {!selectMode ? (
+            <button onClick={() => setSelectMode(true)} style={{ padding: '6px 14px', background: C.base, border: `0.5px solid ${C.border2}`, borderRadius: 6, color: C.dim, fontSize: 10, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase' }}>
+              Select
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: C.gold, fontFamily: 'DM Mono, monospace' }}>{selected.size} selected</span>
-              <button onClick={() => handleBulkVoid(false)} disabled={bulkVoiding} style={{ padding: '6px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: C.red, fontSize: 11, fontWeight: 700, cursor: bulkVoiding ? 'not-allowed' : 'pointer' }}>
-                {bulkVoiding ? 'Voiding...' : 'Void Selected'}
-              </button>
-              <button onClick={() => handleBulkVoid(true)} disabled={bulkVoiding} style={{ padding: '6px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, color: C.red, fontSize: 11, fontWeight: 700, cursor: bulkVoiding ? 'not-allowed' : 'pointer' }}>
-                Void All Unused
-              </button>
-              <button onClick={() => setSelected(new Set())} style={{ padding: '6px 10px', background: 'transparent', border: 'none', color: C.dim, fontSize: 11, cursor: 'pointer' }}>Clear</button>
-            </>
+              {btn('All Unused', C.green, selectAllUnused)}
+              {btn('All Used', C.gold, selectAllUsed)}
+              {selected.size > 0 && btn('Void Selected', C.red, handleBulkVoid)}
+              {btn('Done', C.dim, exitSelectMode)}
+            </div>
           )}
         </div>
 
-        {/* Loading */}
         {loading && <div style={{ textAlign: 'center', padding: 40, color: C.dim, fontSize: 13, fontFamily: 'Inter, sans-serif' }}>Loading...</div>}
 
         {/* Batch Groups */}
         {!loading && batches.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {batches.map(batch => {
               const expanded = expandedBatches.has(batch.batch_id)
-              const unusedVs = batch.vouchers.filter(v => v.status === 'unused')
-              const batchAllSelected = unusedVs.length > 0 && unusedVs.every(v => selected.has(v.id))
               return (
-                <div key={batch.batch_id} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
-                  {/* Batch Header Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: expanded ? `0.5px solid ${C.border}` : 'none' }}
+                <div key={batch.batch_id} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                  {/* Batch Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: expanded ? `0.5px solid ${C.border}` : 'none' }}
                     onClick={() => toggleBatch(batch.batch_id)}>
-                    <div style={{ color: C.dim, display: 'flex', alignItems: 'center', transition: 'transform 0.15s' }}>
-                      {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    <span style={{ color: C.dim, display: 'flex', alignItems: 'center', transition: 'transform 0.15s', transform: expanded ? 'rotate(0deg)' : 'rotate(0deg)' }}>
+                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </span>
+
+                    {/* Label: duration + date */}
+                    <span style={{ fontSize: 12, fontWeight: 600, color: C.text, fontFamily: 'Inter, sans-serif' }}>
+                      {formatDuration(batch.duration_minutes)}
+                    </span>
+                    <span style={{ fontSize: 10, color: C.dim }}>
+                      {batch.created_at ? new Date(batch.created_at).toLocaleDateString('en-KE', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    </span>
+
+                    <div style={{ flex: 1 }} />
+
+                    {/* Status dots + counts */}
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 10, fontFamily: 'DM Mono, monospace' }}>
+                      {batch.unusedCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.green }}><StatusDot status="unused" />{batch.unusedCount}</span>}
+                      {batch.usedCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.gold }}><StatusDot status="used" />{batch.usedCount}</span>}
+                      {batch.expiredCount > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.red }}><StatusDot status="expired" />{batch.expiredCount}</span>}
                     </div>
-                    {unusedVs.length > 0 && (
-                      <input type="checkbox" checked={batchAllSelected} onClick={e => e.stopPropagation()}
-                        onChange={() => toggleBatchSelect(batch)}
-                        style={{ width: 14, height: 14, accentColor: C.gold, cursor: 'pointer' }} />
-                    )}
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.dim }}>
-                        {batch.batch_id.slice(0, 8)}
-                      </span>
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.text }}>
-                        {formatDuration(batch.duration_minutes)}
-                      </span>
-                      <span style={{ fontSize: 11, color: C.dim }}>
-                        {batch.created_at?.slice(0, 10)}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      {batch.unusedCount > 0 && <StatusBadge status="unused" />}
-                      {batch.usedCount > 0 && <StatusBadge status="used" />}
-                      {batch.expiredCount > 0 && <StatusBadge status="expired" />}
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.dim, marginLeft: 4 }}>
-                        {batch.unusedCount}/{batch.totalCount}
-                      </span>
-                    </div>
+
                     {/* Batch Actions */}
                     <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-                      <button onClick={() => copyBatchCodes(batch)} title="Copy all codes"
-                        style={{ padding: '4px 8px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: C.gold, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
-                        <Copy size={12} />
-                      </button>
-                      {batch.unusedCount > 0 && (
-                        <>
-                          <button onClick={() => handleBatchSuspend(batch.batch_id, true)} style={{ padding: '4px 8px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: C.gold, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
-                            Suspend
-                          </button>
-                          <button onClick={() => handleBatchVoid(batch.batch_id)} style={{ padding: '4px 8px', background: 'var(--theme-surface)', border: `0.5px solid ${C.border2}`, borderRadius: 4, color: C.red, fontSize: 9, fontWeight: 700, cursor: 'pointer' }}>
-                            Void
-                          </button>
-                        </>
-                      )}
+                      {btn('Copy', C.gold, () => copyBatchCodes(batch))}
+                      {batch.unusedCount > 0 && btn('Void', C.red, () => handleBatchVoid(batch.batch_id))}
                     </div>
                   </div>
 
                   {/* Expanded: Code Grid */}
                   {expanded && (
-                    <div style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {batch.vouchers.map(v => (
-                          <div key={v.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            padding: '5px 10px', borderRadius: 6,
-                            background: v.status === 'unused' ? 'rgba(34,197,94,0.06)' : v.status === 'used' ? 'rgba(232,184,75,0.06)' : 'rgba(239,68,68,0.06)',
-                            border: `0.5px solid ${v.status === 'unused' ? 'rgba(34,197,94,0.15)' : v.status === 'used' ? 'rgba(232,184,75,0.15)' : 'rgba(239,68,68,0.15)'}`,
-                          }}>
-                            {v.status === 'unused' && (
-                              <input type="checkbox" checked={selected.has(v.id)} onChange={() => toggleSelect(v.id)}
-                                style={{ width: 12, height: 12, accentColor: C.gold, cursor: 'pointer', margin: 0 }} />
-                            )}
+                    <div style={{ padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {batch.vouchers.map(v => {
+                        const isSelected = selected.has(v.id)
+                        const isUnused = v.status === 'unused'
+                        const isUsed = v.status === 'used'
+                        const isExpired = v.status === 'expired'
+                        const chipBg = isUnused ? 'rgba(34,197,94,0.08)' : isUsed ? 'rgba(232,184,75,0.08)' : 'rgba(239,68,68,0.08)'
+                        const chipBorder = selectMode && isUnused
+                          ? (isSelected ? `${C.gold}` : 'rgba(255,255,255,0.08)')
+                          : (isUnused ? 'rgba(34,197,94,0.15)' : isUsed ? 'rgba(232,184,75,0.15)' : 'rgba(239,68,68,0.15)')
+                        const codeColor = isUnused ? C.text : isUsed ? C.gold : C.red
+
+                        return (
+                          <div key={v.id}
+                            onClick={(e) => {
+                              if (selectMode && isUnused) { toggleSelect(v.id); return }
+                              setContextMenu({ voucher: v, x: e.clientX, y: e.clientY })
+                            }}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              setContextMenu({ voucher: v, x: e.clientX, y: e.clientY })
+                            }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 5,
+                              padding: '4px 9px', borderRadius: 5,
+                              background: selectMode && isSelected ? 'rgba(232,184,75,0.12)' : chipBg,
+                              border: `0.5px solid ${chipBorder}`,
+                              cursor: selectMode && isUnused ? 'pointer' : 'default',
+                              transition: 'border-color 0.15s',
+                              outline: selectMode && isSelected ? `1px solid ${C.gold}` : 'none',
+                            }}>
+                            <StatusDot status={v.status} />
                             <span style={{
                               fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
-                              color: v.status === 'unused' ? C.text : v.status === 'used' ? C.gold : C.red,
-                              cursor: v.status === 'unused' ? 'pointer' : 'default',
-                            }} onClick={() => v.status === 'unused' && copyCode(v.code)} title={v.status === 'unused' ? 'Click to copy' : v.status === 'used' ? `Used ${v.used_at?.slice(0, 10) || ''}` : 'Expired'}>
+                              color: codeColor,
+                            }} title={isUsed ? `Used ${v.used_at?.slice(0, 10) || ''}` : isExpired ? 'Expired' : 'Unused'}>
                               {v.code}
                             </span>
-                            {v.is_suspended && (
-                              <span style={{ fontSize: 8, fontWeight: 700, color: C.red, textTransform: 'uppercase' }}>SUS</span>
-                            )}
-                            {copiedCode === v.code && (
-                              <Check size={10} style={{ color: C.green }} />
-                            )}
+                            {v.is_suspended && <span style={{ fontSize: 7, fontWeight: 700, color: C.red, lineHeight: 1 }}>SUS</span>}
+                            {copiedCode === v.code && <Check size={9} style={{ color: C.green }} />}
                           </div>
-                        ))}
-                      </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -418,6 +405,34 @@ export default function VouchersPage() {
           </div>
         )}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div style={{
+          position: 'fixed', left: contextMenu.x, top: contextMenu.y,
+          background: '#1a1a1a', border: `0.5px solid ${C.border2}`, borderRadius: 8,
+          padding: 4, zIndex: 9999, minWidth: 140,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+        }}>
+          <div style={{ padding: '6px 10px', fontSize: 10, color: C.dim, fontFamily: 'DM Mono, monospace', borderBottom: `0.5px solid ${C.border2}`, marginBottom: 2 }}>
+            {contextMenu.voucher.code}
+          </div>
+          <button onClick={() => { copyCode(contextMenu.voucher.code); setContextMenu(null) }}
+            style={{ width: '100%', padding: '7px 10px', background: 'none', border: 'none', color: C.text, fontSize: 11, textAlign: 'left', cursor: 'pointer', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+            <Copy size={12} /> Copy code
+          </button>
+          {contextMenu.voucher.status === 'unused' && (
+            <button onClick={() => handleVoid(contextMenu.voucher.id)}
+              style={{ width: '100%', padding: '7px 10px', background: 'none', border: 'none', color: C.red, fontSize: 11, textAlign: 'left', cursor: 'pointer', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8 }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              <Trash2 size={12} /> Void
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Generate Modal */}
       {showGenerate && (
@@ -465,7 +480,7 @@ export default function VouchersPage() {
             </div>
 
             <div style={{ padding: '12px 14px', background: 'var(--theme-bg)', border: `0.5px solid ${C.gold}30`, borderRadius: 7, marginBottom: 16, fontSize: 11, color: C.gold, lineHeight: 1.6 }}>
-              {genForm.quantity} time-based codes ({selectedPreset || genForm.duration_minutes || '?'} min each). No package needed.
+              {genForm.quantity} time-based codes ({selectedPreset || genForm.duration_minutes || '?'} min each)
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
