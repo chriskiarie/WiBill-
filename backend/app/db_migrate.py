@@ -589,6 +589,10 @@ MIGRATIONS = [
     ("router_actions status index", """
         CREATE INDEX IF NOT EXISTS ix_router_actions_status ON router_actions(status)
     """),
+    # ── Token validity tracking ──────────────────────────────────────────────
+    ("mikrotik_configs.token_valid", """
+        ALTER TABLE mikrotik_configs ADD COLUMN IF NOT EXISTS token_valid BOOLEAN DEFAULT TRUE
+    """),
 ]
 
 async def run_migrations():

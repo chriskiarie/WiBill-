@@ -80,10 +80,21 @@ async def _load_and_authorize(router_id: str, request: Request, db: AsyncSession
 
     try:
         expected = decrypt(config.poll_token_enc)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    except Exception as exc:
+        logger.error(
+            f"POLL DECRYPT FAILED router={router_id} — encryption key may have changed. "
+            f"All stored poll tokens are now invalid. Error: {exc}"
+        )
+        config.token_valid = False
+        await db.commit()
+        raise HTTPException(status_code=401, detail="Unauthorized — token encryption mismatch")
 
     if not supplied or not hmac.compare_digest(supplied, expected):
+        logger.warning(
+            f"POLL TOKEN MISMATCH router={router_id} — supplied token does not match stored token"
+        )
+        config.token_valid = False
+        await db.commit()
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     return config
@@ -123,6 +134,8 @@ async def poll_actions(
 
     # Liveness: bump regardless of whether any actions were pending.
     config.last_poll_at = now
+    # Mark token as valid — a successful poll means the token is working.
+    config.token_valid = True
     # First-poll proof: stamp only the very first successful poll. The frontend
     # uses this to advance past REGISTERED to CONFIGURED once it has evidence
     # the 30s scheduler is genuinely running, not just that registration worked.

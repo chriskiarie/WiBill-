@@ -292,6 +292,7 @@ async def health_check(
         "status": new_status,
         "connected": connected,
         "router_reachable": connected,
+        "token_valid": config.token_valid if hasattr(config, 'token_valid') else True,
         "router_ip": config.router_ip,
         "router_identity": parts.get("board"),
         "router_os_version": parts.get("routeros"),

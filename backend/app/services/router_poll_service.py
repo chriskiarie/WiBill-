@@ -71,9 +71,14 @@ def ensure_poll_token(config: MikrotikConfig) -> str:
         try:
             return decrypt(config.poll_token_enc)
         except Exception:
-            logger.warning(f"Could not decrypt poll token for router {config.id} — regenerating")
+            logger.warning(
+                f"Could not decrypt poll token for router {config.id} — "
+                f"encryption key may have changed. Marking token as invalid."
+            )
+            config.token_valid = False
     token = secrets.token_urlsafe(32)
     config.poll_token_enc = encrypt(token)
+    config.token_valid = False  # New token — router still has old one
     return token
 
 

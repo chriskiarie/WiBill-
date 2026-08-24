@@ -28,6 +28,7 @@ class MikrotikConfig(Base):
     poll_token_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_poll_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     first_poll_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    token_valid: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

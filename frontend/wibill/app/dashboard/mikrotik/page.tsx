@@ -1444,6 +1444,35 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         </div>
       </div>
 
+      {/* Token invalid alert — encryption key changed, router lost its token */}
+      {health?.token_valid === false && (
+        <Card style={{ marginTop: 16, border: '0.5px solid rgba(232,99,74,0.3)', background: 'rgba(232,99,74,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <AlertTriangle size={18} color="#E8634A" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#E8634A', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 6 }}>
+                Poll Token Invalid
+              </div>
+              <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7 }}>
+                The encryption key changed between deployments, invalidating all stored poll tokens. Your router can no longer authenticate with WiBill.
+              </div>
+              <button
+                onClick={handleFixToken}
+                disabled={fixing}
+                style={{
+                  marginTop: 12, padding: '9px 16px', borderRadius: 7,
+                  background: 'rgba(232,99,74,0.1)', border: '0.5px solid rgba(232,99,74,0.3)',
+                  color: '#E8634A', fontSize: 12, fontWeight: 600, cursor: fixing ? 'not-allowed' : 'pointer',
+                  opacity: fixing ? 0.6 : 1,
+                }}
+              >
+                {fixing ? 'Generating…' : 'Generate New Script'}
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {/* Hero image area */}
         <div style={{
