@@ -209,33 +209,6 @@ export default function MikrotikPage() {
     setModeOverride(existing ? 'manage' : null)
   }
 
-  const [fixingPoll, setFixingPoll] = useState(false)
-  const [fixScript, setFixScript] = useState<string | null>(null)
-  const [fixCopied, setFixCopied] = useState(false)
-  const handleFixPollToken = async () => {
-    setFixingPoll(true)
-    try {
-      const res = await api.fixPollToken()
-      if (res?.success) {
-        showToast('Poll token rotated — router will connect within 30s', { type: 'success' })
-        setTimeout(() => fetchAll(), 35000)
-      } else if (res?.fallback_script) {
-        setFixScript(res.fallback_script)
-        showToast(res?.message || 'Bridge unavailable — paste the script into Winbox', { type: 'error' })
-      } else {
-        showToast(res?.message || 'Failed to update router', { type: 'error' })
-      }
-    } catch (e: any) {
-      showToast(e?.message || 'Failed to fix connection', { type: 'error' })
-    } finally { setFixingPoll(false) }
-  }
-  const handleCopyFixScript = async () => {
-    if (!fixScript) return
-    await navigator.clipboard.writeText(fixScript)
-    setFixCopied(true)
-    setTimeout(() => setFixCopied(false), 2000)
-  }
-
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -291,36 +264,8 @@ export default function MikrotikPage() {
               actions={actions}
               onReconfigure={handleRerunSetup}
               onAddRouter={handleAddRouter}
-              onFixPoll={handleFixPollToken}
-              fixingPoll={fixingPoll}
             />
           ) : null}
-
-          {fixScript && (
-            <div onClick={() => setFixScript(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-              <div onClick={e => e.stopPropagation()} style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 20, maxWidth: 560, width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <AlertTriangle size={15} color={C.gold} />
-                  <span style={{ fontSize: 13, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: C.text }}>Token rotated — paste this into Winbox</span>
-                </div>
-                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6, marginBottom: 12 }}>
-                  The bridge at your site is outdated, so it couldn't update the router directly. Paste this script into
-                  <strong> Winbox → New Terminal → Enter</strong>. It replaces the router's poll scheduler with your new token — the router will come online within 30s.
-                </div>
-                <pre style={{ background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 14, margin: 0, fontSize: 10, fontFamily: 'DM Mono, monospace', color: C.dim, lineHeight: 1.6, overflowX: 'auto', overflowY: 'auto', maxHeight: 260, whiteSpace: 'pre' }}>{fixScript}</pre>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={handleCopyFixScript}
-                    style={{ flex: 1, padding: '12px 16px', background: C.gold, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                    <Copy size={13} /> {fixCopied ? 'Copied!' : 'Copy Script'}
-                  </button>
-                  <button onClick={() => setFixScript(null)}
-                    style={{ padding: '12px 16px', background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 7, color: C.dim, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -1174,7 +1119,7 @@ function RouterSettingsPanel({ health, onBack }: {
 
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
-  const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
+  const statusColor = online ? C.green : health?.last_poll_at ? '#E8634A' : C.gold
   const boardName = displayClean(health?.board_name || health?.router_identity)
   const routerIp = displayClean(health?.router_ip)
   const rosVersion = displayClean(health?.router_os_version)
@@ -1382,18 +1327,16 @@ function RouterSettingsPanel({ health, onBack }: {
   )
 }
 
-function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter, onFixPoll, fixingPoll }: {
+function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRouter }: {
   health: any
   onboard: any
   actions: any[]
   onReconfigure: () => void
   onAddRouter: () => void
-  onFixPoll: () => void
-  fixingPoll: boolean
 }) {
   const online = health?.connected === true
   const statusText = online ? 'Online' : health?.last_poll_at ? 'Offline' : 'Never Connected'
-  const statusColor = online ? C.green : health?.last_poll_at ? C.red : C.gold
+  const statusColor = online ? C.green : health?.last_poll_at ? '#E8634A' : C.gold
 
   const boardName = displayClean(health?.board_name || health?.router_identity)
   const rosVersion = displayClean(health?.router_os_version)
@@ -1443,13 +1386,6 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
           <span style={{ fontSize: 18, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', color: statusColor }}>{statusText}</span>
           {health?.last_poll_at && (
             <span style={{ fontSize: 12, color: C.dim, fontFamily: 'DM Mono, monospace' }}>last seen <TimeAgo iso={health.last_poll_at} /></span>
-          )}
-          {!online && health?.last_poll_at && (
-            <button onClick={onFixPoll} disabled={fixingPoll}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 6, background: 'transparent', border: `0.5px solid ${C.gold}`, color: C.gold, fontSize: 10, fontWeight: 600, cursor: fixingPoll ? 'not-allowed' : 'pointer', opacity: fixingPoll ? 0.5 : 1 }}>
-              {fixingPoll ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Wifi size={11} />}
-              {fixingPoll ? 'Fixing…' : 'Fix Connection'}
-            </button>
           )}
         </div>
         <button onClick={onAddRouter} style={{
