@@ -205,7 +205,7 @@ export default function PortalWizard() {
     previewParams.set('pkgs', pkgsJson)
   }
   const effectiveLogo = logoUrl || stickerDataUrl
-  if (effectiveLogo) previewParams.set('logo_url', effectiveLogo)
+  if (effectiveLogo && !effectiveLogo.startsWith('data:')) previewParams.set('logo_url', effectiveLogo)
   if (whatsapp) previewParams.set('whatsapp', whatsapp)
   if (technicianName) previewParams.set('technician_name', technicianName)
   if (technicianPhone) previewParams.set('technician_phone', technicianPhone)
@@ -669,20 +669,15 @@ export default function PortalWizard() {
                         setSelectedSticker(st.src)
                         setLogoUrl(null)
                         setStickerUploading(true)
-                        // Upload sticker to backend so portal template can render it as an image
                         try {
                           const res = await fetch(st.src)
                           const blob = await res.blob()
-                          const file = new File([blob], `${st.name.toLowerCase().replace(/\s+/g, '-')}.png`, { type: blob.type })
-                          const form = new FormData()
-                          form.append('file', file); form.append('subfolder', 'assets')
-                          const uploadRes = await fetch(`${API}/api/portal/assets/upload`, {
-                            method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
-                          })
-                          if (uploadRes.ok) {
-                            const data = await uploadRes.json()
-                            if (data.asset?.url) setLogoUrl(toAbsoluteUrl(data.asset.url))
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            const dataUrl = reader.result as string
+                            setLogoUrl(dataUrl)
                           }
+                          reader.readAsDataURL(blob)
                         } catch {} finally { setStickerUploading(false) }
                       }} style={{
                       padding: '7px 0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -722,32 +717,18 @@ export default function PortalWizard() {
                   const file = e.target.files?.[0]
                   if (!file) return
                   setUploading(true)
-                  const form = new FormData()
-                  form.append('file', file); form.append('subfolder', 'assets')
                   try {
-                    const res = await fetch(`${API}/api/portal/assets/upload`, {
-                      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
-                    })
-                    if (res.ok) {
-                      const data = await res.json()
-                      const url = data.asset?.url
-                      if (url) {
-                        setLogoUrl(toAbsoluteUrl(url))
-                        setEmoji(''); setSelectedSticker(null)
-                      } else {
-                        const fallback = URL.createObjectURL(file)
-                        setLogoUrl(fallback)
-                        setEmoji(''); setSelectedSticker(null)
-                      }
-                    } else {
-                      const fallback = URL.createObjectURL(file)
-                      setLogoUrl(fallback)
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const dataUrl = reader.result as string
+                      setLogoUrl(dataUrl)
                       setEmoji(''); setSelectedSticker(null)
                     }
+                    reader.readAsDataURL(file)
                   } catch {
                     const fallback = URL.createObjectURL(file)
                     setLogoUrl(fallback)
-                    setEmoji('')
+                    setEmoji(''); setSelectedSticker(null)
                   } finally { setUploading(false) }
                 }} />
             </div>

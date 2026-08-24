@@ -218,16 +218,19 @@ def _normalize_logo_url(logo: str, request: Request) -> str | None:
     """Return the logo URL rewritten against THIS API host — or None.
 
     Handles every flavor a logo can be stored as:
+      - data:image/...          → passed through as-is (base64, persists across deploys)
       - /uploads/...            → absolute against the current host
       - <host>/uploads/...      → rebased to the current host (old API
                                   domains baked in by earlier saves)
       - http(s) on another host → dropped (would render a broken image)
-      - blob:/data:             → dropped (device-local only)
+      - blob:                   → dropped (device-local only)
     """
     if not logo:
         return None
-    if logo.startswith("blob:") or logo.startswith("data:"):
+    if logo.startswith("blob:"):
         return None
+    if logo.startswith("data:"):
+        return logo
     base = f"{request.base_url.scheme}://{request.base_url.netloc}"
     if logo.startswith("/uploads/") or logo.startswith("\\uploads\\"):
         return base + logo.replace("\\", "/")
