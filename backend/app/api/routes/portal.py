@@ -3,6 +3,7 @@ app/api/routes/portal.py - Serves rendered portal HTML
 Uses Jinja2 (PortalRenderer) to render ACTUAL templates with LIVE data from the wizard!
 """
 import json
+import logging
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,7 @@ _portal_env = Environment(
 )
 
 router = APIRouter()
+logger = logging.getLogger("wibill.portal")
 
 # Demo data for previews
 DEMO_PACKAGES = [
@@ -679,3 +681,84 @@ async def portal_success_page(
             status_code=500,
             detail=f"Template error: {str(e)}"
         )
+
+
+# ── POST /api/portal/reconnect/mpesa ────────────────────────────────────────
+@router.post("/api/portal/reconnect/mpesa")
+async def reconnect_mpesa(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Reconnect a user by M-Pesa confirmation code (receipt number).
+
+    Looks up the transaction by mpesa_receipt, finds the associated session,
+    and re-activates it on MikroTik if the session is still valid.
+    """
+    from app.services.mikrotik_service import create_mikrotik_user
+    from app.services.session_service import activate_session as svc_activate
+    from app.models.transaction import Transaction
+
+    body = await request.json()
+    mpesa_code = (body.get("mpesa_code") or "").strip()
+    mac_address = (body.get("mac_address") or "").strip() or "00:00:00:00:00:00"
+    ip_address = (body.get("ip_address") or "").strip() or "0.0.0.0"
+
+    if not mpesa_code:
+        raise HTTPException(status_code=400, detail="M-Pesa confirmation code is required")
+
+    result = await db.execute(
+        select(Transaction).where(Transaction.mpesa_receipt == mpesa_code)
+    )
+    txn = result.scalar_one_or_none()
+    if not txn:
+        raise HTTPException(status_code=404, detail="M-Pesa code not found. Please check and try again.")
+
+    session_result = await db.execute(
+        select(DBSession).where(DBSession.id == txn.session_id)
+    )
+    session = session_result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found for this transaction.")
+
+    now = datetime.utcnow()
+    if session.expires_at and session.expires_at.replace(tzinfo=None) < now:
+        raise HTTPException(status_code=400, detail="Session has expired. Please purchase a new package.")
+
+    if session.status == "active":
+        return {
+            "success": True,
+            "session_id": str(session.id),
+            "package_name": "Active Session",
+            "duration": "Session is already active",
+        }
+
+    package_result = await db.execute(
+        select(Package).where(Package.id == session.package_id)
+    )
+    package = package_result.scalar_one_or_none()
+
+    try:
+        await create_mikrotik_user(
+            tenant_id=str(session.tenant_id),
+            session_id=str(session.id),
+            mac_address=mac_address,
+            ip_address=ip_address,
+            username=session.reconnect_code,
+            password=session.reconnect_code,
+            expires_at=session.expires_at,
+            db=db,
+        )
+    except Exception as e:
+        logger.warning(f"MikroTik reconnect failed for session {session.id}: {e}")
+
+    session.status = "active"
+    session.mac_address = mac_address
+    session.ip_address = ip_address
+    await db.commit()
+
+    return {
+        "success": True,
+        "session_id": str(session.id),
+        "package_name": package.name if package else "Your Package",
+        "duration": f"Until {session.expires_at.strftime('%I:%M %p') if session.expires_at else 'unknown'}",
+    }

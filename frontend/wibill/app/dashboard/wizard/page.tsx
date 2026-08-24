@@ -67,18 +67,18 @@ const MAIN_TEMPLATES = [
 ]
 
 const BRAND_STICKERS: { name: string; src: string }[] = [
-  { name: 'WiFi Signal', src: '/stickers/wifi-signal.png' },
-  { name: 'Website', src: '/stickers/website.png' },
-  { name: 'WiFi', src: '/stickers/wifi.png' },
-  { name: 'WiFi Router', src: '/stickers/wifi-router.png' },
-  { name: 'WiFi Blue', src: '/stickers/wifi-blue.png' },
-  { name: 'WiFi Icon', src: '/stickers/wifi-icon.png' },
-  { name: 'Technology', src: '/stickers/technology.png' },
-  { name: 'Internet', src: '/stickers/internet-1.png' },
-  { name: 'High Speed', src: '/stickers/high-speed.png' },
-  { name: 'Internet Access', src: '/stickers/internet-access.png' },
-  { name: 'Internet Globe', src: '/stickers/internet.png' },
-  { name: 'IoT', src: '/stickers/internet-of-things.png' },
+  { name: 'WiFi Signal', src: '/stickers/wifi-signal.svg' },
+  { name: 'Website', src: '/stickers/website.svg' },
+  { name: 'WiFi', src: '/stickers/wifi.svg' },
+  { name: 'WiFi Router', src: '/stickers/wifi-router.svg' },
+  { name: 'WiFi Blue', src: '/stickers/wifi-blue.svg' },
+  { name: 'WiFi Icon', src: '/stickers/wifi-icon.svg' },
+  { name: 'Technology', src: '/stickers/technology.svg' },
+  { name: 'Internet', src: '/stickers/internet-1.svg' },
+  { name: 'High Speed', src: '/stickers/high-speed.svg' },
+  { name: 'Internet Access', src: '/stickers/internet-access.svg' },
+  { name: 'Internet Globe', src: '/stickers/internet.svg' },
+  { name: 'IoT', src: '/stickers/internet-of-things.svg' },
 ]
 
 const FONT_CATEGORIES: Record<string, { name: string; fonts: { family: string; preview: string }[] }> = {
