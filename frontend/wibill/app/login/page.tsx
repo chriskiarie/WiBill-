@@ -193,26 +193,26 @@ function LoginContent() {
         paddingBottom: 48,
       }}>
         <img
-          src="/logos/wibill-wb-monogram-192.png"
+          src="/logos/wibill-wb-monogram-512.png"
           alt="WiBill"
-          style={{ width: 180, height: 180, objectFit: 'contain', display: 'inline-block' }}
+          style={{ width: 120, height: 120, objectFit: 'contain', display: 'inline-block' }}
         />
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
           fontStyle: 'italic',
-          fontWeight: 500,
-          fontSize: 28,
-          color: '#f0f0f0',
-          margin: '20px 0 0',
-          letterSpacing: '-0.01em',
-        }}>Welcome back</h1>
+          fontWeight: 700,
+          fontSize: 42,
+          color: '#E8B84B',
+          margin: '16px 0 0',
+          letterSpacing: '-0.02em',
+        }}>WiBill</h1>
         <div style={{
           fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: 10,
+          fontSize: 11,
           color: '#555',
-          marginTop: 8,
-          letterSpacing: '2px',
-          fontWeight: 600,
+          marginTop: 6,
+          letterSpacing: '3px',
+          fontWeight: 500,
         }}>
           ISP MANAGEMENT PORTAL
         </div>
