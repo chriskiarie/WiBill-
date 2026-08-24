@@ -1354,8 +1354,8 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
       if (data.success) {
         showToast('Token rotated and pushed to router', { type: 'success' })
         setFixScript(null)
-      } else if (data.script) {
-        setFixScript(data.script)
+      } else if (data.fallback_script) {
+        setFixScript(data.fallback_script)
         showToast('Token rotated — paste the script below into Winbox', { type: 'success' })
       } else {
         showToast(data.detail || 'Failed to fix token', { type: 'error' })
