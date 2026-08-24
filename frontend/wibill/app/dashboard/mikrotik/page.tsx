@@ -1372,9 +1372,13 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
   }).slice(0, 5)
 
   const setupItems = [
-    { label: 'SSID', value: ssid !== '—' ? ssid : 'Not set', confirmed: ssid !== '—' },
-    { label: 'Portal', value: portalState === 'acked' ? 'Live' : portalState === 'delivered' ? 'Pushing…' : portalState === 'pending' ? 'Queued' : 'Not pushed', confirmed: portalState === 'acked' },
-    { label: 'Walled garden', value: health?.walled_garden === 'yes' ? 'Configured' : 'Not confirmed', confirmed: health?.walled_garden === 'yes' },
+    { label: 'WiFi name', value: ssid !== '—' ? ssid : 'Not set', confirmed: ssid !== '—' },
+    {
+      label: 'Login page',
+      value: !online ? 'Offline' : portalState === 'acked' ? 'Live' : portalState === 'delivered' ? 'Pushing…' : portalState === 'pending' ? 'Queued' : 'Not set',
+      confirmed: portalState === 'acked' && online,
+    },
+    { label: 'Network access', value: health?.walled_garden === 'yes' ? 'Configured' : 'Not set', confirmed: health?.walled_garden === 'yes' },
   ]
 
   return (
@@ -1401,9 +1405,15 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {/* Hero image area */}
         <div style={{
-          height: 280, background: `linear-gradient(180deg, #0f0f0f 0%, ${C.base} 100%)`,
+          height: 280,
+          background: online
+            ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 6%, ${C.void}) 0%, ${C.base} 100%)`
+            : health?.last_poll_at
+              ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 6%, ${C.void}) 0%, ${C.base} 100%)`
+              : `linear-gradient(180deg, ${C.void} 0%, ${C.base} 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
           borderBottom: `0.5px solid ${C.border}`,
+          transition: 'background 0.6s ease',
         }}>
           {catalog && !imgFailed ? (
             <img
@@ -1485,7 +1495,7 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
           {timeline.length > 0 ? (
             <div>
               {timeline.map((e, i) => {
-                const dotColor = e.tone === 'warn' ? C.red : e.tone === 'done' ? (e.kind === 'registration' ? C.gold : C.green) : C.dim
+                const dotColor = e.tone === 'warn' ? '#E8634A' : e.tone === 'done' ? (e.kind === 'registration' ? C.gold : C.green) : C.dim
                 const isNewest = i === 0
                 return (
                   <div key={e.id} style={{ display: 'flex', gap: 14 }}>
