@@ -1356,7 +1356,6 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         setFixScript(null)
       } else if (data.fallback_script) {
         setFixScript(data.fallback_script)
-        showToast('Token rotated — paste the script below into Winbox', { type: 'success' })
       } else {
         showToast(data.detail || 'Failed to fix token', { type: 'error' })
       }
@@ -1443,35 +1442,6 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         </button>
         </div>
       </div>
-
-      {/* Token invalid alert — encryption key changed, router lost its token */}
-      {health?.token_valid === false && (
-        <Card style={{ marginTop: 16, border: '0.5px solid rgba(232,99,74,0.3)', background: 'rgba(232,99,74,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <AlertTriangle size={18} color="#E8634A" style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#E8634A', fontFamily: '"Space Grotesk", sans-serif', marginBottom: 6 }}>
-                Poll Token Invalid
-              </div>
-              <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7 }}>
-                The encryption key changed between deployments, invalidating all stored poll tokens. Your router can no longer authenticate with WiBill.
-              </div>
-              <button
-                onClick={handleFixToken}
-                disabled={fixing}
-                style={{
-                  marginTop: 12, padding: '9px 16px', borderRadius: 7,
-                  background: 'rgba(232,99,74,0.1)', border: '0.5px solid rgba(232,99,74,0.3)',
-                  color: '#E8634A', fontSize: 12, fontWeight: 600, cursor: fixing ? 'not-allowed' : 'pointer',
-                  opacity: fixing ? 0.6 : 1,
-                }}
-              >
-                {fixing ? 'Generating…' : 'Generate New Script'}
-              </button>
-            </div>
-          </div>
-        </Card>
-      )}
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {/* Hero image area */}
@@ -1597,19 +1567,53 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         </div>
       </Card>
 
-      {/* Fix token script display */}
+      {/* Script modal */}
       {fixScript && (
-        <Card style={{ marginTop: 16 }}>
-          <div style={{ ...sectionLabel, marginBottom: 10 }}>Paste this into Winbox Terminal</div>
-          <div style={{ padding: '10px 14px', background: 'rgba(232,99,74,0.06)', border: '0.5px solid rgba(232,99,74,0.2)', borderRadius: 7, marginBottom: 12, fontSize: 12, color: '#E8634A', lineHeight: 1.6 }}>
-            The poll token was stale. This script replaces it with a fresh one. Run it once in the terminal.
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={() => setFixScript(null)}>
+          <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 14, padding: 0, width: '100%', maxWidth: 560, maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '20px 24px 16px', borderBottom: `0.5px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(232,99,74,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AlertTriangle size={16} color="#E8634A" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text, fontFamily: '"Space Grotesk", sans-serif' }}>Update Router Script</div>
+                    <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>Paste this into Winbox Terminal to reconnect</div>
+                  </div>
+                </div>
+                <button onClick={() => setFixScript(null)} style={{ width: 28, height: 28, borderRadius: 6, background: 'transparent', border: 'none', color: C.dim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>×</button>
+              </div>
+            </div>
+            {/* Script body */}
+            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ padding: '10px 14px', background: 'rgba(232,99,74,0.06)', border: '0.5px solid rgba(232,99,74,0.15)', borderRadius: 7, marginBottom: 14, fontSize: 12, color: '#E8634A', lineHeight: 1.6 }}>
+                The router's authentication token expired. This script generates a fresh one. Run it once — after that, the router reconnects automatically.
+              </div>
+              <pre style={{
+                background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 14,
+                fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.text, lineHeight: 1.6,
+                overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0,
+              }}>{fixScript}</pre>
+            </div>
+            {/* Footer */}
+            <div style={{ padding: '14px 24px', borderTop: `0.5px solid ${C.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { navigator.clipboard.writeText(fixScript); showToast('Copied to clipboard', { type: 'success' }) }} style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 7,
+                background: 'transparent', border: `0.5px solid ${C.border}`, color: C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}>
+                <Copy size={13} /> Copy script
+              </button>
+              <button onClick={() => setFixScript(null)} style={{
+                padding: '9px 16px', borderRadius: 7,
+                background: C.gold, border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}>
+                Done — I pasted it
+              </button>
+            </div>
           </div>
-          <pre style={{
-            background: C.void, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: 16,
-            fontSize: 11, fontFamily: 'DM Mono, monospace', color: C.text, lineHeight: 1.6,
-            overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-          }}>{fixScript}</pre>
-        </Card>
+        </div>
       )}
 
       <style dangerouslySetInnerHTML={{ __html: '@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } } @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }' }} />

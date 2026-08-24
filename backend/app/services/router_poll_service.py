@@ -32,7 +32,7 @@ from app.services.crypto_service import encrypt, decrypt
 logger = logging.getLogger("wibill.poll")
 
 POLL_INTERVAL_SECONDS = 30
-STALE_AFTER_SECONDS = 3 * POLL_INTERVAL_SECONDS  # 3x missed intervals → offline
+STALE_AFTER_SECONDS = 5 * POLL_INTERVAL_SECONDS  # 5x missed intervals → offline (~2.5 min)
 MAX_ACTIONS_PER_POLL = 20
 
 # Extra walled-garden hosts every ISP router needs so captive phones load
