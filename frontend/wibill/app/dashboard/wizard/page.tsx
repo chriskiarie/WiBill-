@@ -307,6 +307,19 @@ export default function PortalWizard() {
     return () => clearTimeout(timer)
   }, [previewKey, stickerDataUrl, previewUrl])
 
+  // Send logo to preview iframe via postMessage when it's a data URL
+  // (can't fit in query string, so we push it after iframe loads)
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe || !effectiveLogo) return
+    const timer = setTimeout(() => {
+      try {
+        iframe.contentWindow?.postMessage({ type: 'UPDATE_BRAND', logo_url: effectiveLogo }, '*')
+      } catch {}
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [effectiveLogo])
+
   function buildConfig() {
     return {
       template_id: tpl,
