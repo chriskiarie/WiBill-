@@ -22,6 +22,7 @@ export default function NetworkPage() {
   const [status, setStatus] = useState<any>(null)
   const [events, setEvents] = useState<any[]>([])
   const [mikrotik, setMikrotik] = useState<any>(null)
+  const [mikrotikHealth, setMikrotikHealth] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
@@ -39,15 +40,17 @@ export default function NetworkPage() {
     if (!token || !user?.tenant_id) return
     setLoading(true)
     try {
-      const [dash, evts, mik, outageData] = await Promise.all([
+      const [dash, evts, mik, mikHealth, outageData] = await Promise.all([
         api.getTenantDashboard().catch(() => null),
         api.getTenantNetworkEvents(user.tenant_id, 50).catch(() => []),
         api.getMikrotikConfig().catch(() => null),
+        api.getMikrotikHealth().catch(() => null),
         api.getOutages('active').catch(() => []),
       ])
       if (dash) setStatus(dash.network || dash)
       setEvents(Array.isArray(evts) ? evts : [])
       setMikrotik(mik)
+      setMikrotikHealth(mikHealth)
       setOutages(Array.isArray(outageData) ? outageData : [])
     } catch (e) {
     } finally {
@@ -101,9 +104,12 @@ export default function NetworkPage() {
   }
 
   const notMonitoring = !status && !loading
-  const isOnline = status?.status === 'UP' || status?.status === 'up'
-  const isDegraded = status?.status === 'DEGRADED' || status?.status === 'degraded'
-  const isOffline = status?.status === 'DOWN' || status?.status === 'down'
+  const mikrotikConnected = mikrotikHealth?.connected === true
+  const mikrotikDisconnected = mikrotikHealth && mikrotikHealth.connected === false
+
+  const isOnline = mikrotikConnected || (!mikrotikDisconnected && (status?.status === 'UP' || status?.status === 'up'))
+  const isDegraded = !mikrotikConnected && (status?.status === 'DEGRADED' || status?.status === 'degraded')
+  const isOffline = mikrotikDisconnected || (!mikrotikConnected && (status?.status === 'DOWN' || status?.status === 'down'))
 
   const statusLabel = isOnline
     ? { text: 'Online', color: C.green, pulse: true }
@@ -116,11 +122,11 @@ export default function NetworkPage() {
     : { text: 'Not Monitoring Yet', color: C.gold, pulse: false }
 
   const statusTint = isOnline
-    ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 8%, ${C.void}) 0%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, ${C.green} 8%, ${C.void}) 0%, color-mix(in srgb, ${C.green} 4%, ${C.void}) 40%, ${C.void} 100%)`
     : isDegraded
-    ? `linear-gradient(180deg, color-mix(in srgb, ${C.gold} 8%, ${C.void}) 0%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, ${C.gold} 8%, ${C.void}) 0%, color-mix(in srgb, ${C.gold} 4%, ${C.void}) 40%, ${C.void} 100%)`
     : isOffline
-    ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 8%, ${C.void}) 0%, ${C.void} 100%)`
+    ? `linear-gradient(180deg, color-mix(in srgb, #E8634A 8%, ${C.void}) 0%, color-mix(in srgb, #E8634A 4%, ${C.void}) 40%, ${C.void} 100%)`
     : C.void
 
   const uptimePercent = events.length > 0

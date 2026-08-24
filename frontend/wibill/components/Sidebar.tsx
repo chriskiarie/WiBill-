@@ -152,20 +152,20 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       position: 'sticky', top: 0,
       transition: 'width 0.3s cubic-bezier(0.19, 1, 0.22, 1)',
     }}>
-      {/* ── BRAND ROW (64px) ── */}
+      {/* ── BRAND ROW (72px) ── */}
       <div style={{
-        height: 64, minHeight: 64,
+        height: 72, minHeight: 72,
         padding: collapsed ? '0' : '0 16px',
         display: 'flex', alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
+        justifyContent: collapsed ? 'center' : 'center',
         borderBottom: '0.5px solid var(--sidebar-border)',
       }}>
         <a href={`${PORTAL_BASE}/portal/${user?.tenant_slug || ''}`} target="_blank" rel="noopener noreferrer"
           onMouseEnter={() => setBrandHover(true)} onMouseLeave={() => setBrandHover(false)}
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', position: 'relative', flex: collapsed ? 1 : undefined, padding: collapsed ? 0 : '0 2px' }}>
-          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: collapsed ? 0 : '4px 0' }}>
+          <img src="/logos/wibill-wb-monogram-180.png" alt="WiBill" style={{ width: collapsed ? 40 : 52, height: collapsed ? 40 : 52, objectFit: 'contain', flexShrink: 0, transition: 'width 0.2s, height 0.2s' }} />
           <span style={{
-            position: 'absolute', bottom: -18, left: 0,
+            position: 'absolute', bottom: -16, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--sidebar-card-bg)', borderRadius: 4,
             padding: '2px 8px', fontSize: 11, fontFamily: 'Inter, sans-serif',
             color: C.dim, whiteSpace: 'nowrap',
@@ -176,16 +176,19 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           </span>
         </a>
 
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={{
-            width: 22, height: 22, borderRadius: 6,
-            background: 'transparent', border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: C.dim,
-          }}>
-          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+              width: 22, height: 22, borderRadius: 6,
+              background: 'transparent', border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: C.dim,
+            }}>
+            <ChevronLeft size={14} />
+          </button>
+        )}
       </div>
 
       {/* ── NAV ── */}
