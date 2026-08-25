@@ -551,6 +551,58 @@ async def upload_portal_file(
     }
 
 
+# ── Full reconfigure: reset walled garden + push correct portal ────────
+@router.post("/mikrotik/reconfigure")
+async def reconfigure_router(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Nuclear reconfiguration: clears ALL walled-garden entries, re-adds the
+    correct ones with the current slug, and re-pushes the login.html stub.
+
+    Use this when a router has stale/incorrect walled-garden entries (e.g.
+    wrong slug from an older deployment) or after any slug/portal change.
+    """
+    from app.core.config import settings
+
+    config_result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = config_result.scalar_one_or_none()
+    if not config:
+        raise HTTPException(status_code=400, detail="Save MikroTik config first via POST /mikrotik/config")
+
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    slug = tenant.slug if tenant else "wibill"
+
+    backend_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
+    fetch_url = f"{backend_base}/login/{slug}"
+    backend_host = backend_base.replace("https://", "").replace("http://", "").rstrip("/")
+
+    # 1. Push correct login.html
+    action = await enqueue_action(
+        config.id,
+        "push_portal",
+        {"url": fetch_url, "dst": "hotspot/login.html"},
+        db,
+    )
+
+    # 2. Reset walled garden: remove ALL entries, re-add correct ones
+    await enqueue_action(
+        config.id,
+        "reset_walled_garden",
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", backend_host]},
+        db,
+    )
+
+    return {
+        "ok": True,
+        "action_id": action.id,
+        "slug": slug,
+        "walled_garden_hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", backend_host],
+    }
+
+
 # ── Wizard: Serve temp portal file for router fetch ───────────────
 @router.get("/mikrotik/temp-portal/{file_id}")
 async def serve_temp_portal(file_id: str):

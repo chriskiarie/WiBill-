@@ -196,6 +196,24 @@ def _render_add_walled_garden(action: RouterAction) -> str:
     return "\n".join(lines) if lines else f':log info "wibill: skip add_walled_garden {action.id} — no hosts"'
 
 
+def _render_reset_walled_garden(action: RouterAction) -> str:
+    """Nuclear walled-garden reset: remove ALL existing entries, then add the correct ones.
+
+    This fixes stale/mismatched entries (e.g. wrong slug from an older deployment)
+    by clearing everything first, then re-adding with the current slug.
+    """
+    hosts = action.payload.get("hosts") or WALLED_GARDEN_EXTRA_HOSTS
+    # Remove ALL walled-garden entries (clean slate)
+    remove_line = ':do { /ip hotspot walled-garden remove [find] } on-error={ }'
+    # Re-add correct entries
+    add_lines = [
+        f':do {{ /ip hotspot walled-garden add dst-host={h} action=allow }} on-error={{ }}'
+        for h in hosts
+        if isinstance(h, str) and h.strip()
+    ]
+    return "\n".join([remove_line] + add_lines) if add_lines else remove_line
+
+
 def render_action_line(action: RouterAction, ros_version: str) -> str:
     if action.action_type == "add_bypass":
         return _render_add_bypass(action)
@@ -205,6 +223,8 @@ def render_action_line(action: RouterAction, ros_version: str) -> str:
         return _render_push_portal(action, ros_version)
     if action.action_type == "add_walled_garden":
         return _render_add_walled_garden(action)
+    if action.action_type == "reset_walled_garden":
+        return _render_reset_walled_garden(action)
     return f':log info "wibill: unknown action {action.action_type} ({action.id})"'
 
 

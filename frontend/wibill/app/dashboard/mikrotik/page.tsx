@@ -1097,6 +1097,8 @@ function activityLabel(a: any): string {
       return 'Portal push queued'
     case 'add_bypass': return status === 'acked' ? 'Bypass added' : 'Bypass add queued'
     case 'remove_bypass': return status === 'acked' ? 'Bypass removed' : 'Bypass remove queued'
+    case 'add_walled_garden': return status === 'acked' ? 'Walled garden updated' : 'Walled garden update queued'
+    case 'reset_walled_garden': return status === 'acked' ? 'Walled garden reset and reconfigured' : 'Walled garden reset queued'
     default: return (a?.action_type || 'action').replace(/_/g, ' ')
   }
 }
@@ -1139,6 +1141,7 @@ function RouterSettingsPanel({ health, onBack }: {
   const [portalAction, setPortalAction] = useState<any>(null)
   const [portalStatus, setPortalStatus] = useState<string | null>(null)
   const [portalUploading, setPortalUploading] = useState(false)
+  const [reconfiguring, setReconfiguring] = useState(false)
   const prevPortalStatusRef = useRef<string | null>(null)
 
   const { user } = useAuth()
@@ -1184,6 +1187,19 @@ function RouterSettingsPanel({ health, onBack }: {
       setPortalStatus(null)
       showToast(friendlyError(e.message || 'Failed to push portal file'), { type: 'error' })
     } finally { setPortalUploading(false) }
+  }
+
+  const handleReconfigure = async () => {
+    setReconfiguring(true)
+    try {
+      const result = await api.reconfigureRouter()
+      if (result?.ok) {
+        showToast(`Reconfigure queued — router will reset walled garden and re-add: ${result.walled_garden_hosts?.join(', ')}`, { type: 'success' })
+        onBack()
+      }
+    } catch (e: any) {
+      showToast(friendlyError(e.message || 'Failed to reconfigure router'), { type: 'error' })
+    } finally { setReconfiguring(false) }
   }
 
   useEffect(() => {
@@ -1268,6 +1284,10 @@ function RouterSettingsPanel({ health, onBack }: {
           <button onClick={handlePushPortal} disabled={portalUploading}
             style={{ flex: 1, padding: '14px 16px', background: 'transparent', border: `0.5px solid ${C.gold}`, borderRadius: 7, color: C.gold, fontSize: 12, fontWeight: 700, cursor: portalUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: portalUploading ? 0.6 : 1 }}>
             <Globe size={13} /> {portalUploading ? 'Pushing...' : 'Re-push Portal'}
+          </button>
+          <button onClick={handleReconfigure} disabled={reconfiguring}
+            style={{ flex: 1, padding: '14px 16px', background: 'transparent', border: `0.5px solid ${C.red}`, borderRadius: 7, color: C.red, fontSize: 12, fontWeight: 700, cursor: reconfiguring ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: reconfiguring ? 0.6 : 1 }}>
+            <RefreshCw size={13} style={reconfiguring ? { animation: 'spin 1s linear infinite' } : {}} /> {reconfiguring ? 'Resetting...' : 'Reconfigure'}
           </button>
         </div>
 
