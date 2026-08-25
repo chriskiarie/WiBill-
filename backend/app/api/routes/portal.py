@@ -283,6 +283,47 @@ def _default_portal_config(tenant: Tenant) -> dict:
     }
 
 
+def _extract_slug_from_host(host: str) -> str | None:
+    """Extract tenant slug from subdomain. E.g. 'mr-wifi.wi-bill.com' → 'mr-wifi'."""
+    if not host:
+        return None
+    # Strip port if present
+    hostname = host.split(":")[0].lower()
+    # Check if it's a subdomain of our base domains
+    base_domains = ["wi-bill.com", "honestbill.co.ke"]
+    for base in base_domains:
+        if hostname.endswith("." + base):
+            slug = hostname[:-(len(base) + 1)]
+            if slug and slug not in ("portal", "www", "api", "admin", "mail"):
+                return slug
+    return None
+
+
+# ── Catch-all portal route (subdomain-based) ─────────────────────────────────
+# Must come BEFORE /portal/{slug} to intercept subdomain requests
+@router.get("/", response_class=HTMLResponse)
+async def portal_by_hostname(
+    request: Request,
+    token: str = Query(None),
+    mac: str = Query(""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Serve portal when accessed via subdomain (e.g. mr-wifi.wi-bill.com).
+
+    Extracts slug from the Host header and renders the tenant's portal.
+    Falls through to normal routing if not a portal subdomain.
+    """
+    host = request.headers.get("host", "")
+    slug = _extract_slug_from_host(host)
+
+    if slug:
+        # Delegate to the slug-based portal route
+        return await get_live_portal(slug=slug, token=token, mac=mac, request=request, db=db)
+
+    # Not a portal subdomain — return 404 or let other routes handle
+    raise HTTPException(status_code=404, detail="Not a portal domain")
+
+
 @router.get("/portal/{slug}", response_class=HTMLResponse)
 async def get_live_portal(
     slug: str,
