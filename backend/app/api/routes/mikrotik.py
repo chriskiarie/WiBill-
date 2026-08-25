@@ -1004,16 +1004,7 @@ async def public_login_stub(slug: str, request: Request = None, db: AsyncSession
     if not tenant:
         raise HTTPException(status_code=404, detail="Unknown portal slug")
 
-    base_url = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
-
-    # If accessed via a subdomain (e.g. test-isp.wi-bill.com), use that as the base
-    if request:
-        host = request.headers.get("host", "")
-        from app.api.routes.portal import _extract_slug_from_host
-        host_slug = _extract_slug_from_host(host)
-        if host_slug:
-            # We're on a subdomain — use it for the redirect
-            hostname = host.split(":")[0].lower()
-            base_url = f"https://{hostname}"
+    # Always use the subdomain URL so MikroTik users land on the correct portal
+    base_url = f"https://{slug}.wi-bill.com"
 
     return PlainTextResponse(content=_login_stub_html(tenant, base_url), media_type="text/html", headers={"Cache-Control": "no-store"})
