@@ -54,7 +54,7 @@ const C = {
   activeBg: 'var(--sidebar-active-bg)',
 }
 
-export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: number }) {
+export default function Sidebar({ activeSessions: _ = 0, onTourStart }: { activeSessions?: number; onTourStart?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const navRef = useRef<HTMLDivElement>(null)
@@ -339,7 +339,10 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
       <div style={{ padding: collapsed ? '8px 0' : '10px 10px', borderTop: '0.5px solid var(--sidebar-border)' }}>
         {collapsed ? (
           <>
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: 'var(--sidebar-icon)', cursor: 'pointer' }}>
+            <div
+              onClick={onTourStart}
+              style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: 'var(--sidebar-icon)', cursor: 'pointer' }}
+            >
               <HelpCircle size={15} />
             </div>
             <div onClick={logout} style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', color: 'var(--sidebar-icon)', cursor: 'pointer' }}>
@@ -348,11 +351,15 @@ export default function Sidebar({ activeSessions: _ = 0 }: { activeSessions?: nu
           </>
         ) : (
           <>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '9px 10px', borderRadius: 8,
-              color: 'var(--sidebar-icon)', fontSize: 12, cursor: 'pointer',
-            }}>
+            <div
+              className="sidebar-support-btn"
+              onClick={onTourStart}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 8,
+                color: 'var(--sidebar-icon)', fontSize: 12, cursor: 'pointer',
+              }}
+            >
               <HelpCircle size={14} />
               <span>Support</span>
             </div>

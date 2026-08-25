@@ -1,9 +1,10 @@
 'use client'
-import { Suspense, useEffect, useState, useRef } from 'react'
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 import Sidebar from '@/components/Sidebar'
 import MobileTabBar from '@/components/MobileTabBar'
+import GuidedTour, { shouldShowTour } from '@/components/GuidedTour'
 import { DashboardProvider } from '@/context/DashboardContext'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
@@ -52,6 +53,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Mobile state
   const isMobile = useIsMobile()
+
+  // Tour state
+  const [tourForceShow, setTourForceShow] = useState(false)
+  const [autoTourDone, setAutoTourDone] = useState(false)
+
+  const startTour = useCallback(() => setTourForceShow(true), [])
+
+  // Auto-show tour on first login
+  useEffect(() => {
+    if (ready && !autoTourDone) {
+      setAutoTourDone(true)
+      if (shouldShowTour()) {
+        setTimeout(() => setTourForceShow(true), 600)
+      }
+    }
+  }, [ready, autoTourDone])
 
   // Paused overlay state
   const [stkState, setStkState] = useState<StkState>('idle')
@@ -253,7 +270,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <DashboardProvider>
       <style>{`@keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } } @keyframes slideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--theme-bg)' }}>
-        <Sidebar activeSessions={0} />
+        <Sidebar activeSessions={0} onTourStart={startTour} />
 
         <main style={{
           flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto',
@@ -480,6 +497,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {isMobile && (
         <MobileTabBar />
       )}
+      <GuidedTour forceShow={tourForceShow} onFinish={() => setTourForceShow(false)} />
     </DashboardProvider>
   )
 }
