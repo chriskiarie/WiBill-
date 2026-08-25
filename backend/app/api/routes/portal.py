@@ -16,12 +16,13 @@ from app.models.package import Package
 from app.models.session import Session as DBSession
 from app.models.transaction import Transaction
 from app.services.portal_renderer import PortalRenderer
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape, ChainableUndefined
 
 # Jinja2 environment for templates that use {% extends %}
 _portal_env = Environment(
     loader=FileSystemLoader("app/templates"),
     autoescape=select_autoescape(["html", "xml"]),
+    undefined=ChainableUndefined,
 )
 
 router = APIRouter()
