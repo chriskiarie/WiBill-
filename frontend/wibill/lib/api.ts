@@ -88,7 +88,7 @@ export const api = {
     const qs = query.toString()
     return request<any[]>(`/api/sessions${qs ? '?' + qs : ''}`)
   },
-  getLiveSessions: () => request<any[]>(`/api/sessions/live`),
+  getLiveSessions: () => request<any[]>(`/api/portal/live`),
   getSession: (id: string) => request<any>(`/api/sessions/${id}`),
   kickSession: (id: string) =>
     request<any>(`/api/sessions/${id}/terminate`, { method: 'POST' }),
