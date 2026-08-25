@@ -10,7 +10,7 @@ Handles:
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, desc
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from uuid import UUID, uuid4
