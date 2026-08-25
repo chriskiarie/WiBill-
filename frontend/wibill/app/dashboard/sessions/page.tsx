@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import Topbar from '@/components/Topbar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/context/ToastContext'
-import { Search, X, Clock, Wifi, ChevronRight, Gift, UserCheck, UserPlus } from 'lucide-react'
+import { Search, X, Clock, Wifi, ChevronRight, Gift, UserCheck, UserPlus, ArrowUp, ArrowDown, Activity } from 'lucide-react'
 
 const C = {
   void: 'var(--theme-bg)', base: 'var(--theme-card-base)', border: 'var(--theme-border)', border2: 'var(--theme-border2)',
@@ -15,9 +15,20 @@ const C = {
 
 interface Session {
   id: string; mac?: string; mac_address?: string; ip_address?: string
-  phone?: string; phone_number?: string; package?: string; package_id?: string
+  phone?: string; phone_number?: string; package?: string; package_name?: string; package_id?: string
   expires_at: string; created_at: string; status: string
   activated_at?: string; disconnected_at?: string
+  is_online?: boolean; bytes_in?: number; bytes_out?: number; uptime?: string
+  remaining_seconds?: number; duration_hours?: number
+  amount_ksh?: number
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
 function Countdown({ expires_at }: { expires_at: string }) {
@@ -57,10 +68,10 @@ export default function SessionsPage() {
     if (!token) return
     setLoading(true)
     try {
-      const data = await api.getSessions()
+      const data = await api.getLiveSessions()
       setSessions(Array.isArray(data) ? data : [])
       setError(null)
-      // Fetch device recognition for active MACs (max 5 to avoid flooding)
+      // Fetch device recognition for active MACs (max 5)
       const activeMacs = (Array.isArray(data) ? data : [])
         .filter((s: any) => s.status === 'active' && (s.mac || s.mac_address))
         .map((s: any) => s.mac || s.mac_address)
@@ -89,7 +100,7 @@ export default function SessionsPage() {
   }, [token, user])
 
   useEffect(() => { fetchSessions() }, [fetchSessions])
-  useEffect(() => { if (tab === 'active') { const t = setInterval(fetchSessions, 30000); return () => clearInterval(t) } }, [tab, fetchSessions])
+  useEffect(() => { if (tab === 'active') { const t = setInterval(fetchSessions, 15000); return () => clearInterval(t) } }, [tab, fetchSessions])
 
   const handleKick = async (id: string) => {
     if (!confirm('Terminate this session?')) return
@@ -103,13 +114,11 @@ export default function SessionsPage() {
   const viewMacDetail = async (mac: string) => {
     setSelectedMac(mac); setDetailLoading(true)
     try {
-      const allSessions = await api.getSessions()
+      const allSessions = await api.getLiveSessions()
       const macSessions = (Array.isArray(allSessions) ? allSessions : []).filter((s: any) => (s.mac || s.mac_address) === mac)
       const totalSpent = macSessions.reduce((sum: number, s: any) => sum + (s.amount_ksh || 0), 0)
-      const now = new Date()
       const firstSeen = macSessions.length > 0 ? macSessions[macSessions.length - 1].created_at : null
       const activeSession = macSessions.find((s: any) => s.status === 'active')
-      // Look up device info
       let deviceInfo = returningDevices[mac] || null
       if (!deviceInfo) {
         try {
@@ -134,7 +143,9 @@ export default function SessionsPage() {
     return mac.includes(q) || ip.includes(q) || phone.includes(q)
   })
 
-  const activeCount = sessions.filter(s => s.status === 'active').length
+  const activeSessions = sessions.filter(s => s.status === 'active')
+  const onlineCount = activeSessions.filter(s => s.is_online).length
+  const activeCount = activeSessions.length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -145,6 +156,7 @@ export default function SessionsPage() {
           <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             <button onClick={() => setTab('active')} style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: tab === 'active' ? C.gold : 'var(--theme-surface)', border: tab === 'active' ? `0.5px solid ${C.gold}` : `0.5px solid ${C.border2}`, color: tab === 'active' ? '#000' : C.dim, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Wifi size={14} /> Active {activeCount > 0 && `(${activeCount})`}
+              {onlineCount > 0 && <span style={{ fontSize: 10, color: C.green, fontWeight: 600 }}>({onlineCount} online)</span>}
             </button>
             <button onClick={() => setTab('history')} style={{ padding: '7px 16px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: tab === 'history' ? C.gold : 'var(--theme-surface)', border: tab === 'history' ? `0.5px solid ${C.gold}` : `0.5px solid ${C.border2}`, color: tab === 'history' ? '#000' : C.dim }}>
               History
@@ -167,8 +179,8 @@ export default function SessionsPage() {
           ) : (
             <div style={{ background: C.base, border: `0.5px solid ${C.border}`, borderRadius: 11, overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', minWidth: 600, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
-                {['MAC', 'IP', 'Phone', 'Package', tab === 'active' ? 'Remaining' : 'Duration', '', ''].map((h, i) => (
+              <div style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.8fr 0.5fr 0.5fr', minWidth: 700, borderBottom: `0.5px solid ${C.border}`, background: 'var(--theme-surface)' }}>
+                {['', 'MAC', 'IP', 'Phone', 'Package', tab === 'active' ? 'Remaining' : 'Duration', 'Traffic', '', ''].map((h, i) => (
                   <div key={i} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: C.dim, textTransform: 'uppercase', letterSpacing: '0.6px' }}>{h}</div>
                 ))}
               </div>
@@ -181,8 +193,20 @@ export default function SessionsPage() {
                 </div>
               ) : filtered.map((s, i) => {
                 const mac = s.mac || s.mac_address || '—'
+                const isOnline = s.is_online
+                const totalTraffic = (s.bytes_in || 0) + (s.bytes_out || 0)
                 return (
-                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.6fr 0.5fr', borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
+                  <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '40px 1.2fr 0.8fr 0.8fr 0.8fr 0.6fr 0.8fr 0.5fr 0.5fr', borderBottom: i < filtered.length - 1 ? `0.5px solid ${C.border}` : 'none', alignItems: 'center' }}>
+                    {/* Online indicator */}
+                    <div style={{ padding: '10px 10px 10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: isOnline ? C.green : totalTraffic > 0 ? '#f59e0b' : '#444',
+                        boxShadow: isOnline ? `0 0 6px ${C.green}` : 'none',
+                        transition: 'all 0.3s',
+                      }} title={isOnline ? 'Online — connected to router' : totalTraffic > 0 ? 'Session active but not connected' : 'Offline'} />
+                    </div>
+                    {/* MAC */}
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 12, color: C.gold, cursor: 'pointer', fontWeight: 500 }} onClick={() => viewMacDetail(mac)}>
                       {mac}
                       {returningDevices[mac] && (
@@ -194,15 +218,30 @@ export default function SessionsPage() {
                           color: returningDevices[mac].is_returning ? C.green : C.red,
                         }}>
                           {returningDevices[mac].is_returning ? <UserCheck size={10} /> : <UserPlus size={10} />}
-                          {returningDevices[mac].is_returning ? 'Returning' : 'New device'}
+                          {returningDevices[mac].is_returning ? 'Returning' : 'New'}
                         </span>
                       )}
                     </div>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--theme-faint)' }}>{s.ip_address || '—'}</div>
                     <div style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: C.dim }}>{(s.phone || s.phone_number || '—')?.replace(/(\d{3})\d{4}(\d{3})/, '$1••••$2')}</div>
-                    <div style={{ padding: '10px 14px', fontSize: 12, color: C.dim }}>{s.package || '—'}</div>
+                    <div style={{ padding: '10px 14px', fontSize: 12, color: C.dim }}>{s.package_name || s.package || '—'}</div>
                     <div style={{ padding: '10px 14px' }}>
                       {s.status === 'active' ? <Countdown expires_at={s.expires_at} /> : <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#555' }}>{s.status}</span>}
+                    </div>
+                    {/* Traffic */}
+                    <div style={{ padding: '10px 14px' }}>
+                      {totalTraffic > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: C.green, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <ArrowDown size={9} /> {formatBytes(s.bytes_in || 0)}
+                          </span>
+                          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <ArrowUp size={9} /> {formatBytes(s.bytes_out || 0)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 10, color: '#444' }}>—</span>
+                      )}
                     </div>
                     <div style={{ padding: '6px 4px' }}>
                       {tab === 'active' && (
@@ -236,10 +275,43 @@ export default function SessionsPage() {
               <div style={{ color: '#444', fontSize: 13 }}>Loading...</div>
             ) : macDetail ? (
               <div>
+                {/* Online status */}
+                {macDetail.activeSession && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: 8, marginBottom: 12,
+                    background: macDetail.activeSession.is_online ? 'rgba(34,197,94,0.06)' : 'rgba(245,158,11,0.06)',
+                    border: `0.5px solid ${macDetail.activeSession.is_online ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)'}`,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <div style={{
+                        width: 8, height: 8, borderRadius: '50%',
+                        background: macDetail.activeSession.is_online ? C.green : '#f59e0b',
+                        boxShadow: macDetail.activeSession.is_online ? `0 0 6px ${C.green}` : 'none',
+                      }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: macDetail.activeSession.is_online ? C.green : '#f59e0b' }}>
+                        {macDetail.activeSession.is_online ? 'Currently Online' : 'Session Active — Not Connected'}
+                      </span>
+                    </div>
+                    {macDetail.activeSession.uptime && (
+                      <div style={{ fontSize: 11, color: C.dim }}>Uptime: {macDetail.activeSession.uptime}</div>
+                    )}
+                    {((macDetail.activeSession.bytes_in || 0) + (macDetail.activeSession.bytes_out || 0)) > 0 && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                        <span style={{ fontSize: 10, color: C.green, fontFamily: 'DM Mono, monospace' }}>
+                          ↓ {formatBytes(macDetail.activeSession.bytes_in || 0)}
+                        </span>
+                        <span style={{ fontSize: 10, color: '#f59e0b', fontFamily: 'DM Mono, monospace' }}>
+                          ↑ {formatBytes(macDetail.activeSession.bytes_out || 0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Device recognition badge */}
                 {macDetail.deviceInfo && (
                   <div style={{
-                    padding: '10px 14px', borderRadius: 8, marginBottom: 16,
+                    padding: '10px 14px', borderRadius: 8, marginBottom: 12,
                     background: macDetail.deviceInfo.is_returning ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
                     border: `0.5px solid ${macDetail.deviceInfo.is_returning ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}`,
                   }}>
@@ -266,11 +338,11 @@ export default function SessionsPage() {
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-                  <div style={{ background: 'var(--theme-surface)', borderRadius: 8, padding: 12 }}>
+                  <div style={{ background: 'var(--theme-bg)', borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 11, color: 'var(--theme-faint)', marginBottom: 4 }}>SESSIONS</div>
                     <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 16, fontWeight: 600, color: C.text }}>{macDetail.totalSessions}</div>
                   </div>
-                  <div style={{ background: 'var(--theme-surface)', borderRadius: 8, padding: 12 }}>
+                  <div style={{ background: 'var(--theme-bg)', borderRadius: 8, padding: 12 }}>
                     <div style={{ fontSize: 11, color: 'var(--theme-faint)', marginBottom: 4 }}>TOTAL SPENT</div>
                     <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 14, fontWeight: 600, color: C.green }}>Ksh {macDetail.totalSpent}</div>
                   </div>

@@ -279,6 +279,24 @@ async def get_active_users(tenant_id: str, db: AsyncSession) -> list:
         return []
 
 
+async def batch_health_check(tenant_id: str, ips: list[str], db: AsyncSession) -> list:
+    """Check ARP + ping connectivity for multiple IPs via bridge."""
+    config = await _get_config(tenant_id, db)
+    if not config or not ips:
+        return []
+    try:
+        ips_param = ",".join(ips[:20])
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                f"{_bridge_url(config)}/health/batch",
+                params={"ips": ips_param},
+                headers=_bridge_headers(config),
+            )
+            return r.json().get("results", [])
+    except Exception:
+        return [{"ip": ip, "online": False, "method": "none"} for ip in ips]
+
+
 # ============================================================================
 # MONTHLY SUBSCRIBER (Static IP) ENDPOINTS — bridge → MikroTik
 # ============================================================================

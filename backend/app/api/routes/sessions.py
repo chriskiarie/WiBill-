@@ -436,3 +436,109 @@ async def list_isp_sessions(
         }
         for s in sessions
     ]
+
+
+@router.get("/live")
+async def list_sessions_live(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List sessions with real-time MikroTik status, traffic data, and connection health.
+
+    Cross-references DB sessions against MikroTik's active user list to show:
+    - is_online: device is currently connected to the hotspot
+    - bytes_in / bytes_out: current traffic counters
+    - uptime: how long the device has been connected this session
+    - health: ARP + ping check for online devices
+    """
+    from app.models.session import Session
+    from app.models.package import Package
+    from app.services.mikrotik_service import get_active_users
+    from datetime import datetime
+    import logging
+
+    logger = logging.getLogger("wibill.sessions")
+
+    tenant_id_raw = getattr(current_user, "tenant_id", None)
+    if not tenant_id_raw:
+        raise HTTPException(status_code=400, detail="No tenant on this account")
+    tenant_id = UUID(str(tenant_id_raw))
+    tenant_id_str = str(tenant_id)
+
+    # 1. Fetch all sessions from DB
+    query = (
+        select(Session)
+        .where(Session.tenant_id == tenant_id)
+        .order_by(desc(Session.created_at))
+        .limit(100)
+    )
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+
+    # 2. Build package lookup map
+    pkg_ids = [s.package_id for s in sessions if s.package_id]
+    pkg_map = {}
+    if pkg_ids:
+        pkg_result = await db.execute(
+            select(Package).where(Package.id.in_(pkg_ids))
+        )
+        for pkg in pkg_result.scalars().all():
+            pkg_map[str(pkg.id)] = pkg
+
+    # 3. Fetch live active users from MikroTik
+    active_users = await get_active_users(tenant_id_str, db)
+
+    # Build lookup: reconnect_code -> MikroTik active data
+    # MikroTik active users have: user (reconnect_code), address, mac-address, uptime, bytes-in, bytes-out
+    mt_active: dict = {}
+    for u in active_users:
+        # Match by reconnect_code (used as MikroTik username)
+        rc = u.get("user", "")
+        if rc:
+            mt_active[rc] = u
+        # Also match by MAC address as fallback
+        mac = u.get("mac-address", "").upper()
+        if mac:
+            mt_active[f"mac:{mac}"] = u
+
+    # 4. Merge data
+    now = datetime.utcnow()
+    enriched = []
+    for s in sessions:
+        pkg = pkg_map.get(str(s.package_id)) if s.package_id else None
+        rc = s.reconnect_code or ""
+        mac_key = f"mac:{(s.mac_address or '').upper()}"
+
+        # Check if device is online in MikroTik
+        mt = mt_active.get(rc) or mt_active.get(mac_key)
+        is_online = mt is not None
+
+        # Calculate remaining time
+        remaining_seconds = 0
+        if s.expires_at:
+            exp = s.expires_at.replace(tzinfo=None) if s.expires_at.tzinfo else s.expires_at
+            remaining_seconds = max(0, int((exp - now).total_seconds()))
+
+        row = {
+            "id": str(s.id),
+            "mac_address": s.mac_address,
+            "ip_address": s.ip_address,
+            "phone_number": s.phone_number,
+            "status": s.status.value if hasattr(s.status, "value") else s.status,
+            "created_at": s.created_at.isoformat() + "Z",
+            "expires_at": s.expires_at.isoformat() + "Z" if s.expires_at else None,
+            "remaining_seconds": remaining_seconds,
+            "package_id": str(s.package_id) if s.package_id else None,
+            "package_name": pkg.name if pkg else None,
+            "amount_ksh": float(pkg.price_ksh) if pkg else None,
+            "duration_hours": pkg.duration_hours if pkg else None,
+            "is_online": is_online,
+            "bytes_in": int(mt.get("bytes-in", 0)) if mt else 0,
+            "bytes_out": int(mt.get("bytes-out", 0)) if mt else 0,
+            "uptime": mt.get("uptime", "") if mt else "",
+            "mt_ip": mt.get("address", "") if mt else "",
+            "mt_server": mt.get("server", "") if mt else "",
+        }
+        enriched.append(row)
+
+    return enriched

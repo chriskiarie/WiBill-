@@ -571,6 +571,43 @@ def subscriber_status(ip: str):
         return {"ip": ip, "online": False, "error": str(e)}
 
 
+@app.get("/health/batch")
+def batch_health_check(ips: str = ""):
+    """Check connectivity for multiple IPs (comma-separated). Returns ARP + ping status for each."""
+    if not ips:
+        return {"results": []}
+    ip_list = [ip.strip() for ip in ips.split(",") if ip.strip()]
+    results = []
+    try:
+        api = get_api()
+        for ip in ip_list[:20]:  # Cap at 20 to avoid hammering the router
+            r = {"ip": ip, "online": False, "method": "none", "details": {}}
+            try:
+                # ARP check
+                arp = list(api("/ip/arp/print", **{"?address": ip}))
+                if arp:
+                    r["online"] = True
+                    r["method"] = "arp"
+                    r["mac_address"] = arp[0].get("mac-address", "")
+                    r["interface"] = arp[0].get("interface", "")
+                    r["details"]["arp_status"] = arp[0].get("status", "")
+                # Ping if ARP failed
+                if not r["online"]:
+                    ping_res = list(api("/ping", **{"=address": ip, "=count": 1, "=interval": "100ms"}))
+                    for res in ping_res:
+                        if int(res.get("received", 0)) > 0:
+                            r["online"] = True
+                            r["method"] = "ping"
+                            r["details"]["ping_received"] = res.get("received", 0)
+            except Exception:
+                pass
+            results.append(r)
+        api.close()
+    except Exception:
+        pass
+    return {"results": results}
+
+
 @app.get("/subscriber/queue")
 def subscriber_queue(ip: str):
     """Get queue statistics for a subscriber."""
