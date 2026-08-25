@@ -603,6 +603,65 @@ async def reconfigure_router(
     }
 
 
+# ── Direct walled-garden operations via bridge (bypass poll) ───────
+@router.get("/mikrotik/walled-garden")
+async def get_walled_garden(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Read current walled-garden entries directly from the router via bridge."""
+    from app.services.mikrotik_service import _bridge_get
+    result = await _bridge_get(current_user.tenant_id, "/walled-garden", db)
+    return result
+
+
+@router.post("/mikrotik/walled-garden/fix")
+async def fix_walled_garden(
+    db: AsyncSession = Depends(get_db),
+    current_user: AdminUser = Depends(require_isp_admin),
+):
+    """Directly add the correct walled-garden entries via bridge (bypasses poll).
+
+    This is the nuclear option: read current entries, remove all via bridge,
+    then re-add the correct ones. Works even when the poll mechanism fails.
+    """
+    from app.core.config import settings
+    from app.services.mikrotik_service import _bridge_get, _bridge_post
+
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    slug = tenant.slug if tenant else "wibill"
+    backend_base = settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL
+    backend_host = backend_base.replace("https://", "").replace("http://", "").rstrip("/")
+    hosts = WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", backend_host]
+
+    # Step 1: Read current entries
+    current = await _bridge_get(current_user.tenant_id, "/walled-garden", db)
+
+    # Step 2: Reset via bridge (remove all, re-add correct)
+    reset_result = await _bridge_post(current_user.tenant_id, "/walled-garden/reset", {"hosts": hosts}, db)
+
+    # Step 3: Also enqueue via poll as backup
+    config_result = await db.execute(
+        select(MikrotikConfig).where(MikrotikConfig.tenant_id == current_user.tenant_id)
+    )
+    config = config_result.scalar_one_or_none()
+    if config:
+        await enqueue_action(
+            config.id,
+            "reset_walled_garden",
+            {"hosts": hosts},
+            db,
+        )
+
+    return {
+        "ok": reset_result.get("success", False),
+        "current_entries_before_fix": current.get("data", {}).get("host", []),
+        "hosts_added": hosts,
+        "bridge_result": reset_result.get("data", {}),
+        "bridge_error": reset_result.get("error"),
+    }
+
+
 # ── Wizard: Serve temp portal file for router fetch ───────────────
 @router.get("/mikrotik/temp-portal/{file_id}")
 async def serve_temp_portal(file_id: str):

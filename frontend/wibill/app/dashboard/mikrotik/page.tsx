@@ -1202,6 +1202,22 @@ function RouterSettingsPanel({ health, onBack }: {
     } finally { setReconfiguring(false) }
   }
 
+  const [fixingWg, setFixingWg] = useState(false)
+  const handleFixWalledGarden = async () => {
+    setFixingWg(true)
+    try {
+      const result = await api.fixWalledGarden()
+      if (result?.ok) {
+        const added = result.hosts_added?.join(', ') || 'hosts'
+        showToast(`Walled garden fixed via bridge — entries: ${added}`, { type: 'success' })
+      } else {
+        showToast(`Bridge fix failed: ${result?.bridge_error || 'unknown error'}. Check bridge is running.`, { type: 'error' })
+      }
+    } catch (e: any) {
+      showToast(friendlyError(e.message || 'Failed to fix walled garden'), { type: 'error' })
+    } finally { setFixingWg(false) }
+  }
+
   useEffect(() => {
     if (!portalAction?.action_id) return
     let cancelled = false
@@ -1288,6 +1304,12 @@ function RouterSettingsPanel({ health, onBack }: {
           <button onClick={handleReconfigure} disabled={reconfiguring}
             style={{ flex: 1, padding: '14px 16px', background: 'transparent', border: `0.5px solid ${C.red}`, borderRadius: 7, color: C.red, fontSize: 12, fontWeight: 700, cursor: reconfiguring ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: reconfiguring ? 0.6 : 1 }}>
             <RefreshCw size={13} style={reconfiguring ? { animation: 'spin 1s linear infinite' } : {}} /> {reconfiguring ? 'Resetting...' : 'Reconfigure'}
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <button onClick={handleFixWalledGarden} disabled={fixingWg}
+            style={{ flex: 1, padding: '14px 16px', background: C.green, border: 'none', borderRadius: 7, color: '#000', fontSize: 12, fontWeight: 700, cursor: fixingWg ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: fixingWg ? 0.6 : 1 }}>
+            <Zap size={13} /> {fixingWg ? 'Fixing...' : 'Fix Walled Garden Now'}
           </button>
         </div>
 

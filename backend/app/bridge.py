@@ -235,6 +235,69 @@ def walled_garden_rules():
         return {"host": [], "ip": [], "error": str(e)}
 
 
+class WalledGardenAddPayload(BaseModel):
+    hosts: list[str]
+
+@app.post("/walled-garden/add")
+def add_walled_garden_entries(p: WalledGardenAddPayload):
+    """Add walled-garden entries directly via RouterOS API (bypasses poll)."""
+    results = []
+    try:
+        api = get_api()
+        for host in p.hosts:
+            host = host.strip()
+            if not host:
+                continue
+            try:
+                api("/ip/hotspot/walled-garden/add",
+                    **{"dst-host": host, "action": "allow"})
+                results.append({"host": host, "ok": True})
+            except Exception as e:
+                results.append({"host": host, "ok": False, "error": str(e)})
+        api.close()
+        return {"ok": True, "results": results}
+    except FatalError as e:
+        raise HTTPException(status_code=401, detail=f"Auth failed: {e}")
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
+    except Exception as e:
+        return {"ok": False, "error": str(e), "results": results}
+
+
+@app.post("/walled-garden/reset")
+def reset_walled_garden(p: WalledGardenAddPayload):
+    """Remove ALL walled-garden entries, then re-add the correct ones."""
+    try:
+        api = get_api()
+        # Remove all existing entries
+        api("/ip/hotspot/walled-garden/remove", **{"numbers": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50"})
+        # Remove any remaining entries
+        remaining = list(api("/ip/hotspot/walled-garden/print"))
+        if remaining:
+            nums = ",".join(str(i) for i in range(len(remaining)))
+            api("/ip/hotspot/walled-garden/remove", **{"numbers": nums})
+        # Re-add correct entries
+        results = []
+        for host in p.hosts:
+            host = host.strip()
+            if not host:
+                continue
+            try:
+                api("/ip/hotspot/walled-garden/add",
+                    **{"dst-host": host, "action": "allow"})
+                results.append({"host": host, "ok": True})
+            except Exception as e:
+                results.append({"host": host, "ok": False, "error": str(e)})
+        api.close()
+        return {"ok": True, "results": results}
+    except FatalError as e:
+        raise HTTPException(status_code=401, detail=f"Auth failed: {e}")
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=f"Cannot reach router: {e}")
+    except Exception as e:
+        return {"ok": False, "error": str(e), "results": []}
+
+
 @app.get("/hotspot")
 def hotspot_config():
     try:
