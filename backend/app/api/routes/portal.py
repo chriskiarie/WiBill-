@@ -240,7 +240,7 @@ def _normalize_logo_url(logo: str, request: Request) -> str | None:
         return None
     if logo.startswith("data:"):
         return logo
-    base = f"{request.base_url.scheme}://{request.base_url.netloc}"
+    base = f"https://{request.base_url.netloc}"
     if logo.startswith("/uploads/") or logo.startswith("\\uploads\\"):
         return base + logo.replace("\\", "/")
     if "/uploads/" in logo:

@@ -205,7 +205,11 @@ export default function PortalWizard() {
     previewParams.set('pkgs', pkgsJson)
   }
   const effectiveLogo = logoUrl
-  if (effectiveLogo && !effectiveLogo.startsWith('data:')) previewParams.set('logo_url', effectiveLogo)
+  if (stickerDataUrl && stickerDataUrl.startsWith('data:')) {
+    previewParams.set('logo_data', stickerDataUrl)
+  } else if (effectiveLogo && !effectiveLogo.startsWith('data:')) {
+    previewParams.set('logo_url', effectiveLogo)
+  }
   if (whatsapp) previewParams.set('whatsapp', whatsapp)
   if (technicianName) previewParams.set('technician_name', technicianName)
   if (technicianPhone) previewParams.set('technician_phone', technicianPhone)
@@ -672,8 +676,10 @@ export default function PortalWizard() {
                         try {
                           const res = await fetch(st.src)
                           const blob = await res.blob()
+                          const ext = st.src.endsWith('.svg') ? '.svg' : '.png'
+                          const mime = ext === '.svg' ? 'image/svg+xml' : 'image/png'
                           const formData = new FormData()
-                          formData.append('file', new File([blob], `${st.name.toLowerCase().replace(/\s+/g, '-')}.svg`, { type: 'image/svg+xml' }))
+                          formData.append('file', new File([blob], `${st.name.toLowerCase().replace(/\s+/g, '-')}${ext}`, { type: mime }))
                           const uploadRes = await fetch(`${API}/api/portal/assets/upload`, {
                             method: 'POST', headers: { Authorization: `Bearer ${token}` },
                             body: formData,
