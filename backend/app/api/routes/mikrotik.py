@@ -452,6 +452,8 @@ async def generate_parameterized_script(
 :do {{ /ip service set api port=8728 address="" }} on-error={{}}
 :do {{ /user add name=wibill-api password={api_password} group=full }} on-error={{}}
 :do {{ /ip hotspot walled-garden add dst-host={backend_host} action=allow }} on-error={{}}
+:do {{ /ip hotspot walled-garden add dst-host={slug}.wi-bill.com action=allow }} on-error={{}}
+:do {{ /ip hotspot walled-garden add dst-host=wi-bill.com action=allow }} on-error={{}}
 {font_garden_lines}
 {portal_line}
 {scheduler_block}:log info "WiBill setup complete for {name}"
@@ -482,7 +484,7 @@ async def generate_parameterized_script(
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
         db,
         commit=False,
     )
@@ -536,7 +538,7 @@ async def upload_portal_file(
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
         db,
     )
 
@@ -867,6 +869,8 @@ async def get_routeros_script(
 
 # 10. Walled garden (allow portal before payment)
 /ip hotspot walled-garden add dst-host={backend_host} action=allow comment="WiBill portal"
+/ip hotspot walled-garden add dst-host={slug}.wi-bill.com action=allow comment="WiBill portal domain"
+/ip hotspot walled-garden add dst-host=wi-bill.com action=allow comment="WiBill base domain"
 """
     font_garden_lines = "\n".join(
         f'/ip hotspot walled-garden add dst-host={h} action=allow comment="WiBill fonts"'
@@ -894,7 +898,7 @@ async def get_routeros_script(
         await enqueue_action(
             config.id,
             "add_walled_garden",
-            {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+            {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
             db,
             commit=False,
         )

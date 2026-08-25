@@ -130,7 +130,7 @@ async def generate_onboard_token(
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{tenant.slug or 'wibill'}.wi-bill.com", "wi-bill.com"]},
         db,
         commit=False,
     )
