@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { X, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { tourSteps, TourStep } from '@/lib/tour-steps'
 
 const TOUR_KEY = 'wb_tour_completed'
-const TOUR_VERSION = '1.0'
+const TOUR_VERSION = '2.0'
 
 export function shouldShowTour(): boolean {
   if (typeof window === 'undefined') return false
@@ -30,31 +31,31 @@ interface SpotlightRect {
 }
 
 export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?: boolean; onFinish?: () => void }) {
+  const router = useRouter()
   const [active, setActive] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null)
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number; placement: string }>({ top: 0, left: 0, placement: 'bottom' })
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const [navigating, setNavigating] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
-
   const currentStep: TourStep | undefined = tourSteps[stepIndex]
   const isLast = stepIndex === tourSteps.length - 1
   const isFirst = stepIndex === 0
 
-  const updatePosition = useCallback(() => {
-    if (!currentStep?.selector) {
+  const positionTooltip = useCallback((step: TourStep) => {
+    if (!step.selector) {
       setSpotlight(null)
-      setTooltipPos({ top: window.innerHeight / 2 - 100, left: window.innerWidth / 2 - 180, placement: 'bottom' })
+      setTooltipPos({ top: Math.max(80, window.innerHeight / 2 - 100), left: window.innerWidth / 2 - 180 })
       return
     }
-    const el = document.querySelector(currentStep.selector) as HTMLElement | null
+    const el = document.querySelector(step.selector) as HTMLElement | null
     if (!el) {
       setSpotlight(null)
-      setTooltipPos({ top: window.innerHeight / 2 - 100, left: window.innerWidth / 2 - 180, placement: 'bottom' })
+      setTooltipPos({ top: Math.max(80, window.innerHeight / 2 - 100), left: window.innerWidth / 2 - 180 })
       return
     }
     const rect = el.getBoundingClientRect()
-    const pad = 8
+    const pad = 6
     setSpotlight({
       top: rect.top - pad,
       left: rect.left - pad,
@@ -62,8 +63,8 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
       height: rect.height + pad * 2,
     })
 
-    const placement = currentStep.position || 'right'
-    const gap = 16
+    const placement = step.position || 'right'
+    const gap = 14
     let top = 0
     let left = 0
 
@@ -83,14 +84,36 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
 
     top = Math.max(16, Math.min(top, window.innerHeight - 180))
     left = Math.max(16, Math.min(left, window.innerWidth - 380))
+    setTooltipPos({ top, left })
+  }, [])
 
-    setTooltipPos({ top, left, placement })
-  }, [currentStep])
+  const showStep = useCallback((index: number) => {
+    const step = tourSteps[index]
+    if (!step) return
+
+    if (step.url && window.location.pathname !== step.url) {
+      setNavigating(true)
+      setSpotlight(null)
+      router.push(step.url)
+      // Wait for page to render, then position
+      const tryPosition = (attempts = 0) => {
+        setTimeout(() => {
+          positionTooltip(step)
+          setNavigating(false)
+        }, attempts === 0 ? 400 : 200)
+      }
+      tryPosition()
+    } else {
+      // Small delay to let any re-render settle
+      setTimeout(() => positionTooltip(step), 50)
+    }
+  }, [router, positionTooltip])
 
   const startTour = useCallback(() => {
     setStepIndex(0)
     setActive(true)
-  }, [])
+    showStep(0)
+  }, [showStep])
 
   useEffect(() => {
     if (forceShow) startTour()
@@ -98,19 +121,15 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
 
   useEffect(() => {
     if (!active) return
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [active, stepIndex, updatePosition])
+    showStep(stepIndex)
+    window.addEventListener('resize', () => currentStep && positionTooltip(currentStep))
+    return () => window.removeEventListener('resize', () => currentStep && positionTooltip(currentStep))
+  }, [active, stepIndex])
 
   useEffect(() => {
     if (!active) return
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setActive(false); markTourComplete() }
+      if (e.key === 'Escape') { setActive(false); markTourComplete(); onFinish?.() }
       if (e.key === 'ArrowRight' || e.key === 'Enter') goNext()
       if (e.key === 'ArrowLeft') goPrev()
     }
@@ -138,23 +157,7 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
     onFinish?.()
   }
 
-  const restart = () => {
-    localStorage.removeItem(TOUR_KEY)
-    setStepIndex(0)
-    setActive(true)
-  }
-
-  if (!active) {
-    return (
-      <button
-        onClick={startTour}
-        className="sidebar-support-btn"
-        style={{
-          display: 'none',
-        }}
-      />
-    )
-  }
+  if (!active) return null
 
   const pillBg = 'rgba(232,184,75,0.12)'
   const pillBorder = 'rgba(232,184,75,0.25)'
@@ -162,23 +165,21 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
   return (
     <>
       <style>{`
-        @keyframes tourFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes tourPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(232,184,75,0.4); } 50% { box-shadow: 0 0 0 6px rgba(232,184,75,0); } }
+        @keyframes tourFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
-      {/* Overlay */}
+      {/* Overlay — no blur */}
       <div
         ref={overlayRef}
         onClick={(e) => { if (e.target === overlayRef.current) skip() }}
         style={{
           position: 'fixed', inset: 0, zIndex: 99998,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
+          background: 'rgba(0,0,0,0.55)',
+          transition: 'background 0.3s',
         }}
       />
 
-      {/* Spotlight cutout */}
+      {/* Spotlight cutout — clean border, no pulse */}
       {spotlight && (
         <div style={{
           position: 'fixed',
@@ -186,18 +187,16 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
           left: spotlight.left,
           width: spotlight.width,
           height: spotlight.height,
-          borderRadius: 10,
-          boxShadow: '0 0 0 9999px rgba(0,0,0,0.65), 0 0 16px 2px rgba(232,184,75,0.3)',
+          borderRadius: 8,
+          boxShadow: `0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(232,184,75,0.6)`,
           zIndex: 99999,
           pointerEvents: 'none',
-          transition: 'all 0.35s cubic-bezier(0.19, 1, 0.22, 1)',
-          animation: 'tourPulse 2s ease-in-out infinite',
+          transition: 'all 0.3s cubic-bezier(0.19, 1, 0.22, 1)',
         }} />
       )}
 
       {/* Tooltip card */}
       <div
-        ref={tooltipRef}
         style={{
           position: 'fixed',
           top: tooltipPos.top,
@@ -207,9 +206,8 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
           background: '#0D0D0B',
           border: '0.5px solid #2A2A27',
           borderRadius: 14,
-          padding: 0,
           fontFamily: 'Inter, sans-serif',
-          animation: 'tourFadeIn 0.3s ease-out',
+          animation: 'tourFadeIn 0.25s ease-out',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           overflow: 'hidden',
         }}
@@ -225,7 +223,6 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
               borderRadius: 6, padding: '3px 8px',
               fontSize: 10, fontWeight: 700, color: '#E8B84B',
               fontFamily: "'DM Mono', monospace",
-              letterSpacing: '0.05em',
             }}>
               {stepIndex + 1} / {tourSteps.length}
             </span>
@@ -238,15 +235,12 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
               </span>
             )}
           </div>
-          <button
-            onClick={skip}
-            style={{
-              width: 26, height: 26, borderRadius: 6,
-              background: 'transparent', border: 'none',
-              color: '#6B6964', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
+          <button onClick={skip} style={{
+            width: 26, height: 26, borderRadius: 6,
+            background: 'transparent', border: 'none',
+            color: '#6B6964', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
             <X size={14} />
           </button>
         </div>
@@ -259,9 +253,7 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
           }}>
             {currentStep?.title}
           </h3>
-          <p style={{
-            margin: 0, fontSize: 12, lineHeight: 1.6, color: '#8C8A84',
-          }}>
+          <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: '#8C8A84' }}>
             {currentStep?.description}
           </p>
         </div>
@@ -273,86 +265,49 @@ export default function GuidedTour({ forceShow = false, onFinish }: { forceShow?
         }}>
           <div style={{ display: 'flex', gap: 6 }}>
             {!isFirst && (
-              <button
-                onClick={goPrev}
-                style={{
-                  height: 32, padding: '0 12px', borderRadius: 8,
-                  background: 'transparent', border: '0.5px solid #2A2A27',
-                  color: '#8C8A84', cursor: 'pointer', fontSize: 12,
-                  fontFamily: 'Inter, sans-serif', fontWeight: 500,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                }}
-              >
+              <button onClick={goPrev} style={{
+                height: 32, padding: '0 12px', borderRadius: 8,
+                background: 'transparent', border: '0.5px solid #2A2A27',
+                color: '#8C8A84', cursor: 'pointer', fontSize: 12,
+                fontFamily: 'Inter, sans-serif', fontWeight: 500,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
                 <ChevronLeft size={12} /> Back
               </button>
             )}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              onClick={skip}
-              style={{
-                height: 32, padding: '0 12px', borderRadius: 8,
-                background: 'transparent', border: 'none',
-                color: '#6B6964', cursor: 'pointer', fontSize: 12,
-                fontFamily: 'Inter, sans-serif', fontWeight: 500,
-              }}
-            >
-              Skip tour
+            <button onClick={skip} style={{
+              height: 32, padding: '0 12px', borderRadius: 8,
+              background: 'transparent', border: 'none',
+              color: '#6B6964', cursor: 'pointer', fontSize: 12,
+              fontFamily: 'Inter, sans-serif', fontWeight: 500,
+            }}>
+              Skip
             </button>
-            <button
-              onClick={goNext}
-              style={{
-                height: 32, padding: '0 16px', borderRadius: 8,
-                background: '#E8B84B', border: 'none',
-                color: '#3D2A06', cursor: 'pointer', fontSize: 12,
-                fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
-                display: 'flex', alignItems: 'center', gap: 4,
-                transition: 'all 0.15s',
-              }}
-            >
+            <button onClick={goNext} style={{
+              height: 32, padding: '0 16px', borderRadius: 8,
+              background: '#E8B84B', border: 'none',
+              color: '#3D2A06', cursor: 'pointer', fontSize: 12,
+              fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
+              display: 'flex', alignItems: 'center', gap: 4,
+              transition: 'all 0.15s',
+            }}>
               {isLast ? 'Finish' : 'Next'} {!isLast && <ChevronRight size={12} />}
             </button>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div style={{ height: 2, background: '#141414', width: '100%' }}>
+        <div style={{ height: 2, background: '#141414' }}>
           <div style={{
             height: '100%', background: '#E8B84B',
             width: `${((stepIndex + 1) / tourSteps.length) * 100}%`,
-            transition: 'width 0.35s cubic-bezier(0.19, 1, 0.22, 1)',
+            transition: 'width 0.3s cubic-bezier(0.19, 1, 0.22, 1)',
             borderRadius: '0 2px 2px 0',
           }} />
         </div>
       </div>
     </>
-  )
-}
-
-export function TourRestartButton() {
-  const [clicked, setClicked] = useState(false)
-
-  const handleRestart = () => {
-    localStorage.removeItem(TOUR_KEY)
-    setClicked(true)
-    setTimeout(() => window.location.reload(), 100)
-  }
-
-  if (clicked) return null
-
-  return (
-    <button
-      onClick={handleRestart}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '8px 14px', borderRadius: 8,
-        background: '#111110', border: '0.5px solid #2A2A27',
-        color: '#8C8A84', cursor: 'pointer', fontSize: 12,
-        fontFamily: 'Inter, sans-serif', fontWeight: 500,
-        transition: 'all 0.15s',
-      }}
-    >
-      <RotateCcw size={13} /> Replay tour
-    </button>
   )
 }
