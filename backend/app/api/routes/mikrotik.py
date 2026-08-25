@@ -484,7 +484,7 @@ async def generate_parameterized_script(
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", public_base.replace("https://", "").replace("http://", "").rstrip("/")]},
         db,
         commit=False,
     )
@@ -535,10 +535,11 @@ async def upload_portal_file(
 
     # Font unity: make sure the router's walled garden lets captive phones
     # load Google Fonts so the portal matches the admin preview.
+    backend_host = backend_base.replace("https://", "").replace("http://", "").rstrip("/")
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", backend_host]},
         db,
     )
 
@@ -898,7 +899,7 @@ async def get_routeros_script(
         await enqueue_action(
             config.id,
             "add_walled_garden",
-            {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com"]},
+            {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{slug}.wi-bill.com", "wi-bill.com", public_base.replace("https://", "").replace("http://", "").rstrip("/")]},
             db,
             commit=False,
         )

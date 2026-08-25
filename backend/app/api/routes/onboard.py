@@ -120,6 +120,7 @@ async def generate_onboard_token(
     # already have its login.html + font walled-garden queued — a fresh
     # onboarded router must never serve MikroTik's default white login page.
     public_base = (settings.PUBLIC_BACKEND_URL or settings.PUBLIC_BASE_URL).rstrip("/")
+    backend_host = public_base.replace("https://", "").replace("http://", "")
     await enqueue_action(
         config.id,
         "push_portal",
@@ -130,7 +131,7 @@ async def generate_onboard_token(
     await enqueue_action(
         config.id,
         "add_walled_garden",
-        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{tenant.slug or 'wibill'}.wi-bill.com", "wi-bill.com"]},
+        {"hosts": WALLED_GARDEN_EXTRA_HOSTS + [f"{tenant.slug or 'wibill'}.wi-bill.com", "wi-bill.com", backend_host]},
         db,
         commit=False,
     )
