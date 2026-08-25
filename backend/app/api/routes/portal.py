@@ -759,6 +759,15 @@ async def portal_success_page(
     txn = txn_result.scalar_one_or_none()
 
     context = {
+        "brand": {
+            "slug": slug,
+            "name": "",
+            "emoji": "📡",
+            "tagline": "",
+            "location": "",
+            "technician_name": "",
+            "technician_phone": "",
+        },
         "package": {
             "name": package.name if package else "Unknown",
             "duration_hours": package.duration_hours if package else 0,
