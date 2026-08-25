@@ -474,6 +474,10 @@ async def get_live_portal(
     brand['slug'] = tenant.slug  # Needed by template JS for API URLs
     brand.setdefault('name', tenant.name or 'WiFi')
     brand.setdefault('emoji', '📡')
+    # Sanitize emoji: if it looks like a shortcode (":word:") or is empty, replace with default
+    raw_emoji = brand.get('emoji', '')
+    if not raw_emoji or raw_emoji.startswith(':') or len(raw_emoji) > 8:
+        brand['emoji'] = '📡'
     brand.setdefault('tagline', f'Fast, reliable internet by {tenant.name or "this WiFi"}')
     if 'support_phone' in brand and 'support_number' not in brand:
         brand['support_number'] = brand['support_phone']

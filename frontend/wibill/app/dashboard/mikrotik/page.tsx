@@ -1554,7 +1554,7 @@ function RouterManagementView({ health, onboard, actions, onReconfigure, onAddRo
         <div style={{ padding: '0 28px 28px', borderTop: `0.5px solid ${C.border}`, paddingTop: 24 }}>
           <div style={{ ...sectionLabel, marginBottom: 14 }}>Activity</div>
           {timeline.length > 0 ? (
-            <div>
+            <div style={{ maxHeight: 260, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: `${C.border} transparent` }}>
               {timeline.map((e, i) => {
                 const dotColor = e.tone === 'warn' ? '#E8634A' : e.tone === 'done' ? (e.kind === 'registration' ? C.gold : C.green) : C.dim
                 const isNewest = i === 0
