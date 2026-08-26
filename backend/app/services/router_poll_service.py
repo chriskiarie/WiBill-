@@ -197,21 +197,24 @@ def _render_add_walled_garden(action: RouterAction) -> str:
 
 
 def _render_reset_walled_garden(action: RouterAction) -> str:
-    """Nuclear walled-garden reset: remove ALL existing entries, then add the correct ones.
+    """Safe walled-garden reset: add correct entries (idempotent).
 
-    This fixes stale/mismatched entries (e.g. wrong slug from an older deployment)
-    by clearing everything first, then re-adding with the current slug.
+    Previously this removed ALL entries first, then re-added — if the adds
+    failed (network blip, script timeout, on-error swallowing), the router
+    was left with ZERO entries, blocking all captive portal traffic.
+
+    New approach: just add the correct entries. Duplicates are harmless in
+    RouterOS. Old/wrong entries (e.g. mikrotik.wi-bill.com) are benign —
+    they allow traffic to domains that don't exist. No connectivity is ever
+    lost.
     """
     hosts = action.payload.get("hosts") or WALLED_GARDEN_EXTRA_HOSTS
-    # Remove ALL walled-garden entries (clean slate)
-    remove_line = ':do { /ip hotspot walled-garden remove [find] } on-error={ }'
-    # Re-add correct entries
     add_lines = [
         f':do {{ /ip hotspot walled-garden add dst-host={h} action=allow }} on-error={{ }}'
         for h in hosts
         if isinstance(h, str) and h.strip()
     ]
-    return "\n".join([remove_line] + add_lines) if add_lines else remove_line
+    return "\n".join(add_lines) if add_lines else f':log info "wibill: skip reset_walled_garden {action.id} — no hosts"'
 
 
 def render_action_line(action: RouterAction, ros_version: str) -> str:

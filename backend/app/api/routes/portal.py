@@ -306,6 +306,7 @@ async def portal_by_hostname(
     request: Request,
     token: str = Query(None),
     mac: str = Query(""),
+    ip: str = Query(""),
     db: AsyncSession = Depends(get_db),
 ):
     """Serve portal when accessed via subdomain (e.g. mr-wifi.wi-bill.com).
@@ -318,7 +319,7 @@ async def portal_by_hostname(
 
     if slug:
         # Delegate to the slug-based portal route
-        return await get_live_portal(slug=slug, token=token, mac=mac, request=request, db=db)
+        return await get_live_portal(slug=slug, token=token, mac=mac, ip=ip, request=request, db=db)
 
     # Not a portal subdomain — return 404 or let other routes handle
     raise HTTPException(status_code=404, detail="Not a portal domain")
@@ -329,6 +330,7 @@ async def get_live_portal(
     slug: str,
     token: str = Query(None),
     mac: str = Query(""),
+    ip: str = Query(""),
     request: Request = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -370,7 +372,7 @@ async def get_live_portal(
         session = await create_session(
             tenant_id=rtoken.tenant_id,
             mac_address=mac or rtoken.bound_mac or "00:00:00:00:00:00",
-            ip_address=request.client.host if request else "0.0.0.0",
+            ip_address=ip or request.client.host if request else "0.0.0.0",
             package_id=None,
             expires_at=datetime.utcnow() + timedelta(minutes=rtoken.minutes),
             db=db,
@@ -389,7 +391,7 @@ async def get_live_portal(
                 tenant_id=str(rtoken.tenant_id),
                 session_id=str(session.id),
                 mac_address=mac or rtoken.bound_mac or "00:00:00:00:00:00",
-                ip_address=request.client.host if request else "0.0.0.0",
+                ip_address=ip or request.client.host if request else "0.0.0.0",
                 username=session.reconnect_code,
                 password=session.reconnect_code,
                 expires_at=session.expires_at,
@@ -404,7 +406,7 @@ async def get_live_portal(
                 await add_hotspot_bypass(
                     tenant_id=str(rtoken.tenant_id),
                     mac_address=mac,
-                    ip_address=request.client.host if request else "0.0.0.0",
+                    ip_address=ip or request.client.host if request else "0.0.0.0",
                     expires_at=session.expires_at,
                     db=db,
                 )
