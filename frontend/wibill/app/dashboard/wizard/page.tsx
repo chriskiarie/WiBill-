@@ -259,7 +259,12 @@ export default function PortalWizard() {
               if (pc.brand.facebook_url !== undefined) setFacebookUrl(pc.brand.facebook_url)
               if (pc.brand.twitter_url !== undefined) setTwitterUrl(pc.brand.twitter_url)
               if (pc.brand.instagram_url !== undefined) setInstagramUrl(pc.brand.instagram_url)
-              if (pc.brand.logo_url !== undefined) setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
+              if (pc.brand.logo_data && pc.brand.logo_data.startsWith('data:')) {
+                setStickerDataUrl(pc.brand.logo_data)
+                setLogoUrl(pc.brand.logo_data)
+              } else if (pc.brand.logo_url !== undefined) {
+                setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
+              }
               if (pc.brand.emoji) {
                 const matchedSticker = BRAND_STICKERS.find(st => st.name === pc.brand.emoji)
                 if (matchedSticker) { setSelectedSticker(matchedSticker.src) }
@@ -433,7 +438,13 @@ export default function PortalWizard() {
         if (pc.brand) {
           setName(pc.brand.name || ''); setTagline(pc.brand.tagline || '')
           setLocation(pc.brand.location || ''); setEmoji(pc.brand.emoji || '📡')
-          setPhone(pc.brand.support_phone || ''); setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
+          setPhone(pc.brand.support_phone || '')
+          if (pc.brand.logo_data && pc.brand.logo_data.startsWith('data:')) {
+            setStickerDataUrl(pc.brand.logo_data)
+            setLogoUrl(pc.brand.logo_data)
+          } else {
+            setLogoUrl(toAbsoluteUrl(pc.brand.logo_url))
+          }
           setSupportEmail(pc.brand.support_email || ''); setWhatsapp(pc.brand.whatsapp || '')
           setWebsiteUrl(pc.brand.website_url || '')
           setFacebookUrl(pc.brand.facebook_url || ''); setTwitterUrl(pc.brand.twitter_url || '')

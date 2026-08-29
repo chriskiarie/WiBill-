@@ -67,6 +67,7 @@ class BrandConfig(BaseModel):
     whatsapp: str = ""
     website_url: str = ""
     logo_url: str | None = None
+    logo_data: str | None = None
     hero_title: str = ""
     section_heading: str = ""
     footer_text: str = ""
