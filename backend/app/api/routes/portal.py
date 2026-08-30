@@ -206,7 +206,38 @@ async def preview_portal(template_id: str, request: Request):
                 'font_family': font_family,
                 'card_radius': card_radius,
                 'palette_index': palette_idx
-            }
+            },
+            # Typography
+            'heading_size': params.get('heading_size', '36px'),
+            'body_size': params.get('body_size', '16px'),
+            'font_weight': int(params.get('font_weight', '600')),
+            'letter_spacing': float(params.get('letter_spacing', '0.5')),
+            'heading_case': params.get('heading_case', 'normal'),
+            # Card
+            'card_style': params.get('card_style', 'glass'),
+            'card_elevation': int(params.get('card_elevation', '0')),
+            'card_size': params.get('card_size', 'compact'),
+            # Background
+            'bg_type': params.get('bg_type', 'solid'),
+            'bg_gradient': params.get('bg_gradient', ''),
+            'bg_image': params.get('bg_image', ''),
+            'overlay_opacity': float(params.get('overlay_opacity', '0.4')),
+            'overlay_color': params.get('overlay_color', '#000000'),
+            # Button
+            'button_style': params.get('button_style', 'rounded'),
+            # Components
+            'components': {
+                'hero': params.get('comp_hero', 'true') == 'true',
+                'logo': params.get('comp_logo', 'true') == 'true',
+                'footer': params.get('comp_footer', 'true') == 'true',
+                'vouchers': params.get('comp_vouchers', 'true') == 'true',
+                'saved_number_login': params.get('comp_saved_number_login', 'true') == 'true',
+            },
+            # Animations
+            'animations': {
+                'entrance': params.get('anim_entrance', 'fade-in'),
+                'floating_logo': params.get('anim_floating_logo', 'false') == 'true',
+            },
         }
         
         # Render ACTUAL template file
@@ -573,7 +604,29 @@ async def get_live_portal(
         'palette': palette,
         'font': font,
         'radius': radius,
-        'design': { 'font_family': font, 'card_radius': radius, 'palette_index': palette_idx }
+        'design': { 'font_family': font, 'card_radius': radius, 'palette_index': palette_idx },
+        # Typography
+        'heading_size': f"{typography.get('heading_size', 36)}px",
+        'body_size': f"{typography.get('body_size', 16)}px",
+        'font_weight': typography.get('font_weight', 600),
+        'letter_spacing': typography.get('letter_spacing', 0.5),
+        'heading_case': typography.get('heading_case', 'normal'),
+        # Card
+        'card_style': card.get('style', 'glass'),
+        'card_elevation': card.get('elevation', 0),
+        'card_size': card.get('size', 'compact'),
+        # Theme / Background
+        'bg_type': theme.get('background_type', 'solid'),
+        'bg_gradient': theme.get('gradient', ''),
+        'bg_image': theme.get('background_url', ''),
+        'overlay_opacity': theme.get('overlay_opacity', 0.4),
+        'overlay_color': theme.get('overlay_color', '#000000'),
+        'button_style': theme.get('button_style', 'rounded'),
+        'button_gradient': theme.get('button_gradient', ''),
+        # Components
+        'components': portal_config.get('components', {}),
+        # Animations
+        'animations': portal_config.get('animations', {}),
     }
     
     try:

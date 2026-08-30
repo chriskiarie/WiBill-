@@ -72,10 +72,27 @@
             --bg-img: none;
             --show-bg: 0;
             --ov-blur: 0px;
+            /* Typography */
+            --heading-size: {{ heading_size or '36px' }};
+            --body-size: {{ body_size or '16px' }};
+            --font-weight: {{ font_weight or 600 }};
+            --letter-spacing: {{ letter_spacing or 0.5 }}px;
+            --heading-case: {{ heading_case or 'normal' }};
+            /* Card */
+            --card-elevation: {{ card_elevation or 0 }};
+            --card-padding: {% if card_size == 'large' %}20px{% elif card_size == 'comfortable' %}14px{% else %}12px{% endif %};
+            /* Button */
+            --btn-radius: {% if button_style == 'pill' %}99px{% elif button_style == 'sharp' %}0px{% else %}var(--r){% endif %};
+            /* Overlay */
+            --ov-color: {{ overlay_color or '#000000' }};
+            --ov-opacity: {{ overlay_opacity or 0.4 }};
         }
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        html{font-size:16px;-webkit-font-smoothing:antialiased}
+        html{font-size:{{ body_size or '16' }}px;-webkit-font-smoothing:antialiased}
         body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        {% if bg_type == 'gradient' and bg_gradient %}
+        body{background:{{ bg_gradient }}}
+        {% endif %}
 
         /* Background image */
         body::after {
@@ -86,6 +103,8 @@
         }
         body>.bg-overlay{
             position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:var(--ov-color);
+            opacity:calc(var(--show-bg) * var(--ov-opacity));
             backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));
             display:calc(var(--show-bg) * block);
         }
@@ -158,7 +177,7 @@
         }
         .lp-logo.has-logo{background:transparent;border-radius:0;border:none;backdrop-filter:none}
         .lp-logo img{width:100%;height:100%;object-fit:contain}
-        .lp-name{font-size:1.8rem;font-weight:800;color:var(--white);letter-spacing:-.02em;margin-bottom:.4rem}
+        .lp-name{font-size:var(--heading-size);font-weight:var(--font-weight);color:var(--white);letter-spacing:var(--letter-spacing)px;margin-bottom:.4rem;text-transform:var(--heading-case)}
         .lp-tag{font-size:.85rem;color:rgba(255,255,255,.7);font-weight:500;margin-bottom:1.5rem}
         .lp-loc{font-size:.8rem;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;justify-content:center}
 
@@ -182,19 +201,54 @@
             backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
             border-bottom:1px solid var(--border);
         }
-        .rp-title{font-size:1rem;font-weight:700;letter-spacing:-.01em}
+        .rp-title{font-size:var(--heading-size);font-weight:var(--font-weight);letter-spacing:var(--letter-spacing)px;text-transform:var(--heading-case)}
         .rp-sub{font-size:.75rem;color:var(--dim);margin-top:2px}
 
         .rp-content{padding:1.2rem;flex:1;display:flex;flex-direction:column;gap:10px}
 
+        /* Entrance animations */
+        {% if animations and animations.get('entrance') %}
+        {% set entrance = animations.get('entrance', 'fade-in') %}
+        @keyframes entranceAnim {
+            {% if entrance == 'slide-up' %}
+            from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}
+            {% elif entrance == 'slide-left' %}
+            from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}
+            {% elif entrance == 'scale-in' %}
+            from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}
+            {% else %}
+            from{opacity:0}to{opacity:1}
+            {% endif %}
+        }
+        .row{animation:entranceAnim .4s ease both}
+        .row:nth-child(1){animation-delay:.05s}
+        .row:nth-child(2){animation-delay:.1s}
+        .row:nth-child(3){animation-delay:.15s}
+        .row:nth-child(4){animation-delay:.2s}
+        .row:nth-child(5){animation-delay:.25s}
+        .row:nth-child(6){animation-delay:.3s}
+        {% endif %}
+
         /* ── Package Row ── */
         .row{
             display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
-            padding:14px 16px;background:var(--surface);border:1px solid var(--border);
+            padding:var(--card-padding);background:var(--surface);border:1px solid var(--border);
             border-radius:var(--r);transition:all .2s;cursor:pointer;
             position:relative;overflow:hidden;
+            {% if card_elevation > 0 %}box-shadow:0 {{ card_elevation }}px {{ card_elevation * 3 }}px rgba(0,0,0,.12);{% endif %}
         }
         .row:hover{border-color:var(--accent);transform:translateX(3px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+        /* Card style variations */
+        {% if card_style == 'glass' %}
+        .row{background:rgba(255,255,255,.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        {% elif card_style == 'outline' %}
+        .row{background:transparent;border:1.5px solid var(--border)}
+        {% elif card_style == 'minimal' %}
+        .row{background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding-left:0;padding-right:0}
+        {% elif card_style == 'floating' %}
+        .row{box-shadow:0 4px 20px rgba(0,0,0,.15);border:none}
+        .row:hover{box-shadow:0 8px 30px rgba(0,0,0,.2)}
+        {% endif %}
         .row.feat{border-color:var(--accent);background:linear-gradient(90deg,var(--surface),rgba({{ palette.primary }},.04))}
         .row.feat::before{
             content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
@@ -247,7 +301,7 @@
 
         .act-btn-wrap{display:flex;justify-content:center;margin-top:2px}
         .act-btn{
-            width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+            width:48px;height:48px;border-radius:var(--btn-radius);border:none;cursor:pointer;
             background:linear-gradient(135deg,var(--accent),var(--accent2));
             color:var(--white);display:flex;align-items:center;justify-content:center;
             box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
@@ -463,6 +517,7 @@
                     <div id="mpesa-msg" class="vm"></div>
                 </div>
 
+                {% if not components or components.get('vouchers', true) %}
                 <div class="vs" id="vbox">
                     <div class="vh">
                         <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
@@ -479,8 +534,9 @@
                     </div>
                     <div id="vmsg" class="vm"></div>
                 </div>
+                {% endif %}
 
-                {% if brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url %}
+                {% if (not components or components.get('footer', true)) and (brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url) %}
                 <div class="ft">
                     {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
                     {% if brand.support_email %} · <a href="mailto:{{ brand.support_email }}">{{ brand.support_email }}</a>{% endif %}

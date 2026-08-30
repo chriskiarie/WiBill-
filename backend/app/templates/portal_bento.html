@@ -62,10 +62,27 @@
             --bg-img: none;
             --show-bg: 0;
             --ov-blur: 0px;
+            /* Typography */
+            --heading-size: {{ heading_size or '36px' }};
+            --body-size: {{ body_size or '16px' }};
+            --font-weight: {{ font_weight or 600 }};
+            --letter-spacing: {{ letter_spacing or 0.5 }}px;
+            --heading-case: {{ heading_case or 'normal' }};
+            /* Card */
+            --card-elevation: {{ card_elevation or 0 }};
+            --card-padding: {% if card_size == 'large' %}20px{% elif card_size == 'comfortable' %}14px{% else %}12px{% endif %};
+            /* Button */
+            --btn-radius: {% if button_style == 'pill' %}99px{% elif button_style == 'sharp' %}0px{% else %}var(--r){% endif %};
+            /* Overlay */
+            --ov-color: {{ overlay_color or '#000000' }};
+            --ov-opacity: {{ overlay_opacity or 0.4 }};
         }
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        html{font-size:16px;-webkit-font-smoothing:antialiased}
+        html{font-size:{{ body_size or '16' }}px;-webkit-font-smoothing:antialiased}
         body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        {% if bg_type == 'gradient' and bg_gradient %}
+        body{background:{{ bg_gradient }}}
+        {% endif %}
 
         body::before {
             content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -79,7 +96,10 @@
             opacity:var(--show-bg);
             image-rendering:auto;
         }
-        body>.bg-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));display:calc(var(--show-bg) * block)}
+        body>.bg-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;display:calc(var(--show-bg) * block);
+            background:var(--ov-color);
+            opacity:calc(var(--show-bg) * var(--ov-opacity));
+            backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));}
         body>*{position:relative;z-index:1}
         body.has-bg .b,body.has-bg .vs,body.has-bg .rcard,body.has-bg .hero{background:rgba(255,255,255,.08)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.15)!important}
         body.has-bg .tb{background:rgba(255,255,255,.06)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-color:rgba(255,255,255,.1)!important}
@@ -100,14 +120,14 @@
 
         .wrap{max-width:560px;margin:0 auto;padding:14px}
         .hero{text-align:center;padding:12px 0 16px}
-        .hero h1{font-size:1.2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:3px}
+        .hero h1{font-size:var(--heading-size);font-weight:var(--font-weight);letter-spacing:var(--letter-spacing)px;text-transform:var(--heading-case);margin-bottom:3px}
         .hero p{font-size:.8rem;color:var(--dim)}
 
         /* ═══ BENTO GRID ═══ */
         .bento{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
 
         /* Featured card - full width */
-        .b{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:8px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
+        .b{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--card-padding);display:flex;flex-direction:column;gap:8px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
         .b:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
         .b.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba({{ palette.primary }},.04))}
         .b.feat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
@@ -167,7 +187,7 @@
 
         .act-btn-wrap{display:flex;justify-content:center;margin-top:2px}
         .act-btn{
-            width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+            width:48px;height:48px;border-radius:var(--btn-radius);border:none;cursor:pointer;
             background:linear-gradient(135deg,var(--accent),var(--accent2));
             color:var(--white);display:flex;align-items:center;justify-content:center;
             box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
@@ -291,6 +311,28 @@
             .b.feat .b-price-val{font-size:1.3rem}
             .act-btn{width:44px;height:44px}.act-btn svg{width:16px;height:16px}
         }
+
+        {% if animations and animations.get('entrance') %}
+        {% set entrance = animations.get('entrance', 'fade-in') %}
+        @keyframes entranceAnim {
+            {% if entrance == 'slide-up' %}
+            from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}
+            {% elif entrance == 'slide-left' %}
+            from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}
+            {% elif entrance == 'scale-in' %}
+            from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}
+            {% else %}
+            from{opacity:0}to{opacity:1}
+            {% endif %}
+        }
+        .b{animation:entranceAnim .4s ease both}
+        .b:nth-child(1){animation-delay:.05s}
+        .b:nth-child(2){animation-delay:.1s}
+        .b:nth-child(3){animation-delay:.15s}
+        .b:nth-child(4){animation-delay:.2s}
+        .b:nth-child(5){animation-delay:.25s}
+        .b:nth-child(6){animation-delay:.3s}
+        {% endif %}
     </style>
 </head>
 <body>
@@ -363,6 +405,7 @@
                 <div id="mpesa-msg" class="vm"></div>
             </div>
 
+            {% if not components or components.get('vouchers', true) %}
             <div class="vs" id="vbox">
                 <div class="vh">
                     <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
@@ -379,8 +422,9 @@
                 </div>
                 <div id="vmsg" class="vm"></div>
             </div>
+            {% endif %}
 
-            {% if brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url %}
+            {% if (not components or components.get('footer', true)) and (brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url) %}
             <div class="ft">
                 {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
                 {% if brand.support_email %} · <a href="mailto:{{ brand.support_email }}">{{ brand.support_email }}</a>{% endif %}

@@ -62,10 +62,27 @@
             --bg-img: none;
             --show-bg: 0;
             --ov-blur: 0px;
+            /* Typography */
+            --heading-size: {{ heading_size or '36px' }};
+            --body-size: {{ body_size or '16px' }};
+            --font-weight: {{ font_weight or 600 }};
+            --letter-spacing: {{ letter_spacing or 0.5 }}px;
+            --heading-case: {{ heading_case or 'normal' }};
+            /* Card */
+            --card-elevation: {{ card_elevation or 0 }};
+            --card-padding: {% if card_size == 'large' %}20px{% elif card_size == 'comfortable' %}14px{% else %}12px{% endif %};
+            /* Button */
+            --btn-radius: {% if button_style == 'pill' %}99px{% elif button_style == 'sharp' %}0px{% else %}var(--r){% endif %};
+            /* Overlay */
+            --ov-color: {{ overlay_color or '#000000' }};
+            --ov-opacity: {{ overlay_opacity or 0.4 }};
         }
         *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-        html{font-size:16px;-webkit-font-smoothing:antialiased}
+        html{font-size:{{ body_size or '16' }}px;-webkit-font-smoothing:antialiased}
         body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        {% if bg_type == 'gradient' and bg_gradient %}
+        body{background:{{ bg_gradient }}}
+        {% endif %}
 
         body::before {
             content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -79,7 +96,7 @@
             opacity:var(--show-bg);
             image-rendering:auto;
         }
-        body>.bg-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));display:calc(var(--show-bg) * block)}
+        body>.bg-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--ov-color);opacity:calc(var(--show-bg) * var(--ov-opacity));backdrop-filter:blur(var(--ov-blur));-webkit-backdrop-filter:blur(var(--ov-blur));display:calc(var(--show-bg) * block)}
         body>*{position:relative;z-index:1}
         body.has-bg .c,body.has-bg .hero,body.has-bg .recon-card,body.has-bg .vs{background:rgba(255,255,255,.08)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.15)!important}
         body.has-bg .tb{background:rgba(255,255,255,.06)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-color:rgba(255,255,255,.1)!important}
@@ -103,7 +120,7 @@
         .hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:99px;font-size:.65rem;color:var(--white);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;order:2}
         .hero-emoji{font-size:2.8rem;margin-bottom:12px;display:block;animation:bounce 4s ease-in-out infinite;order:1}
         @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-        .hero h1{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;order:3}
+        .hero h1{font-size:var(--heading-size);font-weight:var(--font-weight);letter-spacing:var(--letter-spacing)px;text-transform:var(--heading-case);margin-bottom:4px;order:3}
         .hero p{font-size:.9rem;color:var(--dim);order:4}
         .hero-loc{font-size:.8rem;color:var(--dim);margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px;order:5}
 
@@ -117,8 +134,30 @@
         .grid.n3 .c{grid-column:span 1}
         @media(max-width:419px){.grid.n3{grid-template-columns:1fr 1fr}.grid.n3 .c:last-child:nth-child(odd){grid-column:1/-1}}
 
+        {% if animations and animations.get('entrance') %}
+        {% set entrance = animations.get('entrance', 'fade-in') %}
+        @keyframes entranceAnim {
+            {% if entrance == 'slide-up' %}
+            from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}
+            {% elif entrance == 'slide-left' %}
+            from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}
+            {% elif entrance == 'scale-in' %}
+            from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}
+            {% else %}
+            from{opacity:0}to{opacity:1}
+            {% endif %}
+        }
+        .c{animation:entranceAnim .4s ease both}
+        .c:nth-child(1){animation-delay:.05s}
+        .c:nth-child(2){animation-delay:.1s}
+        .c:nth-child(3){animation-delay:.15s}
+        .c:nth-child(4){animation-delay:.2s}
+        .c:nth-child(5){animation-delay:.25s}
+        .c:nth-child(6){animation-delay:.3s}
+        {% endif %}
+
         /* ── Package Card ── */
-        .c{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
+        .c{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--card-padding);display:flex;flex-direction:column;gap:8px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer}
         .c:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
         .c.feat{border-color:var(--accent);background:linear-gradient(135deg,var(--surface),rgba({{ palette.primary }},.04))}
         .cb{position:absolute;top:8px;right:8px;padding:2px 7px;background:var(--accent);color:var(--white);border-radius:99px;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
@@ -158,7 +197,7 @@
         /* ── Circular Button ── */
         .act-btn-wrap{display:flex;justify-content:center;margin-top:4px}
         .act-btn{
-            width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+            width:52px;height:52px;border-radius:var(--btn-radius);border:none;cursor:pointer;
             background:linear-gradient(135deg,var(--accent),var(--accent2));
             color:var(--white);display:flex;align-items:center;justify-content:center;
             box-shadow:0 4px 16px rgba({{ palette.primary }},.3);
@@ -373,6 +412,7 @@
                 <div id="mpesa-msg" class="vm"></div>
             </div>
 
+            {% if not components or components.get('vouchers', true) %}
             <div class="vs" id="vbox">
                 <div class="vh">
                     <div class="vi"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
@@ -389,10 +429,11 @@
                 </div>
                 <div id="vmsg" class="vm"></div>
             </div>
+            {% endif %}
         </div>
     </div>
 
-    {% if brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url %}
+    {% if (not components or components.get('footer', true)) and (brand.footer_text or brand.terms_url or brand.support_email or brand.whatsapp or brand.website_url or brand.facebook_url or brand.twitter_url or brand.instagram_url) %}
     <div class="ft">
         {% if brand.footer_text %}{{ brand.footer_text }}{% endif %}
         {% if brand.support_email %} · <a href="mailto:{{ brand.support_email }}">{{ brand.support_email }}</a>{% endif %}

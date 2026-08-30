@@ -190,11 +190,38 @@ export default function PortalWizard() {
     return `rgba(${r},${g},${b},${alpha})`
   }
 
+  const cfg = buildConfig()
   const previewParams = new URLSearchParams({
     palette: String(palette), font, name: name || 'Your WiFi',
     emoji: emoji || '📡', tag: tagline, loc: location, phone,
     hero_title: heroTitle || '', section_heading: sectionHeading || '',
     primary: primaryColor || '', secondary: secondaryColor || '', accent: accentColor || '',
+    // Typography
+    heading_size: `${cfg.typography.heading_size}px`,
+    body_size: `${cfg.typography.body_size}px`,
+    font_weight: String(cfg.typography.font_weight),
+    letter_spacing: String(cfg.typography.letter_spacing),
+    heading_case: cfg.typography.heading_case,
+    // Card
+    card_style: cfg.card.style,
+    card_elevation: String(cfg.card.elevation),
+    card_size: cfg.card.size,
+    // Background
+    bg_type: cfg.theme.background_type,
+    bg_gradient: cfg.theme.gradient || '',
+    bg_image: cfg.theme.background_url || '',
+    overlay_opacity: String(cfg.theme.overlay_opacity),
+    overlay_color: cfg.theme.overlay_color,
+    // Button
+    button_style: cfg.theme.button_style,
+    // Components
+    comp_hero: String(cfg.components.hero),
+    comp_footer: String(cfg.components.footer),
+    comp_vouchers: String(cfg.enabled_features.vouchers),
+    comp_saved_number_login: String(cfg.components.saved_number_login),
+    // Animations
+    anim_entrance: cfg.animations.entrance,
+    anim_floating_logo: String(cfg.animations.floating_logo),
   })
   if (livePackages.length > 0) {
     const pkgsJson = JSON.stringify(livePackages.filter((p: any) => p.is_active !== false).map((p: any) => ({
@@ -338,7 +365,7 @@ export default function PortalWizard() {
     return () => clearTimeout(timer)
   }, [tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl])
 
-  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${supportEmail}-${whatsapp}-${websiteUrl}-${facebookUrl}-${twitterUrl}-${instagramUrl}-${heroTitle}-${sectionHeading}-${footerText}-${termsUrl}-${logoUrl}-${selectedSticker || ''}`
+  const previewKey = `${tpl}-${palette}-${font}-${name}-${tagline}-${location}-${emoji}-${phone}-${supportEmail}-${whatsapp}-${websiteUrl}-${facebookUrl}-${twitterUrl}-${instagramUrl}-${heroTitle}-${sectionHeading}-${footerText}-${termsUrl}-${logoUrl}-${selectedSticker || ''}-${JSON.stringify(cfg.theme)}-${JSON.stringify(cfg.typography)}-${JSON.stringify(cfg.card)}-${JSON.stringify(cfg.components)}-${JSON.stringify(cfg.animations)}`
 
   useEffect(() => {
     const iframe = iframeRef.current
