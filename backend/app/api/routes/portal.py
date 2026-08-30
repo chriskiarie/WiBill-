@@ -2,8 +2,11 @@
 app/api/routes/portal.py - Serves rendered portal HTML
 Uses Jinja2 (PortalRenderer) to render ACTUAL templates with LIVE data from the wizard!
 """
+import base64
 import json
 import logging
+import mimetypes
+from pathlib import Path
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import HTMLResponse
@@ -492,12 +495,43 @@ async def get_live_portal(
         brand['logo_url'] = logo_data
     else:
         logo = brand.get('logo_url')
-        if logo:
-            normalized = _normalize_logo_url(logo, request)
-            if normalized:
-                brand['logo_url'] = normalized
+        if logo and not logo.startswith('data:') and not logo.startswith('blob:'):
+            # Lazy migration: if logo_url is a file path and logo_data is missing,
+            # try to read the file and convert to base64 so it survives deploys.
+            file_path = None
+            if logo.startswith("/uploads/") or logo.startswith("\\uploads\\"):
+                rel = logo.replace("\\", "/").lstrip("/")
+                file_path = Path(rel)
+            elif "/uploads/" in logo:
+                idx = logo.index("/uploads/")
+                file_path = Path(logo[idx:].lstrip("/"))
+            if file_path and file_path.exists():
+                try:
+                    mime, _ = mimetypes.guess_type(str(file_path))
+                    mime = mime or "image/png"
+                    raw = file_path.read_bytes()
+                    b64 = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+                    brand['logo_url'] = b64
+                    # Persist logo_data back to DB so this migration is one-time
+                    portal_config.setdefault('brand', {})['logo_data'] = b64
+                    tenant.portal_config = portal_config
+                    # Fire-and-forget DB write (best-effort)
+                    try:
+                        await db.commit()
+                    except Exception:
+                        pass
+                except Exception:
+                    normalized = _normalize_logo_url(logo, request)
+                    if normalized:
+                        brand['logo_url'] = normalized
+                    else:
+                        brand.pop('logo_url', None)
             else:
-                brand.pop('logo_url', None)
+                normalized = _normalize_logo_url(logo, request)
+                if normalized:
+                    brand['logo_url'] = normalized
+                else:
+                    brand.pop('logo_url', None)
     network = portal_config.get('network_awareness', {}) or {}
     theme = portal_config.get('theme', {}) or {}
     typography = portal_config.get('typography', {}) or {}

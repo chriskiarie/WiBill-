@@ -297,6 +297,40 @@ export default function PortalWizard() {
     if (token) { loadConfig(); loadSnapshots(); fetchLivePackages() }
   }, [token])
 
+  // Auto-migrate: if config has logo_url (file) but no logo_data (base64),
+  // fetch the image, convert to base64, and re-save so the logo persists
+  // across Railway deploys (ephemeral filesystem).
+  useEffect(() => {
+    if (loadingConfig || !token || !hasSavedConfig) return
+    async function migrateLogo() {
+      // Only migrate if logo_url is a file path and logo_data is missing
+      if (!logoUrl || logoUrl.startsWith('data:') || logoUrl.startsWith('blob:')) return
+      try {
+        const res = await fetch(logoUrl)
+        if (!res.ok) return
+        const blob = await res.blob()
+        const reader = new FileReader()
+        const dataUrl = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(blob)
+        })
+        if (!dataUrl.startsWith('data:')) return
+        // Update local state
+        setLogoUrl(dataUrl)
+        setStickerDataUrl(dataUrl)
+        // Auto-save with logo_data
+        const config = buildConfig()
+        config.brand.logo_data = dataUrl
+        await fetch(`${API}/api/portal-config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(config),
+        })
+      } catch { /* file doesn't exist or fetch failed — user must re-upload */ }
+    }
+    migrateLogo()
+  }, [loadingConfig, hasSavedConfig, token, logoUrl])
+
   useEffect(() => {
     const timer = setTimeout(() => {
       localStorage.setItem('wb_portal_draft', JSON.stringify({ tpl, palette, font, name, tagline, location, emoji, phone, supportEmail, whatsapp, websiteUrl, facebookUrl, twitterUrl, instagramUrl, heroTitle, sectionHeading, footerText, termsUrl, primaryColor, secondaryColor, accentColor, logoUrl: logoUrl && !logoUrl.startsWith('blob:') ? logoUrl : null }))

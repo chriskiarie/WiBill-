@@ -1,7 +1,11 @@
 """Portal Design Studio API routes."""
 
+import base64
 import json
+import mimetypes
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import Response, StreamingResponse
@@ -205,6 +209,31 @@ async def save_portal_config(
     brand_data = data.brand.model_dump()
     if not brand_data.get('support_number') and brand_data.get('support_phone'):
         brand_data['support_number'] = brand_data['support_phone']
+
+    # If logo_url is a file path but logo_data is missing, try to read the
+    # file and convert to base64 so the logo survives ephemeral filesystems
+    # (e.g. Railway deploys where /uploads/ is wiped each time).
+    if not brand_data.get('logo_data') and brand_data.get('logo_url'):
+        logo_url = brand_data['logo_url']
+        if not logo_url.startswith('data:') and not logo_url.startswith('blob:'):
+            # Resolve the file path — could be relative (/uploads/...) or absolute
+            uploads_dir = Path("uploads") / str(tenant_id) / "assets"
+            if logo_url.startswith("/uploads/") or logo_url.startswith("\\uploads\\"):
+                rel = logo_url.replace("\\", "/").lstrip("/")
+                file_path = Path(rel)
+            elif "/uploads/" in logo_url:
+                idx = logo_url.index("/uploads/")
+                file_path = Path(logo_url[idx:].lstrip("/"))
+            else:
+                file_path = uploads_dir / Path(logo_url).name
+            try:
+                if file_path.exists():
+                    mime, _ = mimetypes.guess_type(str(file_path))
+                    mime = mime or "image/png"
+                    raw = file_path.read_bytes()
+                    brand_data['logo_data'] = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+            except Exception:
+                pass  # best-effort; will fall back to emoji in template
     portal_config = {
         "version": "2.0",
         "template_id": data.template_id,
