@@ -597,6 +597,17 @@ MIGRATIONS = [
 
 async def run_migrations():
     logger.info("=== Running schema migrations ===")
+
+    # Step 1: Create all base tables from SQLAlchemy models (idempotent).
+    # This handles fresh databases where Alembic has never run.
+    from app.models import __init__  # noqa — ensure all models are registered
+    from app.core.database import Base
+    async with engine.begin() as conn:
+        logger.info("  Creating base tables from models (if not exist)...")
+        await conn.run_sync(Base.metadata.create_all)
+        logger.info("  ✓ Base tables ensured")
+
+    # Step 2: Apply ALTER TABLE migrations for newer columns/tables.
     async with engine.begin() as conn:
         for name, sql in MIGRATIONS:
             try:
