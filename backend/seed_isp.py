@@ -55,6 +55,11 @@ async def seed(
     engine = create_async_engine(db_url, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+    # Create all tables from models (idempotent)
+    from app.core.database import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     async with async_session() as db:
         # ── 1. Platform Admin ──
         result = await db.execute(select(AdminUser).where(AdminUser.email == email))
